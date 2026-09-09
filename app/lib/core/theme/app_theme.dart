@@ -22,13 +22,50 @@ class AppTheme {
     );
     return ThemeData(
       colorScheme: scheme,
-      visualDensity: VisualDensity.adaptivePlatformDensity,
+      // NOT adaptivePlatformDensity: on desktop that resolves to compact
+      // (-1, -1), which shrinks every control and label — the opposite of what
+      // a 1300px-wide window needs. One standard density on all targets.
+      visualDensity: VisualDensity.standard,
+      appBarTheme: AppBarTheme(
+        centerTitle: false,
+        elevation: 0,
+        // A hairline instead of a shadow, so the bar reads as part of the page
+        // until content scrolls under it.
+        scrolledUnderElevation: 1,
+        backgroundColor: scheme.surface,
+        shape: Border(bottom: BorderSide(color: scheme.outlineVariant)),
+        titleTextStyle: TextStyle(
+          color: scheme.onSurface,
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
       cardTheme: CardThemeData(
         clipBehavior: Clip.antiAlias,
         elevation: 0,
+        // Cards sat on `surface` and were the same tint as the page, so they
+        // read as flat regions rather than cards. `surfaceContainerLowest` is
+        // the M3 role for "lifted above the background" — same palette, one
+        // step of separation.
+        color: scheme.surfaceContainerLowest,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: scheme.outlineVariant),
+        ),
+      ),
+      // Default buttons are sized for a thumb on a phone and look like stray
+      // chips on a monitor. 48dp high keeps the tap target and reads as a CTA.
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(0, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(0, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
         ),
       ),
       inputDecorationTheme: const InputDecorationTheme(
