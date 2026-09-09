@@ -99,4 +99,66 @@ FR-01 The system shall let the student upload an SRS document.
       isEmpty,
     );
   });
+
+  // Regression: a real FPTU capstone SRS (OTES, 2020) uses a two-page
+  // use-case table per use case — Actor/Summary/Goal/.../Main success
+  // scenario/Exceptions/Business Rules. The id ("UC01") lands on the first
+  // page and the scenario table lands on the second. Flushing the buffer at
+  // the end of every page (the original implementation) dropped 80-97% of
+  // real use-case text across that document because the id's own page never
+  // contains the scenario table. Verified with `pdftotext -f N -l N` against
+  // the real PDF before writing this test.
+  test('keeps a use case whole when its table spans two PDF pages', () {
+    final items = splitter.split([
+      '''
+USE CASE – UC01
+Use Case No.
+UC01
+Use Case Name
+Login
+Preconditions:
+''',
+      '''
+N/A.
+Main success scenario:
+Step
+Actor Action
+System Response
+1
+User goes to the login view.
+The system sends a login command to Google.
+2
+User inputs information.
+3
+User sends command to login to system
+''',
+    ]);
+
+    final uc01 = items.single;
+    expect(uc01.id, 'UC-01');
+    // The starting page, not the page the table happens to finish on — so
+    // "jump to page" still lands where the use case begins.
+    expect(uc01.pageIndex, 0);
+    expect(uc01.text, contains('Login'));
+    expect(uc01.text, contains('User goes to the login view'));
+    expect(uc01.text, contains('User sends command to login to system'));
+  });
+
+  test('a bare Figure/Table caption line closes the current item instead of '
+      'being absorbed into it', () {
+    final items = splitter.split([
+      '''
+UC01 Login
+Some use case body text.
+Table 9.
+Figure 3.
+2.3.2 Next Section Heading
+UC02 Raise hand
+''',
+    ]);
+
+    expect(items.map((i) => i.id), ['UC-01', 'UC-02']);
+    expect(items.first.text, isNot(contains('Figure 3')));
+    expect(items.first.text, isNot(contains('Table 9')));
+  });
 }

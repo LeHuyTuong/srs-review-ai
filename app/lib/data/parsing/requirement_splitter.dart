@@ -21,6 +21,16 @@ class RequirementSplitter {
     caseSensitive: false,
   );
   static final RegExp _tocLine = RegExp(r'\.{4,}\s*\d+\s*$|\t+\d+\s*$');
+  // A figure/table caption that landed alone on its own line — verified
+  // against a real capstone SRS, where Word's caption number and its text
+  // get reordered by PDF text extraction and the number ends up isolated.
+  // Deliberately narrower than "any bare N.N line": a bare-number pattern
+  // like `^\d+(?:\.\d+)+$` also matches a stray "2.0" from a Use Case
+  // Version cell and truncated real content when tried.
+  static final RegExp _bareCaption = RegExp(
+    r'^(?:Figure|Table)\s+\d+\.?$',
+    caseSensitive: false,
+  );
   static final RegExp _modal = RegExp(
     r'\b(shall|must)\b|hệ thống phải|người dùng phải',
     caseSensitive: false,
@@ -48,34 +58,42 @@ class RequirementSplitter {
       }
     }
 
-    for (var pageIndex = 0; pageIndex < pageTexts.length; pageIndex++) {
-      String? section;
-      String? pendingId;
-      String? pendingSection;
-      final buffer = <String>[];
+    // Deliberately NOT reset per page. A real use-case table (Actor/Summary/
+    // Goal/.../Main success scenario/Exceptions/Business Rules) routinely
+    // spans several PDF pages — verified against an actual FPTU capstone SRS,
+    // where flushing per page dropped 80-97% of a use case's text because the
+    // step table almost always starts on the page after the id. `pageIndex`
+    // is still recorded at the point an id first opens, so "jump to page"
+    // still points at the right place.
+    String? section;
+    String? pendingId;
+    String? pendingSection;
+    var pendingPageIndex = 0;
+    final buffer = <String>[];
 
-      void flush() {
-        if (pendingId == null) {
-          buffer.clear();
-          return;
-        }
-        final text = buffer.join(' ').replaceAll(RegExp(r'\s+'), ' ').trim();
-        if (text.isNotEmpty) {
-          add(
-            RequirementItem(
-              id: pendingId!,
-              text: text,
-              kind: _kindFor(pendingId!),
-              section: pendingSection,
-              pageIndex: pageIndex,
-            ),
-          );
-        }
-        pendingId = null;
-        pendingSection = null;
+    void flush() {
+      if (pendingId == null) {
         buffer.clear();
+        return;
       }
+      final text = buffer.join(' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+      if (text.isNotEmpty) {
+        add(
+          RequirementItem(
+            id: pendingId!,
+            text: text,
+            kind: _kindFor(pendingId!),
+            section: pendingSection,
+            pageIndex: pendingPageIndex,
+          ),
+        );
+      }
+      pendingId = null;
+      pendingSection = null;
+      buffer.clear();
+    }
 
+    for (var pageIndex = 0; pageIndex < pageTexts.length; pageIndex++) {
       for (final rawLine in pageTexts[pageIndex].split('\n')) {
         final line = rawLine.trim();
         if (line.isEmpty) continue;
@@ -86,6 +104,7 @@ class RequirementSplitter {
           flush();
           pendingId = _canonicalId(idMatch.group(1)!);
           pendingSection = section;
+          pendingPageIndex = pageIndex;
           final remainder = line.substring(idMatch.end).trim();
           if (remainder.isNotEmpty) buffer.add(remainder);
           continue;
@@ -95,6 +114,11 @@ class RequirementSplitter {
         if (headingMatch != null) {
           flush();
           section = headingMatch.group(1);
+          continue;
+        }
+
+        if (_bareCaption.hasMatch(line)) {
+          flush();
           continue;
         }
 
@@ -131,8 +155,8 @@ class RequirementSplitter {
           );
         }
       }
-      flush();
     }
+    flush();
 
     return ordered.map((id) => collected[id]!).toList(growable: false);
   }

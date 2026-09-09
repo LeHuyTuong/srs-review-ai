@@ -278,19 +278,28 @@ class TransactionCounter {
     'gửi', 'đăng nhập', 'đăng ký', 'tải lên', 'tải về', 'kiểm tra',
   ];
 
-  static final RegExp _numberedStep = RegExp(r'(?:^|\s)(\d{1,2})[.)]\s+\S');
+  // Two shapes for a numbered step, both verified against a real capstone
+  // SRS: "1. Do X" when authored as prose, or a bare "1" followed by a
+  // capitalized action — the shape a Step/Actor Action/System Response table
+  // takes once its cells are flattened to lines and rejoined with spaces
+  // (`buffer.join(' ')` in RequirementSplitter turns "1\nUser goes..." into
+  // "1 User goes..." — no period survives). Must run on the ORIGINAL case:
+  // the capital-letter test is meaningless after `toLowerCase()`.
+  static final RegExp _numberedStep = RegExp(
+    r'(?:^|\s)(\d{1,2})(?:[.)]\s+\S|\s+(?=\p{Lu}))',
+    unicode: true,
+  );
 
   /// Counts distinct transaction cues; numbered steps win when present because
   /// a numbered main flow is the most explicit signal a document can give.
   static int count(String text) {
-    final lowered = text.toLowerCase();
-
     final steps = _numberedStep
-        .allMatches(lowered)
+        .allMatches(text)
         .map((m) => int.parse(m.group(1)!))
         .toSet();
     if (steps.length >= 2) return steps.length;
 
+    final lowered = text.toLowerCase();
     var hits = 0;
     for (final cue in _cues) {
       if (cue.contains(' ')) {

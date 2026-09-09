@@ -178,6 +178,24 @@ void main() {
       );
     });
 
+    // Regression: RequirementSplitter joins lines with a single space
+    // (`buffer.join(' ')`), so a Step/Actor Action/System Response table
+    // whose cells were each their own line — the real shape of a Word
+    // use-case table once flattened to text — reads as "1 User goes ..."
+    // with NO period after the digit, not "1. User goes ...". Verified
+    // against a real capstone SRS (OTES) via pdftotext.
+    test('counts a numbered flow flattened from a table (no period)', () {
+      expect(
+        TransactionCounter.count(
+          'Step Actor Action System Response '
+          '1 User goes to the login view. The system sends a login command. '
+          '2 User inputs information. '
+          '3 User sends command to login to system',
+        ),
+        3,
+      );
+    });
+
     test('counts Vietnamese action cues too', () {
       expect(
         TransactionCounter.count(
