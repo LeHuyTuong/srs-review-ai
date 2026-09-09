@@ -1,0 +1,14 @@
+{
+  "contract_version": "1.0.0",
+  "answer": "Section 3.2 lists four functional requirements (FR-01..FR-04) covering login, submission, review and export.",
+  "grounded": true,
+  "citations": [
+    {
+      "quote": "3.2 Functional Requirements",
+      "verification": "exact",
+      "page_index": 11
+    }
+  ],
+  "model": "gemini-2.5-flash-lite",
+  "mock": false
+}

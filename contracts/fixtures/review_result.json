@@ -1,0 +1,28 @@
+{
+  "contract_version": "1.0.0",
+  "requirement_id": "FR-03",
+  "score": 6,
+  "issues": [
+    {
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "The system should respond quickly",
+      "suggestion": "Replace 'quickly' with a measurable threshold, e.g. 'respond within 2s for 95% of requests under 100 concurrent users'.",
+      "verification": "exact",
+      "similarity": null
+    },
+    {
+      "type": "untestable",
+      "severity": "medium",
+      "quote": "the user interface must be friendly",
+      "suggestion": "Define an acceptance criterion, e.g. 'a first-time user completes the submit flow in under 3 steps without help'.",
+      "verification": "fuzzy",
+      "similarity": 0.94
+    }
+  ],
+  "context_note": "Page 12 contains a use case diagram with 4 actors; not scored.",
+  "dropped_issue_count": 1,
+  "model": "gemini-2.5-flash-lite",
+  "cached": false,
+  "mock": false
+}

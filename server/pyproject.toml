@@ -1,0 +1,24 @@
+[project]
+name = "srs-review-ai-proxy"
+version = "1.0.0"
+description = "Thin LLM proxy for the SRS Review AI capstone app"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q"
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC", "S"]
+ignore = [
+    "S101", # assert is fine in tests
+    "B008", # FastAPI Depends() in defaults is the documented idiom
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S105", "S106"]

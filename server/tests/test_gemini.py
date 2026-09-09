@@ -1,0 +1,116 @@
+"""Provider-level tests with a stubbed transport — no key, no network."""
+
+from __future__ import annotations
+
+import httpx
+import pytest
+
+from app.config import Settings
+from app.llm.base import LlmError
+from app.llm.gemini import GeminiProvider
+
+SCHEMA = {"type": "object", "properties": {"score": {"type": "integer"}}}
+
+
+def _settings(**kwargs) -> Settings:
+    base = {
+        "gemini_api_key": "test-key",
+        "gemini_model": "gemini-2.5-flash-lite",
+        "gemini_fallback_model": "gemini-2.5-flash",
+        "max_retries": 2,
+        "request_timeout_s": 5,
+    }
+    return Settings(**{**base, **kwargs})
+
+
+def _ok(text: str = '{"score": 7}') -> httpx.Response:
+    return httpx.Response(
+        200, json={"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": text}]}}]}
+    )
+
+
+def _client(handler) -> httpx.AsyncClient:
+    return httpx.AsyncClient(transport=httpx.MockTransport(handler))
+
+
+async def test_happy_path_parses_json_and_reports_model():
+    calls: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return _ok()
+
+    async with _client(handler) as http:
+        provider = GeminiProvider(_settings(), client=http)
+        data, model = await provider.generate_json(system="s", user="u", schema=SCHEMA)
+
+    assert data == {"score": 7}
+    assert model == "gemini-2.5-flash-lite"
+    # key must travel in the header, never in the URL (URLs land in logs)
+    assert calls[0].headers["x-goog-api-key"] == "test-key"
+    assert "test-key" not in str(calls[0].url)
+
+
+async def test_429_retries_then_falls_back_to_the_second_model():
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(str(request.url))
+        if "flash-lite" in str(request.url):
+            return httpx.Response(429, text="quota exceeded")
+        return _ok()
+
+    async with _client(handler) as http:
+        provider = GeminiProvider(_settings(), client=http)
+        _, model = await provider.generate_json(system="s", user="u", schema=SCHEMA)
+
+    assert model == "gemini-2.5-flash"
+    assert sum("flash-lite" in u for u in seen) == 2  # max_retries attempts, then move on
+
+
+async def test_400_is_not_retried():
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(400, text="bad request")
+
+    async with _client(handler) as http:
+        provider = GeminiProvider(_settings(), client=http)
+        with pytest.raises(LlmError):
+            await provider.generate_json(system="s", user="u", schema=SCHEMA)
+
+    assert calls == 1
+
+
+async def test_non_json_body_is_an_error_not_a_crash():
+    async with _client(lambda r: _ok("not json at all")) as http:
+        provider = GeminiProvider(_settings(max_retries=1), client=http)
+        with pytest.raises(LlmError):
+            await provider.generate_json(system="s", user="u", schema=SCHEMA)
+
+
+async def test_missing_key_fails_fast():
+    provider = GeminiProvider(_settings(gemini_api_key=""))
+    with pytest.raises(LlmError):
+        await provider.generate_json(system="s", user="u", schema=SCHEMA)
+
+
+async def test_image_is_attached_as_inline_data():
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json
+
+        captured.update(json.loads(request.content))
+        return _ok()
+
+    async with _client(handler) as http:
+        provider = GeminiProvider(_settings(), client=http)
+        await provider.generate_json(system="s", user="u", schema=SCHEMA, image_b64="AAAA")
+
+    parts = captured["contents"][0]["parts"]
+    assert parts[1]["inline_data"]["mime_type"] == "image/png"
+    assert captured["generationConfig"]["response_mime_type"] == "application/json"
+    assert captured["generationConfig"]["temperature"] == 0.2

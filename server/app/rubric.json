@@ -1,0 +1,33 @@
+{
+  "version": "v2",
+  "syllabus": "SEP490-14065 (QĐ 377/QĐ-ĐHFPT 04/09/2026)",
+  "scope": "SRS quality (Report 3)",
+  "provenance": "Weights are a starting proposal derived from ISO/IEC/IEEE 29148 — the per-item marking sheet used by FPTU graders is internal and NOT public (research 12, §7). Replace these numbers with the supervisor's real rubric when obtained; no code change needed.",
+  "quality_criteria": {
+    "clear": { "weight": 0.3, "source": "ISO/IEC/IEEE 29148 unambiguous" },
+    "testable": { "weight": 0.3, "source": "ISO/IEC/IEEE 29148 verifiable" },
+    "complete": { "weight": 0.25, "source": "ISO/IEC/IEEE 29148 complete + atomic" },
+    "consistent": { "weight": 0.15, "source": "ISO/IEC/IEEE 29148 consistent + singular" }
+  },
+  "deterministic_checks": {
+    "uc_count": {
+      "min": 20,
+      "max": 25,
+      "gate": "Defense requires >=20 completed use cases (syllabus TDA clause)"
+    },
+    "language": {
+      "must": "en",
+      "source": "syllabus: all documents required to write in English"
+    },
+    "uc_size": {
+      "min_transactions": 3,
+      "max_transactions": 7,
+      "source": "syllabus: medium use case = 3-7 transactions (action buttons, end-user interactions, DB transactions)"
+    }
+  },
+  "thresholds": {
+    "pass_mark": 5.0,
+    "min_per_part": 2.0,
+    "warn_score": 6.0
+  }
+}

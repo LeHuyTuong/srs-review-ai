@@ -1,0 +1,7 @@
+# Pinned with compatible-release ranges: patch/minor upgrades are fine, majors are not.
+fastapi~=0.118.0
+uvicorn[standard]~=0.37.0
+pydantic~=2.12.0
+pydantic-settings~=2.11.0
+httpx~=0.28.1
+python-multipart~=0.0.20

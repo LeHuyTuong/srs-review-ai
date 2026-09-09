@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/LeHuyTuong/srs-review-ai/blob/main/contracts/review.schema.json",
+  "title": "SRS Review AI — wire contract",
+  "description": "Single source of truth for the JSON exchanged between the Flutter app and the FastAPI proxy. Both sides are tested against contracts/fixtures/*.json. Bump x-contract-version on any breaking change and update both sides in the same PR.",
+  "x-contract-version": "1.0.0",
+  "$defs": {
+    "IssueType": {
+      "description": "Quality issue vocabulary for the LLM (ISO/IEC/IEEE 29148 flavoured). Deterministic rule checks use $defs/CheckId instead — do not mix the two vocabularies.",
+      "type": "string",
+      "enum": [
+        "ambiguity",
+        "vagueness",
+        "untestable",
+        "incomplete",
+        "inconsistent",
+        "duplicate"
+      ]
+    },
+    "Severity": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "Verification": {
+      "description": "Result of server-side quote verification. 'rejected' issues are DROPPED by the server and never reach the app, so the app only ever sees exact|fuzzy.",
+      "type": "string",
+      "enum": ["exact", "fuzzy"]
+    },
+    "CheckId": {
+      "description": "Deterministic (rule-based, offline, zero-token) checks derived from the SEP490 syllabus.",
+      "type": "string",
+      "enum": ["uc_count", "language", "uc_size"]
+    },
+    "Issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "severity", "quote", "suggestion", "verification"],
+      "properties": {
+        "type": { "$ref": "#/$defs/IssueType" },
+        "severity": { "$ref": "#/$defs/Severity" },
+        "quote": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Verbatim excerpt from the requirement text. Verified server-side before being returned."
+        },
+        "suggestion": { "type": "string", "minLength": 1 },
+        "verification": { "$ref": "#/$defs/Verification" },
+        "similarity": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Fuzzy-match ratio; null when verification == exact."
+        }
+      }
+    },
+    "ReviewResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "requirement_id",
+        "score",
+        "issues",
+        "model",
+        "cached",
+        "mock"
+      ],
+      "properties": {
+        "contract_version": { "type": "string", "const": "1.0.0" },
+        "requirement_id": { "type": "string", "minLength": 1 },
+        "score": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "issues": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Issue" }
+        },
+        "context_note": {
+          "type": ["string", "null"],
+          "description": "Free-text observation about diagrams/images on the requirement's page. NEVER contributes to score (research 10, Risks)."
+        },
+        "dropped_issue_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Issues the LLM produced whose quote failed verification and were dropped. Surfaced in the UI as the anti-hallucination metric."
+        },
+        "model": { "type": "string", "minLength": 1 },
+        "cached": { "type": "boolean" },
+        "mock": { "type": "boolean" }
+      }
+    },
+    "AskResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "answer", "grounded", "model", "mock"],
+      "properties": {
+        "contract_version": { "type": "string", "const": "1.0.0" },
+        "answer": { "type": "string" },
+        "grounded": {
+          "type": "boolean",
+          "description": "false => the answer was not supported by the document; the app shows the 'not found in document' state (AC5)."
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["quote", "verification"],
+            "properties": {
+              "quote": { "type": "string" },
+              "verification": { "$ref": "#/$defs/Verification" },
+              "page_index": { "type": ["integer", "null"], "minimum": 0 }
+            }
+          }
+        },
+        "model": { "type": "string" },
+        "mock": { "type": "boolean" }
+      }
+    },
+    "DeterministicFinding": {
+      "description": "Produced client-side (Dart) — no network, no tokens. See docs/rubric.md F7/F8/F9.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["check", "passed", "severity", "message"],
+      "properties": {
+        "check": { "$ref": "#/$defs/CheckId" },
+        "passed": { "type": "boolean" },
+        "severity": { "$ref": "#/$defs/Severity" },
+        "message": { "type": "string" },
+        "subject": {
+          "type": ["string", "null"],
+          "description": "Which UC/requirement the finding is about; null for document-level findings such as uc_count."
+        },
+        "actual": { "type": ["number", "null"] },
+        "expected_min": { "type": ["number", "null"] },
+        "expected_max": { "type": ["number", "null"] }
+      }
+    }
+  },
+  "oneOf": [
+    { "$ref": "#/$defs/ReviewResult" },
+    { "$ref": "#/$defs/AskResponse" }
+  ]
+}

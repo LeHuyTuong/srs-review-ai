@@ -1,0 +1,140 @@
+"""Endpoint behaviour, driven entirely through the offline mock provider so the
+suite never needs a key or a network."""
+
+from __future__ import annotations
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.config import Settings, get_settings
+from app.main import _limiter, _review_cache, app
+
+
+@pytest.fixture(autouse=True)
+def _isolate_state():
+    _review_cache.clear()
+    _limiter.reset()
+    yield
+    _review_cache.clear()
+    _limiter.reset()
+
+
+@pytest.fixture
+def client():
+    app.dependency_overrides[get_settings] = lambda: Settings(mock_mode=True, gemini_api_key="")
+    with TestClient(app) as c:
+        yield c
+    app.dependency_overrides.clear()
+
+
+VAGUE = {
+    "requirement_id": "FR-03",
+    "text": "The system shall respond quickly to every search request.",
+    "section": "3.2",
+}
+
+
+def test_health_reports_mock_mode(client):
+    body = client.get("/health").json()
+    assert body["status"] == "ok"
+    assert body["contract_version"] == "1.0.0"
+    assert body["rubric_version"] == "v2"
+
+
+def test_rubric_endpoint_serves_the_config(client):
+    body = client.get("/rubric").json()
+    assert body["thresholds"]["min_per_part"] == 2.0
+
+
+def test_review_returns_verified_issues(client):
+    body = client.post("/review", json=VAGUE).json()
+    assert body["requirement_id"] == "FR-03"
+    assert body["mock"] is True
+    assert 0 <= body["score"] <= 10
+    assert body["issues"], "the mock provider should flag 'quickly'"
+    for issue in body["issues"]:
+        assert issue["verification"] in ("exact", "fuzzy")
+        # AC2: every issue carries a quote that really exists in the source text
+        assert issue["quote"].lower() in VAGUE["text"].lower()
+
+
+def test_clean_requirement_scores_high_without_issues(client):
+    payload = {
+        "requirement_id": "FR-01",
+        "text": "The system shall return search results within 2 seconds for 95% of requests.",
+    }
+    body = client.post("/review", json=payload).json()
+    assert body["issues"] == []
+    assert body["score"] >= 8
+
+
+def test_second_identical_review_is_served_from_cache(client):
+    first = client.post("/review", json=VAGUE).json()
+    second = client.post("/review", json=VAGUE).json()
+    assert first["cached"] is False
+    assert second["cached"] is True
+    assert second["issues"] == first["issues"]
+
+
+def test_requirement_id_comes_from_the_request_not_the_model(client):
+    body = client.post("/review", json={**VAGUE, "requirement_id": "FR-99"}).json()
+    assert body["requirement_id"] == "FR-99"
+
+
+def test_review_rejects_empty_text(client):
+    assert client.post("/review", json={"requirement_id": "FR-1", "text": ""}).status_code == 422
+
+
+def test_review_rejects_unknown_fields(client):
+    response = client.post("/review", json={**VAGUE, "hack": "yes"})
+    assert response.status_code == 422
+
+
+def test_ask_answers_from_the_document(client):
+    body = client.post(
+        "/ask",
+        json={
+            "question": "What does the search requirement say?",
+            "context": "FR-03 The system shall respond within 2s for every search request.",
+        },
+    ).json()
+    assert body["grounded"] is True
+    assert body["citations"]
+
+
+def test_ask_refuses_when_not_in_the_document(client):
+    body = client.post(
+        "/ask",
+        json={
+            "question": "Does it support biometric login?",
+            "context": "FR-01 The user shall log in with a password.",
+        },
+    ).json()
+    assert body["grounded"] is False
+    assert body["answer"] == "Not found in the document."
+    assert body["citations"] == []
+
+
+def test_rate_limit_returns_429():
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        mock_mode=True, gemini_api_key="", rate_limit_per_day=1
+    )
+    with TestClient(app) as c:
+        assert c.post("/review", json=VAGUE).status_code == 200
+        # different text => cache miss => must consume quota
+        second = c.post(
+            "/review", json={**VAGUE, "requirement_id": "FR-04", "text": "The UI must be friendly."}
+        )
+        assert second.status_code == 429
+    app.dependency_overrides.clear()
+
+
+def test_app_token_is_enforced_when_configured():
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        mock_mode=True, gemini_api_key="", app_token="s3cret"
+    )
+    with TestClient(app) as c:
+        assert c.post("/review", json=VAGUE).status_code == 401
+        ok = c.post("/review", json=VAGUE, headers={"X-App-Token": "s3cret"})
+        assert ok.status_code == 200
+    app.dependency_overrides.clear()
