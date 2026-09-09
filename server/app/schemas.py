@@ -97,25 +97,31 @@ class AskResponse(Strict):
 
 
 # --------------------------- LLM-facing schema ---------------------------
-# What we hand to Gemini as responseSchema. Deliberately NARROWER than
+# What we hand to Gemini as `responseSchema`. Deliberately NARROWER than
 # ReviewResult: the model may not invent `verification`, `cached`, `model` or
 # `dropped_issue_count` — those are facts only the server may assert.
+#
+# NOTE ON CASING — verified against ai.google.dev/api/generate-content:
+# the REST Schema uses the protobuf Type enum, whose members are UPPERCASE
+# ("OBJECT", "STRING", "ARRAY", "INTEGER", "BOOLEAN") — not the lowercase
+# spelling of plain JSON Schema. `propertyOrdering` is a Gemini extension that
+# stabilises field order (and therefore output quality).
 
 LLM_REVIEW_SCHEMA: dict = {
-    "type": "object",
+    "type": "OBJECT",
     "properties": {
-        "requirement_id": {"type": "string"},
-        "score": {"type": "integer", "minimum": 0, "maximum": 10},
-        "context_note": {"type": "string"},
+        "requirement_id": {"type": "STRING"},
+        "score": {"type": "INTEGER", "minimum": 0, "maximum": 10},
+        "context_note": {"type": "STRING"},
         "issues": {
-            "type": "array",
+            "type": "ARRAY",
             "items": {
-                "type": "object",
+                "type": "OBJECT",
                 "properties": {
-                    "type": {"type": "string", "enum": [t.value for t in IssueType]},
-                    "severity": {"type": "string", "enum": [s.value for s in Severity]},
-                    "quote": {"type": "string"},
-                    "suggestion": {"type": "string"},
+                    "type": {"type": "STRING", "enum": [t.value for t in IssueType]},
+                    "severity": {"type": "STRING", "enum": [s.value for s in Severity]},
+                    "quote": {"type": "STRING"},
+                    "suggestion": {"type": "STRING"},
                 },
                 "required": ["type", "severity", "quote", "suggestion"],
                 "propertyOrdering": ["type", "severity", "quote", "suggestion"],
@@ -127,11 +133,11 @@ LLM_REVIEW_SCHEMA: dict = {
 }
 
 LLM_ASK_SCHEMA: dict = {
-    "type": "object",
+    "type": "OBJECT",
     "properties": {
-        "answer": {"type": "string"},
-        "grounded": {"type": "boolean"},
-        "quotes": {"type": "array", "items": {"type": "string"}},
+        "answer": {"type": "STRING"},
+        "grounded": {"type": "BOOLEAN"},
+        "quotes": {"type": "ARRAY", "items": {"type": "STRING"}},
     },
     "required": ["answer", "grounded"],
     "propertyOrdering": ["answer", "grounded", "quotes"],

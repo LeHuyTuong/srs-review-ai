@@ -25,10 +25,21 @@ class Settings(BaseSettings):
 
     # --- LLM ---
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash-lite"
-    gemini_fallback_model: str = "gemini-2.5-flash"
+
+    # Verified against ai.google.dev on 2026-09-09: the 2.5 series is now
+    # legacy. `gemini-3.5-flash-lite` is the current low-cost multimodal model
+    # and its own model page calls out document parsing as a target workload —
+    # exactly this app's job. `gemini-3.1-flash-lite` is the stable long-term
+    # option, kept as the fallback.
+    gemini_model: str = "gemini-3.5-flash-lite"
+    gemini_fallback_model: str = "gemini-3.1-flash-lite"
+
     gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
+
+    # Only sent to models that accept it — Gemini 3 and later removed
+    # temperature/top_p/top_k/candidate_count from generationConfig.
     temperature: float = 0.2
+
     request_timeout_s: float = 90.0
 
     # --- Behaviour ---

@@ -55,11 +55,11 @@ dropped count is shown in the UI as evidence the filter is working.
 
 ```
 ┌────────────────────────────┐          ┌──────────────────────────────────┐        ┌──────────────┐
-│ Flutter app                │  HTTPS   │ FastAPI proxy (this repo)        │ HTTPS  │ Gemini API   │
-│ Android · Windows · macOS  │ ───────► │ 1. holds the API key             │ ─────► │ 2.5 Flash    │
-│                            │          │ 2. builds the rubric prompt      │        │ Lite / Flash │
+│ Flutter app                │  HTTPS   │ FastAPI proxy (this repo)        │ HTTPS  │ Gemini API    │
+│ Android · Windows · macOS  │ ───────► │ 1. holds the API key             │ ─────► │ 3.5 Flash-Lite│
+│                            │          │ 2. builds the rubric prompt      │        │ → 3.1 fallback│
 │ MVVM: View ⇄ ViewModel     │ ◄─────── │ 3. forces structured JSON output │ ◄───── │ responseSchema│
-│ ⇄ Repository ⇄ Service     │   JSON   │ 4. VERIFIES EVERY QUOTE ★        │  JSON  └──────────────┘
+│ ⇄ Repository ⇄ Service     │   JSON   │ 4. VERIFIES EVERY QUOTE ★        │  JSON  └───────────────┘
 │ dio only — no LLM SDK      │          │ 5. rate limit + cache            │
 └────────────────────────────┘          └──────────────────────────────────┘
 ```
@@ -91,9 +91,16 @@ deterministic offline provider, and the whole flow still works.
 ```bash
 cd app
 flutter pub get
+flutter run -d chrome                        # fastest way to look at the UI
 flutter run                                  # macOS/Android/Windows
 flutter run --dart-define=MOCK_MODE=true     # start in offline mode
 ```
+
+**Chrome is for development only.** The deliverable targets are Android and
+Windows; `web/` exists so you can iterate without waiting on an emulator or a
+Gradle build. Web is not built in CI and the file picker behaves differently
+there (no filesystem paths, bytes only), so verify the real targets before a
+demo.
 
 Android emulators reach the host at `10.0.2.2`, which is the default. On a
 physical device pass your machine's LAN address:
@@ -102,11 +109,19 @@ physical device pass your machine's LAN address:
 flutter run --dart-define=API_BASE_URL=http://192.168.1.20:8000
 ```
 
+If port 8000 is taken (it often is), run the proxy elsewhere and point the app
+at it — this is the one flag you will type most:
+
+```bash
+uvicorn app.main:app --port 8010                                  # in server/
+flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8010
+```
+
 ### 3. Verify everything
 
 ```bash
 python3 tools/check_guardrails.py            # architecture + secret rules
-cd server && ruff check . && pytest          # 33 tests
+cd server && ruff check . && pytest          # 36 tests
 cd app && flutter analyze && flutter test    # 33 tests
 ./tools/install-hooks.sh                     # run the guardrails on every commit
 ```
@@ -159,6 +174,17 @@ thresholds (20–25 use cases, 3–7 transactions, pass 5.0, minimum 2.0 per par
 publishes per-report weights but not the per-item criteria graders use, which
 stay internal. Ask your supervisor for the real rubric and drop it into that
 one JSON file — no code changes needed.
+
+## Model and quota
+
+Default: `gemini-3.5-flash-lite`, falling back to `gemini-3.1-flash-lite` on a
+429. Both are set in `server/.env` — never in code.
+
+Heads-up if you are following older notes: **the 2.5 series is now legacy**,
+Gemini 3+ dropped `temperature` from `generationConfig`, and Google cut free
+tier quotas in late 2025. Check your project's actual limits in AI Studio
+before counting on them. Details and sources:
+[docs/adr/0004](docs/adr/0004-model-selection.md).
 
 ## Privacy note
 

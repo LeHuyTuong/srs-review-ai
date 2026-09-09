@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/providers.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/content_shell.dart';
 import '../../../data/models/deterministic_finding.dart';
 import '../../../data/models/srs_document.dart';
 import '../../../data/repositories/document_repository.dart';
@@ -30,16 +31,11 @@ class DocumentScreen extends ConsumerWidget {
         title: const Text('SRS Review AI'),
         actions: [
           // Demo safety net, one tap away (AC4).
-          Row(
-            children: [
-              const Text('Offline'),
-              Switch(
-                value: isMock,
-                onChanged: ref.read(mockModeProvider.notifier).set,
-              ),
-            ],
+          _OfflineToggle(
+            value: isMock,
+            onChanged: ref.read(mockModeProvider.notifier).set,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
         ],
       ),
       body: switch (state.status) {
@@ -65,44 +61,107 @@ class DocumentScreen extends ConsumerWidget {
   }
 }
 
+/// The offline switch, labelled and explained. It used to be a bare
+/// `Text('Offline')` glued to a `Switch`, which read like a debug flag.
+class _OfflineToggle extends StatelessWidget {
+  const _OfflineToggle({required this.value, required this.onChanged});
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Tooltip(
+      message: value
+          ? 'Offline: reviews come from local rules, no network, no quota.'
+          : 'Online: reviews go through the local proxy to the model.',
+      child: Row(
+        children: [
+          Icon(
+            value ? Icons.cloud_off_outlined : Icons.cloud_outlined,
+            size: 18,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            value ? 'Offline' : 'Online',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          Switch(value: value, onChanged: onChanged),
+        ],
+      ),
+    );
+  }
+}
+
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.onPick});
 
   final Future<void> Function() onPick;
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.description_outlined,
-            size: 72,
-            color: Theme.of(context).colorScheme.primary,
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      // Narrower than ContentShell: an empty state is a single call to action,
+      // so the copy should wrap into a short block rather than one thin line.
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.description_outlined,
+                    size: 40,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'No document loaded',
+                  style: theme.textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Choose your SRS (PDF or DOCX). Nothing leaves this machine '
+                  'until you press Review.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                FilledButton.icon(
+                  onPressed: onPick,
+                  icon: const Icon(Icons.upload_file),
+                  label: const Text('Choose SRS file'),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'PDF or DOCX · up to 20 MB',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'No document loaded',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Choose your SRS (PDF or DOCX). Nothing leaves this machine until you press Review.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: onPick,
-            icon: const Icon(Icons.upload_file),
-            label: const Text('Choose SRS file'),
-          ),
-        ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _ErrorState extends StatelessWidget {
@@ -118,26 +177,35 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            isScannedPdf
-                ? Icons.image_not_supported_outlined
-                : Icons.error_outline,
-            size: 64,
-            color: Theme.of(context).colorScheme.error,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 460),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isScannedPdf
+                    ? Icons.image_not_supported_outlined
+                    : Icons.error_outline,
+                size: 48,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 20),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: 28),
+              OutlinedButton(
+                onPressed: onRetry,
+                child: const Text('Choose another file'),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          Text(message, textAlign: TextAlign.center),
-          const SizedBox(height: 24),
-          OutlinedButton(
-            onPressed: onRetry,
-            child: const Text('Choose another file'),
-          ),
-        ],
+        ),
       ),
     ),
   );
@@ -151,59 +219,64 @@ class _DocumentBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final document = loaded.document;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  document.fileName,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _Stat(label: 'pages', value: '${document.pageCount}'),
-                    _Stat(
-                      label: 'requirements',
-                      value: '${document.requirements.length}',
-                    ),
-                    _Stat(
-                      label: 'use cases',
-                      value: '${document.useCaseCount}',
-                    ),
-                    _Stat(
-                      label: 'diagram pages',
-                      value: '${document.imagePageIndexes.length}',
-                    ),
-                  ],
-                ),
-              ],
+    return ContentShell(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 24, 16, 96),
+        children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    document.fileName,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _Stat(label: 'pages', value: '${document.pageCount}'),
+                      _Stat(
+                        label: 'requirements',
+                        value: '${document.requirements.length}',
+                      ),
+                      _Stat(
+                        label: 'use cases',
+                        value: '${document.useCaseCount}',
+                      ),
+                      _Stat(
+                        label: 'diagram pages',
+                        value: '${document.imagePageIndexes.length}',
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 16),
-        Text('Syllabus checks', style: Theme.of(context).textTheme.titleMedium),
-        Text(
-          'Rule-based, offline, no AI tokens spent.',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-        const SizedBox(height: 8),
-        ..._findingCards(context, loaded.findings),
-        const SizedBox(height: 16),
-        Text(
-          'Parsed requirements',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 8),
-        ...document.requirements.map((item) => _RequirementTile(item: item)),
-      ],
+          const SizedBox(height: 16),
+          Text(
+            'Syllabus checks',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          Text(
+            'Rule-based, offline, no AI tokens spent.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          ..._findingCards(context, loaded.findings),
+          const SizedBox(height: 16),
+          Text(
+            'Parsed requirements',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          ...document.requirements.map((item) => _RequirementTile(item: item)),
+        ],
+      ),
     );
   }
 

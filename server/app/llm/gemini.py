@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 from typing import Any
 
 import httpx
@@ -49,20 +50,22 @@ class GeminiProvider:
 
         parts: list[dict[str, Any]] = [{"text": user}]
         if image_b64:
-            parts.append({"inline_data": {"mime_type": "image/png", "data": image_b64}})
+            parts.append({"inlineData": {"mimeType": "image/png", "data": image_b64}})
 
-        payload = {
-            "system_instruction": {"parts": [{"text": system}]},
+        # Field names are camelCase to match the REST reference exactly. The
+        # endpoint also tolerates snake_case, but matching the docs means the
+        # payload can be pasted straight into a curl example when debugging.
+        base_payload = {
+            "systemInstruction": {"parts": [{"text": system}]},
             "contents": [{"role": "user", "parts": parts}],
-            "generationConfig": {
-                "response_mime_type": "application/json",
-                "response_schema": schema,
-                "temperature": self._settings.temperature,
-            },
         }
 
         last_error: LlmError | None = None
         for model in self.models:
+            payload = {
+                **base_payload,
+                "generationConfig": self._generation_config(model, schema),
+            }
             try:
                 raw = await self._post_with_retry(model, payload)
             except LlmError as exc:
@@ -74,6 +77,22 @@ class GeminiProvider:
             return raw, model
 
         raise last_error or LlmError("no gemini model available", retryable=True)
+
+    def _generation_config(self, model: str, schema: dict[str, Any]) -> dict[str, Any]:
+        """Build generationConfig for one model.
+
+        Gemini 3 and later removed `temperature`, `top_p`, `top_k` and
+        `candidate_count` (verified on ai.google.dev, 2026-09-09), so sending
+        temperature to a 3.x model is at best ignored and at worst a 400. It is
+        only included for the 1.x/2.x generation that still accepts it.
+        """
+        config: dict[str, Any] = {
+            "responseMimeType": "application/json",
+            "responseSchema": schema,
+        }
+        if _supports_temperature(model):
+            config["temperature"] = self._settings.temperature
+        return config
 
     async def _post_with_retry(self, model: str, payload: dict[str, Any]) -> dict[str, Any]:
         url = f"{self._settings.gemini_base_url}/models/{model}:generateContent"
@@ -115,6 +134,19 @@ class GeminiProvider:
                 retryable=response.status_code in _RETRYABLE,
             )
         return response.json()
+
+
+_MODEL_GENERATION = re.compile(r"gemini-(\d+)")
+
+
+def _supports_temperature(model: str) -> bool:
+    """True for Gemini 1.x/2.x. Unknown or alias names are treated as modern
+    (temperature omitted) — the safer default, since omitting it only loses a
+    little determinism while sending it can be rejected outright."""
+    match = _MODEL_GENERATION.search(model)
+    if not match:
+        return False
+    return int(match.group(1)) <= 2
 
 
 def _extract_json(data: dict[str, Any]) -> dict[str, Any]:

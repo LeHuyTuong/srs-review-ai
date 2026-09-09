@@ -115,6 +115,21 @@ def test_ask_refuses_when_not_in_the_document(client):
     assert body["citations"] == []
 
 
+def test_quotes_keep_section_numbers_intact(client):
+    """A dot inside "3.2" must not split the sentence (it produced "2 Payment.")."""
+    body = client.post(
+        "/review",
+        json={
+            "requirement_id": "FR-01",
+            "text": "3.2 Payment. The system should be fast.",
+            "section": "3.2 Payment",
+        },
+    ).json()
+    quotes = [issue["quote"] for issue in body["issues"]]
+    assert quotes, "the vague word 'fast' should raise an issue"
+    assert not any(quote.startswith("2 ") for quote in quotes)
+
+
 def test_rate_limit_returns_429():
     app.dependency_overrides[get_settings] = lambda: Settings(
         mock_mode=True, gemini_api_key="", rate_limit_per_day=1

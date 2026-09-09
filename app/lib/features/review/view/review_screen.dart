@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/content_shell.dart';
 import '../../../data/checks/rubric_config.dart';
 import '../../../data/models/review_models.dart';
 import '../../../data/repositories/review_repository.dart';
@@ -51,21 +52,23 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       ),
       body: loaded == null
           ? const Center(child: Text('No document loaded.'))
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _ProgressCard(progress: state.progress),
-                if (state.run != null) ...[
-                  const SizedBox(height: 12),
-                  _SummaryCard(run: state.run!, rubric: rubric),
-                  const SizedBox(height: 12),
-                  ..._issueCards(state.run!),
-                  if (state.run!.failures.isNotEmpty) ...[
+          : ContentShell(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+                children: [
+                  _ProgressCard(progress: state.progress),
+                  if (state.run != null) ...[
                     const SizedBox(height: 12),
-                    _FailureCard(failures: state.run!.failures),
+                    _SummaryCard(run: state.run!, rubric: rubric),
+                    const SizedBox(height: 12),
+                    ..._issueCards(state.run!),
+                    if (state.run!.failures.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _FailureCard(failures: state.run!.failures),
+                    ],
                   ],
                 ],
-              ],
+              ),
             ),
     );
   }
