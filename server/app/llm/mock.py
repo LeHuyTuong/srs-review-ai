@@ -28,7 +28,13 @@ VAGUE_TERMS = (
     "hợp lý",
 )
 
-_SENTENCE = re.compile(r"[^.!?\n]+[.!?]?")
+# A sentence is a run of non-terminator characters, optionally closed by one
+# terminator. The `(?<=\d)\.(?=\d)` alternative keeps a dot that sits between
+# digits inside the run, so an SRS section number ("3.2 Payment.") or a
+# threshold ("1.5s") is not sliced in half. Without it the quote for
+# "3.2 Payment." came out as "2 Payment." — still verifiable, but it reads like
+# a parser bug in front of the examiners.
+_SENTENCE = re.compile(r"(?:[^.!?\n]|(?<=\d)\.(?=\d))+[.!?]?")
 
 
 class MockProvider:
