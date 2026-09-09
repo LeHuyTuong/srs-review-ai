@@ -18,7 +18,7 @@ where a broken demo costs more than a missing feature.
 | D4 | Roles | One role: the student reviewing their own SRS | A supervisor dashboard is the biggest scope risk available and adds no marks |
 | D5 | Parsing | Client-side in Dart | No parsing infrastructure to run; the proxy stays ~300 lines |
 | D6 | LLM access | Thin FastAPI proxy holding the key | See below |
-| D7 | Model | `gemini-2.5-flash-lite`, falling back to `gemini-2.5-flash` | Free tier is enough; one env var switches quality |
+| D7 | Model | `gemini-3.5-flash-lite`, falling back to `gemini-3.1-flash-lite` | See [ADR 0004](0004-model-selection.md) — the 2.5 series originally planned is now legacy |
 | D8 | Anti-hallucination | Every issue must quote the source; the proxy verifies the quote and drops unverifiable issues | The core technical claim of the project |
 
 ## Why a proxy instead of calling the LLM from the app (D6)

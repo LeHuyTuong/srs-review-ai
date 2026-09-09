@@ -55,11 +55,11 @@ dropped count is shown in the UI as evidence the filter is working.
 
 ```
 ┌────────────────────────────┐          ┌──────────────────────────────────┐        ┌──────────────┐
-│ Flutter app                │  HTTPS   │ FastAPI proxy (this repo)        │ HTTPS  │ Gemini API   │
-│ Android · Windows · macOS  │ ───────► │ 1. holds the API key             │ ─────► │ 2.5 Flash    │
-│                            │          │ 2. builds the rubric prompt      │        │ Lite / Flash │
+│ Flutter app                │  HTTPS   │ FastAPI proxy (this repo)        │ HTTPS  │ Gemini API    │
+│ Android · Windows · macOS  │ ───────► │ 1. holds the API key             │ ─────► │ 3.5 Flash-Lite│
+│                            │          │ 2. builds the rubric prompt      │        │ → 3.1 fallback│
 │ MVVM: View ⇄ ViewModel     │ ◄─────── │ 3. forces structured JSON output │ ◄───── │ responseSchema│
-│ ⇄ Repository ⇄ Service     │   JSON   │ 4. VERIFIES EVERY QUOTE ★        │  JSON  └──────────────┘
+│ ⇄ Repository ⇄ Service     │   JSON   │ 4. VERIFIES EVERY QUOTE ★        │  JSON  └───────────────┘
 │ dio only — no LLM SDK      │          │ 5. rate limit + cache            │
 └────────────────────────────┘          └──────────────────────────────────┘
 ```
@@ -106,7 +106,7 @@ flutter run --dart-define=API_BASE_URL=http://192.168.1.20:8000
 
 ```bash
 python3 tools/check_guardrails.py            # architecture + secret rules
-cd server && ruff check . && pytest          # 33 tests
+cd server && ruff check . && pytest          # 36 tests
 cd app && flutter analyze && flutter test    # 33 tests
 ./tools/install-hooks.sh                     # run the guardrails on every commit
 ```
@@ -159,6 +159,17 @@ thresholds (20–25 use cases, 3–7 transactions, pass 5.0, minimum 2.0 per par
 publishes per-report weights but not the per-item criteria graders use, which
 stay internal. Ask your supervisor for the real rubric and drop it into that
 one JSON file — no code changes needed.
+
+## Model and quota
+
+Default: `gemini-3.5-flash-lite`, falling back to `gemini-3.1-flash-lite` on a
+429. Both are set in `server/.env` — never in code.
+
+Heads-up if you are following older notes: **the 2.5 series is now legacy**,
+Gemini 3+ dropped `temperature` from `generationConfig`, and Google cut free
+tier quotas in late 2025. Check your project's actual limits in AI Studio
+before counting on them. Details and sources:
+[docs/adr/0004](docs/adr/0004-model-selection.md).
 
 ## Privacy note
 
