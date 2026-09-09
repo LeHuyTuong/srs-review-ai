@@ -1,0 +1,36 @@
+{
+  "kind": "diagnostic_baseline_not_new_pipeline_validation",
+  "source": "/Users/lehuytuong/Downloads/OTES_officially_document.docx.pdf",
+  "scope_pdf_pages": [
+    23,
+    155
+  ],
+  "extraction": "pdftotext -layout -> current Dart RequirementSplitter; NOT Syncfusion end-to-end",
+  "source_use_case_headers": 63,
+  "source_literal_unique_ids": 52,
+  "source_numeric_unique_ids": 51,
+  "splitter_total_items": 7,
+  "splitter_use_case_items": 0,
+  "splitter_uc_ids": [],
+  "synthetic_duplicate": {
+    "expected_occurrences": 2,
+    "actual_occurrences": 1,
+    "preserves_both": false,
+    "kept_text": [
+      "Join classroom The system shall connect the student to the classroom and acquire media streams."
+    ]
+  },
+  "synthetic_numbered_flow": {
+    "preserves_submit_step": false,
+    "items": [
+      {
+        "id": "UC-03",
+        "text": "Take exam Main success scenario:"
+      },
+      {
+        "id": "ST-1",
+        "text": "The student must keep the camera on."
+      }
+    ]
+  }
+}
