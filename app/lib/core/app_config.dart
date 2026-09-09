@@ -5,7 +5,10 @@
 /// build if a provider URL or an API key ever appears under `app/lib`.
 library;
 
-import 'dart:io' show Platform;
+// `dart:io` is deliberately not imported: it does not compile for web, and
+// Chrome is the fastest way to eyeball the UI during development.
+// `defaultTargetPlatform` covers every target from one import.
+import 'package:flutter/foundation.dart';
 
 class AppConfig {
   const AppConfig._();
@@ -18,7 +21,12 @@ class AppConfig {
   static String get apiBaseUrl {
     const override = String.fromEnvironment('API_BASE_URL');
     if (override.isNotEmpty) return override;
-    if (Platform.isAndroid) return 'http://10.0.2.2:8000';
+    // kIsWeb must be tested first: in Chrome, defaultTargetPlatform reports
+    // the *host* OS, so a browser on Android would otherwise pick 10.0.2.2.
+    if (kIsWeb) return 'http://localhost:8000';
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:8000';
+    }
     return 'http://localhost:8000';
   }
 

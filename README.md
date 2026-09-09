@@ -91,15 +91,30 @@ deterministic offline provider, and the whole flow still works.
 ```bash
 cd app
 flutter pub get
+flutter run -d chrome                        # fastest way to look at the UI
 flutter run                                  # macOS/Android/Windows
 flutter run --dart-define=MOCK_MODE=true     # start in offline mode
 ```
+
+**Chrome is for development only.** The deliverable targets are Android and
+Windows; `web/` exists so you can iterate without waiting on an emulator or a
+Gradle build. Web is not built in CI and the file picker behaves differently
+there (no filesystem paths, bytes only), so verify the real targets before a
+demo.
 
 Android emulators reach the host at `10.0.2.2`, which is the default. On a
 physical device pass your machine's LAN address:
 
 ```bash
 flutter run --dart-define=API_BASE_URL=http://192.168.1.20:8000
+```
+
+If port 8000 is taken (it often is), run the proxy elsewhere and point the app
+at it — this is the one flag you will type most:
+
+```bash
+uvicorn app.main:app --port 8010                                  # in server/
+flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8010
 ```
 
 ### 3. Verify everything
