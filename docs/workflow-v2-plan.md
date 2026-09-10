@@ -3,7 +3,10 @@
 Ngày: 2026-09-09 · Trạng thái: **đề xuất, chưa implement**
 Tài liệu liên quan: [OTES-SRS-analysis.md](OTES-SRS-analysis.md),
 [OTES-SRS-review-setup.md](OTES-SRS-review-setup.md),
-[ADR 0001](adr/0001-architecture.md)
+[ADR 0001](adr/0001-architecture.md),
+**[roadmap build](roadmap.md)** (2026-09-10). Roadmap là thứ tự triển
+thực + danh sách học; nếu hai tài liệu xung đột, gate E2E và các caveat của
+roadmap được ưu tiên.
 
 > Trả lời thẳng câu hỏi "workflow có yếu không": **có, và nó yếu ở tầng mà
 > web/GitHub không sửa được.** Mình đã đo, không đoán. Kết quả đo ở §2.
@@ -88,6 +91,9 @@ chúng ta, và đó chính là phần chưa tồn tại.
 `FUNCTION_PAYLOAD_TOO_LARGE`), **Hobby tối đa 300 s**, chỉ `/tmp` là ghi được và
 không bền. → File 27.37 MiB **không được phép** đi qua body một function; state
 in-memory (`server/app/cache.py` LruCache) **không chia sẻ được giữa các instance**.
+Chưa có deployment Vercel E2E trong repo; **200 KB/request là mục tiêu chính sách,
+chưa phải số đo**. Roadmap yêu cầu deploy `/health` + một `/review` bounded trong
+tuần 1 để đo bytes/duration thật trước khi chốt Phase 3–4.
 
 ### 2.4 Ảnh: hiện tại không có đường nào để tốn token
 
@@ -143,8 +149,9 @@ A2 Bạn chấp nhận app phải mở trong lúc review (không có job bền p
 A3 **Đã chốt 2026-09-09:** app **tự chọn** trang có sơ đồ để review ảnh (không
 bắt người dùng tick từng trang). Đổi lại phải có trần ngân sách + danh sách trang
 gửi đi **hiển thị trước** khi gửi (xem Phase 4).
-A4 Rubric v2 (0.3/0.3/0.25/0.15) vẫn là **đề xuất**, không phải bảng chính thức
-FPTU — giữ nguyên cách diễn đạt đang có trong `rubric.json`.
+A4 Rubric v2 (0.3/0.3/0.25/0.15) vẫn là **đề xuất provisional**, chưa phải bảng
+chính thức FPTU; song song phải xin template/marking sheet từ GVHD và ghi nguồn,
+phiên bản. Giữ nguyên cách diễn đạt đang có trong `rubric.json`.
 A5 syncfusion dùng theo điều kiện licence đang được ghi ở
 [ADR 0003](adr/0003-syncfusion-licence.md); mọi phương án thay thế phải so
 licence trước khi thêm dependency (xem §6).
@@ -216,7 +223,12 @@ lại. Chúng chỉ **đang nhận đầu vào sai**, nên F7 in ra "Found 0 use
 - Checkpoint SQLite (hoặc JSON file) trong app: unit nào xong thì lưu, đóng app
   mở lại không hỏi lại model lần 2 (cache server chỉ là tăng tốc, không phải
   chỗ dựa — vì nó process-local).
-- **Gate:** chạy đứt giữa chừng → resume; số LLM call lần 2 = 0.
+- Regression cache bắt buộc: cùng unit, một request có ảnh và một request không
+  ảnh phải có **cache key khác nhau**; response có ảnh không được trả cho request
+  không ảnh.
+- Trước khi pin model, benchmark ≥5 unit đại diện bằng key thật và ghi usage.
+- **Gate:** chạy đứt giữa chừng → resume; số LLM call lần 2 = 0 **đo từ log client**
+  cho unit đã checkpoint, không suy ra từ cache server.
 
 ### Phase 4 · Ảnh: app tự chọn trang có sơ đồ, nhưng có trần và có khai báo
 Theo quyết định 2026-09-09 (§4 A3). Điều kiện kỹ thuật phải nói thẳng:
@@ -295,7 +307,8 @@ Vay NALABS (MIT) làm danh sách keyword cho Phase 2 → ghi nguồn trong file 
 | `app/lib/core/app_config.dart` | cap file ≥ 32 MiB, `maxRequirementsPerRun` thành lựa chọn có thông báo |
 | `app/lib/data/services/file_picker_service.dart` | bỏ chặn 20 MiB, giữ kiểm tra hợp lệ |
 | `server/app/schemas.py` | thêm `unit_key`, `page_range`, `context`, `image_reviewed` |
-| `server/app/main.py` | trả coverage (đã xem / chưa xem ảnh); cache khoá theo `unitKey` |
+| `server/app/main.py` | trả coverage (đã xem / chưa xem ảnh); cache key gồm unit
+  + toàn bộ input ảnh hưởng đáp án, bao gồm **image hash/no-image state** |
 | `server/app/prompt.py` | unit + ngữ cảnh nén; **giữ nguyên** luật trích dẫn nguyên văn |
 | mới: `app/lib/data/checks/{structure,consistency}_checks.dart` + test vàng OTES | Phase 2 |
 | mới: `app/lib/data/services/checkpoint_service.dart` | Phase 3 |
