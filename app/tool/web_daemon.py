@@ -6,12 +6,13 @@
 # /tmp/srs_web_server.log. Stop with:  kill $(cat /tmp/srs_web_server.pid)
 #
 #   cd app && python3 tool/web_daemon.py   ->  http://127.0.0.1:8443
+# Optional port override: python3 tool/web_daemon.py <dir> 8444
 import functools
 import http.server
 import os
 import sys
 
-PORT = 8443
+PORT = int(sys.argv[2]) if len(sys.argv) > 2 else 8443
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Optional override: python3 tool/web_daemon.py /tmp/srs_web_snapshot
 # Serving a snapshot copy keeps a stray build/copy from clobbering the live
@@ -34,7 +35,7 @@ if __name__ == "__main__":
     os.dup2(log.fileno(), 1)
     os.dup2(log.fileno(), 2)
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
-    with open("/tmp/srs_web_server.pid", "w") as f:
+    with open(f"/tmp/srs_web_server_{PORT}.pid", "w") as f:
         f.write(str(os.getpid()))
 
     os.chdir(APP_DIR)
