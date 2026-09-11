@@ -5,23 +5,122 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../data/models/review_models.dart' show Severity;
+import 'app_tokens.dart';
+import 'workspace_colors.dart';
+
+/// Layer 2 — SEMANTIC: purpose-based aliases over the primitives in
+/// app_tokens.dart. Widgets consume these (never the raw primitives), so
+/// re-scaling the app's rhythm means editing one place.
+abstract final class AppInsets {
+  /// Standard interior padding of a card.
+  static const EdgeInsets cardPadding = EdgeInsets.all(AppSpacing.lg);
+
+  /// Gap between page-level sections (one card group to the next).
+  static const double sectionGap = AppSpacing.xxl;
+
+  /// Gap between sibling items inside a list or column.
+  static const double listGap = AppSpacing.sm;
+
+  /// Gap between stacked cards on a screen.
+  static const double cardGap = AppSpacing.md;
+
+  /// Gap between an item's header row and its body.
+  static const double headerBodyGap = AppSpacing.md;
+
+  /// Gap between an item's body and its footer action.
+  static const double bodyFooterGap = AppSpacing.xs;
+
+  /// Gap between text blocks inside one card.
+  static const double textGap = AppSpacing.sm;
+
+  /// Screen-edge padding for scrollable content.
+  static const EdgeInsets pagePadding = EdgeInsets.symmetric(
+    horizontal: AppSpacing.lg,
+  );
+}
 
 class AppTheme {
   const AppTheme._();
 
-  static const Color seed = Color(0xFF2E6BE6);
+  /// The brief's `--green` (#17624D) — brand colour of the workspace design.
+  static const Color seed = Color(0xFF17624D);
+
+  /// Headings render in the brief's display face, body in its text face.
+  static const String headingFamily = 'Manrope';
+  static const String bodyFamily = 'DM Sans';
 
   static ThemeData light() => _base(Brightness.light);
 
   static ThemeData dark() => _base(Brightness.dark);
+
+  static TextTheme _textTheme(Brightness brightness) {
+    final base = brightness == Brightness.dark
+        ? Typography.material2021().white
+        : Typography.material2021().black;
+    final body = base.apply(fontFamily: bodyFamily);
+    // The brief pulls headings tight (letter-spacing -0.1 … -1.05px) and
+    // weights them 650–800; these map onto the closest standard weights.
+    return body.copyWith(
+      displayLarge: body.displayLarge?.copyWith(
+        fontFamily: headingFamily,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -1.0,
+      ),
+      displayMedium: body.displayMedium?.copyWith(
+        fontFamily: headingFamily,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -1.0,
+      ),
+      displaySmall: body.displaySmall?.copyWith(
+        fontFamily: headingFamily,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.8,
+      ),
+      headlineLarge: body.headlineLarge?.copyWith(
+        fontFamily: headingFamily,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.8,
+      ),
+      headlineMedium: body.headlineMedium?.copyWith(
+        fontFamily: headingFamily,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.7,
+      ),
+      headlineSmall: body.headlineSmall?.copyWith(
+        fontFamily: headingFamily,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.5,
+      ),
+      titleLarge: body.titleLarge?.copyWith(
+        fontFamily: headingFamily,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.3,
+      ),
+      titleMedium: body.titleMedium?.copyWith(
+        fontFamily: headingFamily,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.1,
+      ),
+      titleSmall: body.titleSmall?.copyWith(
+        fontFamily: headingFamily,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
 
   static ThemeData _base(Brightness brightness) {
     final scheme = ColorScheme.fromSeed(
       seedColor: seed,
       brightness: brightness,
     );
+    final workspace = brightness == Brightness.dark
+        ? WorkspaceColors.dark()
+        : WorkspaceColors.light();
     return ThemeData(
       colorScheme: scheme,
+      fontFamily: bodyFamily,
+      scaffoldBackgroundColor: workspace.canvas,
+      textTheme: _textTheme(brightness),
       // NOT adaptivePlatformDensity: on desktop that resolves to compact
       // (-1, -1), which shrinks every control and label — the opposite of what
       // a 1300px-wide window needs. One standard density on all targets.
@@ -71,7 +170,7 @@ class AppTheme {
       inputDecorationTheme: const InputDecorationTheme(
         border: OutlineInputBorder(),
       ),
-      extensions: [SeverityColors.of(scheme)],
+      extensions: [SeverityColors.of(scheme), workspace],
     );
   }
 }

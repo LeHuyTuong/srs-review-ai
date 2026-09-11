@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/widgets/content_shell.dart';
 import '../../../data/checks/rubric_config.dart';
 import '../../../data/models/review_models.dart';
@@ -54,16 +55,21 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
           ? const Center(child: Text('No document loaded.'))
           : ContentShell(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.xxl,
+                  AppSpacing.lg,
+                  AppSpacing.xxxl,
+                ),
                 children: [
                   _ProgressCard(progress: state.progress),
                   if (state.run != null) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppInsets.cardGap),
                     _SummaryCard(run: state.run!, rubric: rubric),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppInsets.cardGap),
                     ..._issueCards(state.run!),
                     if (state.run!.failures.isNotEmpty) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppInsets.cardGap),
                       _FailureCard(failures: state.run!.failures),
                     ],
                   ],
@@ -81,7 +87,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       for (final issue in entry.value.issuesBySeverity) {
         cards.add(
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: AppInsets.listGap),
             child: IssueCard(requirementId: entry.key, issue: issue),
           ),
         );
@@ -113,7 +119,7 @@ class _ProgressCard extends StatelessWidget {
     final isFailed = progress.stage == ReviewStage.failed;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: AppInsets.cardPadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -127,12 +133,12 @@ class _ProgressCard extends StatelessWidget {
                       : Icons.hourglass_bottom,
                   color: isFailed ? Theme.of(context).colorScheme.error : null,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(child: Text(progress.label)),
               ],
             ),
             if (!isDone && !isFailed) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: AppInsets.headerBodyGap),
               LinearProgressIndicator(
                 value: progress.total == 0 ? null : progress.fraction,
               ),
@@ -162,7 +168,7 @@ class _SummaryCard extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: AppInsets.cardPadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -191,10 +197,10 @@ class _SummaryCard extends StatelessWidget {
                 'that for every report part.',
                 style: TextStyle(color: colors.high),
               ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppInsets.headerBodyGap),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
               children: [
                 _Pill(label: '${run.results.length} reviewed'),
                 _Pill(
@@ -245,7 +251,7 @@ class _FailureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
     child: Padding(
-      padding: const EdgeInsets.all(16),
+      padding: AppInsets.cardPadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -253,7 +259,7 @@ class _FailureCard extends StatelessWidget {
             '${failures.length} requirement(s) could not be reviewed',
             style: Theme.of(context).textTheme.titleSmall,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppInsets.textGap),
           ...failures.entries.map((e) => Text('${e.key}: ${e.value}')),
         ],
       ),

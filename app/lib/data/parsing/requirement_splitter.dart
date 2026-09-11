@@ -2,9 +2,13 @@
 /// unit-testable (research 05, week 1 day 3–4).
 ///
 /// Three sources of items, in order of confidence:
-///   1. explicit ids   — `FR-03`, `NFR-2`, `UC-12`, `BR_5`
+///   1. explicit ids   — `FR-03`, `NFR-2`, `UC-12`, `BR_5`, `F-01`, `NF-2`
 ///   2. use case tables — `Use case name: Submit report`
 ///   3. modal sentences — "shall" / "must" / "hệ thống phải"
+///
+/// `F-01` (single letter + dash) was added after verifying a real VN capstone
+/// SRS that codes requirements exactly that way. The dash is mandatory there:
+/// a bare `F01`/`F 1` would match unrelated prose ("F 1 triệu đồng").
 ///
 /// Table-of-contents lines are skipped, and when the same id appears twice
 /// (TOC + body) the longer text wins.
@@ -16,8 +20,11 @@ class RequirementSplitter {
   const RequirementSplitter();
 
   static final RegExp _sectionHeading = RegExp(r'^(\d+(?:\.\d+){0,3})\.?\s+\S');
+  // Longest prefixes first: `NFR` must win over `NF`, `FR` over the bare
+  // single-letter form. `F-01` (dash mandatory) and `NF-01` come from a real
+  // VN capstone SRS; without them the file parsed to 0 units.
   static final RegExp _idAtLineStart = RegExp(
-    r'^[\s\-•*|]*((?:FR|NFR|UC|BR|SR)[-_ ]?\d{1,3})\b[\s:.)\-|]*',
+    r'^[\s\-•*|]*((?:NFR|FR|NF|UC|BR|SR)[-_ ]?\d{1,3}|F-\d{1,3})\b[\s:.)\-|]*',
     caseSensitive: false,
   );
   static final RegExp _tocLine = RegExp(r'\.{4,}\s*\d+\s*$|\t+\d+\s*$');

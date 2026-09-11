@@ -69,11 +69,15 @@ class DocumentRepository {
   }
 
   /// Returns null when the user cancels the picker. Throws [ParseException]
-  /// with a human-readable reason for anything we cannot read.
-  Future<LoadedDocument?> pickAndParse() async {
-    final picked = await _picker.pickSrsFile();
+  /// with a human-readable reason for anything we cannot read. [onStatus]
+  /// receives human-readable phase text for progress UI.
+  Future<LoadedDocument?> pickAndParse({
+    void Function(String status)? onStatus,
+  }) async {
+    final picked = await _picker.pickSrsFile(onStatus: onStatus);
     if (picked == null) return null;
-    return _load(picked.fileName, picked.bytes, picked.sizeBytes, picked.path);
+    return _load(picked.fileName, picked.bytes, picked.sizeBytes, picked.path,
+        onStatus);
   }
 
   Future<LoadedDocument> _load(
@@ -81,8 +85,15 @@ class DocumentRepository {
     Uint8List bytes,
     int sizeBytes,
     String? path,
+    void Function(String status)? onStatus,
   ) async {
-    final document = await _parser.parse(fileName: fileName, bytes: bytes);
+    final document = await _parser.parse(
+      fileName: fileName,
+      bytes: bytes,
+      onStatus: onStatus,
+    );
+    onStatus?.call('Running syllabus checks…');
+    await Future<void>.delayed(Duration.zero);
     final loaded = LoadedDocument(
       document: document,
       findings: SyllabusChecks(_rubric).runAll(document),

@@ -44,4 +44,11 @@ class AppConfig {
 
   /// Client-side guard so a stray loop cannot burn the free-tier quota.
   static const int maxRequirementsPerRun = 40;
+
+  /// How many requirements are reviewed at once.
+  ///
+  /// The old sequential loop made a 40-unit run take minutes during which the
+  /// UI had nothing to show; four in flight cuts the wait roughly fourfold
+  /// while keeping the proxy and the provider quota comfortable.
+  static const int reviewConcurrency = 4;
 }

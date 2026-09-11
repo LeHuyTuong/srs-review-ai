@@ -22,6 +22,7 @@ abstract interface class DocumentParser {
   Future<SrsDocument> parse({
     required String fileName,
     required Uint8List bytes,
+    void Function(String status)? onStatus,
   });
 }
 
@@ -37,11 +38,16 @@ class ParseService implements DocumentParser {
   Future<SrsDocument> parse({
     required String fileName,
     required Uint8List bytes,
+    void Function(String status)? onStatus,
   }) {
     final extension = fileName.split('.').last.toLowerCase();
     return switch (extension) {
-      'pdf' => _pdf.parse(fileName: fileName, bytes: bytes),
-      'docx' => _docx.parse(fileName: fileName, bytes: bytes),
+      'pdf' => _pdf.parse(fileName: fileName, bytes: bytes, onStatus: onStatus),
+      'docx' => _docx.parse(
+        fileName: fileName,
+        bytes: bytes,
+        onStatus: onStatus,
+      ),
       // Legacy binary .doc cannot be unzipped; refuse early with a clear reason
       // rather than producing an empty document (research 06).
       'doc' => throw ParseException(
@@ -67,6 +73,7 @@ class PdfParser implements DocumentParser {
   Future<SrsDocument> parse({
     required String fileName,
     required Uint8List bytes,
+    void Function(String status)? onStatus,
   }) async {
     late final PdfDocument document;
     try {
@@ -79,8 +86,15 @@ class PdfParser implements DocumentParser {
 
     try {
       final extractor = PdfTextExtractor(document);
+      final pageCount = document.pages.count;
       final pageTexts = <String>[];
-      for (var page = 0; page < document.pages.count; page++) {
+      for (var page = 0; page < pageCount; page++) {
+        // Large PDFs spend real seconds in text extraction; report per-page
+        // progress (throttled to multi-page documents) so the UI shows life.
+        if (onStatus != null && pageCount >= 8) {
+          onStatus('Extracting text (page ${page + 1}/$pageCount)…');
+          await Future<void>.delayed(Duration.zero);
+        }
         pageTexts.add(
           extractor.extractText(startPageIndex: page, endPageIndex: page),
         );
@@ -135,8 +149,12 @@ class DocxParser implements DocumentParser {
   Future<SrsDocument> parse({
     required String fileName,
     required Uint8List bytes,
+    void Function(String status)? onStatus,
   }) async {
     late final Archive archive;
+    // Yield before the blocking decode so the progress frame can paint.
+    onStatus?.call('Opening DOCX archive…');
+    await Future<void>.delayed(Duration.zero);
     try {
       archive = ZipDecoder().decodeBytes(bytes);
     } on Exception catch (error) {
@@ -155,6 +173,8 @@ class DocxParser implements DocumentParser {
       throw ParseException('The DOCX body is empty.');
     }
 
+    onStatus?.call('Extracting text…');
+    await Future<void>.delayed(Duration.zero);
     final text = extractText(utf8.decode(xmlBytes, allowMalformed: true));
     if (text.trim().isEmpty) {
       throw ParseException('No text found in the DOCX file.');
@@ -163,6 +183,8 @@ class DocxParser implements DocumentParser {
     final hasMedia = archive.files.any((f) => f.name.startsWith(_mediaPrefix));
 
     // DOCX has no page concept before rendering: one logical page.
+    onStatus?.call('Detecting requirements…');
+    await Future<void>.delayed(Duration.zero);
     return SrsDocument(
       fileName: fileName,
       pageCount: 1,

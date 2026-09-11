@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/providers.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/widgets/content_shell.dart';
 import '../../../data/models/deterministic_finding.dart';
 import '../../../data/models/srs_document.dart';
@@ -35,7 +36,7 @@ class DocumentScreen extends ConsumerWidget {
             value: isMock,
             onChanged: ref.read(mockModeProvider.notifier).set,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
         ],
       ),
       body: switch (state.status) {
@@ -52,7 +53,7 @@ class DocumentScreen extends ConsumerWidget {
       },
       floatingActionButton: state.hasDocument
           ? FloatingActionButton.extended(
-              onPressed: () => context.go(AppRoutes.review),
+              onPressed: () => context.go(AppRoutes.legacyReview),
               icon: const Icon(Icons.auto_awesome),
               label: const Text('Review with AI'),
             )
@@ -83,7 +84,7 @@ class _OfflineToggle extends StatelessWidget {
             size: 18,
             color: theme.colorScheme.onSurfaceVariant,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Text(
             value ? 'Offline' : 'Online',
             style: theme.textTheme.labelLarge?.copyWith(
@@ -112,12 +113,15 @@ class _EmptyState extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 460),
         child: Card(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xxxl,
+              vertical: AppSpacing.huge,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(AppSpacing.xl),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primaryContainer,
                     shape: BoxShape.circle,
@@ -128,12 +132,12 @@ class _EmptyState extends StatelessWidget {
                     color: theme.colorScheme.onPrimaryContainer,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppInsets.sectionGap),
                 Text(
                   'No document loaded',
                   style: theme.textTheme.headlineSmall,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppInsets.headerBodyGap),
                 Text(
                   'Choose your SRS (PDF or DOCX). Nothing leaves this machine '
                   'until you press Review.',
@@ -142,13 +146,13 @@ class _EmptyState extends StatelessWidget {
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: AppSpacing.xxl),
                 FilledButton.icon(
                   onPressed: onPick,
                   icon: const Icon(Icons.upload_file),
                   label: const Text('Choose SRS file'),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppInsets.headerBodyGap),
                 Text(
                   'PDF or DOCX · up to 20 MB',
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -181,7 +185,10 @@ class _ErrorState extends StatelessWidget {
       constraints: const BoxConstraints(maxWidth: 460),
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xxxl,
+            vertical: AppSpacing.huge,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -192,13 +199,13 @@ class _ErrorState extends StatelessWidget {
                 size: 48,
                 color: Theme.of(context).colorScheme.error,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppSpacing.xl),
               Text(
                 message,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: AppSpacing.xxl),
               OutlinedButton(
                 onPressed: onRetry,
                 child: const Text('Choose another file'),
@@ -221,11 +228,16 @@ class _DocumentBody extends StatelessWidget {
     final document = loaded.document;
     return ContentShell(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 24, 16, 96),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.xxl,
+          AppSpacing.lg,
+          96,
+        ),
         children: [
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: AppInsets.cardPadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -233,10 +245,10 @@ class _DocumentBody extends StatelessWidget {
                     document.fileName,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppInsets.headerBodyGap),
                   Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
                     children: [
                       _Stat(label: 'pages', value: '${document.pageCount}'),
                       _Stat(
@@ -257,7 +269,7 @@ class _DocumentBody extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppInsets.cardGap),
           Text(
             'Syllabus checks',
             style: Theme.of(context).textTheme.titleMedium,
@@ -266,14 +278,14 @@ class _DocumentBody extends StatelessWidget {
             'Rule-based, offline, no AI tokens spent.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppInsets.listGap),
           ..._findingCards(context, loaded.findings),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppInsets.cardGap),
           Text(
             'Parsed requirements',
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppInsets.listGap),
           ...document.requirements.map((item) => _RequirementTile(item: item)),
         ],
       ),

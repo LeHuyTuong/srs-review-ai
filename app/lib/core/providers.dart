@@ -3,6 +3,7 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/checks/rubric_config.dart';
 import '../data/repositories/document_repository.dart';
@@ -10,6 +11,7 @@ import '../data/repositories/review_repository.dart';
 import '../data/services/api_service.dart';
 import '../data/services/mock_review_api.dart';
 import '../data/services/review_api.dart';
+import '../data/services/session_store.dart';
 import 'app_config.dart';
 
 /// Runtime demo switch. Starts from the build-time flag but stays flippable on
@@ -55,4 +57,17 @@ final documentRepositoryProvider = Provider<DocumentRepository>((ref) {
 
 final reviewRepositoryProvider = Provider<ReviewRepository>(
   (ref) => ReviewRepository(ref.watch(reviewApiProvider)),
+);
+
+/// Overridden in `main()` with the instance awaited before `runApp`, so the
+/// workspace can restore its snapshot synchronously from the first build.
+/// Tests override [sessionStoreProvider] with an in-memory store instead.
+final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
+  throw UnimplementedError(
+    'sharedPreferencesProvider must be overridden in main()',
+  );
+});
+
+final sessionStoreProvider = Provider<SessionStore>(
+  (ref) => SharedPreferencesSessionStore(ref.watch(sharedPreferencesProvider)),
 );

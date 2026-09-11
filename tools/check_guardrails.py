@@ -5,12 +5,13 @@ Run locally:      python3 tools/check_guardrails.py
 Runs in CI:       .github/workflows/ci.yml
 Runs pre-commit:  tools/install-hooks.sh
 
-Five families of rule:
+Five families of rule plus one for design tokens:
   1. SECRETS   — no API key ever enters git history.
   2. NO DIRECT LLM — the Flutter app may only talk to our own proxy (AC6).
   3. LAYERING  — MVVM boundaries from the Flutter architecture guide.
   4. PINS      — dependency versions whose majors are known traps.
   5. CONTRACT  — schema, Python and Dart agree on one contract version.
+  6. DESIGN TOKENS — colors and radii live only in core/theme/.
 
 This file is excluded from its own scans; keep example keys out of it anyway.
 """
@@ -313,6 +314,55 @@ def extract(path: Path, pattern: str) -> str | None:
 
 
 # --------------------------------------------------------------------------
+# 6. DESIGN TOKENS — colors/radii only in core/theme/
+# --------------------------------------------------------------------------
+# Components must consume the ColorScheme / SeverityColors / AppRadius tokens.
+# A raw Color(0x...) or an ad-hoc BorderRadius.circular outside core/theme/ is
+# how a theme silently forks. Spacing is deliberately NOT enforced here: too
+# many legitimate one-off sizes (icons, indicator heights) would make the rule
+# noise. It is handled by the AppSpacing/AppInsets tokens + review.
+RAW_COLOR = re.compile(r"\bColor\(\s*0x")
+RAW_RADIUS = re.compile(r"\bBorderRadius\.circular\(")
+THEME_DIR_FRAGMENT = "core/theme/"
+
+
+def check_design_tokens(files: list[Path]) -> list[Violation]:
+    violations: list[Violation] = []
+    app_lib = REPO / "app" / "lib"
+    for path in files:
+        if path.suffix != ".dart" or not path.is_relative_to(app_lib):
+            continue
+        rel = path.relative_to(REPO).as_posix()
+        if THEME_DIR_FRAGMENT in rel:
+            continue  # the only home of raw values
+        for number, line in read_lines(path):
+            stripped = line.strip()
+            if stripped.startswith("//") or stripped.startswith("///"):
+                continue  # documentation may name the rule
+            if RAW_COLOR.search(line):
+                violations.append(
+                    Violation(
+                        "design-tokens",
+                        rel,
+                        number,
+                        "raw Color(0x...) outside core/theme/ — use the ColorScheme "
+                        "or SeverityColors from app_theme.dart",
+                    )
+                )
+            if RAW_RADIUS.search(line):
+                violations.append(
+                    Violation(
+                        "design-tokens",
+                        rel,
+                        number,
+                        "ad-hoc BorderRadius.circular outside core/theme/ — use "
+                        "AppRadius (sm/md/lg) from app_tokens.dart",
+                    )
+                )
+    return violations
+
+
+# --------------------------------------------------------------------------
 # plumbing
 # --------------------------------------------------------------------------
 def read_lines(path: Path) -> list[tuple[int, str]]:
@@ -357,6 +407,7 @@ def main() -> int:
         "MVVM layering": lambda: check_layering(files),
         "dependency pins": check_pins,
         "contract version agreement": check_contract_version,
+        "design tokens (colors/radii in core/theme/)": lambda: check_design_tokens(files),
     }
 
     total: list[Violation] = []

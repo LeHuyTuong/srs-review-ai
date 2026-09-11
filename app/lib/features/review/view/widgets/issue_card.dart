@@ -2,11 +2,32 @@
 ///
 /// The verification badge is not decoration — it is the visible proof of the
 /// anti-hallucination pipeline, so it is never optional.
+///
+/// ## Component spec — IssueCard
+///
+/// | Part | Spec |
+/// |---|---|
+/// | Card | radius `AppRadius.md` (via cardTheme), padding `AppInsets.cardPadding`, `outlineVariant` border |
+/// | Accent bar | 4×18, color `severityColors.forSeverity(severity)` |
+/// | Type chip | outlined, `accent` border, compact density |
+/// | Quote block | bg `surfaceContainerHighest`, radius `AppRadius.sm`, left border accent 3, italic `bodyMedium` |
+/// | Suggestion | `bodyMedium`, onSurface |
+/// | Footer action | `TextButton.icon`, right-aligned, only when `onJumpToPage != null` |
+///
+/// ### Variants (verification badge)
+///
+/// | State | Icon | Color | Label |
+/// |---|---|---|---|
+/// | exact | `verified_outlined` | `severityColors.verified` | "quote verified" |
+/// | fuzzy | `help_outline` | `severityColors.fuzzy` | "close match NN%" |
+///
+/// Both variants carry a tooltip — the badge is a claim, so it must explain itself.
 library;
 
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_tokens.dart';
 import '../../../../data/models/review_models.dart';
 
 class IssueCard extends StatelessWidget {
@@ -29,16 +50,16 @@ class IssueCard extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: AppInsets.cardPadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Container(width: 4, height: 18, color: accent),
-                const SizedBox(width: 8),
+                Container(width: AppSpacing.xs, height: 18, color: accent),
+                const SizedBox(width: AppSpacing.sm),
                 Text(requirementId, style: theme.textTheme.titleSmall),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
                 Chip(
                   label: Text(issue.type.name),
                   visualDensity: VisualDensity.compact,
@@ -51,15 +72,17 @@ class IssueCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppInsets.headerBodyGap),
             DecoratedBox(
               decoration: BoxDecoration(
                 color: theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: const BorderRadius.all(
+                  Radius.circular(AppRadius.sm),
+                ),
                 border: Border(left: BorderSide(color: accent, width: 3)),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 child: Text(
                   '"${issue.quote}"',
                   style: theme.textTheme.bodyMedium?.copyWith(
@@ -68,10 +91,10 @@ class IssueCard extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppInsets.headerBodyGap),
             Text(issue.suggestion, style: theme.textTheme.bodyMedium),
             if (onJumpToPage != null) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xs),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
@@ -117,7 +140,7 @@ class _VerificationBadge extends StatelessWidget {
             size: 16,
             color: color,
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: AppSpacing.xs),
           Text(
             label,
             style: Theme.of(
