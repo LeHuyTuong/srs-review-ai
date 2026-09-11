@@ -157,21 +157,15 @@ class WorkspaceReviewResult {
         occurrenceKeys[index]: document.requirements[index],
     };
 
+    // The repository — the run's single producer — keys results, failures
+    // and occurrence keys identically, so the join is a plain lookup.
     final rows = <FindingRow>[];
     var seq = 0;
     final sortedKeys = run.results.keys.toList()..sort();
     for (final occurrenceKey in sortedKeys) {
       final result = run.results[occurrenceKey]!;
-      final legacyIndex = document.requirements.indexWhere(
-        (item) => item.id == occurrenceKey,
-      );
-      final resolvedKey = itemByKey.containsKey(occurrenceKey)
-          ? occurrenceKey
-          : legacyIndex >= 0 && legacyIndex < occurrenceKeys.length
-          ? occurrenceKeys[legacyIndex]
-          : occurrenceKey;
-      final item = itemByKey[resolvedKey];
-      final unit = unitByKey[resolvedKey];
+      final item = itemByKey[occurrenceKey];
+      final unit = unitByKey[occurrenceKey];
       for (final issue in result.issuesBySeverity) {
         rows.add(
           FindingRow(
@@ -191,9 +185,10 @@ class WorkspaceReviewResult {
       skipped: units.length - run.results.length,
       failed: run.failures.length,
       droppedIssueCount: run.totalDropped,
-      // Partial runs mix modes only when the caller swaps providers
-      // mid-flight, which the provider wiring makes impossible (the
-      // repository holds one API for the whole run).
+      // Empty results say nothing about the mode; fall back to the caller's
+      // current mode rather than vacuous-truth mock. Non-empty results can
+      // only mix modes if the caller swaps providers mid-flight, which the
+      // repository wiring makes impossible — so every() is the full contract.
       mock: run.results.isEmpty
           ? currentMode
           : run.results.values.every((r) => r.mock),

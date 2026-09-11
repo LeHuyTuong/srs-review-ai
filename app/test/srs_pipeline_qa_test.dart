@@ -1,0 +1,254 @@
+/// End-to-end QA of the import pipeline: real and synthetic SRS inputs.
+///
+/// These tests drive the same three stages `DocumentRepository.pickAndParse`
+/// drives — ParseService -> RequirementSplitter -> SyllabusChecks — so what
+/// they observe is what a user sees, not a mocked stand-in.
+///
+/// The real OTES document is read from the `SRS_TEST_PDF` environment variable
+/// when set; its cases skip otherwise, so CI never depends on a 27 MB file
+/// that is deliberately not committed.
+library;
+
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:srs_review_ai/data/checks/rubric_config.dart';
+import 'package:srs_review_ai/data/checks/syllabus_checks.dart';
+import 'package:srs_review_ai/data/models/srs_document.dart';
+import 'package:srs_review_ai/data/services/parse_service.dart';
+import 'support/srs_fixtures.dart';
+
+const String _realPdfEnv = 'SRS_TEST_PDF';
+
+/// Emitted with a stable prefix so a report can be produced from the run log.
+void _record(String caseId, Map<String, Object?> data) {
+  // ignore: avoid_print
+  print('QA|$caseId|${jsonEncode(data)}');
+}
+
+String? _realPdfPath() {
+  final path = Platform.environment[_realPdfEnv];
+  if (path == null || path.isEmpty) return null;
+  return File(path).existsSync() ? path : null;
+}
+
+void main() {
+  final parser = ParseService();
+  final stopwatch = Stopwatch();
+
+  Future<Map<String, Object?>> run(
+    String caseId,
+    String fileName,
+    List<int> bytes, {
+    bool expectSuccess = true,
+  }) async {
+    stopwatch
+      ..reset()
+      ..start();
+    try {
+      final document = await parser.parse(
+        fileName: fileName,
+        bytes: Uint8List.fromList(bytes),
+      );
+      stopwatch.stop();
+      final findings = SyllabusChecks(RubricConfig.fallback).runAll(document);
+      final result = <String, Object?>{
+        'outcome': 'parsed',
+        'ms': stopwatch.elapsedMilliseconds,
+        'units': document.requirements.length,
+        'useCases': document.useCaseCount,
+        'pages': document.pageCount,
+        'diagramPages': document.imagePageIndexes.length,
+        'ids': [
+          for (final r in document.requirements.take(20)) r.id,
+        ],
+        'firstText': document.requirements.isEmpty
+            ? ''
+            : document.requirements.first.text.replaceAll('\n', ' ').substring(
+                0,
+                document.requirements.first.text.length.clamp(0, 160),
+              ),
+        'checks': [
+          for (final f in findings) '${f.check.name}:${f.passed ? 'pass' : 'fail'}',
+        ],
+        'messages': [for (final f in findings) f.message],
+      };
+      _record(caseId, result);
+      if (!expectSuccess) {
+        fail('$caseId: expected a refusal, got a parsed document');
+      }
+      return result;
+    } on ParseException catch (error) {
+      stopwatch.stop();
+      final result = <String, Object?>{
+        'outcome': 'refused',
+        'ms': stopwatch.elapsedMilliseconds,
+        'message': error.message,
+        'isScannedPdf': error.isScannedPdf,
+      };
+      _record(caseId, result);
+      if (expectSuccess) {
+        fail('$caseId: expected a parsed document, was refused: ${error.message}');
+      }
+      return result;
+    } on Object catch (error) {
+      stopwatch.stop();
+      final result = <String, Object?>{
+        'outcome': 'crash',
+        'ms': stopwatch.elapsedMilliseconds,
+        'error': error.runtimeType.toString(),
+        'message': '$error',
+      };
+      _record(caseId, result);
+      fail('$caseId: threw ${error.runtimeType} instead of a ParseException: $error');
+    }
+  }
+
+  group('A · valid inputs', () {
+    test('TC-01 small valid PDF extracts every requirement', () async {
+      final result = await run('TC-01', 'valid_srs.pdf', buildValidPdf());
+      expect(result['useCases'], 3);
+      expect(result['units'], greaterThanOrEqualTo(5));
+      expect(result['pages'], 4);
+    });
+
+    test('TC-02 valid DOCX extracts every requirement', () async {
+      final result = await run('TC-02', 'valid_srs.docx', buildValidDocx());
+      expect(result['useCases'], 2);
+      // DOCX has no pagination before rendering: one logical page.
+      expect(result['pages'], 1);
+    });
+
+    test('TC-03 DOCX carrying images reports a diagram page', () async {
+      final result = await run(
+        'TC-03',
+        'with_media.docx',
+        buildDocx(['Use Case No. UC01', 'Main flow', '1. Step one.'], withMedia: true),
+      );
+      expect(result['diagramPages'], 1);
+    });
+  });
+
+  group('B · malformed and missing fields', () {
+    test('TC-04 prose with no identifiers still parses', () async {
+      final result = await run('TC-04', 'prose_only.pdf', buildProseOnlyPdf());
+      // Not a crash — but note how many units a human would expect (zero)
+      // versus what the inventory claims.
+      expect(result['outcome'], 'parsed');
+      expect(result['units'], 0);
+      expect(result['useCases'], 0);
+    });
+
+    test('TC-05 duplicate and malformed identifiers are all preserved', () async {
+      final result = await run('TC-05', 'duplicate_ids.pdf', buildDuplicateIdPdf());
+      // UC04 appears three times; UC0134 and UC0114 are the malformed pair.
+      expect(result['units'], 5);
+      expect(result['useCases'], 5);
+    });
+
+    test('TC-06 a document with zero requirements still yields F7/F8/F9', () async {
+      final result = await run('TC-06', 'prose_only.pdf', buildProseOnlyPdf());
+      final messages = (result['messages']! as List).cast<String>();
+      expect(messages.join(' '), contains('use cases'));
+    });
+
+    test('TC-07 text-free PDF is refused as a scan, not parsed silently', () async {
+      final result = await run(
+        'TC-07',
+        'scan.pdf',
+        buildNoTextPdf(),
+        expectSuccess: false,
+      );
+      expect(result['isScannedPdf'], isTrue);
+      expect(result['message'], contains('text layer'));
+    });
+
+    test('TC-08 more pages than the cap is refused with the number', () async {
+      final result = await run(
+        'TC-08',
+        'oversized.pdf',
+        buildOversizedPageCountPdf(),
+        expectSuccess: false,
+      );
+      expect(result['message'], contains('310'));
+      expect(result['message'], contains('300'));
+    });
+
+    test('TC-09 corrupt PDF is refused, not crashed on', () async {
+      final result = await run(
+        'TC-09',
+        'corrupt.pdf',
+        buildCorruptPdf(),
+        expectSuccess: false,
+      );
+      expect(result['message'], isNotEmpty);
+    });
+
+    test('TC-10 DOCX without word/document.xml is refused', () async {
+      final result = await run(
+        'TC-10',
+        'no_body.docx',
+        buildDocx(['irrelevant'], omitBody: true),
+        expectSuccess: false,
+      );
+      expect(result['message'], contains('valid DOCX'));
+    });
+  });
+
+  group('C · empty files', () {
+    test('TC-11 zero-byte PDF is refused', () async {
+      await run('TC-11', 'empty.pdf', <int>[], expectSuccess: false);
+    });
+
+    test('TC-12 zero-byte DOCX is refused', () async {
+      await run('TC-12', 'empty.docx', <int>[], expectSuccess: false);
+    });
+
+    test('TC-13 DOCX with an empty body is refused', () async {
+      final result = await run(
+        'TC-13',
+        'blank.docx',
+        buildDocx(<String>[]),
+        expectSuccess: false,
+      );
+      expect(result['message'], contains('No text'));
+    });
+  });
+
+  group('D · the real OTES document', () {
+    test('TC-14 real SRS parses and is measured', () async {
+      final path = _realPdfPath();
+      if (path == null) {
+        // ignore: avoid_print
+        print('QA|TC-14|{"outcome":"skipped","reason":"$_realPdfEnv not set"}');
+        return;
+      }
+      final bytes = File(path).readAsBytesSync();
+      final result = await run('TC-14', 'OTES_officially_document.docx.pdf', bytes);
+      expect(result['pages'], 217);
+      expect(result['units'], greaterThan(0));
+    });
+
+    test('TC-15 repeat parses are stable', () async {
+      final path = _realPdfPath();
+      if (path == null) {
+        // ignore: avoid_print
+        print('QA|TC-15|{"outcome":"skipped","reason":"$_realPdfEnv not set"}');
+        return;
+      }
+      final bytes = File(path).readAsBytesSync();
+      final timings = <int>[];
+      int? units;
+      for (var i = 0; i < 3; i++) {
+        final result = await run('TC-15.${i + 1}', 'OTES_officially_document.docx.pdf', bytes);
+        timings.add(result['ms']! as int);
+        units ??= result['units']! as int;
+        expect(result['units'], units, reason: 'a repeat parse must be deterministic');
+      }
+      // ignore: avoid_print
+      print('QA|TC-15-summary|${jsonEncode({'timingsMs': timings, 'units': units})}');
+    });
+  });
+}

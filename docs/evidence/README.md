@@ -33,3 +33,39 @@ cùng số (không cần mạng, không gọi LLM).
   (có text layer không, có bbox không, bao nhiêu bảng), không đo đúng/sai nội dung.
 - Chưa từng đo token tiêu thụ thật từ provider. Mọi con số token trong docs khác
   là **minh hoạ**, không phải chi phí.
+
+## Phụ lục 2026-09-12 — đóng gap M1: document hash + parser version
+
+Gap duy nhất còn UNMET trong bảng M1 của roadmap (lưu snapshot mà không biết
+nó thuộc tài liệu nào / parser nào) đã đóng:
+
+- `SrsDocument.documentFingerprint` = sha256 của `fullText` (package `crypto`,
+  thêm vào pubspec). Cùng một file import hai lần ra cùng một fingerprint.
+- `SavedSession` + snapshot JSON mang thêm `fingerprint` và `parserVersion`
+  (`SrsDocument.kParserVersion = '1.0.0'`); row cũ viết trước khi có version hoá
+  đọc lại thành chuỗi rỗng và **vẫn mở được** như cũ — không phá history.
+- Gate khôi phục: snapshot/session được viết bởi parser khác `kParserVersion`
+  bị từ chối kèm toast nói rõ phiên parser; units của một bản parse cũ không
+  còn thể lọt lưới vào workspace như thể là của bản parse hiện tại.
+
+Kiểm chứng (chạy được lại):
+
+| Kiểm | Kết quả |
+|---|---|
+| `flutter analyze` | No issues found |
+| `flutter test` | **121/121 pass** (gồm 4 test mới: roundtrip fingerprint/parserVersion, row legacy đọc lại rỗng, snapshot sai parserVersion bị từ chối khi restore, openSession sai parserVersion trả `false`) |
+| `tools/check_guardrails.py` | pass — 153 files |
+
+Ghi chú trung thực:
+
+- Fingerprint băm **text đã parse** (`fullText`), không phải byte file PDF gốc:
+  hai PDF khác byte nhưng parse ra cùng text thì coi là một tài liệu. Đó là
+  hành động đúng cho mục đích resume-skip (đơn vị review là requirement đã tách).
+- Restore chỉ gate theo `parserVersion`; fingerprint được lưu và gắn vào state
+  để so sánh ở tầng trên (demo/import), còn gate cứng hiện tại là phiên parser.
+- Một lần chạy `flutter test` full-suite thất bại 1 test do timing (toast tự
+  xoá sau 4500 ms, shard chạy song song dưới tải cao), chạy lại 2 lần đều
+  121/121. Test khẳng định hành vi người dùng thấy thật, không phải flake logic.
+- Vẫn còn trong M1: FR/NFR/BR là kind riêng (**PARTIAL** — `NF-` hiện bị gộp
+  vào `statement`) và lưu UI category override (**UNMET**). Không ghi hai mục
+  này là xong.

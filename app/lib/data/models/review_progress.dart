@@ -80,21 +80,6 @@ class ReviewRun {
   /// Units the per-run cap excluded. Surfaced to the user, never swallowed.
   final int skipped;
 
-  bool get isEmpty => results.isEmpty;
-
-  int get totalIssues =>
-      results.values.fold(0, (sum, r) => sum + r.issues.length);
-
   int get totalDropped =>
       results.values.fold(0, (sum, r) => sum + r.droppedIssueCount);
-
-  int countBySeverity(Severity severity) =>
-      results.values.fold(0, (sum, r) => sum + r.countBySeverity(severity));
-
-  /// Mean requirement score, on the same 0–10 scale the course uses.
-  double get overallScore {
-    if (results.isEmpty) return 0;
-    final total = results.values.fold<int>(0, (sum, r) => sum + r.score);
-    return total / results.length;
-  }
 }

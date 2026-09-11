@@ -125,9 +125,15 @@ class PdfParser implements DocumentParser {
     late final PdfDocument document;
     try {
       document = PdfDocument(inputBytes: bytes);
-    } on Exception catch (error) {
+    } on Object catch (error) {
+      // `on Exception` was not enough. A truncated or zero-byte PDF makes
+      // Syncfusion throw ArgumentError, which is an *Error*, not an Exception
+      // — so it sailed straight past this handler and crashed the import
+      // instead of showing the user a reason. Measured with a 0-byte file and
+      // a valid-header/garbage-body file: both threw ArgumentError.
       throw ParseException(
-        'Could not open the PDF (it may be corrupted or password protected): $error',
+        'Could not open the PDF (it may be corrupted, empty or password '
+        'protected): $error',
       );
     }
 

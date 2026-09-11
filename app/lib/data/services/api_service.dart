@@ -101,7 +101,56 @@ class ApiService implements ReviewApi {
     return AskResponse.fromJson(data);
   }
 
-  Future<Map<String, dynamic>> _get(String path) async {
+  /// Extra attempts after the first for a retryable failure (so up to three
+  /// round trips), and the pause before each, doubled every attempt.
+  static const int _maxRetries = 2;
+  static const Duration _retryBaseDelay = Duration(milliseconds: 400);
+
+  /// Re-runs [call] when it fails with a retryable [ApiException].
+  ///
+  /// Phone networks drop packets. A request that failed on a flaky connection
+  /// is worth another attempt, and the cost is a few hundred milliseconds
+  /// against a review that already takes seconds per requirement.
+  ///
+  /// What is NEVER retried:
+  /// * **final answers** — a quota rejection (429) or a contract mismatch
+  ///   (422) fails identically next time, so retrying only delays the message
+  ///   the user needs to read. [_translate] marks only transient failures
+  ///   `isRetryable`, which is what this decision hangs on.
+  /// * **a cancelled run** — a cancelled [cancelToken] means the user asked to
+  ///   stop; retrying would ignore them and burn quota.
+  /// * **anything that is not an [ApiException]** — a contract violation, say.
+  ///
+  /// Safe because every call in this class is idempotent: `/health` and
+  /// `/rubric` are reads, and `/review` is keyed by requirement and answered
+  /// from the proxy's cache on a repeat.
+  ///
+  /// Deliberately NOT applied to [isProxyUp]: that probe drives the
+  /// connection pill and must answer immediately, not after backoff.
+  Future<T> _withRetry<T>(
+    Future<T> Function() call, {
+    CancelToken? cancelToken,
+  }) async {
+    var attempt = 0;
+    while (true) {
+      try {
+        return await call();
+      } on ApiException catch (error) {
+        if (!error.isRetryable ||
+            attempt >= _maxRetries ||
+            (cancelToken?.isCancelled ?? false)) {
+          rethrow;
+        }
+        attempt++;
+        await Future<void>.delayed(_retryBaseDelay * (1 << (attempt - 1)));
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>> _get(String path) =>
+      _withRetry(() => _getOnce(path));
+
+  Future<Map<String, dynamic>> _getOnce(String path) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(path);
       return response.data ??
@@ -112,6 +161,15 @@ class ApiService implements ReviewApi {
   }
 
   Future<Map<String, dynamic>> _post(
+    String path,
+    Map<String, dynamic> body, {
+    CancelToken? cancelToken,
+  }) => _withRetry(
+    () => _postOnce(path, body, cancelToken: cancelToken),
+    cancelToken: cancelToken,
+  );
+
+  Future<Map<String, dynamic>> _postOnce(
     String path,
     Map<String, dynamic> body, {
     CancelToken? cancelToken,
