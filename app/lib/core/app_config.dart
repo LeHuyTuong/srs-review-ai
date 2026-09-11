@@ -43,7 +43,7 @@ class AppConfig {
   static const Duration connectTimeout = Duration(seconds: 10);
 
   /// Client-side guard so a stray loop cannot burn the free-tier quota.
-  static const int maxRequirementsPerRun = 40;
+  static const int maxRequirementsPerRun = 60;
 
   /// How many requirements are reviewed at once.
   ///
