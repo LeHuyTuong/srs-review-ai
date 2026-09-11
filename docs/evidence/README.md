@@ -115,3 +115,40 @@ Kiểm chứng (chạy được lại):
 Ghi chú trung thực: bài học quy trình — ghi "gap còn tồn tại" mà không bám lại
 vào code working tree thì chính ghi chú đó trở thành dữ liệu sai trong lần chấm
 điểm sau. Audit notes phải re-verify trước khi ghi vào bảng gate.
+
+## Phụ lục — 2026-09-12: server-side bounded payload guard (M3 pre-build)
+
+Roadmap M3 yêu cầu "FastAPI nhận review unit bounded, không upload PDF 27MiB
+qua Function body". Trước vòng này `/review` và `/ask` nhận text/context
+không giới hạn — một blob lớn sẽ trôi qua prompt (tốn token, chậm) hoặc chết
+ở biên 4,5 MB của Vercel Functions với lỗi platform, không đọc được.
+
+**Đã vá (working tree):**
+
+- `server/app/config.py`: thêm `max_text_bytes = 200_000` (policy thử nghiệm
+  theo roadmap — một requirement lớn hơn vậy là bug parse, không phải việc
+  chấm) và `max_image_b64_bytes = 4_000_000` (base64 ~3 MB PNG; hợp đồng cho
+  phép ảnh làm context, không có trần thì toàn-document blob có thể lùa qua
+  `image_b64`).
+- `server/app/main.py`: `_ensure_bounded()` chạy **trước cả limiter lẫn
+  cache lookup** ở cả `/review` lẫn `/ask` → `HTTPException(413)` với detail
+  nêu đúng số byte thực tế và trần. Chạy trước limiter là cố ý: payload bị
+  từ chối không đốt quota ngày.
+- `server/tests/test_api.py`: 5 test mới — text vượt trần → 413 (detail nêu
+  "review-unit limit"); text **đúng bằng** trần → 200 (trần inclusive, yêu
+  cầu hợp lệ dài phải qua được); `/ask` context vượt trần → 413;
+  `image_b64` vượt trần → 413; provider fail (mô phỏng timeout sau 90 s qua
+  `LlmError`) → **502 đọc được, không hang** — đây là đường timeout
+  `request_timeout_s` đi tới client.
+
+Kiểm chứng (chạy được lại):
+
+| Kiểm | Kết quả |
+|---|---|
+| `server/.venv/bin/python -m pytest tests/` | **49 passed** (44 cũ + 5 mới, 5,45 s) |
+| `test_api.py` riêng | 23/23 pass trong 0,54 s |
+| `flutter analyze` / `flutter test` | không đổi — không đụng mã Dart |
+
+Quy tắc giữ lại: **mọi giới hạn server-side phải test được ở biên**
+(limit qua được, limit+1 bị từ chối với detail nêu số) — thêm trần mới mà
+không có cặp test biên là tái tạo class "guard tồn tại nhưng không ai tin".

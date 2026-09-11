@@ -119,12 +119,38 @@ def _review_cache_keys(
     ]
 
 
+def _ensure_bounded(*, text: str, image_b64: str | None, settings: Settings) -> None:
+    """Reject payloads this deployment cannot carry — before any work.
+
+    Vercel Functions cap request bodies at 4.5 MB, so a ~27 MiB blob must die
+    here with a readable 413 rather than at the platform edge.
+    """
+    text_size = len(text.encode("utf-8"))
+    if text_size > settings.max_text_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"Text payload is {text_size} bytes; the review-unit limit is "
+                f"{settings.max_text_bytes}. Trim the requirement text."
+            ),
+        )
+    if image_b64 and len(image_b64) > settings.max_image_b64_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"Image payload is {len(image_b64)} bytes; the limit is "
+                f"{settings.max_image_b64_bytes}. Send a smaller page image."
+            ),
+        )
+
+
 @app.post("/review", response_model=ReviewResult, dependencies=[Depends(require_app_token)])
 async def review(
     payload: ReviewRequest,
     settings: Settings = Depends(get_settings),
     user: str = Depends(caller_id),
 ) -> ReviewResult:
+    _ensure_bounded(text=payload.text, image_b64=payload.image_b64, settings=settings)
     rubric_cfg = load_rubric()
     provider = build_provider(settings)
     cache_keys = _review_cache_keys(payload, settings, rubric_cfg, provider)
@@ -142,7 +168,9 @@ async def review(
     try:
         raw, model = await provider.generate_json(
             system=review_system_prompt(rubric_cfg),
-            user=review_user_prompt(payload.requirement_id, payload.text, payload.section, payload.page_index),
+            user=review_user_prompt(
+                payload.requirement_id, payload.text, payload.section, payload.page_index
+            ),
             schema=LLM_REVIEW_SCHEMA,
             image_b64=payload.image_b64,
         )
@@ -180,9 +208,7 @@ async def review(
         provider.name,
         str(settings.mock_mode),
         "|".join(
-            model_name
-            for model_name in [settings.gemini_model, settings.gemini_fallback_model]
-            if model_name
+            model_name for model_name in [settings.gemini_model, settings.gemini_fallback_model] if model_name
         ),
         settings.prompt_version,
         str(rubric_cfg["version"]),
@@ -198,6 +224,7 @@ async def ask(
     settings: Settings = Depends(get_settings),
     user: str = Depends(caller_id),
 ) -> AskResponse:
+    _ensure_bounded(text=payload.context, image_b64=None, settings=settings)
     allowed, _ = _limiter.check(user, settings.rate_limit_per_day)
     if not allowed:
         raise HTTPException(status_code=429, detail="Daily limit reached.")

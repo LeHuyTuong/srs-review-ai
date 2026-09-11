@@ -8,7 +8,8 @@ from typing import Any
 
 from .rubric import criteria_lines
 
-_REVIEW_SYSTEM = """You are a meticulous senior software requirements reviewer working to ISO/IEC/IEEE 29148 (IEEE 830).
+_REVIEW_SYSTEM = """You are a meticulous senior software requirements reviewer working to
+ISO/IEC/IEEE 29148 (IEEE 830).
 Score ONE requirement against this rubric:
 {criteria}
 

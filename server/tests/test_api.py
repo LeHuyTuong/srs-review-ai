@@ -6,10 +6,11 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
+import app.main as main_module
 from app.config import Settings, get_settings
+from app.llm.base import LlmError
 from app.llm.mock import MockProvider
 from app.main import _limiter, _review_cache, app
-import app.main as main_module
 
 
 @pytest.fixture(autouse=True)
@@ -107,6 +108,9 @@ def test_second_identical_review_is_served_from_cache(client):
 def test_cache_key_includes_section_image_and_page_index(client):
     base = {**VAGUE, "page_index": 0}
     text_only = client.post("/review", json=base).json()
+    # The baseline seeds the cache for `base`; the repeats further down only
+    # prove anything if this first call really was a miss.
+    assert text_only["cached"] is False
     image_review = client.post("/review", json={**base, "image_b64": "image-a"}).json()
     assert image_review["cached"] is False
 
@@ -220,6 +224,8 @@ def test_review_cache_isolated_between_mock_and_online(monkeypatch):
     assert mock_first["cached"] is False
     assert online_first["cached"] is False
     assert online_second["cached"] is True
+
+
 def test_review_prompt_includes_page_index():
     from app.prompt import review_user_prompt
 
@@ -304,3 +310,56 @@ def test_app_token_is_enforced_when_configured():
         ok = c.post("/review", json=VAGUE, headers={"X-App-Token": "s3cret"})
         assert ok.status_code == 200
     app.dependency_overrides.clear()
+
+
+# --- bounded payloads (roadmap M3: 413 testable) ---
+
+
+def test_review_rejects_text_over_the_limit_with_413(client):
+    oversized = "a" * (Settings().max_text_bytes + 1)
+    response = client.post("/review", json={**VAGUE, "text": oversized})
+    assert response.status_code == 413
+    assert "review-unit limit" in response.json()["detail"]
+
+
+def test_review_accepts_text_at_the_limit(client):
+    # Exactly at the cap must pass: the bound is inclusive, and a legitimate
+    # long requirement must not be cut off at the edge.
+    at_limit = "a" * Settings().max_text_bytes
+    response = client.post("/review", json={**VAGUE, "text": at_limit})
+    assert response.status_code == 200
+    assert response.json()["requirement_id"] == "FR-03"
+
+
+def test_ask_rejects_context_over_the_limit_with_413(client):
+    oversized = "a" * (Settings().max_text_bytes + 1)
+    response = client.post("/ask", json={"question": "What is FR-03?", "context": oversized})
+    assert response.status_code == 413
+
+
+def test_review_rejects_oversized_image_with_413(client):
+    blob = "A" * (Settings().max_image_b64_bytes + 1)
+    response = client.post("/review", json={**VAGUE, "image_b64": blob})
+    assert response.status_code == 413
+    assert "Image payload" in response.json()["detail"]
+
+
+def test_provider_failure_maps_to_502_not_a_hang(monkeypatch):
+    """Timeouts and other provider failures surface as the readable 502 —
+    this is how the 90 s request_timeout_s path reaches the client."""
+
+    class ExplodingProvider:
+        name = "exploding"
+
+        async def generate_json(self, *, system, user, schema, image_b64=None):
+            raise LlmError("simulated upstream timeout after 90s")
+
+    monkeypatch.setattr(main_module, "build_provider", lambda settings: ExplodingProvider())
+    app.dependency_overrides[get_settings] = lambda: Settings(mock_mode=True, gemini_api_key="")
+    try:
+        with TestClient(app) as c:
+            response = c.post("/review", json=VAGUE)
+        assert response.status_code == 502
+        assert "AI provider unavailable" in response.json()["detail"]
+    finally:
+        app.dependency_overrides.clear()

@@ -96,7 +96,9 @@ class GeminiProvider:
             config["temperature"] = self._settings.temperature
         return config
 
-    async def _post_with_retry(self, model: str, payload: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
+    async def _post_with_retry(
+        self, model: str, payload: dict[str, Any], schema: dict[str, Any]
+    ) -> dict[str, Any]:
         url = f"{self._settings.gemini_base_url}/models/{model}:generateContent"
         delay = 1.0
         attempts = max(1, self._settings.max_retries)

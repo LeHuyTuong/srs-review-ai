@@ -105,9 +105,7 @@ async def test_malformed_review_response_is_rejected():
 
 
 async def test_malformed_ask_response_is_rejected():
-    async with _client(
-        lambda r: _ok('{"answer": "x", "grounded": true, "quotes": "not a list"}')
-    ) as http:
+    async with _client(lambda r: _ok('{"answer": "x", "grounded": true, "quotes": "not a list"}')) as http:
         provider = GeminiProvider(_settings(), client=http)
         with pytest.raises(LlmError):
             await provider.generate_json(system="s", user="u", schema=LLM_ASK_SCHEMA)

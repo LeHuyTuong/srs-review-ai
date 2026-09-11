@@ -20,7 +20,8 @@ tools/      check_guardrails.py, install-hooks.sh
 
 ```sh
 # Server — pytest KHÔNG có trên PATH, chỉ có trong venv
-server/.venv/bin/python -m pytest server/tests/
+# (cwd = thư mục gốc repo srs-review-ai/, KHÔNG phải cha nó)
+cd srs-review-ai/server && .venv/bin/python -m pytest tests/
 
 # App
 cd app && flutter test        # 10 file *_test.dart
