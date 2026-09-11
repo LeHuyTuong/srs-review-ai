@@ -158,9 +158,14 @@ void main() {
         ],
       );
       final units = unitsFromDocument(document);
+      // Keys are OCCURRENCE keys, exactly as ReviewRepository emits them
+      // ('u<index>-<id>'). They were raw ids ('UC-01') in an earlier draft,
+      // which only worked while fromRun still carried a legacy-id fallback;
+      // that fallback is gone because the run's producer always keys by
+      // occurrence now, so a raw-id key legitimately joins to nothing.
       final run = ReviewRun(
         results: {
-          'UC-02': const ReviewResult(
+          'u1-UC-02': const ReviewResult(
             requirementId: 'UC-02',
             score: 6,
             model: 'mock',
@@ -175,7 +180,7 @@ void main() {
               ),
             ],
           ),
-          'UC-01': const ReviewResult(
+          'u0-UC-01': const ReviewResult(
             requirementId: 'UC-01',
             score: 9,
             model: 'mock',
