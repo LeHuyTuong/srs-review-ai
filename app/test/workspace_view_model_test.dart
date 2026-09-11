@@ -3,6 +3,7 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,7 @@ import 'package:srs_review_ai/core/app_config.dart';
 import 'package:srs_review_ai/core/providers.dart';
 import 'package:srs_review_ai/data/checks/rubric_config.dart';
 import 'package:srs_review_ai/data/models/review_models.dart';
+import 'package:srs_review_ai/data/models/srs_document.dart';
 import 'package:srs_review_ai/data/services/api_service.dart';
 import 'package:srs_review_ai/data/services/mock_review_api.dart';
 import 'package:srs_review_ai/data/services/review_api.dart';
@@ -62,6 +64,90 @@ void main() {
     expect(state.syllabusFindings, isNotEmpty);
     expect(state.sizeLabel, '27.37 MB');
     expect(state.toast, contains('65 units extracted'));
+  });
+
+  test('loadDemo stamps the document fingerprint and parser version',
+      () async {
+    final store = InMemorySessionStore();
+    final container = _container(store);
+    addTearDown(container.dispose);
+    final vm = container.read(workspaceViewModelProvider.notifier);
+
+    await vm.loadDemo();
+    final state = container.read(workspaceViewModelProvider);
+    expect(state.documentFingerprint, isNotEmpty);
+    expect(state.documentFingerprint.length, 64); // sha256 hex
+    expect(state.parserVersion, kParserVersion);
+  });
+
+  test('snapshot written by another parser version is refused on restore',
+      () async {
+    final store = InMemorySessionStore();
+    final containerA = _container(store);
+    addTearDown(containerA.dispose);
+    await containerA.read(workspaceViewModelProvider.notifier).loadDemo();
+
+    // Tamper the persisted snapshot the way an older parser build would have
+    // written it: same units, different version stamp.
+    // Parenthesised on purpose: `await store.loadSnapshot()!` would apply `!`
+    // to the Future (never null) and still hand `String?` to jsonDecode.
+    final raw =
+        jsonDecode((await store.loadSnapshot())!) as Map<String, dynamic>;
+    raw['parserVersion'] = '0.9.0';
+    await store.saveSnapshot(jsonEncode(raw));
+
+    final containerB = _container(store);
+    addTearDown(containerB.dispose);
+    await _pumpUntil(
+      () => !containerB.read(workspaceViewModelProvider).restoring,
+    );
+    final state = containerB.read(workspaceViewModelProvider);
+    expect(
+      state.hasDocument,
+      isFalse,
+      reason: 'stale-parse units must not silently surface as a restored '
+          'workspace',
+    );
+    expect(state.units, isEmpty);
+    expect(state.toast, contains('0.9.0'));
+  });
+
+  test('openSession refuses a session from another parser version', () async {
+    final store = InMemorySessionStore();
+    final container = _container(store);
+    addTearDown(container.dispose);
+    final vm = container.read(workspaceViewModelProvider.notifier);
+
+    await store.save(
+      SavedSession(
+        id: 'stale',
+        fileName: 'old.pdf',
+        // Must carry every field openSession reads, or the cast of a missing
+        // key throws and the whole open is reported as a failure — which would
+        // mask the version check this test is actually about.
+        payloadJson:
+            '{"fileName":"old.pdf","pageCount":1,"sizeLabel":"1 KB",'
+            '"isDemo":false,"units":[]}',
+        createdAt: DateTime(2026, 1, 1),
+        parserVersion: '0.9.0',
+      ),
+    );
+    expect(await vm.openSession('stale'), isFalse);
+    expect(container.read(workspaceViewModelProvider).toast, contains('0.9.0'));
+
+    // Matching (or pre-versioning) rows still open.
+    await store.save(
+      SavedSession(
+        id: 'current',
+        fileName: 'new.pdf',
+        payloadJson:
+            '{"fileName":"new.pdf","pageCount":1,"sizeLabel":"1 KB",'
+            '"isDemo":false,"units":[]}',
+        createdAt: DateTime(2026, 1, 2),
+        parserVersion: kParserVersion,
+      ),
+    );
+    expect(await vm.openSession('current'), isTrue);
   });
 
   test('runReview over 40 selected units completes, saves a session',
@@ -123,6 +209,7 @@ void main() {
     expect(restored.units, hasLength(65));
     expect(restored.hasResult, isTrue);
     expect(restored.result!.findings, hasLength(state.result!.findings.length));
+    expect(restored.syllabusFindings, isNotEmpty);
   });
 
   test('runReview rejects an empty selection and clamps an over-cap one',
@@ -199,7 +286,69 @@ void main() {
     final after = container.read(workspaceViewModelProvider);
     expect(after.result!.failed, 1);
     expect(after.toast, contains('failed and were NOT reviewed'));
+    // A unit whose review errored is `failed`, never `reviewed`.
+    expect(
+      after.units.where((u) => u.selected).map((u) => u.status),
+      everyElement(UnitStatus.failed),
+    );
   });
+
+  /// Regression (2026-09-11): a run killed by a 429 used to stamp "reviewed"
+  /// on every SELECTED unit even though coverage honestly said 0 — the
+  /// exported report then contradicted itself: "0 reviewed" next to 50
+  /// inventory rows reading "reviewed".
+  test(
+    'a run killed by a 429 marks nothing reviewed and the export says so',
+    () async {
+      final store = InMemorySessionStore();
+      final container = ProviderContainer(
+        overrides: [
+          sessionStoreProvider.overrideWithValue(store),
+          reviewApiProvider.overrideWithValue(const _QuotaKillingApi()),
+        ],
+      );
+      addTearDown(container.dispose);
+      final vm = container.read(workspaceViewModelProvider.notifier);
+      await vm.loadDemo();
+      final units = container.read(workspaceViewModelProvider).units;
+      for (final unit in units) {
+        vm.setUnitSelected(unit.key, false);
+      }
+      final reviewable =
+          units.where((u) => !u.malformed).take(2).toList();
+      for (final unit in reviewable) {
+        vm.setUnitSelected(unit.key, true);
+      }
+
+      await vm.runReview();
+      await _pumpUntil(
+        () => container.read(workspaceViewModelProvider).result != null,
+      );
+      await _pumpUntil(
+        () => !container.read(workspaceViewModelProvider).isRunning,
+      );
+      final after = container.read(workspaceViewModelProvider);
+      expect(after.result!.reviewed, 0);
+      expect(after.result!.outcome, 'failed');
+      expect(after.result!.findings, isEmpty);
+      // Selection proves intent, not work: nothing is "reviewed"…
+      expect(
+        after.units.where((u) => u.status == UnitStatus.reviewed),
+        isEmpty,
+      );
+      // …the two selected units return to pending, the rest stay skipped.
+      expect(
+        after.units
+            .where((u) => reviewable.any((r) => r.key == u.key))
+            .map((u) => u.status),
+        everyElement(UnitStatus.pending),
+      );
+      // The exported report states the run returned nothing, in plain words.
+      final markdown = vm.exportMarkdown();
+      expect(markdown, contains('The last review run failed'));
+      expect(markdown, contains('only 0 selected unit(s) returned results'));
+    },
+  );
 
   test('classifyUnit to unknown deselects; export carries the file name',
       () async {
@@ -244,6 +393,38 @@ void main() {
     expect(state.units, hasLength(65));
     expect(state.fileName, demoFileName);
   });
+}
+
+/// Stands in for a provider that just answered 429: the first review call
+/// kills the whole run, exactly the way the repository treats a quota hit.
+class _QuotaKillingApi implements ReviewApi {
+  const _QuotaKillingApi();
+
+  @override
+  Future<bool> isProxyUp() async => true;
+
+  @override
+  Future<RubricConfig> fetchRubric() async => RubricConfig.fallback;
+
+  @override
+  Future<ReviewResult> review({
+    required String requirementId,
+    required String text,
+    String? section,
+    int? pageIndex,
+    CancelToken? cancelToken,
+  }) async {
+    throw ApiException('Provider quota exhausted.', statusCode: 429);
+  }
+
+  @override
+  Future<AskResponse> ask({
+    required String question,
+    required String context,
+    int? pageIndex,
+    CancelToken? cancelToken,
+  }) async =>
+      throw ApiException('Provider quota exhausted.', statusCode: 429);
 }
 
 /// Stands in for a dead proxy: every review call fails the way

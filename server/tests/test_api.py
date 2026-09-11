@@ -7,7 +7,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.config import Settings, get_settings
+from app.llm.mock import MockProvider
 from app.main import _limiter, _review_cache, app
+import app.main as main_module
 
 
 @pytest.fixture(autouse=True)
@@ -32,6 +34,32 @@ VAGUE = {
     "text": "The system shall respond quickly to every search request.",
     "section": "3.2",
 }
+
+
+class FakeProvider:
+    name = "fake"
+
+    def __init__(self):
+        self.settings = None
+        self.calls = []
+
+    def set_settings(self, settings):
+        self.settings = settings
+
+    async def generate_json(self, *, system, user, schema, image_b64=None):
+        self.calls.append((self.settings.gemini_model, self.settings.fuzzy_threshold, image_b64))
+        return {
+            "requirement_id": "FR-03",
+            "score": 7,
+            "issues": [
+                {
+                    "type": "ambiguity",
+                    "severity": "high",
+                    "quote": "quickly",
+                    "suggestion": "Be specific.",
+                }
+            ],
+        }, self.settings.gemini_model
 
 
 def test_health_reports_mock_mode(client):
@@ -74,6 +102,129 @@ def test_second_identical_review_is_served_from_cache(client):
     assert first["cached"] is False
     assert second["cached"] is True
     assert second["issues"] == first["issues"]
+
+
+def test_cache_key_includes_section_image_and_page_index(client):
+    base = {**VAGUE, "page_index": 0}
+    text_only = client.post("/review", json=base).json()
+    image_review = client.post("/review", json={**base, "image_b64": "image-a"}).json()
+    assert image_review["cached"] is False
+
+    repeated_image = client.post("/review", json={**base, "image_b64": "image-a"}).json()
+    assert repeated_image["cached"] is True
+
+    different_section = client.post("/review", json={**base, "section": "4.0"}).json()
+    assert different_section["cached"] is False
+
+    repeated_section = client.post("/review", json={**base, "section": "4.0"}).json()
+    assert repeated_section["cached"] is True
+
+    different_page = client.post("/review", json={**base, "page_index": 1}).json()
+    assert different_page["cached"] is False
+
+    repeated_page = client.post("/review", json=base).json()
+    assert repeated_page["cached"] is True
+
+
+def test_cache_key_includes_threshold(monkeypatch):
+    provider = FakeProvider()
+
+    def build_provider(settings):
+        provider.set_settings(settings)
+        return provider
+
+    monkeypatch.setattr(main_module, "build_provider", build_provider)
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        mock_mode=True,
+        gemini_api_key="",
+        fuzzy_threshold=0.92,
+    )
+
+    with TestClient(app) as c:
+        first = c.post("/review", json=VAGUE).json()
+        app.dependency_overrides[get_settings] = lambda: Settings(
+            mock_mode=True,
+            gemini_api_key="",
+            fuzzy_threshold=0.99,
+        )
+        second = c.post("/review", json=VAGUE).json()
+        third = c.post("/review", json=VAGUE).json()
+
+    assert first["cached"] is False
+    assert second["cached"] is False
+    assert third["cached"] is True
+    assert [call[1] for call in provider.calls] == [0.92, 0.99]
+
+
+def test_cache_key_includes_selected_model(monkeypatch):
+    provider = FakeProvider()
+
+    def build_provider(settings):
+        provider.set_settings(settings)
+        return provider
+
+    monkeypatch.setattr(main_module, "build_provider", build_provider)
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        mock_mode=True,
+        gemini_api_key="",
+        gemini_model="gemini-3.5-flash-lite",
+        gemini_fallback_model="gemini-3.1-flash-lite",
+        fuzzy_threshold=0.92,
+    )
+
+    with TestClient(app) as c:
+        first = c.post("/review", json=VAGUE).json()
+        app.dependency_overrides[get_settings] = lambda: Settings(
+            mock_mode=True,
+            gemini_api_key="",
+            gemini_model="gemini-3.1-flash-lite",
+            gemini_fallback_model="gemini-3.5-flash-lite",
+            fuzzy_threshold=0.92,
+        )
+        second = c.post("/review", json=VAGUE).json()
+        third = c.post("/review", json=VAGUE).json()
+
+    assert first["cached"] is False
+    assert second["cached"] is False
+    assert third["cached"] is True
+    assert [call[0] for call in provider.calls] == ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"]
+
+
+def test_review_cache_isolated_between_mock_and_online(monkeypatch):
+    mock_provider = MockProvider()
+    online_provider = FakeProvider()
+
+    def build_provider(settings):
+        if settings.mock_mode:
+            return mock_provider
+        online_provider.set_settings(settings)
+        return online_provider
+
+    monkeypatch.setattr(main_module, "build_provider", build_provider)
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        mock_mode=True,
+        gemini_api_key="",
+        fuzzy_threshold=0.92,
+    )
+
+    with TestClient(app) as c:
+        mock_first = c.post("/review", json=VAGUE).json()
+        app.dependency_overrides[get_settings] = lambda: Settings(
+            mock_mode=False,
+            gemini_api_key="test-key",
+            fuzzy_threshold=0.92,
+        )
+        online_first = c.post("/review", json=VAGUE).json()
+        online_second = c.post("/review", json=VAGUE).json()
+
+    assert mock_first["cached"] is False
+    assert online_first["cached"] is False
+    assert online_second["cached"] is True
+def test_review_prompt_includes_page_index():
+    from app.prompt import review_user_prompt
+
+    prompt = review_user_prompt("FR-01", "The system shall respond quickly.", "3.2", 7)
+    assert "page_index: 7" in prompt
 
 
 def test_requirement_id_comes_from_the_request_not_the_model(client):

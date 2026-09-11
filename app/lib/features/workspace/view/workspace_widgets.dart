@@ -109,10 +109,17 @@ class WButton extends StatelessWidget {
         style: FilledButton.styleFrom(
           backgroundColor: colors.brand,
           foregroundColor: colors.onBrand,
-          minimumSize: const Size(0, 40),
+          // 44, not 40: measured live as 117x40 for the Run review button,
+          // below the platform tap-target floor. See audit P1-1.
+          minimumSize: const Size(0, 44),
           padding: const EdgeInsets.symmetric(horizontal: 15),
           shape: RoundedRectangleBorder(borderRadius: AppRadius.boxSm),
-          textStyle: const TextStyle(
+          // A bare const TextStyle here would REPLACE the defaults' labelLarge
+          // wholesale (ButtonStyle merges per field, not per TextStyle prop),
+          // leaving the family null -> SkParagraph resolves it to the engine
+          // default Roboto (the gstatic boot fetch). Derive from the theme so
+          // labels use DM Sans/Manrope and never depend on that fetch.
+          textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
             fontSize: 13,
             fontWeight: FontWeight.w600,
           ),
@@ -124,11 +131,12 @@ class WButton extends StatelessWidget {
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
         foregroundColor: colors.ink,
-        minimumSize: const Size(0, 40),
+        // 44, not 40 — same tap-target floor as the primary variant.
+        minimumSize: const Size(0, 44),
         padding: const EdgeInsets.symmetric(horizontal: 15),
         side: BorderSide(color: colors.border),
         shape: RoundedRectangleBorder(borderRadius: AppRadius.boxSm),
-        textStyle: const TextStyle(
+        textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
           fontSize: 13,
           fontWeight: FontWeight.w500,
         ),
@@ -182,47 +190,54 @@ class WorkflowSteps extends StatelessWidget {
     Widget step(int number, String label) {
       final done = currentStep > number;
       final isCurrent = currentStep == number;
+      // 44px minimum tap target (was 21px tall — half the platform floor).
+      // The visible row stays compact; only the touch area grows, so the
+      // header layout is unchanged.
       return InkWell(
         onTap: () => onStepTap(number),
         borderRadius: AppRadius.boxSm,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 21,
-              height: 21,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: done || isCurrent ? colors.brand : colors.canvas,
-                border: Border.all(
-                  color: done || isCurrent ? colors.brand : colors.border,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 21,
+                height: 21,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: done || isCurrent ? colors.brand : colors.canvas,
+                  border: Border.all(
+                    color: done || isCurrent ? colors.brand : colors.border,
+                  ),
+                ),
+                child: Center(
+                  child: done
+                      ? Icon(Icons.check, size: 13, color: colors.onBrand)
+                      : Text(
+                          '$number',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: isCurrent ? colors.onBrand : colors.muted,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
               ),
-              child: Center(
-                child: done
-                    ? Icon(Icons.check, size: 13, color: colors.onBrand)
-                    : Text(
-                        '$number',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: isCurrent ? colors.onBrand : colors.muted,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+              const SizedBox(width: 7),
+              Text(
+                label,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: isCurrent
+                      ? colors.brand
+                      : done
+                      ? colors.ink
+                      : colors.muted,
+                  fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
+                ),
               ),
-            ),
-            const SizedBox(width: 7),
-            Text(
-              label,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: isCurrent
-                    ? colors.brand
-                    : done
-                    ? colors.ink
-                    : colors.muted,
-                fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }

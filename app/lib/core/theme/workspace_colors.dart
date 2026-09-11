@@ -43,7 +43,22 @@ class WorkspaceColors extends ThemeExtension<WorkspaceColors> {
     surface: Color(0xFFFFFFFF),
     mint: Color(0xFFEDF6F0),
     ink: Color(0xFF27372F),
-    muted: Color(0xFF85908A),
+    // Darkened in two steps, both measured rather than eyeballed.
+    //
+    // #85908A scored 3.13:1 on the canvas — a WCAG AA failure (4.5:1) for every
+    // small-text use of this token: secondary labels, the breadcrumb path,
+    // timestamps. That defect predates the glass work.
+    //
+    // Then the chrome started floating over scrolling content, which made the
+    // bar's backdrop variable, so the token was darkened again to #55615A:
+    // 4.58:1 against the *darkest realistic backdrop* a top bar reaches (a
+    // brand-green button scrolling behind it), not just against the canvas.
+    // Chosen over raising the glass opacity instead, which would have dulled the
+    // see-through effect; see test/glass_contrast_test.dart.
+    //
+    // Only ever placed on light surfaces — the stepper's active circle uses
+    // `onBrand` for its dark case, verified by grep across all 82 uses.
+    muted: Color(0xFF55615A),
     border: Color(0xFFE6EAE6),
     brand: Color(0xFF17624D),
     onBrand: Color(0xFFFFFFFF),

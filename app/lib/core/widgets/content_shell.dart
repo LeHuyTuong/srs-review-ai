@@ -1,10 +1,5 @@
-/// Keeps page content in a readable column instead of letting it stretch
-/// across a desktop window.
-///
-/// Windows is a delivery target, so every screen is laid out at ~1300 CSS px
-/// at least once. Without a cap the body text runs one long thin line and the
-/// empty state becomes a speck floating in a void — which is exactly how the
-/// first desktop build looked.
+/// Wraps page content in the app's readable measure: centred horizontally with
+/// a maximum width, but **top-aligned and full-height** vertically.
 library;
 
 import 'package:flutter/material.dart';
@@ -25,10 +20,31 @@ class ContentShell extends StatelessWidget {
   final double maxWidth;
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: maxWidth),
-      child: child,
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) => Align(
+      // topCenter, NOT Center, and the child is forced to the full height.
+      //
+      // `Center` hands the child loose constraints, so a page shorter than the
+      // viewport shrink-wraps and is then vertically centred. Measured in an
+      // 844px window: the scroll view landed at y=72..772, i.e. the page
+      // floated in the middle with dead space above it. That also broke the
+      // translucent bars, because content could never reach them — the scroll
+      // viewport stopped 72px below the top bar and 72px above the tab bar.
+      //
+      // Forcing `minHeight` to the available height makes the scrollable fill
+      // the window, so content scrolls behind BOTH bars. When height is
+      // unbounded (this widget nested inside another scroll view), the min is
+      // 0 and behaviour is unchanged.
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: maxWidth,
+          minHeight: constraints.maxHeight.isFinite
+              ? constraints.maxHeight
+              : 0.0,
+        ),
+        child: child,
+      ),
     ),
   );
 }

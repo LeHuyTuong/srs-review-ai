@@ -7,9 +7,39 @@
 library;
 
 import '../../../data/models/review_models.dart';
+import '../../../data/models/review_progress.dart';
 import '../../../data/models/srs_document.dart';
-import '../../../data/repositories/review_repository.dart';
 import 'workspace_unit.dart';
+
+/// Where a finding stands with the person who has to act on it.
+///
+/// Without this the findings list was a read-only wall of text: there was no
+/// way to record "I fixed this", no way to wave off a false positive, and so
+/// no way to see improvement on a second pass — which is the entire promise of
+/// a pre-submission checker.
+enum FindingStatus {
+  /// Not acted on yet.
+  open,
+
+  /// Worth acting on — used to build the "what to fix" list.
+  accepted,
+
+  /// Judged a false positive, or already handled. Kept, never deleted: the
+  /// report still shows it, marked, so a dismissed finding cannot quietly
+  /// disappear from the evidence.
+  dismissed;
+
+  String get label => switch (this) {
+    FindingStatus.open => 'Open',
+    FindingStatus.accepted => 'Accepted',
+    FindingStatus.dismissed => 'Dismissed',
+  };
+
+  static FindingStatus fromName(String? name) => values.firstWhere(
+    (value) => value.name == name,
+    orElse: () => FindingStatus.open,
+  );
+}
 
 class FindingRow {
   const FindingRow({
@@ -67,6 +97,7 @@ class WorkspaceReviewResult {
     required this.mock,
     required this.rubricVersion,
     required this.createdAt,
+    this.outcome = 'done',
   });
 
   factory WorkspaceReviewResult.fromJson(Map<String, dynamic> json) =>
@@ -81,6 +112,9 @@ class WorkspaceReviewResult {
         mock: json['mock'] as bool,
         rubricVersion: json['rubricVersion'] as String,
         createdAt: DateTime.parse(json['createdAt'] as String),
+        // Sessions saved before this field existed carry no outcome; they read
+        // back as 'done', which is exactly how they always behaved.
+        outcome: json['outcome'] as String? ?? 'done',
       );
 
   final List<FindingRow> findings;
@@ -92,35 +126,60 @@ class WorkspaceReviewResult {
   final String rubricVersion;
   final DateTime createdAt;
 
+  /// How the run ended — the terminal [ReviewStage] name: 'done', 'cancelled'
+  /// or 'failed'. The report needs it to say a run returned nothing instead of
+  /// letting empty coverage and stale unit statuses disagree.
+  final String outcome;
+
   static WorkspaceReviewResult fromRun({
     required ReviewRun run,
     required SrsDocument document,
     required List<WorkspaceUnit> units,
     required String rubricVersion,
+
+    /// Mode to report when the run produced no results to inspect. `every`
+    /// is vacuously true on an empty map, so without this an online run
+    /// whose units all failed would be mislabelled as mock.
+    required bool currentMode,
   }) {
-    final keyByRequirement = <String, String>{
-      for (final unit in units) unit.id: unit.key,
+    final unitByKey = <String, WorkspaceUnit>{
+      for (final unit in units) unit.key: unit,
     };
-    final pageById = <String, int>{
-      for (final item in document.requirements) item.id: item.pageIndex ?? 0,
-    };
-    final titleById = <String, String>{
-      for (final unit in units) unit.id: unit.title,
+    final occurrenceKeys =
+        document.occurrenceKeys.length == document.requirements.length
+        ? document.occurrenceKeys
+        : [
+            for (var index = 0; index < document.requirements.length; index++)
+              'u$index-${document.requirements[index].id}',
+          ];
+    final itemByKey = <String, RequirementItem>{
+      for (var index = 0; index < document.requirements.length; index++)
+        occurrenceKeys[index]: document.requirements[index],
     };
 
     final rows = <FindingRow>[];
     var seq = 0;
-    final sortedIds = run.results.keys.toList()..sort();
-    for (final requirementId in sortedIds) {
-      final result = run.results[requirementId]!;
+    final sortedKeys = run.results.keys.toList()..sort();
+    for (final occurrenceKey in sortedKeys) {
+      final result = run.results[occurrenceKey]!;
+      final legacyIndex = document.requirements.indexWhere(
+        (item) => item.id == occurrenceKey,
+      );
+      final resolvedKey = itemByKey.containsKey(occurrenceKey)
+          ? occurrenceKey
+          : legacyIndex >= 0 && legacyIndex < occurrenceKeys.length
+          ? occurrenceKeys[legacyIndex]
+          : occurrenceKey;
+      final item = itemByKey[resolvedKey];
+      final unit = unitByKey[resolvedKey];
       for (final issue in result.issuesBySeverity) {
         rows.add(
           FindingRow(
             id: 'f-${seq++}',
-            unitKey: keyByRequirement[requirementId] ?? requirementId,
-            requirementId: requirementId,
-            pageIndex: pageById[requirementId] ?? 0,
-            title: titleById[requirementId] ?? requirementId,
+            unitKey: occurrenceKey,
+            requirementId: result.requirementId,
+            pageIndex: item?.pageIndex ?? unit?.pageIndex ?? 0,
+            title: unit?.title ?? result.requirementId,
             issue: issue,
           ),
         );
@@ -132,9 +191,15 @@ class WorkspaceReviewResult {
       skipped: units.length - run.results.length,
       failed: run.failures.length,
       droppedIssueCount: run.totalDropped,
-      mock: run.results.values.every((r) => r.mock),
+      // Partial runs mix modes only when the caller swaps providers
+      // mid-flight, which the provider wiring makes impossible (the
+      // repository holds one API for the whole run).
+      mock: run.results.isEmpty
+          ? currentMode
+          : run.results.values.every((r) => r.mock),
       rubricVersion: rubricVersion,
       createdAt: DateTime.now(),
+      outcome: run.stage.name,
     );
   }
 
@@ -147,5 +212,6 @@ class WorkspaceReviewResult {
     'mock': mock,
     'rubricVersion': rubricVersion,
     'createdAt': createdAt.toIso8601String(),
+    'outcome': outcome,
   };
 }

@@ -86,6 +86,39 @@ def rubric() -> dict[str, object]:
     return load_rubric()
 
 
+def _review_cache_keys(
+    payload: ReviewRequest,
+    settings: Settings,
+    rubric_cfg: dict[str, object],
+    provider: object,
+) -> list[str]:
+    # Cache identity follows the configured model selection even in mock mode.
+    # This prevents switching the selected model from reusing an older result;
+    # provider identity keeps mock and online results isolated.
+    models = [settings.gemini_model, settings.gemini_fallback_model]
+    models = [model for model in models if model]
+    if not models:
+        models = [getattr(provider, "model_id", provider.name)]
+    # Preserve order: primary/fallback selection is part of the result's
+    # identity, so swapping them must invalidate the old result.
+    model_selection = "|".join(models)
+    return [
+        cache_key(
+            payload.requirement_id,
+            payload.text,
+            payload.section or "",
+            payload.image_b64 or "",
+            str(payload.page_index) if payload.page_index is not None else "",
+            provider.name,
+            str(settings.mock_mode),
+            model_selection,
+            settings.prompt_version,
+            str(rubric_cfg["version"]),
+            str(settings.fuzzy_threshold),
+        )
+    ]
+
+
 @app.post("/review", response_model=ReviewResult, dependencies=[Depends(require_app_token)])
 async def review(
     payload: ReviewRequest,
@@ -93,15 +126,11 @@ async def review(
     user: str = Depends(caller_id),
 ) -> ReviewResult:
     rubric_cfg = load_rubric()
-    key = cache_key(
-        payload.requirement_id,
-        payload.text,
-        settings.gemini_model,
-        settings.prompt_version,
-        str(rubric_cfg["version"]),
-    )
-    if hit := _review_cache.get(key):
-        return hit.model_copy(update={"cached": True})
+    provider = build_provider(settings)
+    cache_keys = _review_cache_keys(payload, settings, rubric_cfg, provider)
+    for key in cache_keys:
+        if hit := _review_cache.get(key):
+            return hit.model_copy(update={"cached": True})
 
     allowed, _ = _limiter.check(user, settings.rate_limit_per_day)
     if not allowed:
@@ -110,11 +139,10 @@ async def review(
             detail=f"Daily review limit reached ({settings.rate_limit_per_day}). Try again tomorrow.",
         )
 
-    provider = build_provider(settings)
     try:
         raw, model = await provider.generate_json(
             system=review_system_prompt(rubric_cfg),
-            user=review_user_prompt(payload.requirement_id, payload.text, payload.section),
+            user=review_user_prompt(payload.requirement_id, payload.text, payload.section, payload.page_index),
             schema=LLM_REVIEW_SCHEMA,
             image_b64=payload.image_b64,
         )
@@ -140,7 +168,27 @@ async def review(
         cached=False,
         mock=provider.name == "mock",
     )
-    _review_cache.put(key, result)
+    # Store only under the exact configured selection fingerprint. The lookup
+    # list may contain fallback aliases, but a result from one selected model
+    # must not satisfy a later request whose primary model changed.
+    selected_key = cache_key(
+        payload.requirement_id,
+        payload.text,
+        payload.section or "",
+        payload.image_b64 or "",
+        str(payload.page_index) if payload.page_index is not None else "",
+        provider.name,
+        str(settings.mock_mode),
+        "|".join(
+            model_name
+            for model_name in [settings.gemini_model, settings.gemini_fallback_model]
+            if model_name
+        ),
+        settings.prompt_version,
+        str(rubric_cfg["version"]),
+        str(settings.fuzzy_threshold),
+    )
+    _review_cache.put(selected_key, result)
     return result
 
 

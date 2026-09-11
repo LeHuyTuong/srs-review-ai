@@ -3,6 +3,7 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
+import '../../../core/widgets/chrome_insets.dart';
 import '../view_model/workspace_view_model.dart';
 import 'workspace_modals.dart';
 import 'workspace_widgets.dart';
@@ -37,8 +39,16 @@ class _ReviewHistoryViewState extends ConsumerState<ReviewHistoryView> {
     final colors = context.workspaceColors;
     final theme = Theme.of(context);
 
+    // Reserve the floating chrome's height as CONTENT padding so the page
+    // starts below the bars but still scrolls behind them (see ChromeInsets).
+    final insets = ChromeInsets.of(context);
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.lg + insets.top,
+        AppSpacing.lg,
+        AppSpacing.lg + insets.bottom,
+      ),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 900),
@@ -152,6 +162,16 @@ class _HistoryRow extends StatelessWidget {
   final VoidCallback onOpen;
   final VoidCallback onDelete;
 
+  bool get isMock {
+    try {
+      final payload = jsonDecode(session.payloadJson) as Map<String, dynamic>;
+      final result = payload['result'] as Map<String, dynamic>?;
+      return result?['mock'] as bool? ?? false;
+    } on Object {
+      return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.workspaceColors;
@@ -205,7 +225,10 @@ class _HistoryRow extends StatelessWidget {
                 ],
               ),
             ),
-            WBadge(label: 'Mock', tint: WBadgeTint.green),
+            WBadge(
+              label: isMock ? 'Mock' : 'Online',
+              tint: isMock ? WBadgeTint.green : WBadgeTint.neutral,
+            ),
             IconButton(
               tooltip: 'Delete session',
               icon: const Icon(Icons.delete_outline, size: 19),

@@ -18,6 +18,8 @@ class SavedSession {
     required this.fileName,
     required this.payloadJson,
     required this.createdAt,
+    this.fingerprint = '',
+    this.parserVersion = '',
   });
 
   factory SavedSession.fromJson(Map<String, dynamic> json) => SavedSession(
@@ -25,6 +27,10 @@ class SavedSession {
     fileName: json['fileName'] as String,
     payloadJson: json['payloadJson'] as String,
     createdAt: DateTime.parse(json['createdAt'] as String),
+    // Rows written before fingerprinting existed carry no such key; they read
+    // back as unverifiable (''), not broken.
+    fingerprint: json['fingerprint'] as String? ?? '',
+    parserVersion: json['parserVersion'] as String? ?? '',
   );
 
   static SavedSession decode(String raw) =>
@@ -35,11 +41,20 @@ class SavedSession {
   final String payloadJson;
   final DateTime createdAt;
 
+  /// sha256 of the parsed document text the review was produced from, plus
+  /// the parser version that produced it — stored separately from each other
+  /// because the same text under a different parser may key units
+  /// differently. '' on rows written before versioning existed.
+  final String fingerprint;
+  final String parserVersion;
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'fileName': fileName,
     'payloadJson': payloadJson,
     'createdAt': createdAt.toIso8601String(),
+    'fingerprint': fingerprint,
+    'parserVersion': parserVersion,
   };
 
   String encode() => jsonEncode(toJson());

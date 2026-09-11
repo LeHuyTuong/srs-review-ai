@@ -11,24 +11,40 @@ import '../../../core/app_config.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
+import '../../../core/widgets/chrome_insets.dart';
 import '../../../core/widgets/content_shell.dart';
+import '../../../core/widgets/glass_surface.dart';
 import '../view_model/workspace_view_model.dart';
 import 'workspace_modals.dart';
 import 'workspace_widgets.dart';
 
 class WorkspaceDestination {
-  const WorkspaceDestination(this.route, this.label, this.icon);
+  const WorkspaceDestination(this.label, this.icon);
 
-  final String route;
   final String label;
   final IconData icon;
 }
 
+/// Index-aligned with the branches of the [StatefulShellRoute] in
+/// `core/router/app_router.dart`: the shell navigates with
+/// `navigationShell.goBranch(i)`, so a destination's POSITION here — not a
+/// path — is what selects it.
+///
+/// A `route` field used to live here. It was never read, and it held
+/// `/workspace` while the actual route is `/` — wrong data is worse than none.
 const List<WorkspaceDestination> kWorkspaceDestinations = [
-  WorkspaceDestination('/workspace', 'Document review', Icons.description_outlined),
-  WorkspaceDestination('/history', 'Review history', Icons.history),
-  WorkspaceDestination('/syllabus', 'Syllabus & rubric', Icons.menu_book_outlined),
+  WorkspaceDestination('Document review', Icons.description_outlined),
+  WorkspaceDestination('Review history', Icons.history),
+  WorkspaceDestination('Syllabus & rubric', Icons.menu_book_outlined),
 ];
+
+/// Height of the floating top bar. Named because the scrolling views have to
+/// reserve exactly this much as content padding — see [ChromeInsets].
+const double _kTopBarHeight = 58;
+
+/// Vertical space the floating tab bar occupies, including its own margins.
+/// Kept in sync with [_GlassTabBar]'s padding so content never rests under it.
+const double _kTabBarReserve = 72;
 
 class WorkspaceShell extends ConsumerWidget {
   const WorkspaceShell({required this.navigationShell, super.key});
@@ -77,24 +93,79 @@ class WorkspaceShell extends ConsumerWidget {
       },
     );
 
+    // The chrome FLOATS OVER the content, which is what makes the glass glass.
+    //
+    // A translucent bar only reads as translucent when something passes behind
+    // it. The shell used to be a Column — bar, then scroll view, then tab bar —
+    // so the scroll viewport was clipped between the bars and nothing ever
+    // crossed them. The backdrop blur then sampled a flat page background, and
+    // measurement confirmed the material was cosmetic: the pixel band under the
+    // top bar was byte-identical before and after scrolling ((235,237,235)).
+    //
+    // Now the content owns the full box (Positioned.fill) and the bars are
+    // painted on top of it, so scrolling genuinely moves content under them.
+    // The bars no longer steal height from the viewport, so each scrolling view
+    // reserves the same space as CONTENT padding instead — via [ChromeInsets],
+    // read inside the scrollable. Reserving it there rather than with a Padding
+    // around the viewport is the whole point: only the resting position moves,
+    // so content still scrolls up and under the bar.
+    final safeBottom = MediaQuery.viewPaddingOf(context).bottom;
+    final chromeInsets = EdgeInsets.only(
+      top: _kTopBarHeight,
+      bottom: isWide ? 0 : _kTabBarReserve + safeBottom,
+    );
+
     final body = Row(
       children: [
         if (isWide) _Sidebar(navigationShell: navigationShell),
         Expanded(
-          child: Column(
+          child: Stack(
             children: [
-              _TopBar(
-                navigationShell: navigationShell,
-                showMenuButton: !isWide,
-                mockMode: mockMode,
+              Positioned.fill(
+                child: ChromeInsets(
+                  insets: chromeInsets,
+                  child: navigationShell,
+                ),
               ),
               // The review progress surface lives in the SHELL, not in the
               // modal that starts the run. Previously the run button popped
               // the sheet that owned the only progress UI, so a multi-minute
               // review was byte-for-byte indistinguishable from a frozen
               // screen. See docs/uiux/audit-2026-09-11.md (P0-1, P0-2).
-              const ReviewProgressBar(),
-              Expanded(child: navigationShell),
+              //
+              // It rides in the floating chrome, so it blurs the content behind
+              // it for free. It is not reserved as an inset: it only exists
+              // while a run is in flight, it covers the top of a page the user
+              // is not reading during the run, and reserving it would mean
+              // measuring a bar whose cap message wraps to a variable number of
+              // lines. Overlaying is also what iOS does with a transient
+              // progress banner.
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _TopBar(
+                      navigationShell: navigationShell,
+                      showMenuButton: !isWide,
+                      mockMode: mockMode,
+                    ),
+                    const ReviewProgressBar(),
+                  ],
+                ),
+              ),
+              // Narrow screens get a real tab bar instead of only a hamburger.
+              // The user's complaint was literally "phải bấm menu chưa ổn lắm"
+              // — 3 destinations were two taps away behind a drawer.
+              if (!isWide)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: _GlassTabBar(navigationShell: navigationShell),
+                ),
             ],
           ),
         ),
@@ -123,17 +194,31 @@ class _TopBar extends ConsumerWidget {
     final colors = context.workspaceColors;
     final theme = Theme.of(context);
     final current = kWorkspaceDestinations[navigationShell.currentIndex];
+    final connectionStatus = _connectionStatusFor(
+      colors: colors,
+      mockMode: mockMode,
+      status: ref.watch(proxyStatusProvider),
+    );
 
-    return Container(
-      height: 58,
-      decoration: BoxDecoration(
-        color: colors.surface,
-        border: Border(bottom: BorderSide(color: colors.border)),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      child: Row(
+    // Glass on the top bar: in iOS 26 the navigation bar IS the material —
+    // content scrolls under it and stays faintly visible through it. Radius 0
+    // so it sits flush against the window edge, like the system bar.
+    return SizedBox(
+      height: _kTopBarHeight,
+      child: GlassSurface(
+        radius: 0,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        child: Row(
         children: [
           if (showMenuButton)
+            // No `Semantics` wrapper here. `IconButton(tooltip:)` already names
+            // the button and gives it `role=button` — verified as one node,
+            // labelled, on the help button below. Wrapping it in an explicit
+            // labelled Semantics produced TWO button nodes with the same name
+            // (the wrapper's `label` and the IconButton's own `tooltip`), so a
+            // screen reader announced "Open navigation" twice. Same class of
+            // duplication as the tab items, which needed the opposite fix
+            // because they had no built-in label to begin with.
             Builder(
               builder: (drawerContext) => IconButton(
                 tooltip: 'Open navigation',
@@ -142,36 +227,78 @@ class _TopBar extends ConsumerWidget {
               ),
             ),
           Expanded(
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(
-                    text: 'Workspace',
-                    style: TextStyle(color: colors.muted),
-                  ),
-                  TextSpan(text: '  /  ', style: TextStyle(color: colors.muted)),
-                  TextSpan(
-                    text: current.label,
-                    style: TextStyle(
-                      color: colors.ink,
-                      fontWeight: FontWeight.w600,
+            // The breadcrumb is announced once, as a single header, instead of
+            // as three fragments ("Workspace", "/", "Document review") that a
+            // screen reader has to reassemble.
+            //
+            // This publishes correctly now that the chrome floats over the
+            // content: it reaches the tree as an <h2> "Workspace / Document
+            // review". It used to be missing entirely, which six rounds of this
+            // audit attributed to shell/route composition — see the correction
+            // in docs/uiux/audit-2026-09-11.md §10.
+            child: Semantics(
+              header: true,
+              label: 'Workspace / ${current.label}',
+              excludeSemantics: true,
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Workspace',
+                      style: TextStyle(color: colors.muted),
                     ),
-                  ),
-                ],
+                    TextSpan(
+                      text: '  /  ',
+                      style: TextStyle(color: colors.muted),
+                    ),
+                    TextSpan(
+                      text: current.label,
+                      style: TextStyle(
+                        color: colors.ink,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                style: theme.textTheme.labelMedium,
+                overflow: TextOverflow.ellipsis,
               ),
-              style: theme.textTheme.labelMedium,
-              overflow: TextOverflow.ellipsis,
             ),
           ),
-          Icon(
-            mockMode ? Icons.cloud_off_outlined : Icons.cloud_outlined,
-            size: 16,
-            color: colors.muted,
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Text(
-            mockMode ? 'Offline mock' : 'Online',
-            style: theme.textTheme.labelSmall?.copyWith(color: colors.muted),
+          InkWell(
+            // Rechecking is the natural next gesture when the pill says the
+            // proxy is gone: the user fixes the proxy, taps, and it updates
+            // without an app restart.
+            onTap: () => ref.invalidate(proxyStatusProvider),
+            borderRadius: AppRadius.boxSm,
+            child: Semantics(
+              button: true,
+              label:
+                  'Connection status: ${connectionStatus.label}. Double tap to recheck.',
+              excludeSemantics: true,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.xs,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      connectionStatus.icon,
+                      size: 16,
+                      color: connectionStatus.color,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(
+                      connectionStatus.label,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: connectionStatus.color,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
           const SizedBox(width: AppSpacing.md),
           IconButton(
@@ -181,6 +308,7 @@ class _TopBar extends ConsumerWidget {
             onPressed: () => showHelpModal(context, ref),
           ),
         ],
+        ),
       ),
     );
   }
@@ -222,19 +350,39 @@ class ReviewProgressBar extends ConsumerWidget {
     }
 
     return Semantics(
+      // `container: true` gives the surface its own node so the progress text
+      // is reachable as a unit.
+      //
+      // NOT `explicitChildNodes`: that disowns the subtree below, and the
+      // Cancel button inside stopped being focusable (verified with
+      // `tester.getSemantics` — Cancel went from one node to none). The
+      // remaining accessibility gap here is NOT local to this widget: the whole
+      // shell chrome outside `navigationShell` is missing from the semantics
+      // tree. Confirmed both in a widget test and in the browser — 'Workspace',
+      // 'Online', 'Help & getting started' and this bar are all absent, while
+      // 'Review overview' from the branch content is present. See
+      // docs/uiux/audit-2026-09-11.md §6c.
+      container: true,
       liveRegion: true,
-      label: 'Review in progress',
-      child: Container(
+      label: 'Review in progress. ${progress.label}',
+      child: GlassSurface(
         key: const Key('review-progress-bar'),
+        // Control layer, not content: this is exactly the surface Apple's
+        // guidance allows glass on. radius 0 keeps it flush under the top bar.
+        compact: true,
+        radius: 0,
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
           vertical: AppSpacing.sm,
         ),
-        decoration: BoxDecoration(
-          color: colors.sageBg,
-          border: Border(bottom: BorderSide(color: colors.border)),
-        ),
         child: Column(
+          // MainAxisSize.min keeps this bar hugging its content. The bar is a
+          // non-flex child of the shell's Column and is laid out against
+          // unbounded height, so a default (max) Column would try to fill it.
+          // (An earlier 390 x 100000px overflow here was NOT this — it was a
+          // throwing GlassSurface whose RenderErrorBox takes infinite height.
+          // See the note in core/widgets/glass_surface.dart.)
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -364,7 +512,6 @@ class _Sidebar extends ConsumerWidget {
           const SizedBox(height: AppSpacing.lg),
           _NavItem(
             destination: const WorkspaceDestination(
-              '',
               'Settings',
               Icons.settings_outlined,
             ),
@@ -509,6 +656,117 @@ class _OfflineCard extends ConsumerWidget {
   }
 }
 
+/// Floating glass tab bar for narrow screens.
+///
+/// Before this, every destination on a phone was behind the hamburger: the
+/// user's own complaint ("phải bấm menu chưa ổn lắm"). This is the iOS 26
+/// bottom bar — a floating, blurred capsule over the content, not a full-width
+/// opaque strip.
+///
+/// Each item is at least 48px tall and the whole bar sits inside the safe
+/// area, so it stays reachable and clears the home indicator.
+class _GlassTabBar extends StatelessWidget {
+  const _GlassTabBar({required this.navigationShell});
+
+  final StatefulNavigationShell navigationShell;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.workspaceColors;
+    final theme = Theme.of(context);
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.sm,
+        AppSpacing.md,
+        AppSpacing.sm + (bottomInset > 0 ? bottomInset * 0.5 : 0),
+      ),
+      child: GlassSurface(
+        key: const Key('glass-tab-bar'),
+        compact: true,
+        radius: 26,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+        child: Row(
+          children: [
+            for (var i = 0; i < kWorkspaceDestinations.length; i++)
+              Expanded(
+                child: _GlassTabItem(
+                  destination: kWorkspaceDestinations[i],
+                  active: navigationShell.currentIndex == i,
+                  colors: colors,
+                  theme: theme,
+                  onTap: () => navigationShell.goBranch(
+                    i,
+                    initialLocation: i == navigationShell.currentIndex,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassTabItem extends StatelessWidget {
+  const _GlassTabItem({
+    required this.destination,
+    required this.active,
+    required this.colors,
+    required this.theme,
+    required this.onTap,
+  });
+
+  final WorkspaceDestination destination;
+  final bool active;
+  final WorkspaceColors colors;
+  final ThemeData theme;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colour = active ? colors.brand : colors.muted;
+    return Semantics(
+      button: true,
+      selected: active,
+      label: destination.label,
+      // Without this the icon's and label's own semantics are merged on top of
+      // ours, so a screen reader announces the tab twice:
+      // "Document review Document review" (observed in the browser).
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.boxMd,
+        child: Container(
+          // 48px, above the 44px platform floor — this bar is the primary
+          // navigation on a phone and thumb-accuracy matters here.
+          constraints: const BoxConstraints(minHeight: 48),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(destination.icon, size: 22, color: colour),
+              const SizedBox(height: 2),
+              Text(
+                destination.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colour,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _AppDrawer extends ConsumerWidget {
   const _AppDrawer({required this.navigationShell});
 
@@ -555,7 +813,6 @@ class _AppDrawer extends ConsumerWidget {
             const Divider(),
             _NavItem(
               destination: const WorkspaceDestination(
-                '',
                 'Settings',
                 Icons.settings_outlined,
               ),
@@ -567,7 +824,6 @@ class _AppDrawer extends ConsumerWidget {
             ),
             _NavItem(
               destination: const WorkspaceDestination(
-                '',
                 'Help & getting started',
                 Icons.help_outline,
               ),
@@ -584,6 +840,69 @@ class _AppDrawer extends ConsumerWidget {
   }
 }
 
+/// How the connection pill in the top bar should read.
+///
+/// The old pill read the offline toggle and nothing else, so an app pointed at
+/// a dead proxy still advertised "Online" — and a run that came back with zero
+/// findings looked like a clean document rather than a broken connection.
+/// This asks the proxy and reports what came back, including "I don't know yet".
+class _ConnectionStatus {
+  const _ConnectionStatus({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+}
+
+_ConnectionStatus _connectionStatusFor({
+  required WorkspaceColors colors,
+  required bool mockMode,
+  required AsyncValue<bool?> status,
+}) {
+  if (mockMode) {
+    return _ConnectionStatus(
+      icon: Icons.cloud_off_outlined,
+      label: 'Offline mock',
+      color: colors.muted,
+    );
+  }
+  return status.when(
+    data: (reachable) => switch (reachable) {
+      true => _ConnectionStatus(
+        icon: Icons.cloud_outlined,
+        label: 'Online',
+        color: colors.sage,
+      ),
+      false => _ConnectionStatus(
+        icon: Icons.cloud_off_outlined,
+        label: 'Proxy unreachable',
+        color: colors.amber,
+      ),
+      // Mock mode reports null; the toggle already covered it above, so this
+      // is only reachable when the mode flips mid-frame.
+      null => _ConnectionStatus(
+        icon: Icons.cloud_off_outlined,
+        label: 'Offline mock',
+        color: colors.muted,
+      ),
+    },
+    loading: () => _ConnectionStatus(
+      icon: Icons.cloud_queue_outlined,
+      label: 'Checking…',
+      color: colors.muted,
+    ),
+    error: (_, _) => _ConnectionStatus(
+      icon: Icons.cloud_off_outlined,
+      label: 'Proxy unreachable',
+      color: colors.amber,
+    ),
+  );
+}
+
 /// Content column shared by every workspace view: readable width on desktop,
 /// full-bleed on phones.
 class WorkspacePage extends StatelessWidget {
@@ -593,10 +912,19 @@ class WorkspacePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Reserve the floating chrome's height as CONTENT padding, inside the
+    // scrollable. This is what lets the page start below the bar while still
+    // scrolling up and behind it — an outer Padding would clip it at the bar.
+    final insets = ChromeInsets.of(context);
     return ContentShell(
       maxWidth: 1100,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.lg + insets.top,
+          AppSpacing.lg,
+          AppSpacing.lg + insets.bottom,
+        ),
         child: child,
       ),
     );

@@ -4,7 +4,7 @@ Date: 2026-09-10 · Status: done (all AC verified in headless Chromium)
 
 ## Outcome (evidence)
 
-- `flutter build web --release` exit 0 (AC1).
+- `flutter build web --release --no-web-resources-cdn` exit 0 (AC1).
 - `tool/web_smoke.py` exit 0 against `http://127.0.0.1:8443/?smoke=semantics`:
   shell rendered with 0 load-time console errors (AC2); demo → UC01 (AC3);
   real `sample_srs.docx` picked through the browser file chooser → parsed
@@ -66,7 +66,7 @@ E2E slice of the critical user journey (pick → parse → inventory → review)
 1. Read `showImportModal` + `importDocument()` to script the exact click path.
 2. Add the dev-only semantics hook in `main()` (guarded by `kIsWeb` + URL
    fragment `#semantics`).
-3. `flutter build web --release`; serve `build/web` on 127.0.0.1:8443 with a
+3. `flutter build web --release --no-web-resources-cdn`; serve `build/web` on 127.0.0.1:8443 with a
    small static server (background job) that sets `application/wasm` MIME.
 4. Write `tool/web_smoke.py` (Playwright, global install per AGENTS.md):
    load page → assert shell → load demo → import real file via filechooser →
@@ -92,7 +92,7 @@ E2E slice of the critical user journey (pick → parse → inventory → review)
 
 ## Acceptance Criteria
 
-- AC1: `flutter build web --release` exits 0.
+- AC1: `flutter build web --release --no-web-resources-cdn` exits 0.
 - AC2: At `http://127.0.0.1:8443` headless Chromium renders the workspace:
   a semantics-DOM button named "Load the sample document" is present, and the
   run records **0 console errors of level 'error'** during load.

@@ -8,6 +8,7 @@ import pytest
 from app.config import Settings
 from app.llm.base import LlmError
 from app.llm.gemini import GeminiProvider
+from app.schemas import LLM_ASK_SCHEMA, LLM_REVIEW_SCHEMA
 
 SCHEMA = {"type": "object", "properties": {"score": {"type": "integer"}}}
 
@@ -90,6 +91,26 @@ async def test_non_json_body_is_an_error_not_a_crash():
         provider = GeminiProvider(_settings(max_retries=1), client=http)
         with pytest.raises(LlmError):
             await provider.generate_json(system="s", user="u", schema=SCHEMA)
+
+
+async def test_malformed_review_response_is_rejected():
+    async with _client(
+        lambda r: _ok(
+            '{"score": 7, "issues": [{"type": "ambiguity", "severity": "high", "quote": "quickly"}]}'
+        )
+    ) as http:
+        provider = GeminiProvider(_settings(), client=http)
+        with pytest.raises(LlmError):
+            await provider.generate_json(system="s", user="u", schema=LLM_REVIEW_SCHEMA)
+
+
+async def test_malformed_ask_response_is_rejected():
+    async with _client(
+        lambda r: _ok('{"answer": "x", "grounded": true, "quotes": "not a list"}')
+    ) as http:
+        provider = GeminiProvider(_settings(), client=http)
+        with pytest.raises(LlmError):
+            await provider.generate_json(system="s", user="u", schema=LLM_ASK_SCHEMA)
 
 
 async def test_missing_key_fails_fast():

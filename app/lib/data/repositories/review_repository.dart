@@ -16,88 +16,10 @@ import 'package:dio/dio.dart';
 
 import '../../core/app_config.dart';
 import '../models/review_models.dart';
+import '../models/review_progress.dart';
 import '../models/srs_document.dart';
 import '../services/api_service.dart';
 import '../services/review_api.dart';
-
-enum ReviewStage {
-  idle,
-  parsing,
-  reviewing,
-  verifying,
-  done,
-  cancelled,
-  failed,
-}
-
-class ReviewProgress {
-  const ReviewProgress({
-    required this.stage,
-    this.completed = 0,
-    this.total = 0,
-    this.currentRequirementId,
-    this.error,
-    this.skipped = 0,
-  });
-
-  final ReviewStage stage;
-  final int completed;
-  final int total;
-  final String? currentRequirementId;
-  final String? error;
-
-  /// Requirements the per-run cap left out of this run. Non-zero means the
-  /// button's promise and the work actually done disagree, so the UI owes the
-  /// user the difference in plain words.
-  final int skipped;
-
-  double get fraction => total == 0 ? 0 : completed / total;
-
-  String get label => switch (stage) {
-    ReviewStage.idle => 'Ready',
-    ReviewStage.parsing => 'Splitting requirements…',
-    ReviewStage.reviewing =>
-      'Reviewing $completed/$total${currentRequirementId == null ? '' : ' ($currentRequirementId)'}…',
-    ReviewStage.verifying => 'Verifying quotes…',
-    ReviewStage.done => 'Done — $completed requirements reviewed',
-    ReviewStage.cancelled => 'Cancelled',
-    ReviewStage.failed => error ?? 'Review failed',
-  };
-}
-
-class ReviewRun {
-  const ReviewRun({
-    required this.results,
-    required this.failures,
-    this.skipped = 0,
-  });
-
-  final Map<String, ReviewResult> results;
-
-  /// requirement id -> reason, so one bad requirement cannot abort the run.
-  final Map<String, String> failures;
-
-  /// Units the per-run cap excluded. Surfaced to the user, never swallowed.
-  final int skipped;
-
-  bool get isEmpty => results.isEmpty;
-
-  int get totalIssues =>
-      results.values.fold(0, (sum, r) => sum + r.issues.length);
-
-  int get totalDropped =>
-      results.values.fold(0, (sum, r) => sum + r.droppedIssueCount);
-
-  int countBySeverity(Severity severity) =>
-      results.values.fold(0, (sum, r) => sum + r.countBySeverity(severity));
-
-  /// Mean requirement score, on the same 0–10 scale the course uses.
-  double get overallScore {
-    if (results.isEmpty) return 0;
-    final total = results.values.fold<int>(0, (sum, r) => sum + r.score);
-    return total / results.length;
-  }
-}
 
 class ReviewRepository {
   ReviewRepository(this._api);
@@ -155,11 +77,21 @@ class ReviewRepository {
     // and lands in the UI banner.
     final skipped = all.length - items.length;
 
+    final occurrenceKeys = <String>[
+      for (var index = 0; index < items.length; index++)
+        index < document.occurrenceKeys.length &&
+                (document.occurrenceKeys.length == items.length ||
+                    document.occurrenceKeys.length == all.length)
+            ? document.occurrenceKeys[index]
+            : 'u$index-${items[index].id}',
+    ];
+
     final token = CancelToken();
     _cancelToken = token;
 
     final results = <String, ReviewResult>{};
     final failures = <String, String>{};
+    final failureRequirementIds = <String, String>{};
     var next = 0;
     var completed = 0;
     var killed = false;
@@ -186,6 +118,7 @@ class ReviewRepository {
         }
         final index = next++;
         if (index >= items.length) return;
+        final occurrenceKey = occurrenceKeys[index];
         final item = items[index];
 
         emit(
@@ -198,28 +131,54 @@ class ReviewRepository {
           ),
         );
 
-        try {
-          results[item.id] = await _api.review(
-            requirementId: item.id,
-            text: item.text,
-            section: item.section,
-            pageIndex: item.pageIndex,
-            cancelToken: token,
-          );
-        } on ApiException catch (error) {
-          // A quota or provider error kills the whole run; a single bad
-          // requirement does not.
-          if (error.statusCode == 429 || error.statusCode == 401) {
-            killed = true;
-            killMessage = error.message;
-            return;
+        // Retry only what is worth retrying. `isRetryable` has been set on
+        // ApiException since day one but nothing ever read it, so a dropped
+        // connection or a 90s timeout cost a requirement outright and the run
+        // marched on — a whole document could lose units to a brief blip and
+        // the summary would count them as "reviewed with no findings".
+        String? failureMessage;
+        var attempt = 0;
+        while (true) {
+          failureMessage = null;
+          try {
+            results[occurrenceKey] = await _api.review(
+              requirementId: item.id,
+              text: item.text,
+              section: item.section,
+              pageIndex: item.pageIndex,
+              cancelToken: token,
+            );
+            break;
+          } on ApiException catch (error) {
+            // A quota or provider error kills the whole run; a single bad
+            // requirement does not. Quota in particular must not be retried —
+            // burning three attempts against a 429 makes tomorrow worse, not
+            // this run better.
+            if (error.statusCode == 429 || error.statusCode == 401) {
+              killed = true;
+              killMessage = error.message;
+              return;
+            }
+            failureMessage = error.message;
+            if (!error.isRetryable ||
+                attempt + 1 >= AppConfig.maxReviewAttempts) {
+              break;
+            }
+            attempt++;
+            await _backoff(attempt);
+            if (token.isCancelled) return;
+          } on ContractException catch (error) {
+            failureMessage = error.message;
+            break;
+          } on Object catch (error) {
+            // A worker must never die silently and strand the progress bar.
+            failureMessage = '$error';
+            break;
           }
-          failures[item.id] = error.message;
-        } on ContractException catch (error) {
-          failures[item.id] = error.message;
-        } on Object catch (error) {
-          // A worker must never die silently and strand the progress bar.
-          failures[item.id] = '$error';
+        }
+        if (failureMessage != null) {
+          failures[occurrenceKey] = failureMessage;
+          failureRequirementIds[occurrenceKey] = item.id;
         }
 
         completed++;
@@ -239,9 +198,18 @@ class ReviewRepository {
     ];
     await Future.wait(pool);
 
+    // The terminal stage is computed once, before the branch that reports it,
+    // so the run object and the progress event can never disagree.
+    final stage = killed
+        ? ReviewStage.failed
+        : (cancelled || token.isCancelled
+              ? ReviewStage.cancelled
+              : ReviewStage.done);
     final run = ReviewRun(
       results: results,
       failures: failures,
+      failureRequirementIds: failureRequirementIds,
+      stage: stage,
       skipped: skipped,
     );
     _cancelToken = null;
@@ -290,8 +258,26 @@ class ReviewRepository {
     await controller.close();
   }
 
+  /// Grounded Q&A.
+  ///
+  /// [context] is the passage set the answer must be drawn from. Callers pass
+  /// a bounded slice — the handful of units the offline search surfaced — not
+  /// the whole document: a 200-page SRS would blow far past the proxy's
+  /// payload limit, and the answer only ever comes from one or two units.
   Future<AskResponse> ask({
     required String question,
-    required SrsDocument document,
-  }) => _api.ask(question: question, context: document.fullText);
+    required String context,
+  }) => _api.ask(question: question, context: context);
 }
+
+/// Exponential backoff between attempts at one requirement: 400ms, 800ms…
+///
+/// Deliberately short and strictly bounded — retries exist to ride out a brief
+/// blip, not to paper over a proxy that is genuinely down. Anything still
+/// failing after this is recorded as a failure and the run continues.
+Future<void> _backoff(int attempt) => Future<void>.delayed(
+  Duration(
+    milliseconds:
+        AppConfig.reviewRetryBaseDelay.inMilliseconds * (1 << (attempt - 1)),
+  ),
+);

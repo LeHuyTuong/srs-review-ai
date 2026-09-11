@@ -41,6 +41,22 @@ class DeterministicFinding {
     this.expectedMax,
   });
 
+  factory DeterministicFinding.fromJson(Map<String, dynamic> json) =>
+      DeterministicFinding(
+        check: CheckId.values.firstWhere(
+          (value) => value.wire == json['check'],
+        ),
+        passed: json['passed'] as bool,
+        severity: Severity.values.firstWhere(
+          (value) => value.name == json['severity'],
+        ),
+        message: json['message'] as String,
+        subject: json['subject'] as String?,
+        actual: json['actual'] as num?,
+        expectedMin: json['expected_min'] as num?,
+        expectedMax: json['expected_max'] as num?,
+      );
+
   final CheckId check;
   final bool passed;
   final Severity severity;

@@ -23,17 +23,45 @@ class FindingsTab extends ConsumerStatefulWidget {
   ConsumerState<FindingsTab> createState() => _FindingsTabState();
 }
 
+enum _StatusFilter { all, open, accepted, dismissed }
+
+extension on _StatusFilter {
+  String get label => switch (this) {
+    _StatusFilter.all => 'All',
+    _StatusFilter.open => 'Open',
+    _StatusFilter.accepted => 'Accepted',
+    _StatusFilter.dismissed => 'Dismissed',
+  };
+}
+
 class _FindingsTabState extends ConsumerState<FindingsTab> {
   String _query = '';
+  _StatusFilter _filter = _StatusFilter.all;
+
+  bool _matches(FindingStatus status) => switch (_filter) {
+    _StatusFilter.all => true,
+    _StatusFilter.open => status == FindingStatus.open,
+    _StatusFilter.accepted => status == FindingStatus.accepted,
+    _StatusFilter.dismissed => status == FindingStatus.dismissed,
+  };
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(workspaceViewModelProvider);
+    final viewModel = ref.read(workspaceViewModelProvider.notifier);
     final colors = context.workspaceColors;
     final theme = Theme.of(context);
     final result = state.result;
 
-    if (result == null) {
+    // The offline syllabus checks are findings too. They used to live only on
+    // their own tab, so this one stayed empty until a paid run had happened —
+    // the app looked like it had nothing to say about a document it had
+    // already measured, for free, at import time.
+    final syllabus = state.syllabusFindings
+        .where((finding) => !finding.passed)
+        .toList(growable: false);
+
+    if (result == null && syllabus.isEmpty) {
       return WEmptyState(
         icon: Icons.auto_awesome,
         title: 'A second look, backed by evidence.',
@@ -57,13 +85,14 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
     }
 
     final query = _query.toLowerCase();
-    final findings = result.findings
+    final findings = (result?.findings ?? const <FindingRow>[])
         .where(
           (f) =>
-              query.isEmpty ||
-              '${f.title} ${f.requirementId} ${f.quote}'
-                  .toLowerCase()
-                  .contains(query),
+              (query.isEmpty ||
+                  '${f.title} ${f.requirementId} ${f.quote}'
+                      .toLowerCase()
+                      .contains(query)) &&
+              _matches(state.statusOf(f.id)),
         )
         .toList(growable: false);
 
@@ -77,45 +106,157 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
             runSpacing: AppSpacing.sm,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              WBadge(
-                label: '${result.findings.length} verified findings',
-                tint: WBadgeTint.green,
-                leading: Icon(Icons.shield_outlined, size: 12),
-              ),
-              Text(
-                '${result.droppedIssueCount} unverified dropped',
-                style: theme.textTheme.labelSmall?.copyWith(color: colors.muted),
-              ),
-              WBadge(label: 'Mock review'),
+              if (result != null) ...[
+                WBadge(
+                  label: '${result.findings.length} verified findings',
+                  tint: WBadgeTint.green,
+                  leading: Icon(Icons.shield_outlined, size: 12),
+                ),
+                Text(
+                  '${result.droppedIssueCount} unverified dropped',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colors.muted,
+                  ),
+                ),
+                WBadge(
+                  label: result.mock ? 'Mock review' : 'Proxy review',
+                  tint: result.mock ? WBadgeTint.amber : WBadgeTint.green,
+                ),
+              ],
+              if (state.acceptedCount > 0)
+                WBadge(
+                  label: '${state.acceptedCount} accepted',
+                  tint: WBadgeTint.purple,
+                ),
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            0,
-            AppSpacing.lg,
-            AppSpacing.md,
-          ),
-          child: TextField(
-            onChanged: (value) => setState(() => _query = value),
-            decoration: InputDecoration(
-              hintText: 'Search findings or requirement ID…',
-              prefixIcon: const Icon(Icons.search, size: 18),
-              isDense: true,
-              border: OutlineInputBorder(borderRadius: AppRadius.boxSm),
+        if (syllabus.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              0,
+              AppSpacing.lg,
+              AppSpacing.md,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Offline syllabus checks',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: colors.ink,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Deterministic rules from the SEP490 syllabus — no model, '
+                  'zero tokens, run the moment you import. They count as '
+                  'findings and they go in the report.',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colors.muted,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                for (final finding in syllabus)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: WPanel(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.rule_outlined,
+                            size: 17,
+                            color: colors.amber,
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        finding.check.label,
+                                        style: theme.textTheme.labelLarge
+                                            ?.copyWith(
+                                              color: colors.ink,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                    ),
+                                    if (finding.subject != null)
+                                      WBadge(label: finding.subject!),
+                                  ],
+                                ),
+                                const SizedBox(height: AppSpacing.xs),
+                                Text(
+                                  finding.message,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colors.muted,
+                                    height: 1.7,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
-        ),
+        if (result != null) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              0,
+              AppSpacing.lg,
+              AppSpacing.md,
+            ),
+            child: TextField(
+              onChanged: (value) => setState(() => _query = value),
+              decoration: InputDecoration(
+                hintText: 'Search findings or requirement ID…',
+                prefixIcon: const Icon(Icons.search, size: 18),
+                isDense: true,
+                border: OutlineInputBorder(borderRadius: AppRadius.boxSm),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              0,
+              AppSpacing.lg,
+              AppSpacing.sm,
+            ),
+            child: Wrap(
+              spacing: AppSpacing.sm,
+              children: [
+                for (final option in _StatusFilter.values)
+                  FilterChip(
+                    label: Text(option.label),
+                    selected: _filter == option,
+                    onSelected: (_) => setState(() => _filter = option),
+                  ),
+              ],
+            ),
+          ),
+        ],
         if (findings.isEmpty)
           WEmptyState(
             icon: Icons.check_circle_outline,
-            title: query.isEmpty
-                ? 'No issues found by the offline checks'
+            title: query.isEmpty && _filter == _StatusFilter.all
+                ? 'No issues found by the checks'
                 : 'No matching findings',
-            message: query.isEmpty
+            message: query.isEmpty && _filter == _StatusFilter.all
                 ? 'This is not a guarantee of SRS completeness.'
-                : 'Try a different keyword.',
+                : 'Try a different keyword or filter.',
           )
         else
           Padding(
@@ -130,6 +271,7 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                 for (final finding in findings)
                   _FindingCard(
                     finding: finding,
+                    status: state.statusOf(finding.id),
                     onOpenSource: () {
                       final unit = state.units
                           .where((u) => u.key == finding.unitKey)
@@ -138,6 +280,18 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                         showSourceSheet(context, ref, unit, finding: finding);
                       }
                     },
+                    onAccept: () => viewModel.setFindingStatus(
+                      finding.id,
+                      state.statusOf(finding.id) == FindingStatus.accepted
+                          ? FindingStatus.open
+                          : FindingStatus.accepted,
+                    ),
+                    onDismiss: () => viewModel.setFindingStatus(
+                      finding.id,
+                      state.statusOf(finding.id) == FindingStatus.dismissed
+                          ? FindingStatus.open
+                          : FindingStatus.dismissed,
+                    ),
                   ),
               ],
             ),
@@ -150,10 +304,25 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
 /// Exposed so the tab's empty state can open the run modal too.
 
 class _FindingCard extends StatelessWidget {
-  const _FindingCard({required this.finding, required this.onOpenSource});
+  const _FindingCard({
+    required this.finding,
+    required this.status,
+    required this.onOpenSource,
+    required this.onAccept,
+    required this.onDismiss,
+  });
 
   final FindingRow finding;
+  final FindingStatus status;
   final VoidCallback onOpenSource;
+
+  /// Marks, or un-marks, the finding as worth acting on.
+  final VoidCallback onAccept;
+
+  /// Marks, or un-marks, the finding as not a real issue. Dismissal is never a
+  /// delete: the finding stays visible and still appears in the report, so
+  /// evidence cannot quietly disappear.
+  final VoidCallback onDismiss;
 
   @override
   Widget build(BuildContext context) {
@@ -259,6 +428,44 @@ class _FindingCard extends StatelessWidget {
                   ),
                 ),
                 Icon(Icons.arrow_forward, size: 13, color: colors.sage),
+                const Spacer(),
+                if (status != FindingStatus.open)
+                  WBadge(
+                    label: status.label,
+                    tint: status == FindingStatus.accepted
+                        ? WBadgeTint.purple
+                        : WBadgeTint.neutral,
+                  ),
+                IconButton(
+                  tooltip: status == FindingStatus.accepted
+                      ? 'Undo accept'
+                      : 'Accept — worth fixing',
+                  icon: Icon(
+                    status == FindingStatus.accepted
+                        ? Icons.check_circle
+                        : Icons.check_circle_outline,
+                    size: 18,
+                  ),
+                  color: status == FindingStatus.accepted
+                      ? colors.purple
+                      : colors.muted,
+                  onPressed: onAccept,
+                ),
+                IconButton(
+                  tooltip: status == FindingStatus.dismissed
+                      ? 'Undo dismiss'
+                      : 'Dismiss — not a real issue',
+                  icon: Icon(
+                    status == FindingStatus.dismissed
+                        ? Icons.remove_circle
+                        : Icons.remove_circle_outline,
+                    size: 18,
+                  ),
+                  color: status == FindingStatus.dismissed
+                      ? colors.amber
+                      : colors.muted,
+                  onPressed: onDismiss,
+                ),
               ],
             ),
           ],

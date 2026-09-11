@@ -5,8 +5,8 @@ library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:srs_review_ai/data/models/review_models.dart';
+import 'package:srs_review_ai/data/models/review_progress.dart';
 import 'package:srs_review_ai/data/models/srs_document.dart';
-import 'package:srs_review_ai/data/repositories/review_repository.dart';
 import 'package:srs_review_ai/features/workspace/models/ask_document.dart';
 import 'package:srs_review_ai/features/workspace/models/demo_units.dart';
 import 'package:srs_review_ai/features/workspace/models/report_export.dart';
@@ -28,10 +28,7 @@ void main() {
         units.where((u) => u.kind == UnitKind.useCase && !u.malformed),
         hasLength(50),
       );
-      expect(
-        units.where((u) => u.kind == UnitKind.businessRule),
-        hasLength(8),
-      );
+      expect(units.where((u) => u.kind == UnitKind.businessRule), hasLength(8));
       expect(
         units.where((u) => u.kind == UnitKind.nonFunctional),
         hasLength(5),
@@ -39,7 +36,10 @@ void main() {
       // The two synthetic malformed ids stay visible as unclassified units.
       final malformed = units.where((u) => u.malformed).toList();
       expect(malformed.map((u) => u.id), containsAll(['UC0134', 'UC0114']));
-      expect(malformed, everyElement(predicate((u) => !(u as WorkspaceUnit).selected)));
+      expect(
+        malformed,
+        everyElement(predicate((u) => !(u as WorkspaceUnit).selected)),
+      );
       expect(document.pageCount, demoPageCount);
     });
 
@@ -56,15 +56,37 @@ void main() {
   });
 
   group('unitFromRequirement kind mapping', () {
-    RequirementItem item(String id, {RequirementKind kind = RequirementKind.functional}) =>
-        RequirementItem(id: id, text: '$id Do the thing.', kind: kind, pageIndex: 3);
+    RequirementItem item(
+      String id, {
+      RequirementKind kind = RequirementKind.functional,
+    }) => RequirementItem(
+      id: id,
+      text: '$id Do the thing.',
+      kind: kind,
+      pageIndex: 3,
+    );
 
     test('prefix decides the kind', () {
-      expect(unitFromRequirement(item('UC-01'), index: 0).kind, UnitKind.useCase);
-      expect(unitFromRequirement(item('BR-02'), index: 1).kind, UnitKind.businessRule);
-      expect(unitFromRequirement(item('NFR-03'), index: 2).kind, UnitKind.nonFunctional);
-      expect(unitFromRequirement(item('FR-04'), index: 3).kind, UnitKind.functional);
-      expect(unitFromRequirement(item('SR-05'), index: 4).kind, UnitKind.functional);
+      expect(
+        unitFromRequirement(item('UC-01'), index: 0).kind,
+        UnitKind.useCase,
+      );
+      expect(
+        unitFromRequirement(item('BR-02'), index: 1).kind,
+        UnitKind.businessRule,
+      );
+      expect(
+        unitFromRequirement(item('NFR-03'), index: 2).kind,
+        UnitKind.nonFunctional,
+      );
+      expect(
+        unitFromRequirement(item('FR-04'), index: 3).kind,
+        UnitKind.functional,
+      );
+      expect(
+        unitFromRequirement(item('SR-05'), index: 4).kind,
+        UnitKind.functional,
+      );
     });
 
     test('free statements land in unknown and start deselected', () {
@@ -77,13 +99,16 @@ void main() {
       expect(unit.selected, isFalse);
     });
 
-    test('classify to unknown keeps the unit out of the review', () {
+    test('classifying to unknown keeps the unit out of the review', () {
       final unit = unitFromRequirement(item('UC-01'), index: 0);
-      unit.classify(UnitKind.unknown);
-      expect(unit.malformed, isTrue);
-      expect(unit.selected, isFalse);
-      unit.classify(UnitKind.functional);
+      final unknown = unit.classified(UnitKind.unknown);
+      expect(unknown.malformed, isTrue);
+      expect(unknown.selected, isFalse);
+      // Immutability: the source unit is untouched by the reclassification.
+      expect(unit.kind, UnitKind.useCase);
       expect(unit.malformed, isFalse);
+      final restored = unknown.classified(UnitKind.functional);
+      expect(restored.malformed, isFalse);
     });
 
     test('title derives from text before structured headings', () {
@@ -118,8 +143,18 @@ void main() {
         pageCount: 3,
         pageTexts: const ['a', 'b', 'c'],
         requirements: [
-          const RequirementItem(id: 'UC-01', text: 'x', kind: RequirementKind.useCase, pageIndex: 1),
-          const RequirementItem(id: 'UC-02', text: 'y', kind: RequirementKind.useCase, pageIndex: 2),
+          const RequirementItem(
+            id: 'UC-01',
+            text: 'x',
+            kind: RequirementKind.useCase,
+            pageIndex: 1,
+          ),
+          const RequirementItem(
+            id: 'UC-02',
+            text: 'y',
+            kind: RequirementKind.useCase,
+            pageIndex: 2,
+          ),
         ],
       );
       final units = unitsFromDocument(document);
@@ -164,6 +199,9 @@ void main() {
           ),
         },
         failures: const {},
+        // The run this fixture models completed normally; `stage` is required so a
+        // cancelled or failed run can never be mistaken for a full one.
+        stage: ReviewStage.done,
       );
 
       final result = WorkspaceReviewResult.fromRun(
@@ -171,6 +209,7 @@ void main() {
         document: document,
         units: units,
         rubricVersion: 'test',
+        currentMode: false,
       );
 
       expect(result.findings, hasLength(3));
@@ -194,6 +233,111 @@ void main() {
       final restored = WorkspaceReviewResult.fromJson(result.toJson());
       expect(restored.findings, hasLength(3));
       expect(restored.findings.last.requirementId, 'UC-02');
+    });
+
+    test('keeps duplicate raw ids as separate finding occurrences', () {
+      final document = SrsDocument(
+        fileName: 'duplicates.pdf',
+        pageCount: 2,
+        pageTexts: const ['UC-04 First.', 'UC-04 Second.'],
+        requirements: const [
+          RequirementItem(
+            id: 'UC-04',
+            text: 'UC-04 First.',
+            kind: RequirementKind.useCase,
+            pageIndex: 0,
+          ),
+          RequirementItem(
+            id: 'UC-04',
+            text: 'UC-04 Second.',
+            kind: RequirementKind.useCase,
+            pageIndex: 1,
+          ),
+        ],
+        occurrenceKeys: const ['u0-UC-04', 'u1-UC-04'],
+      );
+      final units = unitsFromDocument(document);
+      const issue = ReviewIssue(
+        type: IssueType.vagueness,
+        severity: Severity.high,
+        quote: 'UC-04',
+        suggestion: 'Clarify.',
+        verification: Verification.exact,
+      );
+      final run = ReviewRun(
+        results: {
+          'u0-UC-04': const ReviewResult(
+            requirementId: 'UC-04',
+            score: 5,
+            model: 'mock',
+            mock: true,
+            issues: [issue],
+          ),
+          'u1-UC-04': const ReviewResult(
+            requirementId: 'UC-04',
+            score: 6,
+            model: 'mock',
+            mock: true,
+            issues: [issue],
+          ),
+        },
+        failures: const {},
+        stage: ReviewStage.done,
+      );
+
+      final result = WorkspaceReviewResult.fromRun(
+        run: run,
+        document: document,
+        units: units,
+        rubricVersion: 'test',
+        currentMode: false,
+      );
+
+      expect(result.reviewed, 2);
+      expect(result.findings, hasLength(2));
+      expect(result.findings.map((finding) => finding.unitKey), [
+        'u0-UC-04',
+        'u1-UC-04',
+      ]);
+      expect(result.findings.map((finding) => finding.pageIndex), [0, 1]);
+    });
+
+    test('an online run with zero results is not labelled mock', () {
+      // A 429 kills the whole run: every unit fails, `results` stays empty,
+      // and `every` on an empty map is vacuously true. The mode must come
+      // from the caller, not from the empty set.
+      final document = SrsDocument(
+        fileName: 'online.pdf',
+        pageCount: 1,
+        pageTexts: const ['a'],
+        requirements: const [
+          RequirementItem(
+            id: 'UC-01',
+            text: 'a',
+            kind: RequirementKind.useCase,
+            pageIndex: 0,
+          ),
+        ],
+      );
+      final units = unitsFromDocument(document);
+      final run = ReviewRun(
+        results: const {},
+        failures: const {'UC-01': 'quota exceeded'},
+        failureRequirementIds: const {'UC-01': 'UC-01'},
+        stage: ReviewStage.failed,
+      );
+
+      final result = WorkspaceReviewResult.fromRun(
+        run: run,
+        document: document,
+        units: units,
+        rubricVersion: 'test',
+        currentMode: false,
+      );
+
+      expect(result.mock, isFalse);
+      expect(result.findings, isEmpty);
+      expect(result.failed, 1);
     });
   });
 
@@ -258,19 +402,19 @@ void main() {
 
     test('groups findings by severity, high first', () {
       FindingRow row(String id, Severity severity) => FindingRow(
-            id: id,
-            unitKey: 'u-$id',
-            requirementId: id,
-            pageIndex: 0,
-            title: 'Finding $id',
-            issue: ReviewIssue(
-              type: IssueType.vagueness,
-              severity: severity,
-              quote: 'quote $id',
-              suggestion: 'fix $id',
-              verification: Verification.exact,
-            ),
-          );
+        id: id,
+        unitKey: 'u-$id',
+        requirementId: id,
+        pageIndex: 0,
+        title: 'Finding $id',
+        issue: ReviewIssue(
+          type: IssueType.vagueness,
+          severity: severity,
+          quote: 'quote $id',
+          suggestion: 'fix $id',
+          verification: Verification.exact,
+        ),
+      );
       final report = buildMarkdownReport(
         fileName: 'doc.pdf',
         offline: true,
@@ -297,6 +441,77 @@ void main() {
       expect(high, lessThan(medium));
       expect(medium, lessThan(low));
     });
+
+    /// Regression (2026-09-11): a run that returned nothing used to print
+    /// coverage "0 reviewed" silently — the reader could not tell a failed
+    /// run from a clean one, and the inventory disagreed with coverage.
+    test('says in plain words when a run returned no results', () {
+      final result = WorkspaceReviewResult(
+        findings: const [],
+        reviewed: 0,
+        skipped: 53,
+        failed: 0,
+        droppedIssueCount: 0,
+        mock: false,
+        rubricVersion: 'test',
+        createdAt: DateTime(2026),
+        outcome: 'failed',
+      );
+      final report = buildMarkdownReport(
+        fileName: 'doc.pdf',
+        offline: false,
+        result: result,
+        units: const [],
+      );
+      expect(report, contains('The last review run failed'));
+      expect(report, contains('only 0 selected unit(s) returned results'));
+      expect(report, contains('no unit was successfully reviewed'));
+    });
+
+    test('a cancelled run gets its own warning, a clean run none', () {
+      String reportFor(String outcome, {int reviewed = 0}) =>
+          buildMarkdownReport(
+            fileName: 'doc.pdf',
+            offline: false,
+            result: WorkspaceReviewResult(
+              findings: const [],
+              reviewed: reviewed,
+              skipped: 3,
+              failed: 0,
+              droppedIssueCount: 0,
+              mock: true,
+              rubricVersion: 'test',
+              createdAt: DateTime(2026),
+              outcome: outcome,
+            ),
+            units: const [],
+          );
+      final cancelled = reportFor('cancelled');
+      expect(cancelled, contains('The last review run was cancelled'));
+      // A run that finished and reviewed units owes no warning.
+      final clean = reportFor('done', reviewed: 3);
+      expect(clean, isNot(contains('The last review run')));
+      expect(clean, contains('reviewed 3 unit(s) and verified no issues'));
+    });
+
+    test('sessions saved before the outcome field read back as done', () {
+      final legacy = WorkspaceReviewResult(
+        findings: const [],
+        reviewed: 2,
+        skipped: 1,
+        failed: 0,
+        droppedIssueCount: 0,
+        mock: true,
+        rubricVersion: 'test',
+        createdAt: DateTime(2026),
+      );
+      final json = legacy.toJson();
+      // Simulate a payload written by the pre-2026-09-11 app: no key.
+      json.remove('outcome');
+      final restored = WorkspaceReviewResult.fromJson(json);
+      expect(restored.outcome, 'done');
+      expect(restored.reviewed, 2);
+    });
   });
 
   group('AskDocument.search (port of askDocument)', () {
@@ -312,7 +527,10 @@ void main() {
 
     test('invents nothing when nothing matches', () {
       final units = unitsFromDocument(demoDocument());
-      expect(AskDocument.search('quantum blockchain teleportation', units), isEmpty);
+      expect(
+        AskDocument.search('quantum blockchain teleportation', units),
+        isEmpty,
+      );
       expect(AskDocument.search('', units), isEmpty);
     });
   });

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/models/review_models.dart' show Severity;
 import 'app_tokens.dart';
+import 'glass_tokens.dart';
 import 'workspace_colors.dart';
 
 /// Layer 2 — SEMANTIC: purpose-based aliases over the primitives in
@@ -46,6 +47,28 @@ class AppTheme {
   static const Color seed = Color(0xFF17624D);
 
   /// Headings render in the brief's display face, body in its text face.
+  ///
+  /// **`headingFamily` doubles as the body's glyph fallback.** `DMSans.ttf` is a
+  /// 403-codepoint build containing **none** of the 44 Vietnamese precomposed
+  /// characters this app paints (`ơ ư ạ ả ề ỗ ự ỷ …`) — verified against the
+  /// bundled file's cmap with fontTools; the upstream Google Fonts build has the
+  /// same set, so re-exporting the asset does not fix it. Manrope is already
+  /// bundled and covers all of them.
+  ///
+  /// Measured caveat, recorded so the next reader does not overclaim: on the web
+  /// this fallback does **not** suppress Flutter's boot-time fetch of Roboto
+  /// from `fonts.gstatic.com` — that fetch is unconditional (it happens on the
+  /// English-only landing page too). The fallback's value is narrower: it keeps
+  /// Vietnamese glyphs resolvable from bundled assets when that network path is
+  /// slow or absent (offline, blocked CDN). See docs/uiux/audit-2026-09-11.md §14.
+  ///
+  /// A second, subtler Roboto dependence lived in the button styles: a bare
+  /// `const TextStyle` inside `FilledButton.styleFrom` replaced the theme's
+  /// `labelLarge` wholesale (ButtonStyle merges per field), leaving the family
+  /// null and pushing CTA labels onto the engine default — Roboto. Fixed by
+  /// deriving those styles from `labelLarge`; after the fix, blocking the
+  /// gstatic fetch changes 0.0000% of landing-page pixels (was 1.73%). The
+  /// fetch still happens, but nothing renders with it.
   static const String headingFamily = 'Manrope';
   static const String bodyFamily = 'DM Sans';
 
@@ -57,7 +80,12 @@ class AppTheme {
     final base = brightness == Brightness.dark
         ? Typography.material2021().white
         : Typography.material2021().black;
-    final body = base.apply(fontFamily: bodyFamily);
+    // Body text falls back to the heading face — see the note on the family
+    // constants above for why that is load-bearing and not decoration.
+    final body = base.apply(
+      fontFamily: bodyFamily,
+      fontFamilyFallback: const [headingFamily],
+    );
     // The brief pulls headings tight (letter-spacing -0.1 … -1.05px) and
     // weights them 650–800; these map onto the closest standard weights.
     return body.copyWith(
@@ -119,12 +147,26 @@ class AppTheme {
     return ThemeData(
       colorScheme: scheme,
       fontFamily: bodyFamily,
+      // Same fallback as the TextTheme: some Material widgets take their type
+      // from ThemeData.fontFamily directly and would otherwise miss it.
+      fontFamilyFallback: const [headingFamily],
       scaffoldBackgroundColor: workspace.canvas,
       textTheme: _textTheme(brightness),
       // NOT adaptivePlatformDensity: on desktop that resolves to compact
       // (-1, -1), which shrinks every control and label — the opposite of what
       // a 1300px-wide window needs. One standard density on all targets.
       visualDensity: VisualDensity.standard,
+      // Pinned for the same reason as visualDensity, and this one is a real
+      // accessibility defect rather than a taste call: `ThemeData` defaults
+      // `materialTapTargetSize` to `shrinkWrap` on linux/macos/windows, which
+      // renders `IconButton` at 40x40 instead of 48x48. Flutter web reports a
+      // *desktop* platform, so every icon button in the floating top bar
+      // measured 39x37 in a real browser — under the 44px platform floor.
+      //
+      // This went unnoticed because widget tests default to
+      // TargetPlatform.android, where the padded 48x48 applies and the test
+      // passes. Verified by rendering the same button under all five platforms.
+      materialTapTargetSize: MaterialTapTargetSize.padded,
       appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
@@ -158,7 +200,14 @@ class AppTheme {
         style: FilledButton.styleFrom(
           minimumSize: const Size(0, 48),
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          // Derive from the theme's labelLarge: a bare const TextStyle would
+          // strip the family (ButtonStyle merges per field, not per TextStyle
+          // property) and push every default FilledButton onto the engine's
+          // gstatic Roboto fetch. See audit §14.
+          textStyle: _textTheme(brightness).labelLarge?.copyWith(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -167,10 +216,16 @@ class AppTheme {
           padding: const EdgeInsets.symmetric(horizontal: 24),
         ),
       ),
-      inputDecorationTheme: const InputDecorationTheme(
+inputDecorationTheme: const InputDecorationTheme(
         border: OutlineInputBorder(),
       ),
-      extensions: [SeverityColors.of(scheme), workspace],
+      extensions: [
+        SeverityColors.of(scheme),
+        workspace,
+        brightness == Brightness.dark
+            ? GlassTokens.dark()
+            : GlassTokens.light(),
+      ],
     );
   }
 }

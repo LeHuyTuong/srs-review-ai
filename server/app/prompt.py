@@ -60,10 +60,17 @@ def review_system_prompt(rubric: dict[str, Any]) -> str:
     return _REVIEW_SYSTEM.format(criteria=criteria_lines(rubric))
 
 
-def review_user_prompt(requirement_id: str, text: str, section: str | None) -> str:
+def review_user_prompt(
+    requirement_id: str,
+    text: str,
+    section: str | None,
+    page_index: int | None = None,
+) -> str:
     header = f"requirement_id: {requirement_id}"
     if section:
         header += f"\nsection: {section}"
+    if page_index is not None:
+        header += f"\npage_index: {page_index}"
     return f'{header}\ntext:\n"""\n{text}\n"""'
 
 

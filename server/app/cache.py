@@ -1,8 +1,11 @@
-"""Content-addressed review cache (research 07 §6.4).
+"""Content-addressed review cache (research 07 §6.4, extended).
 
-Key = sha256(requirement_text + model + prompt_version + rubric_version).
-Re-running the demo therefore costs zero quota, and a rubric or prompt change
-invalidates the cache automatically.
+Key = sha256 over NUL-terminated ordered parts. The caller (`main.py`) feeds
+every input that can change the scored result: requirement id, text, section,
+image, page index, provider identity, mock flag, model selection (primary +
+fallback), prompt version, rubric version and fuzzy threshold. Rule: anything
+that reaches the prompt reaches the key — a rubric or prompt change invalidates
+old entries automatically, and re-running the demo costs zero quota.
 """
 
 from __future__ import annotations

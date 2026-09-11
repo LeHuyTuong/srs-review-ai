@@ -139,6 +139,6 @@ LLM_ASK_SCHEMA: dict = {
         "grounded": {"type": "BOOLEAN"},
         "quotes": {"type": "ARRAY", "items": {"type": "STRING"}},
     },
-    "required": ["answer", "grounded"],
+    "required": ["answer", "grounded", "quotes"],
     "propertyOrdering": ["answer", "grounded", "quotes"],
 }

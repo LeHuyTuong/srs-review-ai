@@ -51,4 +51,14 @@ class AppConfig {
   /// UI had nothing to show; four in flight cuts the wait roughly fourfold
   /// while keeping the proxy and the provider quota comfortable.
   static const int reviewConcurrency = 4;
+
+  /// Attempts per requirement before it is recorded as a failure.
+  ///
+  /// Only errors flagged retryable are re-sent (network, timeout, 5xx). A
+  /// flaky connection used to cost a requirement outright and the run moved
+  /// on, so a whole document could quietly lose units to a brief blip.
+  static const int maxReviewAttempts = 3;
+
+  /// Base delay for retry backoff; doubles on each further attempt.
+  static const Duration reviewRetryBaseDelay = Duration(milliseconds: 400);
 }

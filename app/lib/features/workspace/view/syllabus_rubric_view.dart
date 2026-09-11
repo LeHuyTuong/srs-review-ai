@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
+import '../../../core/widgets/chrome_insets.dart';
 import '../../../data/checks/rubric_config.dart';
 import 'workspace_widgets.dart';
 
@@ -54,8 +55,16 @@ class SyllabusRubricView extends ConsumerWidget {
       ),
     ];
 
+    // Reserve the floating chrome's height as CONTENT padding so the page
+    // starts below the bars but still scrolls behind them (see ChromeInsets).
+    final insets = ChromeInsets.of(context);
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.lg + insets.top,
+        AppSpacing.lg,
+        AppSpacing.lg + insets.bottom,
+      ),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 900),

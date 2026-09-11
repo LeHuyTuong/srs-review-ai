@@ -8,6 +8,7 @@ environment:
 
 dependencies:
   archive: ^4.2.0
+  crypto: ^3.0.7
   dio: ^5.11.1
   file_picker: ^12.2.0
   flutter:
@@ -27,27 +28,14 @@ flutter:
   uses-material-design: true
 
   fonts:
+    # Both files are VARIABLE fonts (they carry an `fvar` table), so one
+    # declaration covers every weight on the axis. Listing the same file once
+    # per weight — as this used to — made Flutter web fetch it five times per
+    # family: measured as 5x235KB (DM Sans) + 5x165KB (Manrope) = ~1.6MB of
+    # pure duplicate traffic on every cold load.
     - family: Manrope
       fonts:
         - asset: assets/fonts/Manrope.ttf
-          weight: 400
-        - asset: assets/fonts/Manrope.ttf
-          weight: 500
-        - asset: assets/fonts/Manrope.ttf
-          weight: 600
-        - asset: assets/fonts/Manrope.ttf
-          weight: 700
-        - asset: assets/fonts/Manrope.ttf
-          weight: 800
     - family: DM Sans
       fonts:
         - asset: assets/fonts/DMSans.ttf
-          weight: 400
-        - asset: assets/fonts/DMSans.ttf
-          weight: 500
-        - asset: assets/fonts/DMSans.ttf
-          weight: 600
-        - asset: assets/fonts/DMSans.ttf
-          weight: 700
-        - asset: assets/fonts/DMSans.ttf
-          weight: 800

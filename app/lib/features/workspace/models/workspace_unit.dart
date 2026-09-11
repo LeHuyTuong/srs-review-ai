@@ -30,8 +30,16 @@ enum UnitKind {
 
 enum UnitStatus { pending, reviewed, failed, skipped }
 
+/// A row of the workspace inventory.
+///
+/// Immutable on purpose. Every field used to be mutable and the ViewModel
+/// changed units in place, then published a fresh list to make Riverpod
+/// notice. That worked only because the *list* identity changed: any widget
+/// still holding a unit reference saw the data change with no rebuild, which
+/// is a silent wrong-render waiting to happen. Updates now go through
+/// [copyWith], so a changed unit is a new object.
 class WorkspaceUnit {
-  WorkspaceUnit({
+  const WorkspaceUnit({
     required this.key,
     required this.id,
     required this.title,
@@ -40,9 +48,9 @@ class WorkspaceUnit {
     required this.section,
     required this.pageIndex,
     required this.malformed,
-    bool? selected,
+    required this.selected,
     this.status = UnitStatus.pending,
-  }) : selected = selected ?? !malformed;
+  });
 
   factory WorkspaceUnit.fromJson(Map<String, dynamic> json) => WorkspaceUnit(
     key: json['key'] as String,
@@ -67,18 +75,38 @@ class WorkspaceUnit {
   final String text;
   final String? section;
   final int pageIndex;
-  bool malformed;
-  bool selected;
-  UnitStatus status;
+  final bool malformed;
+  final bool selected;
+  final UnitStatus status;
+  final UnitKind kind;
 
-  UnitKind kind;
+  WorkspaceUnit copyWith({
+    UnitKind? kind,
+    bool? malformed,
+    bool? selected,
+    UnitStatus? status,
+  }) => WorkspaceUnit(
+    key: key,
+    id: id,
+    title: title,
+    text: text,
+    kind: kind ?? this.kind,
+    section: section,
+    pageIndex: pageIndex,
+    malformed: malformed ?? this.malformed,
+    selected: selected ?? this.selected,
+    status: status ?? this.status,
+  );
 
   /// Re-classifying to `unknown` is what makes a unit "needs attention",
   /// exactly like the brief's classification dropdown.
-  void classify(UnitKind next) {
-    kind = next;
-    malformed = next == UnitKind.unknown;
-    if (malformed) selected = false;
+  WorkspaceUnit classified(UnitKind next) {
+    final isMalformed = next == UnitKind.unknown;
+    return copyWith(
+      kind: next,
+      malformed: isMalformed,
+      selected: isMalformed ? false : selected,
+    );
   }
 
   Map<String, dynamic> toJson() => {

@@ -24,8 +24,9 @@ class ApiException implements Exception {
 }
 
 class ApiService implements ReviewApi {
-  ApiService({Dio? dio, String? baseUrl})
-    : _dio =
+  ApiService({Dio? dio, String? baseUrl, String? appToken, String? userId})
+    : effectiveBaseUrl = baseUrl ?? AppConfig.apiBaseUrl,
+      _dio =
           dio ??
           Dio(
             BaseOptions(
@@ -35,7 +36,20 @@ class ApiService implements ReviewApi {
               sendTimeout: AppConfig.requestTimeout,
               contentType: Headers.jsonContentType,
             ),
-          );
+          ) {
+    // Identity headers. The proxy's `require_app_token` and per-user rate
+    // limiter read these; without them the server can only fall back to the
+    // caller's IP, which is neither a user nor a secret. Both are optional so
+    // a localhost demo with APP_TOKEN unset keeps working untouched.
+    final token = appToken?.trim() ?? '';
+    if (token.isNotEmpty) _dio.options.headers['X-App-Token'] = token;
+    final user = userId?.trim() ?? '';
+    if (user.isNotEmpty) _dio.options.headers['X-User-Id'] = user;
+  }
+
+  /// The base this instance actually talks to — surfaced in error messages
+  /// and useful in tests asserting the Settings override took effect.
+  final String effectiveBaseUrl;
 
   final Dio _dio;
 
@@ -93,7 +107,7 @@ class ApiService implements ReviewApi {
       return response.data ??
           (throw ApiException('The proxy returned an empty body.'));
     } on DioException catch (error) {
-      throw _translate(error);
+      throw _translate(error, effectiveBaseUrl);
     }
   }
 
@@ -111,17 +125,19 @@ class ApiService implements ReviewApi {
       return response.data ??
           (throw ApiException('The proxy returned an empty body.'));
     } on DioException catch (error) {
-      throw _translate(error);
+      throw _translate(error, effectiveBaseUrl);
     }
   }
 
-  /// Turns transport failures into sentences a student can act on.
-  static ApiException _translate(DioException error) {
+  /// Turns transport failures into sentences a student can act on. Takes the
+  /// effective base URL because the useful message names the endpoint the
+  /// user actually configured (Settings override or build-time default).
+  static ApiException _translate(DioException error, String baseUrl) {
     final status = error.response?.statusCode;
     return switch (error.type) {
       DioExceptionType.connectionError ||
       DioExceptionType.connectionTimeout => ApiException(
-        'Cannot reach the review proxy at ${AppConfig.apiBaseUrl}. '
+        'Cannot reach the review proxy at $baseUrl. '
         'Start it with "uvicorn app.main:app --reload" in server/, or switch on mock mode.',
         isRetryable: true,
       ),

@@ -17,8 +17,9 @@ import '../../../core/providers.dart';
 import '../../../data/checks/rubric_config.dart';
 import '../../../data/checks/syllabus_checks.dart';
 import '../../../data/models/deterministic_finding.dart';
+import '../../../data/models/review_progress.dart';
 import '../../../data/models/srs_document.dart';
-import '../../../data/repositories/review_repository.dart';
+import '../../../data/services/report_exporter.dart';
 import '../../../data/services/session_store.dart';
 
 import '../models/ask_document.dart';
@@ -55,6 +56,10 @@ class WorkspaceState {
     this.runStartedAt,
     this.runReviewed = 0,
     this.runSkipped = 0,
+    this.findingStatus = const {},
+    this.diagramPageCount = 0,
+    this.documentFingerprint = '',
+    this.parserVersion = '',
   });
 
   final bool hasDocument;
@@ -92,13 +97,43 @@ class WorkspaceState {
   /// promised more work than was done, and the UI says so out loud.
   final int runSkipped;
 
+  /// Triage state per finding id.
+  ///
+  /// Findings used to be read-only text with nowhere to record a decision, so
+  /// the app could never answer "what did I fix since last time?" — which is
+  /// the only question a pre-submission checker is really for.
+  final Map<String, FindingStatus> findingStatus;
+
+  /// Pages that look like a diagram.
+  ///
+  /// Zero means "none detected", never "all checked". No image is sent to the
+  /// model in this release, so the report has to state that caveat itself.
+  final int diagramPageCount;
+
+  /// Identity of the reviewed content: the document fingerprint and the
+  /// parser version that produced it. Snapshots and sessions record both so a
+  /// restore can refuse to reuse review results across parser changes.
+  /// '' while no document is loaded.
+  final String documentFingerprint;
+
+  /// Version of the parser that produced [units]; see [kParserVersion].
+  final String parserVersion;
+
+  /// Findings the student has marked as worth acting on.
+  int get acceptedCount =>
+      findingStatus.values.where((s) => s == FindingStatus.accepted).length;
+
+  FindingStatus statusOf(String findingId) =>
+      findingStatus[findingId] ?? FindingStatus.open;
+
   Duration? get runElapsed {
     final start = runStartedAt;
     if (start == null || !isRunning) return null;
     return DateTime.now().difference(start);
   }
 
-  bool get isRunning => progress != null && _runningStages.contains(progress!.stage);
+  bool get isRunning =>
+      progress != null && _runningStages.contains(progress!.stage);
   bool get hasResult => result != null;
 
   int get selectedCount => units.where((u) => u.selected).length;
@@ -144,6 +179,10 @@ class WorkspaceState {
     bool clearRunStartedAt = false,
     int? runReviewed,
     int? runSkipped,
+    Map<String, FindingStatus>? findingStatus,
+    int? diagramPageCount,
+    String? documentFingerprint,
+    String? parserVersion,
   }) => WorkspaceState(
     hasDocument: hasDocument ?? this.hasDocument,
     fileName: fileName ?? this.fileName,
@@ -156,19 +195,30 @@ class WorkspaceState {
     progress: clearProgress ? null : (progress ?? this.progress),
     error: clearError ? null : (error ?? this.error),
     toast: clearToast ? '' : (toast ?? this.toast),
-    importStatus:
-        clearImportStatus ? null : (importStatus ?? this.importStatus),
+    importStatus: clearImportStatus
+        ? null
+        : (importStatus ?? this.importStatus),
     history: history ?? this.history,
     historyLoading: historyLoading ?? this.historyLoading,
     restoring: restoring ?? this.restoring,
-    runStartedAt:
-        clearRunStartedAt ? null : (runStartedAt ?? this.runStartedAt),
+    runStartedAt: clearRunStartedAt
+        ? null
+        : (runStartedAt ?? this.runStartedAt),
     runReviewed: runReviewed ?? this.runReviewed,
     runSkipped: runSkipped ?? this.runSkipped,
+    findingStatus: findingStatus ?? this.findingStatus,
+    diagramPageCount: diagramPageCount ?? this.diagramPageCount,
+    documentFingerprint: documentFingerprint ?? this.documentFingerprint,
+    parserVersion: parserVersion ?? this.parserVersion,
   );
 }
 
 class WorkspaceViewModel extends Notifier<WorkspaceState> {
+  /// Stateless and platform-delegating, so it needs no provider: constructing
+  /// it inline keeps the ViewModel constructible in tests that only care about
+  /// review behaviour.
+  static const ReportExporter _exporter = ReportExporter();
+
   SrsDocument? _document;
   StreamSubscription<ReviewProgress>? _subscription;
   Timer? _toastTimer;
@@ -207,12 +257,14 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   Future<void> loadDemo() async {
     if (state.isRunning) return;
     final document = demoDocument();
-    final units = unitsFromDocument(document);
-    for (final unit in units) {
-      if (_demoMalformedIds.contains(unit.id)) {
-        unit.classify(UnitKind.unknown);
-      }
-    }
+    // Units are immutable: flagged ones are REPLACED, never edited in place.
+    final units = [
+      for (final unit in unitsFromDocument(document))
+        if (_demoMalformedIds.contains(unit.id))
+          unit.classified(UnitKind.unknown)
+        else
+          unit,
+    ];
     _document = document;
     state = WorkspaceState(
       hasDocument: true,
@@ -221,9 +273,10 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       sizeLabel: '27.37 MB',
       isDemo: true,
       units: units,
-      syllabusFindings: SyllabusChecks(
-        RubricConfig.fallback,
-      ).runAll(document),
+      syllabusFindings: SyllabusChecks(RubricConfig.fallback).runAll(document),
+      diagramPageCount: document.imagePageIndexes.length,
+      documentFingerprint: document.documentFingerprint,
+      parserVersion: kParserVersion,
       toast:
           '${units.length} units extracted. All detected IDs have been preserved.',
     ).copyWith(restoring: false);
@@ -257,6 +310,11 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         isDemo: false,
         units: unitsFromDocument(loaded.document),
         syllabusFindings: loaded.findings,
+        // How many pages look like diagrams. Recorded at import so the report
+        // can say, in as many words, that none of them were read.
+        diagramPageCount: loaded.document.imagePageIndexes.length,
+        documentFingerprint: loaded.document.documentFingerprint,
+        parserVersion: kParserVersion,
         toast:
             '${loaded.document.requirements.length} units extracted. '
             'All detected IDs have been preserved.',
@@ -264,10 +322,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       _scheduleToastClear();
       await _saveSnapshot();
     } on ParseException catch (error) {
-      state = state.copyWith(
-        error: error.message,
-        clearImportStatus: true,
-      );
+      state = state.copyWith(error: error.message, clearImportStatus: true);
     } on Object catch (error) {
       state = state.copyWith(
         error: 'Unable to read this document: $error',
@@ -279,11 +334,11 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   // ------------------------------------------------------------- units
 
   void classifyUnit(String key, UnitKind kind) {
-    _mutateUnit(key, (unit) => unit.classify(kind));
+    _mutateUnit(key, (unit) => unit.classified(kind));
   }
 
   void setUnitSelected(String key, bool selected) {
-    _mutateUnit(key, (unit) => unit.selected = selected);
+    _mutateUnit(key, (unit) => unit.copyWith(selected: selected));
   }
 
   void setSelectedAll(Set<String> keys, bool selected) {
@@ -292,20 +347,40 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       units: [
         for (final unit in state.units)
           if (keys.contains(unit.key))
-            unit..selected = selected && !unit.malformed
+            unit.copyWith(selected: selected && !unit.malformed)
           else
             unit,
       ],
     );
   }
 
-  void _mutateUnit(String key, void Function(WorkspaceUnit) mutate) {
-    if (state.isRunning) return;
-    for (final unit in state.units) {
-      if (unit.key == key) mutate(unit);
+  /// Records what the student decided about one finding.
+  ///
+  /// `open` is stored as "absent" so saved snapshots and older sessions stay a
+  /// valid key set — an unseen id simply reads back as open.
+  void setFindingStatus(String findingId, FindingStatus status) {
+    final next = Map<String, FindingStatus>.from(state.findingStatus);
+    if (status == FindingStatus.open) {
+      next.remove(findingId);
+    } else {
+      next[findingId] = status;
     }
-    // WorkspaceUnit is mutable in place; a fresh state object tells listeners.
-    state = state.copyWith(units: [...state.units]);
+    state = state.copyWith(findingStatus: next);
+    _saveSnapshot();
+  }
+
+  /// Replaces the unit with [key] by [mutate]'s result and publishes a new list.
+  ///
+  /// Units are immutable, so the replacement is a DIFFERENT object: a widget
+  /// still holding the old reference cannot observe a change without a rebuild.
+  void _mutateUnit(String key, WorkspaceUnit Function(WorkspaceUnit) mutate) {
+    if (state.isRunning) return;
+    state = state.copyWith(
+      units: [
+        for (final unit in state.units)
+          if (unit.key == key) mutate(unit) else unit,
+      ],
+    );
     _saveSnapshot();
   }
 
@@ -342,18 +417,27 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       return;
     }
 
-    final itemById = {
-      for (final item in document.requirements) item.id: item,
+    // Match by inventory occurrence, not raw id: real SRS files may reuse an
+    // id for several distinct tables. An id-indexed map silently drops those
+    // occurrences before they ever reach the review repository.
+    final unitIndexByKey = <String, int>{
+      for (var index = 0; index < state.units.length; index++)
+        state.units[index].key: index,
     };
-    final selectedItems = [
-      for (final unit in capped)
-        if (itemById[unit.id] != null) itemById[unit.id]!,
-    ];
+    final selectedItems = <RequirementItem>[];
+    final selectedOccurrenceKeys = <String>[];
+    for (final unit in capped) {
+      final index = unitIndexByKey[unit.key];
+      if (index == null || index >= document.requirements.length) continue;
+      selectedItems.add(document.requirements[index]);
+      selectedOccurrenceKeys.add(unit.key);
+    }
     final filtered = SrsDocument(
       fileName: state.fileName,
       pageCount: document.pageCount,
       pageTexts: document.pageTexts,
       requirements: selectedItems,
+      occurrenceKeys: selectedOccurrenceKeys,
       imagePageIndexes: document.imagePageIndexes,
     );
 
@@ -374,59 +458,75 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     _startElapsedTicker();
 
     final rubricVersion =
-        ref.read(rubricProvider).value?.version ?? RubricConfig.fallback.version;
+        ref.read(rubricProvider).value?.version ??
+        RubricConfig.fallback.version;
     final repository = ref.read(reviewRepositoryProvider);
 
     await _subscription?.cancel();
-    _subscription = repository.run(
-      filtered,
-      onComplete: (run) {
-        final result = WorkspaceReviewResult.fromRun(
-          run: run,
-          document: filtered,
-          units: state.units,
-          rubricVersion: rubricVersion,
+    _subscription = repository
+        .run(
+          filtered,
+          onComplete: (run) {
+            final result = WorkspaceReviewResult.fromRun(
+              run: run,
+              document: filtered,
+              units: state.units,
+              rubricVersion: rubricVersion,
+              currentMode: ref.read(mockModeProvider),
+            );
+            // A unit is "reviewed" ONLY if the run actually returned a result
+            // for its id. Being selected proves intent, not work: a run killed
+            // by a 429 or cancelled at the first unit must not stamp "reviewed"
+            // onto 50 rows while coverage honestly says zero. Selected units the
+            // run never reached go back to pending; per-unit failures land in
+            // failed; units left out of the selection stay skipped.
+            state = state.copyWith(
+              result: result,
+              units: [
+                for (final unit in state.units)
+                  unit.copyWith(
+                    status: run.results.containsKey(unit.key)
+                        ? UnitStatus.reviewed
+                        : run.failures.containsKey(unit.key)
+                        ? UnitStatus.failed
+                        : unit.selected
+                        ? UnitStatus.pending
+                        : UnitStatus.skipped,
+                  ),
+              ],
+            );
+          },
+        )
+        .listen(
+          (progress) async {
+            // The repository reports what it dropped from the document it was
+            // handed — always 0 here, because the view model already clamped the
+            // selection. The user-facing shortfall is THIS layer's number, so it
+            // is re-attached to every progress event rather than being overwritten
+            // and making the warning flicker out of existence.
+            state = state.copyWith(
+              progress: ReviewProgress(
+                stage: progress.stage,
+                completed: progress.completed,
+                total: progress.total,
+                currentRequirementId: progress.currentRequirementId,
+                error: progress.error,
+                skipped: state.runSkipped,
+              ),
+            );
+            if (progress.stage == ReviewStage.done ||
+                progress.stage == ReviewStage.cancelled ||
+                progress.stage == ReviewStage.failed) {
+              await _onRunFinished(progress);
+            }
+          },
+          onError: (Object error) {
+            state = state.copyWith(
+              clearProgress: true,
+              error: 'Review failed. Your selection is preserved.',
+            );
+          },
         );
-        state = state.copyWith(
-          result: result,
-          units: [
-            for (final unit in state.units)
-              unit..status = unit.selected
-                  ? UnitStatus.reviewed
-                  : UnitStatus.skipped,
-          ],
-        );
-      },
-    ).listen(
-      (progress) async {
-        // The repository reports what it dropped from the document it was
-        // handed — always 0 here, because the view model already clamped the
-        // selection. The user-facing shortfall is THIS layer's number, so it
-        // is re-attached to every progress event rather than being overwritten
-        // and making the warning flicker out of existence.
-        state = state.copyWith(
-          progress: ReviewProgress(
-            stage: progress.stage,
-            completed: progress.completed,
-            total: progress.total,
-            currentRequirementId: progress.currentRequirementId,
-            error: progress.error,
-            skipped: state.runSkipped,
-          ),
-        );
-        if (progress.stage == ReviewStage.done ||
-            progress.stage == ReviewStage.cancelled ||
-            progress.stage == ReviewStage.failed) {
-          await _onRunFinished(progress);
-        }
-      },
-      onError: (Object error) {
-        state = state.copyWith(
-          clearProgress: true,
-          error: 'Review failed. Your selection is preserved.',
-        );
-      },
-    );
   }
 
   Future<void> _onRunFinished(ReviewProgress progress) async {
@@ -437,11 +537,18 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     // which is 0 because the view model already clamped. Only the view model
     // knows how many SELECTED units fell outside the run.
     final skipped = state.runSkipped;
+    final result = state.result;
+
+    // A cancelled or quota-killed run still produced real, paid-for results.
+    // Saving only once a run reached `done` meant a 429 at unit 39 of 40 threw
+    // away 38 reviewed units: the quota was spent and nothing was kept, so the
+    // only recovery was to run — and pay for — the whole thing again.
+    if (result != null &&
+        (progress.stage == ReviewStage.done || result.reviewed > 0)) {
+      await _saveSession(result);
+    }
+
     if (progress.stage == ReviewStage.done) {
-      final result = state.result;
-      if (result != null) {
-        await _saveSession(result);
-      }
       final reviewed = result?.reviewed ?? 0;
       final findings = result?.findings.length ?? 0;
       final failed = result?.failed ?? 0;
@@ -467,20 +574,29 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
             '$failNote$capNote · saved on this device',
       );
     } else if (progress.stage == ReviewStage.cancelled) {
+      final kept = result?.reviewed ?? progress.completed;
       state = state.copyWith(
         clearProgress: true,
         runStartedAt: DateTime.now(),
-        runReviewed: progress.completed,
+        runReviewed: kept,
         runSkipped: skipped,
-        toast: 'Review cancelled · ${progress.completed} units kept.',
+        toast: kept > 0
+            ? 'Review cancelled · $kept unit(s) reviewed and saved on this device.'
+            : 'Review cancelled · nothing had been reviewed yet.',
       );
     } else {
+      final kept = result?.reviewed ?? progress.completed;
+      final keptNote = kept > 0
+          ? ' $kept unit(s) were reviewed and saved on this device.'
+          : '';
       state = state.copyWith(
         clearProgress: true,
         runStartedAt: DateTime.now(),
-        runReviewed: progress.completed,
+        runReviewed: kept,
         runSkipped: skipped,
-        error: progress.error ?? 'Review failed. Your selection is preserved.',
+        error:
+            '${progress.error ?? 'Review failed.'} Your selection is '
+            'preserved.$keptNote',
       );
     }
     _scheduleToastClear();
@@ -493,8 +609,83 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
 
   // ------------------------------------------------------------- ask
 
+  /// Offline keyword search — kept because it is the fallback engine and the
+  /// only one available in mock mode.
   List<WorkspaceUnit> askDocument(String question) =>
       AskDocument.search(question, state.units);
+
+  /// Answers one question about the loaded document.
+  ///
+  /// Prefers the proxy and falls back to the local search, and — critically —
+  /// reports which one answered. Before this existed the modal could only ever
+  /// call [askDocument], so the proxy's `/ask`, its citation verification and
+  /// its "not found" guard were all unreachable code while the app advertised
+  /// grounded Q&A as a feature.
+  Future<AskOutcome> askQuestion(String question) async {
+    final trimmed = question.trim();
+    if (trimmed.isEmpty) {
+      return const AskOutcome(
+        engine: AskEngine.offlineSearch,
+        answer: '',
+        grounded: false,
+      );
+    }
+
+    final offline = AskDocument.search(trimmed, state.units);
+    if (offline.isEmpty) {
+      // Nothing in the inventory mentions it. Asking the model anyway would be
+      // paying for a guess, and the honest answer is that the document says
+      // nothing — so no engine runs and no token is spent.
+      return const AskOutcome(
+        engine: AskEngine.offlineSearch,
+        answer: 'Not found in the document.',
+        grounded: false,
+      );
+    }
+
+    if (ref.read(mockModeProvider)) {
+      return AskOutcome(
+        engine: AskEngine.offlineSearch,
+        answer: '',
+        grounded: true,
+        units: offline,
+      );
+    }
+
+    final context = AskDocument.contextFor(trimmed, state.units);
+    final repository = ref.read(reviewRepositoryProvider);
+    try {
+      final response = await repository.ask(
+        question: trimmed,
+        context: context,
+      );
+      return AskOutcome(
+        engine: AskEngine.model,
+        answer: response.answer,
+        grounded: response.grounded,
+        citations: response.citations,
+        model: response.model,
+      );
+    } on Object catch (error) {
+      // A dead proxy used to surface as an empty answer and no explanation.
+      // Fall back to what this device can answer and say that is what happened,
+      // labelling the engine so the fallback is never mistaken for the model.
+      return AskOutcome(
+        engine: AskEngine.offlineSearch,
+        answer: '',
+        grounded: true,
+        units: offline,
+        note: 'The proxy could not answer (${_shortError(error)}). These are '
+            'the matching passages from your document instead — no model was '
+            'involved.',
+      );
+    }
+  }
+
+  static String _shortError(Object error) {
+    final text = '$error';
+    return text.length <= 120 ? text : '${text.substring(0, 117)}…';
+  }
 
   // ------------------------------------------------------------- history
 
@@ -519,24 +710,62 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         _scheduleToastClear();
         return false;
       }
-      final payload =
-          jsonDecode(session.payloadJson) as Map<String, dynamic>;
+      final payload = jsonDecode(session.payloadJson) as Map<String, dynamic>;
+      // A session produced by a different parser version may key units
+      // differently — reopening it would present triage state that no longer
+      // lines up with what a fresh parse yields. Rows written before
+      // versioning existed ('') stay openable, as they always were.
+      if (session.parserVersion.isNotEmpty &&
+          session.parserVersion != kParserVersion) {
+        state = state.copyWith(
+          toast: 'Saved review was written by parser '
+              '${session.parserVersion}; re-import the document to review '
+              'again.',
+        );
+        _scheduleToastClear();
+        return false;
+      }
       final units = (payload['units'] as List<dynamic>)
           .map((e) => WorkspaceUnit.fromJson(e as Map<String, dynamic>))
           .toList();
       final resultJson = payload['result'] as Map<String, dynamic>?;
+      final syllabusFindings =
+          (payload['syllabusFindings'] as List<dynamic>?)
+              ?.map(
+                (entry) => DeterministicFinding.fromJson(
+                  entry as Map<String, dynamic>,
+                ),
+              )
+              .toList(growable: false) ??
+          const <DeterministicFinding>[];
+      // Sessions written before triage existed carry no such key; every id
+      // then reads back as open, which is how they always behaved.
+      final findingStatus = <String, FindingStatus>{
+        for (final entry in (payload['findingStatus'] as Map<dynamic, dynamic>?)
+                    ?.entries ??
+                const <MapEntry<dynamic, dynamic>>[])
+          entry.key as String: FindingStatus.fromName(entry.value as String?),
+      };
       _document = null; // a restored session reviews no new file
       state = state.copyWith(
         hasDocument: true,
-        fileName: payload['fileName'] as String,
-        pageCount: payload['pageCount'] as int,
-        sizeLabel: payload['sizeLabel'] as String,
-        isDemo: payload['isDemo'] as bool,
+        // Only `units` is load-bearing; the rest is display metadata. Casting
+        // those with `as String` / `as int` used to throw on a payload that was
+        // merely missing an optional field, which the catch-all turned into
+        // "Could not open review" and made the session permanently unopenable.
+        fileName: (payload['fileName'] as String?) ?? session.fileName,
+        pageCount: (payload['pageCount'] as int?) ?? 0,
+        sizeLabel: (payload['sizeLabel'] as String?) ?? '',
+        isDemo: (payload['isDemo'] as bool?) ?? false,
         units: units,
-        syllabusFindings: const [],
+        syllabusFindings: syllabusFindings,
+        findingStatus: findingStatus,
+        diagramPageCount: (payload['diagramPageCount'] as int?) ?? 0,
         result: resultJson == null
             ? null
             : WorkspaceReviewResult.fromJson(resultJson),
+        documentFingerprint: session.fingerprint,
+        parserVersion: session.parserVersion,
         toast: 'Saved review restored.',
         restoring: false,
       );
@@ -561,7 +790,31 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     offline: ref.read(mockModeProvider),
     result: state.result,
     units: state.units,
+    // Both engines' output, in one report: the offline syllabus checks used to
+    // live only on their own tab and never made it into anything a supervisor
+    // could read.
+    syllabusFindings: state.syllabusFindings,
+    diagramPageCount: state.diagramPageCount,
+    findingStatus: state.findingStatus,
   );
+
+  /// Writes the report to a file the user chooses.
+  ///
+  /// Returns the destination as the platform reported it, or null when the
+  /// user cancelled. Copying to the clipboard is still offered, but a report
+  /// you cannot attach to a submission is not really an export.
+  Future<String?> saveReportToFile() async {
+    final report = exportMarkdown();
+    return _exporter.save(fileName: _reportFileName(), contents: report);
+  }
+
+  String _reportFileName() {
+    final base = state.fileName.trim().isEmpty ? 'srs' : state.fileName;
+    final stem = base.contains('.') ? base.substring(0, base.lastIndexOf('.')) : base;
+    final safe = stem.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
+    final stamp = DateTime.now().toIso8601String().substring(0, 10);
+    return 'srs-review-$safe-$stamp.md';
+  }
 
   // ------------------------------------------------------------- toast
 
@@ -587,7 +840,16 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       'sizeLabel': state.sizeLabel,
       'isDemo': state.isDemo,
       'units': state.units.map((u) => u.toJson()).toList(),
+      'syllabusFindings': state.syllabusFindings
+          .map((finding) => finding.toJson())
+          .toList(growable: false),
+      'findingStatus': state.findingStatus.map(
+        (id, status) => MapEntry(id, status.name),
+      ),
+      'diagramPageCount': state.diagramPageCount,
       'result': state.result?.toJson(),
+      'documentFingerprint': state.documentFingerprint,
+      'parserVersion': state.parserVersion,
     });
     try {
       await _store.saveSnapshot(payload);
@@ -612,6 +874,20 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         return;
       }
       final payload = jsonDecode(raw) as Map<String, dynamic>;
+      // Parser gate: a snapshot written by a different parser version may
+      // yield different units — or different unit keys — for the same text,
+      // so its saved statuses and result must never be reused. Payloads
+      // written before versioning carried no key and restore as always.
+      final savedParserVersion = payload['parserVersion'] as String?;
+      if (savedParserVersion != null && savedParserVersion != kParserVersion) {
+        state = WorkspaceState(
+          restoring: false,
+          toast: 'Saved workspace was written by parser $savedParserVersion; '
+              're-import the document to start fresh.',
+        );
+        _scheduleToastClear();
+        return;
+      }
       final units = (payload['units'] as List<dynamic>)
           .map((e) => WorkspaceUnit.fromJson(e as Map<String, dynamic>))
           .toList();
@@ -620,6 +896,21 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         return;
       }
       final resultJson = payload['result'] as Map<String, dynamic>?;
+      final syllabusFindings =
+          (payload['syllabusFindings'] as List<dynamic>?)
+              ?.map(
+                (entry) => DeterministicFinding.fromJson(
+                  entry as Map<String, dynamic>,
+                ),
+              )
+              .toList(growable: false) ??
+          const <DeterministicFinding>[];
+      final findingStatus = <String, FindingStatus>{
+        for (final entry in (payload['findingStatus'] as Map<dynamic, dynamic>?)
+                    ?.entries ??
+                const <MapEntry<dynamic, dynamic>>[])
+          entry.key as String: FindingStatus.fromName(entry.value as String?),
+      };
       _document = null;
       state = WorkspaceState(
         hasDocument: true,
@@ -628,9 +919,15 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         sizeLabel: payload['sizeLabel'] as String,
         isDemo: payload['isDemo'] as bool,
         units: units,
+        syllabusFindings: syllabusFindings,
+        findingStatus: findingStatus,
+        diagramPageCount: (payload['diagramPageCount'] as int?) ?? 0,
         result: resultJson == null
             ? null
             : WorkspaceReviewResult.fromJson(resultJson),
+        documentFingerprint:
+            payload['documentFingerprint'] as String? ?? '',
+        parserVersion: savedParserVersion ?? '',
         restoring: false,
       );
     } on Object {
@@ -645,12 +942,23 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       'sizeLabel': state.sizeLabel,
       'isDemo': state.isDemo,
       'units': state.units.map((u) => u.toJson()).toList(),
+      'syllabusFindings': state.syllabusFindings
+          .map((finding) => finding.toJson())
+          .toList(growable: false),
+      'findingStatus': state.findingStatus.map(
+        (id, status) => MapEntry(id, status.name),
+      ),
+      'diagramPageCount': state.diagramPageCount,
       'result': result.toJson(),
+      'documentFingerprint': state.documentFingerprint,
+      'parserVersion': state.parserVersion,
     });
     await _store.save(
       SavedSession(
         id: 'sess-${DateTime.now().microsecondsSinceEpoch}',
         fileName: state.fileName,
+        fingerprint: state.documentFingerprint,
+        parserVersion: state.parserVersion,
         payloadJson: payload,
         createdAt: DateTime.now(),
       ),

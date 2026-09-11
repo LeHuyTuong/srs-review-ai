@@ -196,4 +196,44 @@ F-02: Trang Dịch Vụ
     ]);
     expect(withoutDash, isEmpty);
   });
+
+  test('preserves every explicit occurrence, including repeated ids', () {
+    final items = splitter.split([
+      'UC04 First workflow.',
+      'UC04 Second workflow.',
+      'UC-04 Third workflow.',
+    ]);
+
+    expect(items.map((item) => item.id), ['UC-04', 'UC-04', 'UC-04']);
+    expect(items.map((item) => item.text), [
+      'First workflow.',
+      'Second workflow.',
+      'Third workflow.',
+    ]);
+  });
+
+  test('keeps malformed four-digit ids visible instead of dropping them', () {
+    final items = splitter.split([
+      'UC0114 Legacy workflow.',
+      'UC0134 Another legacy workflow.',
+    ]);
+
+    expect(items.map((item) => item.id), ['UC0114', 'UC0134']);
+    expect(items.every((item) => item.isUseCase), isTrue);
+  });
+
+  test(
+    'keeps modal fallback statements when no explicit scope signal exists',
+    () {
+      final items = splitter.split([
+        'Appendix notes',
+        'The system must retain the audit trail.',
+      ]);
+
+      expect(items, hasLength(1));
+      expect(items.single.id, 'ST-1');
+      expect(items.single.kind, RequirementKind.statement);
+      expect(items.single.section, isNull);
+    },
+  );
 }

@@ -1,12 +1,9 @@
 /// Routing. The workspace shell owns the three main destinations as a
-/// StatefulShellRoute (each branch keeps its own scroll/tab state); the
-/// pre-port screens stay reachable at their moved paths.
+/// StatefulShellRoute (each branch keeps its own scroll/tab state).
 library;
 
 import 'package:go_router/go_router.dart';
 
-import '../../features/document/view/document_screen.dart';
-import '../../features/review/view/review_screen.dart';
 import '../../features/workspace/view/document_review_view.dart';
 import '../../features/workspace/view/review_history_view.dart';
 import '../../features/workspace/view/syllabus_rubric_view.dart';
@@ -18,10 +15,6 @@ class AppRoutes {
   static const String workspace = '/';
   static const String history = '/history';
   static const String syllabus = '/syllabus';
-
-  /// Pre-port screens, kept until the workspace fully replaces them.
-  static const String legacyDocument = '/legacy/document';
-  static const String legacyReview = '/legacy/review';
 }
 
 GoRouter buildRouter() => GoRouter(
@@ -56,14 +49,6 @@ GoRouter buildRouter() => GoRouter(
           ],
         ),
       ],
-    ),
-    GoRoute(
-      path: AppRoutes.legacyDocument,
-      builder: (context, state) => const DocumentScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.legacyReview,
-      builder: (context, state) => const ReviewScreen(),
     ),
   ],
 );

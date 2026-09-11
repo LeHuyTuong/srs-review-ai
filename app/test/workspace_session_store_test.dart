@@ -88,11 +88,27 @@ void main() {
         fileName: 'a.pdf',
         payloadJson: '{"x":1,"y":"quote \\" and \\n newline"}',
         createdAt: DateTime.parse('2026-01-02T03:04:05.000'),
+        fingerprint: 'deadbeef',
+        parserVersion: '1.0.0',
       );
       final restored = SavedSession.decode(session.encode());
       expect(restored.id, session.id);
       expect(restored.payloadJson, session.payloadJson);
       expect(restored.createdAt, session.createdAt);
+      expect(restored.fingerprint, 'deadbeef');
+      expect(restored.parserVersion, '1.0.0');
+    });
+
+    test('rows written before fingerprinting read back as unverifiable', () {
+      // A hand-written row with no fingerprint/parserVersion keys — exactly
+      // what older builds persisted — must decode without throwing and leave
+      // both fields '' so the parser gate treats it as always-openable.
+      final legacy = SavedSession.decode(
+        '{"id":"old","fileName":"a.pdf","payloadJson":"{}",'
+        '"createdAt":"2026-01-02T03:04:05.000"}',
+      );
+      expect(legacy.fingerprint, isEmpty);
+      expect(legacy.parserVersion, isEmpty);
     });
   });
 }

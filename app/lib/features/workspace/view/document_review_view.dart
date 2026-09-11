@@ -372,12 +372,18 @@ class _DocumentCard extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // 44x44: the platform minimum tap target. These were 34x34,
+                  // measured in the phone-viewport audit
+                  // (docs/uiux/audit-2026-09-11.md P1-1).
                   IconButton(
                     tooltip: 'Document information',
                     icon: const Icon(Icons.more_horiz),
                     iconSize: 18,
                     padding: const EdgeInsets.all(8),
-                    constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                    constraints: const BoxConstraints(
+                      minWidth: 44,
+                      minHeight: 44,
+                    ),
                     color: colors.muted,
                     onPressed: onInfo,
                   ),
@@ -386,7 +392,10 @@ class _DocumentCard extends StatelessWidget {
                     icon: const Icon(Icons.swap_horiz),
                     iconSize: 18,
                     padding: const EdgeInsets.all(8),
-                    constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                    constraints: const BoxConstraints(
+                      minWidth: 44,
+                      minHeight: 44,
+                    ),
                     color: colors.muted,
                     onPressed: onReplace,
                   ),
@@ -584,7 +593,10 @@ class _ReadinessPanel extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  WBadge(label: 'Mock mode'),
+                  WBadge(
+                    label: mockMode ? 'Mock mode' : 'Online mode',
+                    tint: mockMode ? WBadgeTint.amber : WBadgeTint.green,
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xs),

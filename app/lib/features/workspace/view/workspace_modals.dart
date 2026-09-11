@@ -15,9 +15,10 @@ import '../../../core/app_config.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
-import '../../../data/repositories/review_repository.dart' show ReviewStage;
+import '../../../data/models/review_models.dart' show Verification;
+import '../../../data/models/review_progress.dart';
+import '../models/ask_document.dart';
 import '../models/demo_units.dart';
-import '../models/workspace_unit.dart';
 import '../view_model/workspace_view_model.dart';
 import 'workspace_widgets.dart';
 
@@ -175,7 +176,7 @@ Future<void> showImportModal(BuildContext context, WidgetRef ref) => _show(
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'PDF, DOCX · up to 20 MB',
+                  'PDF, DOCX · up to 30 MB',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: colors.muted,
                   ),
@@ -445,6 +446,34 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
           ),
           const SizedBox(height: AppSpacing.lg),
           WButton.primary(
+            label: 'Save as Markdown file',
+            icon: Icons.save_alt,
+            expanded: true,
+            onPressed: () async {
+              // A report you cannot attach to a submission is not really an
+              // export. Clipboard-only meant the only way to get the report to
+              // a supervisor was to paste it into something else first.
+              String? destination;
+              try {
+                destination = await viewModel.saveReportToFile();
+              } on Object catch (error) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Could not save the report: $error'),
+                    ),
+                  );
+                }
+                return;
+              }
+              if (!context.mounted || destination == null) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Report saved to $destination')),
+              );
+            },
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          WButton.secondary(
             label: 'Copy Markdown report',
             icon: Icons.copy,
             expanded: true,
@@ -462,8 +491,8 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
           const WInfoNote(
             icon: Icons.info_outline,
             text:
-                'PDF export is planned but not part of this release; copy the '
-                'Markdown into any editor or convert it to PDF there.',
+                'PDF export is not part of this release — save the Markdown and '
+                'convert it in any editor if you need a PDF.',
           ),
         ],
       );
@@ -474,6 +503,118 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
 // ---------------------------------------------------------------------------
 // settings
 // ---------------------------------------------------------------------------
+
+/// Settings field for the review proxy URL, persisted through
+/// [proxyUrlProvider]. Submitting saves; an empty field clears back to the
+/// build-time default. This is how a phone build points at a laptop running
+/// the FastAPI proxy on the same WiFi without a rebuild.
+class _ProxyUrlField extends ConsumerStatefulWidget {
+  const _ProxyUrlField();
+
+  @override
+  ConsumerState<_ProxyUrlField> createState() => _ProxyUrlFieldState();
+}
+
+class _ProxyUrlFieldState extends ConsumerState<_ProxyUrlField> {
+  late final TextEditingController _controller = TextEditingController(
+    text: ref.read(proxyUrlProvider) ?? '',
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.workspaceColors;
+    final theme = Theme.of(context);
+    final saved = ref.watch(proxyUrlProvider);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Proxy URL',
+          style: theme.textTheme.titleSmall?.copyWith(color: colors.ink),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        TextField(
+          controller: _controller,
+          keyboardType: TextInputType.url,
+          decoration: InputDecoration(
+            hintText: 'http://192.168.1.20:8000',
+            helperText: saved == null
+                ? 'Empty = build-in default. Point at a machine running the '
+                    'FastAPI proxy on the same WiFi, then submit.'
+                : 'Saved — reviews will call $saved. Clear and submit to reset.',
+            isDense: true,
+          ),
+          onSubmitted: (value) =>
+              ref.read(proxyUrlProvider.notifier).set(value),
+        ),
+      ],
+    );
+  }
+}
+
+/// Settings field for the proxy's shared secret, sent as `X-App-Token`.
+///
+/// The proxy ignores auth while its own `APP_TOKEN` is empty, so this is only
+/// needed once somebody deploys it — but without a field here the app had no
+/// way to satisfy a proxy that was configured to require one, and every
+/// request became a 401 with nothing to type in.
+class _AppTokenField extends ConsumerStatefulWidget {
+  const _AppTokenField();
+
+  @override
+  ConsumerState<_AppTokenField> createState() => _AppTokenFieldState();
+}
+
+class _AppTokenFieldState extends ConsumerState<_AppTokenField> {
+  late final TextEditingController _controller = TextEditingController(
+    text: ref.read(appTokenProvider) ?? '',
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.workspaceColors;
+    final theme = Theme.of(context);
+    final saved = ref.watch(appTokenProvider);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'App token',
+          style: theme.textTheme.titleSmall?.copyWith(color: colors.ink),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        TextField(
+          controller: _controller,
+          obscureText: true,
+          enableSuggestions: false,
+          autocorrect: false,
+          decoration: InputDecoration(
+            hintText: 'Leave empty when the proxy has no APP_TOKEN',
+            helperText: saved == null
+                ? 'Optional. Set it only when your proxy requires one — then it '
+                    'is sent on every request as X-App-Token.'
+                : 'Saved — sent as X-App-Token. Clear and submit to remove.',
+            isDense: true,
+          ),
+          onSubmitted: (value) =>
+              ref.read(appTokenProvider.notifier).set(value),
+        ),
+      ],
+    );
+  }
+}
 
 Future<void> showSettingsModal(BuildContext context, WidgetRef ref) => _show(
   context: context,
@@ -517,6 +658,10 @@ Future<void> showSettingsModal(BuildContext context, WidgetRef ref) => _show(
             ],
           ),
           const SizedBox(height: AppSpacing.md),
+          const _ProxyUrlField(),
+          const SizedBox(height: AppSpacing.md),
+          const _AppTokenField(),
+          const SizedBox(height: AppSpacing.md),
           _settingRow(
             context,
             'Review engine',
@@ -526,7 +671,7 @@ Future<void> showSettingsModal(BuildContext context, WidgetRef ref) => _show(
           _settingRow(
             context,
             'Declared limits',
-            '20 MB/file · 300 PDF pages · '
+            '30 MB/file · 300 PDF pages · '
                 '${AppConfig.maxRequirementsPerRun} units/run',
           ),
           const SizedBox(height: AppSpacing.md),
@@ -813,8 +958,8 @@ class _AskSheet extends ConsumerStatefulWidget {
 
 class _AskSheetState extends ConsumerState<_AskSheet> {
   final _controller = TextEditingController();
-  List<WorkspaceUnit> _answers = const [];
-  bool _asked = false;
+  AskOutcome? _outcome;
+  bool _loading = false;
 
   @override
   void dispose() {
@@ -822,11 +967,19 @@ class _AskSheetState extends ConsumerState<_AskSheet> {
     super.dispose();
   }
 
-  void _search(String question) {
+  Future<void> _search(String question) async {
+    final trimmed = question.trim();
+    if (trimmed.isEmpty || _loading) return;
     final viewModel = ref.read(workspaceViewModelProvider.notifier);
     setState(() {
-      _answers = viewModel.askDocument(question);
-      _asked = true;
+      _loading = true;
+      _outcome = null;
+    });
+    final outcome = await viewModel.askQuestion(trimmed);
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      _outcome = outcome;
     });
   }
 
@@ -839,8 +992,9 @@ class _AskSheetState extends ConsumerState<_AskSheet> {
       icon: Icons.chat_bubble_outline,
       title: 'Find answers in your source.',
       description:
-          'Offline keyword search with source citations. This is not '
-          'generative AI — only original document passages are shown.',
+          'Answers come from your document only. Online, the model answers and '
+          'every quote is verified before it is shown; offline it falls back to '
+          'keyword search and says which one you got.',
       children: [
         TextField(
           controller: _controller,
@@ -858,7 +1012,12 @@ class _AskSheetState extends ConsumerState<_AskSheet> {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        if (!_asked)
+        if (_loading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_outcome == null)
           Wrap(
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.sm,
@@ -877,57 +1036,141 @@ class _AskSheetState extends ConsumerState<_AskSheet> {
                 ),
             ],
           )
-        else if (_answers.isEmpty)
+        else if (!_outcome!.grounded)
           WInfoNote(
             icon: Icons.search_off,
             warning: true,
-            text:
-                'No matching source found. Try a specific term used in your '
-                'document. No answer was invented.',
+            text: _outcome!.answer.isEmpty
+                ? 'No matching source found. Try a specific term used in your '
+                    'document. No answer was invented.'
+                : _outcome!.answer,
           )
         else
           Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (final unit in _answers)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: WPanel(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Wrap(
-                          spacing: AppSpacing.sm,
-                          runSpacing: AppSpacing.xs,
+              // Which engine answered is stated before the answer itself. The
+              // two are not interchangeable, and a keyword hit shown under an
+              // AI label is a small lie that costs the user their trust in the
+              // verified quotes.
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.xs,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  WBadge(
+                    label: _outcome!.engine.label,
+                    tint: _outcome!.engine == AskEngine.model
+                        ? WBadgeTint.green
+                        : WBadgeTint.neutral,
+                    leading: Icon(
+                      _outcome!.engine == AskEngine.model
+                          ? Icons.auto_awesome
+                          : Icons.search,
+                      size: 12,
+                    ),
+                  ),
+                  if (_outcome!.model != null)
+                    Text(
+                      _outcome!.model!,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colors.muted,
+                      ),
+                    ),
+                ],
+              ),
+              if (_outcome!.note != null) ...[
+                const SizedBox(height: AppSpacing.sm),
+                WInfoNote(icon: Icons.info_outline, text: _outcome!.note!),
+              ],
+              const SizedBox(height: AppSpacing.md),
+              if (_outcome!.engine == AskEngine.model) ...[
+                Text(
+                  _outcome!.answer,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colors.ink,
+                    height: 1.7,
+                  ),
+                ),
+                if (_outcome!.citations.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    'Verified passages',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: colors.ink,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  for (final citation in _outcome!.citations)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      child: WPanel(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             WBadge(
                               label:
-                                  '${unit.id} · p. ${unit.pageIndex + 1}',
+                                  citation.verification == Verification.exact
+                                  ? 'Exact match'
+                                  : 'Close match',
                               tint: WBadgeTint.green,
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            Text(
+                              '"${citation.quote}"',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colors.muted,
+                                height: 1.7,
+                              ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Text(
-                          unit.title,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: colors.ink,
+                      ),
+                    ),
+                ],
+              ] else ...[
+                for (final unit in _outcome!.units)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: WPanel(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Wrap(
+                            spacing: AppSpacing.sm,
+                            runSpacing: AppSpacing.xs,
+                            children: [
+                              WBadge(
+                                label: '${unit.id} · p. ${unit.pageIndex + 1}',
+                                tint: WBadgeTint.green,
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          unit.text.length > 420
-                              ? '${unit.text.substring(0, 420)}…'
-                              : unit.text,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colors.muted,
-                            height: 1.7,
+                          const SizedBox(height: AppSpacing.sm),
+                          Text(
+                            unit.title,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: colors.ink,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            unit.text.length > 420
+                                ? '${unit.text.substring(0, 420)}…'
+                                : unit.text,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colors.muted,
+                              height: 1.7,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+              ],
             ],
           ),
         if (state.error != null) ...[

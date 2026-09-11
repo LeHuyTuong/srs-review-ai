@@ -176,6 +176,13 @@ LAYER_RULES = [
         reason="Views must go through a ViewModel; only repositories/services may touch transport",
     ),
     LayerRule(
+        name="view-no-repositories",
+        applies_to=("app/lib/features/", "/view/"),
+        forbidden=("data/repositories/",),
+        reason="Views must go through a ViewModel; domain values live in data/models/, "
+        "not in the repository that produces them",
+    ),
+    LayerRule(
         name="viewmodel-no-widgets",
         applies_to=("app/lib/features/", "/view_model/"),
         forbidden=("package:flutter/material.dart", "package:flutter/cupertino.dart", "/view/"),
