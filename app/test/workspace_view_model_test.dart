@@ -393,6 +393,95 @@ void main() {
     expect(state.units, hasLength(65));
     expect(state.fileName, demoFileName);
   });
+
+  test('kind override survives snapshot restore', () async {
+    final store = InMemorySessionStore();
+    final first = _container(store);
+    final vm = first.read(workspaceViewModelProvider.notifier);
+    await vm.loadDemo();
+
+    // A human re-classification the parser's id-prefix rule got wrong: the
+    // roadmap forbids silently rewriting the id, not the type the user picks.
+    final unit = first
+        .read(workspaceViewModelProvider)
+        .units
+        .firstWhere((u) => u.kind == UnitKind.useCase);
+    vm.classifyUnit(unit.key, UnitKind.businessRule);
+    final edited = first
+        .read(workspaceViewModelProvider)
+        .units
+        .firstWhere((u) => u.key == unit.key);
+    expect(edited.kind, UnitKind.businessRule);
+    expect(
+      edited.malformed,
+      isFalse,
+      reason: 're-classifying to a concrete kind must clear needs-attention',
+    );
+    first.dispose();
+
+    final second = _container(store);
+    addTearDown(second.dispose);
+    await _pumpUntil(
+      () => !second.read(workspaceViewModelProvider).restoring,
+    );
+    final restored = second
+        .read(workspaceViewModelProvider)
+        .units
+        .firstWhere((u) => u.key == unit.key);
+    expect(
+      restored.kind,
+      UnitKind.businessRule,
+      reason: 'classifyUnit mutates through _mutateUnit, which saves the '
+          'snapshot — the override must ride along with it',
+    );
+  });
+
+  test('kind override survives session reopen', () async {
+    final store = InMemorySessionStore();
+    final container = _container(store);
+    addTearDown(container.dispose);
+    final vm = container.read(workspaceViewModelProvider.notifier);
+    await vm.loadDemo();
+
+    final target = container
+        .read(workspaceViewModelProvider)
+        .units
+        .firstWhere((u) => u.kind == UnitKind.useCase);
+    vm.classifyUnit(target.key, UnitKind.nonFunctional);
+
+    // One reviewed unit is enough to produce a saved history row.
+    final others = container
+        .read(workspaceViewModelProvider)
+        .units
+        .where((u) => u.selected && u.key != target.key)
+        .map((u) => u.key)
+        .toList();
+    for (final key in others) {
+      vm.setUnitSelected(key, false);
+    }
+    await vm.runReview();
+    await _pumpUntil(() {
+      final state = container.read(workspaceViewModelProvider);
+      return state.hasResult && !state.isRunning;
+    });
+    await _pumpUntil(
+      () => container.read(workspaceViewModelProvider).history.isNotEmpty,
+    );
+
+    final reopened = await vm.openSession(
+      container.read(workspaceViewModelProvider).history.single.id,
+    );
+    expect(reopened, isTrue);
+    final restored = container
+        .read(workspaceViewModelProvider)
+        .units
+        .firstWhere((u) => u.key == target.key);
+    expect(
+      restored.kind,
+      UnitKind.nonFunctional,
+      reason: 'session payloads carry units verbatim, override included',
+    );
+  });
 }
 
 /// Stands in for a provider that just answered 429: the first review call

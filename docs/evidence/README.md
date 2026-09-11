@@ -68,4 +68,50 @@ Ghi chú trung thực:
   121/121. Test khẳng định hành vi người dùng thấy thật, không phải flake logic.
 - Vẫn còn trong M1: FR/NFR/BR là kind riêng (**PARTIAL** — `NF-` hiện bị gộp
   vào `statement`) và lưu UI category override (**UNMET**). Không ghi hai mục
-  này là xong.
+  này là xong. → **Đã đóng trong phụ lục 2026-09-12 (bổ sung)** bên dưới.
+
+## 2026-09-12 (bổ sung) — M1: phân loại first-class + lưu override của UI
+
+Hai mục còn treo trong phụ lục trước được kiểm chứng lại **trên code working
+tree** chứ không dựa vào ghi chú audit cũ. Kết quả: cả hai là **MET**; ghi chú
+"UNMET/PARTIAL" trước đó là số liệu audit cũ, viết khi chưa bám vào cây code
+hiện tại.
+
+**UI category override — UNMET → MET.** Chuỗi đầy đủ đã có sẵn và được nối
+kết: dropdown trong `source_sheet.dart` liệt kê đủ 5 giá trị `UnitKind` →
+`viewModel.classifyUnit(key, kind)` → `_mutateUnit` → `unit.classified()`
+(immutable copy; re-classify sang kind cụ thể xoá cờ `malformed`) →
+`_saveSnapshot()` chạy sau **mọi** mutation, nên override sống qua restart.
+`WorkspaceUnit.toJson` ghi `kind.label` và cả hai đường khôi phục (snapshot
+restore, `openSession`) đều decode qua `fromJson` → `UnitKind.fromLabel`,
+nên override đi nguyên vẹn trong cả hai persistence path. Vòng này thêm phần
+đúng là còn thiếu: **bằng chứng hồi quy** — 2 test mới trong
+`workspace_view_model_test.dart`:
+
+- `kind override survives snapshot restore` — classify sang `businessRule`,
+  container cũ huỷ, container mới restore, kind giữ nguyên.
+- `kind override survives session reopen` — classify sang `nonFunctional`,
+  run 1 unit để tạo history row, `openSession`, kind giữ nguyên.
+
+**FR/NFR/BR first-class kinds — PARTIAL → MET.** Phân loại first-class nằm ở
+`UnitKind` (presentation layer): đủ 5 bucket `useCase / businessRule /
+nonFunctional / functional / unknown`, `unitFromRequirement` map theo prefix
+UC/BR/NFR/FR/SR, prefix lạ rơi vào `unknown` (needs attention) thay vì bị nuốt.
+Ghi chú "NF- bị gộp vào statement" áp cho `RequirementKind` — model cấp
+tài liệu, không phải kiểu inventory dùng cho UI. Design split được ghi lại tường
+minh (đã thêm vào `AGENTS.md`): **deterministic syllabus checks (F7/F9) cố ý
+đếm theo kind của parser trên `SrsDocument`** (`requirement.isUseCase`), còn
+override của người dùng điều khiển inventory/review — probe đo tài liệu như đã
+parse, không đo ý kiến người dùng.
+
+Kiểm chứng (chạy được lại):
+
+| Kiểm | Kết quả |
+|---|---|
+| `flutter analyze` | No issues found |
+| `flutter test` | **141/141 pass** (gồm 2 test mới ở trên) |
+| `tools/check_guardrails.py` | pass — 157 files |
+
+Ghi chú trung thực: bài học quy trình — ghi "gap còn tồn tại" mà không bám lại
+vào code working tree thì chính ghi chú đó trở thành dữ liệu sai trong lần chấm
+điểm sau. Audit notes phải re-verify trước khi ghi vào bảng gate.
