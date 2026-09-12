@@ -19,6 +19,8 @@ import '../models/review_models.dart';
 import '../models/review_progress.dart';
 import '../models/srs_document.dart';
 import '../services/api_service.dart';
+import '../services/image_budget.dart';
+import '../services/page_image_selector.dart';
 import '../services/review_api.dart';
 
 class ReviewRepository {
@@ -71,6 +73,8 @@ class ReviewRepository {
     final items = all
         .take(AppConfig.maxRequirementsPerRun)
         .toList(growable: false);
+    final candidatePages = document.imagePageIndexes.toSet();
+    final pageImageSelector = PageImageSelector(budget: ImageBudget());
 
     // The per-run cap is real, so it is accounted for instead of being
     // applied behind the user's back. `skipped` rides on every progress event
@@ -129,6 +133,16 @@ class ReviewRepository {
             currentRequirementId: item.id,
             skipped: skipped,
           ),
+        );
+
+        // Plan once per item before retries. M4 v0 reserves selected pages,
+        // but every decision still uses the existing text-only request until
+        // the renderer is wired.
+        pageImageSelector.planFor(
+          requirementId: occurrenceKey,
+          text: item.text,
+          pageIndex: item.pageIndex,
+          candidatePages: candidatePages,
         );
 
         // Retry only what is worth retrying. `isRetryable` has been set on
