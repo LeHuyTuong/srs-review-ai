@@ -67,11 +67,16 @@ const Map<String, Object?> _okResult = {
   'model': 'test-model',
 };
 
-ResponseBody _json(Object body, {int status = 200}) => ResponseBody.fromString(
+ResponseBody _json(
+  Object body, {
+  int status = 200,
+  Map<String, List<String>> headers = const {},
+}) => ResponseBody.fromString(
   jsonEncode(body),
   status,
-  headers: const <String, List<String>>{
-    'content-type': <String>['application/json'],
+  headers: <String, List<String>>{
+    'content-type': const <String>['application/json'],
+    ...headers,
   },
 );
 
@@ -104,11 +109,19 @@ void main() {
       await expectLater(
         _service(adapter).review(requirementId: 'FR-01', text: 'x'),
         throwsA(
-          isA<ApiException>().having(
-            (error) => error.statusCode,
-            'statusCode',
-            429,
-          ),
+          isA<ApiException>()
+            .having(
+              (error) => error.statusCode,
+              'statusCode',
+              429,
+            )
+            .having(
+              // No Retry-After header on the fake response => day-scale
+              // fallback must survive so the sentence never comes up blank.
+              (error) => error.message,
+              'message',
+              contains('try again tomorrow'),
+            ),
         ),
       );
       expect(
@@ -116,6 +129,44 @@ void main() {
         1,
         reason: '429 will fail identically next time; retrying only delays it',
       );
+    });
+
+    test('a quota rejection reports the Retry-After window', () async {
+      final adapter = _FakeAdapter(
+        Queue<Object>.of(<Object>[
+          _json(
+            const <String, Object?>{},
+            status: 429,
+            headers: {
+              'retry-after': ['240'],
+            },
+          ),
+        ]),
+      );
+
+      await expectLater(
+        _service(adapter).review(requirementId: 'FR-01', text: 'x'),
+        throwsA(
+          isA<ApiException>().having(
+            (error) => error.message,
+            'message',
+            contains('Retry in about 4 min'),
+          ),
+        ),
+      );
+    });
+
+    test('quotaMessage renders hours, minutes, and the fallback', () {
+      expect(
+        ApiService.quotaMessage(retryAfterSeconds: 86_400),
+        contains('Retry in about 24 h'),
+      );
+      expect(
+        ApiService.quotaMessage(retryAfterSeconds: 90),
+        contains('Retry in about 2 min'),
+      );
+      expect(ApiService.quotaMessage(), contains('try again tomorrow'));
+      expect(ApiService.quotaMessage(retryAfterSeconds: 0), contains('tomorrow'));
     });
 
     test('a run the user cancelled is not retried', () async {

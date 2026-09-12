@@ -158,11 +158,15 @@ async def review(
         if hit := _review_cache.get(key):
             return hit.model_copy(update={"cached": True})
 
-    allowed, _ = _limiter.check(user, settings.rate_limit_per_day)
+    allowed, _, retry_after = _limiter.check(user, settings.rate_limit_per_day)
     if not allowed:
         raise HTTPException(
             status_code=429,
-            detail=f"Daily review limit reached ({settings.rate_limit_per_day}). Try again tomorrow.",
+            detail=(
+                f"Daily review limit reached ({settings.rate_limit_per_day}). "
+                f"Retry after {retry_after}s."
+            ),
+            headers={"Retry-After": str(retry_after)},
         )
 
     try:
@@ -225,9 +229,13 @@ async def ask(
     user: str = Depends(caller_id),
 ) -> AskResponse:
     _ensure_bounded(text=payload.context, image_b64=None, settings=settings)
-    allowed, _ = _limiter.check(user, settings.rate_limit_per_day)
+    allowed, _, retry_after = _limiter.check(user, settings.rate_limit_per_day)
     if not allowed:
-        raise HTTPException(status_code=429, detail="Daily limit reached.")
+        raise HTTPException(
+            status_code=429,
+            detail=f"Daily limit reached. Retry after {retry_after}s.",
+            headers={"Retry-After": str(retry_after)},
+        )
 
     provider = build_provider(settings)
     try:

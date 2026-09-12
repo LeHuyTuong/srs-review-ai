@@ -298,6 +298,26 @@ def test_rate_limit_returns_429():
             "/review", json={**VAGUE, "requirement_id": "FR-04", "text": "The UI must be friendly."}
         )
         assert second.status_code == 429
+        # M3 gate: báo cửa sổ có thể gọi lại — the response must carry the
+        # truthful window (when the next slot frees), not just a status code.
+        retry_after = second.headers.get("retry-after")
+        assert retry_after is not None
+        assert 0 < int(retry_after) <= 86_400
+        assert f"Retry after {retry_after}s" in second.json()["detail"]
+    app.dependency_overrides.clear()
+
+
+def test_rate_limiter_window_points_at_oldest_hit():
+    from app.ratelimit import RateLimiter
+
+    limiter = RateLimiter()
+    allowed, remaining, retry_after = limiter.check("u", 1, now=1_000.0)
+    assert allowed and remaining == 0 and retry_after == 0
+    # Oldest (only) hit was 5s ago; the slot frees when it ages out.
+    allowed, remaining, retry_after = limiter.check("u", 1, now=1_005.0)
+    assert not allowed
+    assert remaining == 0
+    assert retry_after == 86_400 - 5
     app.dependency_overrides.clear()
 
 

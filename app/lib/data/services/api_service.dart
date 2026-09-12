@@ -187,6 +187,28 @@ class ApiService implements ReviewApi {
     }
   }
 
+  /// 429 message reporting the truthful retry window (M3 gate: báo cửa sổ
+  /// có thể gọi lại). The proxy sends Retry-After seconds when the daily
+  /// quota is exhausted; without one, fall back to the day-scale hint.
+  static String quotaMessage({int? retryAfterSeconds}) {
+    final seconds = retryAfterSeconds;
+    if (seconds == null || seconds <= 0) {
+      return 'Daily review quota reached. '
+          'Reuse a cached result or try again tomorrow.';
+    }
+    if (seconds >= 5400) {
+      return 'Daily review quota reached. '
+          'Retry in about ${(seconds / 3600).ceil()} h.';
+    }
+    return 'Daily review quota reached. '
+        'Retry in about ${(seconds / 60).ceil()} min.';
+  }
+
+  static int? _retryAfterSeconds(Response<dynamic>? response) {
+    final raw = response?.headers.value('retry-after')?.trim();
+    return raw == null || raw.isEmpty ? null : int.tryParse(raw);
+  }
+
   /// Turns transport failures into sentences a student can act on. Takes the
   /// effective base URL because the useful message names the endpoint the
   /// user actually configured (Settings override or build-time default).
@@ -215,7 +237,9 @@ class ApiService implements ReviewApi {
           statusCode: 422,
         ),
         429 => ApiException(
-          'Daily review quota reached. Reuse a cached result or try again tomorrow.',
+          quotaMessage(
+            retryAfterSeconds: _retryAfterSeconds(error.response),
+          ),
           statusCode: 429,
         ),
         502 || 503 => ApiException(

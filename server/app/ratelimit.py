@@ -4,6 +4,7 @@ single-machine demo; swap for Redis only if the proxy is ever deployed.
 
 from __future__ import annotations
 
+import math
 import time
 from collections import defaultdict
 
@@ -17,16 +18,25 @@ class RateLimiter:
         self.window_s = window_s
         self._hits: dict[str, list[float]] = defaultdict(list)
 
-    def check(self, user_id: str, limit: int, *, now: float | None = None) -> tuple[bool, int]:
-        """Record a hit. Returns (allowed, remaining)."""
+    def check(
+        self, user_id: str, limit: int, *, now: float | None = None
+    ) -> tuple[bool, int, int]:
+        """Record a hit. Returns (allowed, remaining, retry_after_s).
+
+        When denied, retry_after_s is the seconds until the oldest hit in the
+        window ages out — the truthful moment the next slot frees (M3 gate:
+        báo cửa sổ có thể gọi lại), not a blanket "tomorrow".
+        """
         moment = now if now is not None else time.time()
         recent = [t for t in self._hits[user_id] if moment - t < self.window_s]
         if len(recent) >= limit:
             self._hits[user_id] = recent
-            return False, 0
+            oldest = min(recent)
+            retry_after = max(1, math.ceil(oldest + self.window_s - moment))
+            return False, 0, retry_after
         recent.append(moment)
         self._hits[user_id] = recent
-        return True, limit - len(recent)
+        return True, limit - len(recent), 0
 
     def reset(self) -> None:
         self._hits.clear()
