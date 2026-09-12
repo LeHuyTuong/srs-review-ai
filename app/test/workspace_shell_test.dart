@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:srs_review_ai/core/app_config.dart';
 import 'package:srs_review_ai/core/providers.dart';
 import 'package:srs_review_ai/core/router/app_router.dart';
 import 'package:srs_review_ai/core/theme/app_theme.dart';
@@ -19,6 +20,7 @@ import 'package:srs_review_ai/data/models/srs_document.dart';
 import 'package:srs_review_ai/data/repositories/document_repository.dart';
 import 'package:srs_review_ai/data/services/mock_review_api.dart';
 import 'package:srs_review_ai/data/services/session_store.dart';
+import 'package:srs_review_ai/features/workspace/view/workspace_modals.dart';
 import 'package:srs_review_ai/features/workspace/view/workspace_shell.dart';
 import 'package:srs_review_ai/features/workspace/view/workspace_widgets.dart';
 import 'package:srs_review_ai/features/workspace/view_model/workspace_view_model.dart';
@@ -1034,6 +1036,94 @@ void main() {
     );
 
     handle.dispose();
+    await tester.pump(const Duration(seconds: 5));
+  });
+
+  /// The run button must not promise more units than a run can review.
+  ///
+  /// It used to read "Review 63 units" while `AppConfig.maxRequirementsPerRun`
+  /// (40) silently dropped 23 of them from that run. The app was never lying —
+  /// the toast after the run discloses the shortfall — but the promise was on
+  /// the button and the correction came later, which is backwards.
+  testWidgets('the run button promises only what one run can review', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final container = _container(InMemorySessionStore());
+    addTearDown(container.dispose);
+    final viewModel = container.read(workspaceViewModelProvider.notifier);
+    await viewModel.loadDemo();
+
+    // A minimal harness that opens the real sheet. Reaching it through the
+    // inventory would mean scrolling a 390px page to a button below the fold,
+    // which has nothing to do with the label this test is about.
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          home: Scaffold(
+            body: Consumer(
+              builder: (context, ref, _) => ElevatedButton(
+                onPressed: () => showReviewModal(context, ref),
+                child: const Text('open sheet'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final selected = container.read(workspaceViewModelProvider).selectedCount;
+    expect(
+      selected,
+      greaterThan(AppConfig.maxRequirementsPerRun),
+      reason: 'the demo must overflow the cap for this test to mean anything',
+    );
+
+    await tester.tap(find.text('open sheet'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Review first ${AppConfig.maxRequirementsPerRun} of $selected units',
+      ),
+      findsOneWidget,
+      reason: 'over the cap, the button must name the part it will run',
+    );
+    expect(
+      find.text('Review $selected units'),
+      findsNothing,
+      reason: 'the button must not promise the whole selection',
+    );
+
+    // Trim the selection to the cap: then the plain count is the whole truth.
+    Navigator.of(tester.element(find.text('open sheet'))).pop();
+    await tester.pumpAndSettle();
+    final overCap = container
+        .read(workspaceViewModelProvider)
+        .units
+        .where((u) => u.selected)
+        .skip(AppConfig.maxRequirementsPerRun)
+        .toList();
+    for (final unit in overCap) {
+      viewModel.setUnitSelected(unit.key, false);
+    }
+    await tester.pump();
+
+    await tester.tap(find.text('open sheet'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Review ${AppConfig.maxRequirementsPerRun} units'),
+      findsOneWidget,
+      reason: 'inside the cap, the button names the whole selection',
+    );
+
+    Navigator.of(tester.element(find.text('open sheet'))).pop();
+    await tester.pumpAndSettle();
     await tester.pump(const Duration(seconds: 5));
   });
 }

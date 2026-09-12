@@ -321,7 +321,14 @@ Future<void> showReviewModal(BuildContext context, WidgetRef ref) => _show(
           ] else ...[
             const SizedBox(height: AppSpacing.lg),
             WButton.primary(
-              label: 'Review ${state.selectedCount} units',
+              // The button used to promise the whole selection — "Review 63
+              // units" — while `AppConfig.maxRequirementsPerRun` silently
+              // dropped everything past 40 from that run. The toast still
+              // discloses the shortfall afterwards, but a promise made on the
+              // button and broken by the run is the wrong place to explain it:
+              // say the cap on the button itself and let the confirmation
+              // repeat it.
+              label: _runButtonLabel(state.selectedCount),
               icon: Icons.auto_awesome,
               expanded: true,
               onPressed: state.selectedCount == 0
@@ -351,6 +358,19 @@ Future<void> showReviewModal(BuildContext context, WidgetRef ref) => _show(
     },
   ),
 );
+
+/// What the run button promises, spelled out honestly.
+///
+/// A run never reviews more than [AppConfig.maxRequirementsPerRun] units, so a
+/// label that names the whole selection — "Review 63 units" — describes a run
+/// that cannot happen. When the selection fits, the plain count is exact and
+/// stays; when it does not, the button names the part it will actually run.
+String _runButtonLabel(int selectedCount) {
+  final cap = AppConfig.maxRequirementsPerRun;
+  return selectedCount > cap
+      ? 'Review first $cap of $selectedCount units'
+      : 'Review $selectedCount units';
+}
 
 /// Resolves as soon as the run has emitted its first progress event, so the
 /// sheet can hand the user off to the persistent progress bar without a dead
