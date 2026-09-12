@@ -55,6 +55,16 @@ class Settings(BaseSettings):
     max_retries: int = 3
     fuzzy_threshold: float = 0.92
 
+    max_text_bytes: int = 200_000
+    """Experimental policy (roadmap M3): one review unit's text / one ask
+    context is bounded at 200 KB. A requirement that big is a parsing bug, not
+    a review job — fail with 413 instead of shipping a giant prompt."""
+
+    max_image_b64_bytes: int = 4_000_000
+    """Base64 page image cap (~3 MB PNG). Contract allows images as context
+    only; without a bound a whole-document blob could ride image_b64 through
+    the Vercel 4.5 MB request-body ceiling."""
+
     # --- App auth (shared token between Flutter app and proxy) ---
     app_token: str = ""
     """Empty => auth disabled (localhost demo). Set it before exposing the proxy."""

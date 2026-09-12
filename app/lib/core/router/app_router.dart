@@ -1,29 +1,54 @@
-/// Routing. Two routes today; the adaptive desktop shell (NavigationRail +
-/// two panes) plugs in as a ShellRoute in week 3 without touching the screens.
+/// Routing. The workspace shell owns the three main destinations as a
+/// StatefulShellRoute (each branch keeps its own scroll/tab state).
 library;
 
 import 'package:go_router/go_router.dart';
 
-import '../../features/document/view/document_screen.dart';
-import '../../features/review/view/review_screen.dart';
+import '../../features/workspace/view/document_review_view.dart';
+import '../../features/workspace/view/review_history_view.dart';
+import '../../features/workspace/view/syllabus_rubric_view.dart';
+import '../../features/workspace/view/workspace_shell.dart';
 
 class AppRoutes {
   const AppRoutes._();
 
-  static const String document = '/';
-  static const String review = '/review';
+  static const String workspace = '/';
+  static const String history = '/history';
+  static const String syllabus = '/syllabus';
 }
 
 GoRouter buildRouter() => GoRouter(
-  initialLocation: AppRoutes.document,
+  initialLocation: AppRoutes.workspace,
   routes: [
-    GoRoute(
-      path: AppRoutes.document,
-      builder: (context, state) => const DocumentScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.review,
-      builder: (context, state) => const ReviewScreen(),
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) =>
+          WorkspaceShell(navigationShell: navigationShell),
+      branches: [
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: AppRoutes.workspace,
+              builder: (context, state) => const DocumentReviewView(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: AppRoutes.history,
+              builder: (context, state) => const ReviewHistoryView(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: AppRoutes.syllabus,
+              builder: (context, state) => const SyllabusRubricView(),
+            ),
+          ],
+        ),
+      ],
     ),
   ],
 );

@@ -1,0 +1,50 @@
+{
+ "mode": "demo-65",
+ "steps": [
+  "demo loaded (65 units)"
+ ],
+ "modal_buttons": [
+  {
+   "t": "Close dialog",
+   "w": 40,
+   "h": 40
+  },
+  {
+   "t": "Review 63 units",
+   "w": 144,
+   "h": 40
+  },
+  {
+   "t": "Scrim",
+   "w": 393,
+   "h": 216
+  }
+ ],
+ "modal_open": true,
+ "run_button": {
+  "text": "Review 63 units",
+  "w": 144,
+  "h": 40
+ },
+ "review_total_ms": 120150,
+ "first_visible_progress_ms": 362,
+ "blank_wait_ms": 362,
+ "final_text": "YOUR PRE-SUBMISSION COMPANION\nDocument review\nA clearer SRS. A more confident submission.\nExport report\nImport document\nImport\n2 Inventory\n3 Findings\n4 Export\nOTES_SRS_v1.0.pdf\nSample document\nPDF\nSoftware Requirements Specification · Report 3\n114 pages · 27.37 MB · Extraction complete\nReady for review\nDocument information\nReplace document\nTotal units 65 Extracted from your document\nUse cases 50 Whole use-case context preserved\nOther requirements 13 Business rules · Non-functional · Functional\nN",
+ "console_errors": [],
+ "during_run_transitions": [
+  {
+   "t": 201,
+   "progressbars": 0,
+   "sheet_open": true,
+   "stage": null,
+   "done": false
+  },
+  {
+   "t": 362,
+   "progressbars": 1,
+   "sheet_open": false,
+   "stage": null,
+   "done": false
+  }
+ ]
+}

@@ -1,8 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required in EVERY build type, not only debug. Flutter's template adds
+         this permission to src/debug/AndroidManifest.xml (for hot reload) and
+         nowhere else, so a release APK ships with NO network access and every
+         call to the review proxy fails — with no error the user can act on. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="srs_review_ai"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:networkSecurityConfig="@xml/network_security_config">
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -1,0 +1,3428 @@
+{
+ "timings": {
+  "cold_canvas_ms": 1032,
+  "cold_shell_ms": 1039,
+  "paint": [],
+  "heaviest_resources": [
+   {
+    "n": "canvaskit.wasm",
+    "dur": 696,
+    "kb": 0
+   },
+   {
+    "n": "canvaskit.js",
+    "dur": 348,
+    "kb": 0
+   },
+   {
+    "n": "KFOmCnqEu92Fr1Me4GZLCzYlKw.woff2",
+    "dur": 344,
+    "kb": 62
+   },
+   {
+    "n": "Manrope.ttf",
+    "dur": 7,
+    "kb": 162
+   },
+   {
+    "n": "Manrope.ttf",
+    "dur": 7,
+    "kb": 162
+   },
+   {
+    "n": "DMSans.ttf",
+    "dur": 7,
+    "kb": 235
+   },
+   {
+    "n": "DMSans.ttf",
+    "dur": 7,
+    "kb": 235
+   },
+   {
+    "n": "Manrope.ttf",
+    "dur": 5,
+    "kb": 162
+   },
+   {
+    "n": "Manrope.ttf",
+    "dur": 5,
+    "kb": 162
+   },
+   {
+    "n": "DMSans.ttf",
+    "dur": 5,
+    "kb": 235
+   }
+  ],
+  "demo_load": {
+   "ms": 353,
+   "found": true
+  },
+  "inventory_paint_ms": 353,
+  "tab_findings": {
+   "ms": 3,
+   "found": true
+  },
+  "tab_syllabus": {
+   "ms": 3,
+   "found": true
+  },
+  "tab_inventory": {
+   "ms": 3,
+   "found": true
+  },
+  "import_modal": {
+   "ms": 103,
+   "found": true
+  },
+  "import_watch": [
+   {
+    "t": 452,
+    "feedback": "%",
+    "progressbar": 1,
+    "filename": true
+   }
+  ],
+  "import_total_ms": {
+   "ms": 1958,
+   "found": true
+  },
+  "review_modal": {
+   "ms": 12,
+   "found": true
+  },
+  "review_ms": 150312,
+  "review_done": false,
+  "review_watch": [
+   {
+    "t": 403,
+    "progressbar": 1,
+    "stage_word": null,
+    "pct": "100",
+    "done": false
+   }
+  ],
+  "ask_open": {
+   "ms": 9,
+   "found": true
+  },
+  "tour_total_ms": 159213
+ },
+ "rects": {
+  "01-empty": [
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": "group",
+    "x": 0,
+    "y": 240,
+    "w": 393,
+    "h": 430
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANION",
+    "role": null,
+    "x": 64,
+    "y": 256,
+    "w": 234,
+    "h": 16
+   },
+   {
+    "text": "Document review",
+    "role": null,
+    "x": 64,
+    "y": 276,
+    "w": 226,
+    "h": 36
+   },
+   {
+    "text": "A clearer SRS. A more confident submission.",
+    "role": null,
+    "x": 64,
+    "y": 316,
+    "w": 264,
+    "h": 16
+   },
+   {
+    "text": "A second look, backed by evidence.",
+    "role": null,
+    "x": 65,
+    "y": 462,
+    "w": 263,
+    "h": 24
+   },
+   {
+    "text": "Import your SRS to build the inventory, or explo",
+    "role": null,
+    "x": 40,
+    "y": 494,
+    "w": 313,
+    "h": 32
+   },
+   {
+    "text": "Import document",
+    "role": "button",
+    "x": 119,
+    "y": 542,
+    "w": 154,
+    "h": 40
+   },
+   {
+    "text": "Load the sample document",
+    "role": "button",
+    "x": 91,
+    "y": 590,
+    "w": 212,
+    "h": 40
+   }
+  ],
+  "02-inventory": [
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": "group",
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANION",
+    "role": null,
+    "x": 16,
+    "y": 74,
+    "w": 234,
+    "h": 16
+   },
+   {
+    "text": "Document review",
+    "role": null,
+    "x": 16,
+    "y": 94,
+    "w": 226,
+    "h": 36
+   },
+   {
+    "text": "A clearer SRS. A more confident submission.",
+    "role": null,
+    "x": 16,
+    "y": 134,
+    "w": 264,
+    "h": 16
+   },
+   {
+    "text": "Export report",
+    "role": "button",
+    "x": 16,
+    "y": 162,
+    "w": 130,
+    "h": 40
+   },
+   {
+    "text": "Import document",
+    "role": "button",
+    "x": 154,
+    "y": 162,
+    "w": 154,
+    "h": 40
+   },
+   {
+    "text": "Import2 Inventory3 Findings4 Export",
+    "role": "group",
+    "x": 16,
+    "y": 218,
+    "w": 307,
+    "h": 21
+   },
+   {
+    "text": "Import",
+    "role": "button",
+    "x": 16,
+    "y": 218,
+    "w": 69,
+    "h": 21
+   },
+   {
+    "text": "2 Inventory",
+    "role": "button",
+    "x": 85,
+    "y": 218,
+    "w": 89,
+    "h": 21
+   },
+   {
+    "text": "3 Findings",
+    "role": "button",
+    "x": 174,
+    "y": 218,
+    "w": 80,
+    "h": 21
+   },
+   {
+    "text": "4 Export",
+    "role": "button",
+    "x": 254,
+    "y": 218,
+    "w": 69,
+    "h": 21
+   },
+   {
+    "text": "OTES_SRS_v1.0.pdf",
+    "role": null,
+    "x": 89,
+    "y": 274,
+    "w": 135,
+    "h": 20
+   },
+   {
+    "text": "Sample document",
+    "role": null,
+    "x": 240,
+    "y": 276,
+    "w": 103,
+    "h": 16
+   },
+   {
+    "text": "PDF",
+    "role": null,
+    "x": 46,
+    "y": 309,
+    "w": 18,
+    "h": 12
+   },
+   {
+    "text": "Software Requirements Specification · Report 3",
+    "role": null,
+    "x": 89,
+    "y": 301,
+    "w": 271,
+    "h": 16
+   },
+   {
+    "text": "114 pages · 27.37 MB · Extraction complete",
+    "role": null,
+    "x": 89,
+    "y": 321,
+    "w": 209,
+    "h": 14
+   },
+   {
+    "text": "Ready for review",
+    "role": null,
+    "x": 48,
+    "y": 348,
+    "w": 95,
+    "h": 16
+   },
+   {
+    "text": "Document information",
+    "role": "button",
+    "x": 83,
+    "y": 377,
+    "w": 34,
+    "h": 34
+   },
+   {
+    "text": "Replace document",
+    "role": "button",
+    "x": 117,
+    "y": 377,
+    "w": 34,
+    "h": 34
+   },
+   {
+    "text": "Total units 65 Extracted from your document",
+    "role": "button",
+    "x": 16,
+    "y": 443,
+    "w": 173,
+    "h": 144
+   },
+   {
+    "text": "Use cases 50 Whole use-case context preserved",
+    "role": "button",
+    "x": 205,
+    "y": 443,
+    "w": 173,
+    "h": 144
+   },
+   {
+    "text": "Other requirements 13 Business rules · Non-funct",
+    "role": "button",
+    "x": 16,
+    "y": 603,
+    "w": 173,
+    "h": 148
+   },
+   {
+    "text": "Needs attention 02 Malformed IDs · nothing disca",
+    "role": "button",
+    "x": 205,
+    "y": 603,
+    "w": 173,
+    "h": 144
+   },
+   {
+    "text": "Inventory 65Findings 0Syllabus checks 3",
+    "role": "group",
+    "x": 32,
+    "y": 767,
+    "w": 285,
+    "h": 48
+   },
+   {
+    "text": "Inventory 65",
+    "role": "button",
+    "x": 32,
+    "y": 767,
+    "w": 91,
+    "h": 48
+   },
+   {
+    "text": "Findings 0",
+    "role": "button",
+    "x": 139,
+    "y": 767,
+    "w": 76,
+    "h": 48
+   },
+   {
+    "text": "Syllabus checks 3",
+    "role": "button",
+    "x": 231,
+    "y": 767,
+    "w": 86,
+    "h": 48
+   },
+   {
+    "text": "Ask document",
+    "role": "button",
+    "x": 321,
+    "y": 771,
+    "w": 40,
+    "h": 40
+   },
+   {
+    "text": "All types",
+    "role": "button",
+    "x": 32,
+    "y": 888,
+    "w": 118,
+    "h": 48
+   },
+   {
+    "text": "All units",
+    "role": "button",
+    "x": 158,
+    "y": 888,
+    "w": 124,
+    "h": 48
+   },
+   {
+    "text": "Requirements inventory",
+    "role": null,
+    "x": 52,
+    "y": 952,
+    "w": 263,
+    "h": 16
+   },
+   {
+    "text": "65 units",
+    "role": null,
+    "x": 315,
+    "y": 952,
+    "w": 46,
+    "h": 16
+   },
+   {
+    "text": "UC01\nRegister account\nUse case\nReady",
+    "role": "group",
+    "x": 16,
+    "y": 976,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC02\nLog in\nUse case\nReady",
+    "role": "group",
+    "x": 16,
+    "y": 1033,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC03\nLog out\nUse case\nReady",
+    "role": "group",
+    "x": 16,
+    "y": 1090,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC04\nReset password\nUse case\nReady",
+    "role": "group",
+    "x": 16,
+    "y": 1147,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC05\nView user profile\nUse case\nReady",
+    "role": "group",
+    "x": 16,
+    "y": 1204,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC06\nUpdate user profile\nUse case\nReady",
+    "role": "group",
+    "x": 16,
+    "y": 1261,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC07\nChange password\nUse case\nReady",
+    "role": "group",
+    "x": 16,
+    "y": 1318,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC08\nManage user accounts\nUse case\nReady",
+    "role": "group",
+    "x": 16,
+    "y": 1375,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "Showing 1–8 of 65 units",
+    "role": null,
+    "x": 24,
+    "y": 1452,
+    "w": 241,
+    "h": 16
+   },
+   {
+    "text": "Previous page",
+    "role": "button",
+    "x": 265,
+    "y": 1440,
+    "w": 40,
+    "h": 40
+   },
+   {
+    "text": "1 / 9",
+    "role": null,
+    "x": 305,
+    "y": 1452,
+    "w": 24,
+    "h": 16
+   },
+   {
+    "text": "Next page",
+    "role": "button",
+    "x": 329,
+    "y": 1440,
+    "w": 40,
+    "h": 40
+   },
+   {
+    "text": "63 units selected",
+    "role": null,
+    "x": 66,
+    "y": 1505,
+    "w": 120,
+    "h": 20
+   },
+   {
+    "text": "2 flagged units are preserved for your review",
+    "role": null,
+    "x": 66,
+    "y": 1525,
+    "w": 178,
+    "h": 32
+   },
+   {
+    "text": "Run review",
+    "role": "button",
+    "x": 244,
+    "y": 1511,
+    "w": 117,
+    "h": 40
+   },
+   {
+    "text": "Review overview",
+    "role": null,
+    "x": 32,
+    "y": 1608,
+    "w": 248,
+    "h": 20
+   },
+   {
+    "text": "Mock mode",
+    "role": null,
+    "x": 288,
+    "y": 1610,
+    "w": 65,
+    "h": 16
+   },
+   {
+    "text": "A good review starts with a clear inventory.",
+    "role": null,
+    "x": 32,
+    "y": 1635,
+    "w": 248,
+    "h": 16
+   },
+   {
+    "text": "63",
+    "role": null,
+    "x": 32,
+    "y": 1667,
+    "w": 42,
+    "h": 44
+   },
+   {
+    "text": "/ 65",
+    "role": null,
+    "x": 74,
+    "y": 1685,
+    "w": 32,
+    "h": 24
+   },
+   {
+    "text": "units selected",
+    "role": null,
+    "x": 280,
+    "y": 1691,
+    "w": 81,
+    "h": 16
+   },
+   {
+    "text": "97",
+    "role": "progressbar",
+    "x": 32,
+    "y": 1719,
+    "w": 329,
+    "h": 5
+   },
+   {
+    "text": "Ready to review",
+    "role": null,
+    "x": 32,
+    "y": 1728,
+    "w": 91,
+    "h": 16
+   },
+   {
+    "text": "97%",
+    "role": null,
+    "x": 337,
+    "y": 1728,
+    "w": 24,
+    "h": 16
+   },
+   {
+    "text": "Whole use-case context",
+    "role": null,
+    "x": 55,
+    "y": 1760,
+    "w": 306,
+    "h": 16
+   },
+   {
+    "text": "Source references preserved",
+    "role": null,
+    "x": 55,
+    "y": 1784,
+    "w": 306,
+    "h": 16
+   },
+   {
+    "text": "No silent truncation",
+    "role": null,
+    "x": 55,
+    "y": 1808,
+    "w": 306,
+    "h": 16
+   },
+   {
+    "text": "2 units need a quick look",
+    "role": null,
+    "x": 65,
+    "y": 1845,
+    "w": 283,
+    "h": 16
+   },
+   {
+    "text": "Unrecognized IDs are kept, not dropped. Check th",
+    "role": null,
+    "x": 45,
+    "y": 1865,
+    "w": 303,
+    "h": 32
+   },
+   {
+    "text": "UC0134",
+    "role": "button",
+    "x": 45,
+    "y": 1905,
+    "w": 50,
+    "h": 23
+   },
+   {
+    "text": "UC0114",
+    "role": "button",
+    "x": 99,
+    "y": 1905,
+    "w": 48,
+    "h": 23
+   },
+   {
+    "text": "Inspect flagged units →",
+    "role": "button",
+    "x": 45,
+    "y": 1936,
+    "w": 136,
+    "h": 16
+   },
+   {
+    "text": "Proxy review · quotes verified before display",
+    "role": null,
+    "x": 51,
+    "y": 1977,
+    "w": 267,
+    "h": 16
+   },
+   {
+    "text": "Change",
+    "role": "button",
+    "x": 318,
+    "y": 1977,
+    "w": 43,
+    "h": 16
+   },
+   {
+    "text": "Evidence, not guesswork.",
+    "role": null,
+    "x": 111,
+    "y": 2077,
+    "w": 172,
+    "h": 20
+   },
+   {
+    "text": "Every finding is checked against your source. No",
+    "role": null,
+    "x": 32,
+    "y": 2101,
+    "w": 329,
+    "h": 32
+   },
+   {
+    "text": "How verification works →",
+    "role": "button",
+    "x": 124,
+    "y": 2145,
+    "w": 146,
+    "h": 16
+   },
+   {
+    "text": "65 units extracted. All detected IDs have been p",
+    "role": null,
+    "x": 0,
+    "y": 769,
+    "w": 393,
+    "h": 83
+   }
+  ],
+  "03-tabs": [
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": "group",
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANION",
+    "role": null,
+    "x": 16,
+    "y": 74,
+    "w": 234,
+    "h": 16
+   },
+   {
+    "text": "Document review",
+    "role": null,
+    "x": 16,
+    "y": 94,
+    "w": 226,
+    "h": 36
+   },
+   {
+    "text": "A clearer SRS. A more confident submission.",
+    "role": null,
+    "x": 16,
+    "y": 134,
+    "w": 264,
+    "h": 16
+   },
+   {
+    "text": "Export report",
+    "role": "button",
+    "x": 16,
+    "y": 162,
+    "w": 130,
+    "h": 40
+   },
+   {
+    "text": "Import document",
+    "role": "button",
+    "x": 154,
+    "y": 162,
+    "w": 154,
+    "h": 40
+   },
+   {
+    "text": "Import2 Inventory3 Findings4 Export",
+    "role": "group",
+    "x": 16,
+    "y": 218,
+    "w": 307,
+    "h": 21
+   },
+   {
+    "text": "Import",
+    "role": "button",
+    "x": 16,
+    "y": 218,
+    "w": 69,
+    "h": 21
+   },
+   {
+    "text": "2 Inventory",
+    "role": "button",
+    "x": 85,
+    "y": 218,
+    "w": 89,
+    "h": 21
+   },
+   {
+    "text": "3 Findings",
+    "role": "button",
+    "x": 174,
+    "y": 218,
+    "w": 80,
+    "h": 21
+   },
+   {
+    "text": "4 Export",
+    "role": "button",
+    "x": 254,
+    "y": 218,
+    "w": 69,
+    "h": 21
+   },
+   {
+    "text": "OTES_SRS_v1.0.pdf",
+    "role": null,
+    "x": 89,
+    "y": 274,
+    "w": 135,
+    "h": 20
+   },
+   {
+    "text": "Sample document",
+    "role": null,
+    "x": 240,
+    "y": 276,
+    "w": 103,
+    "h": 16
+   },
+   {
+    "text": "PDF",
+    "role": null,
+    "x": 46,
+    "y": 309,
+    "w": 18,
+    "h": 12
+   },
+   {
+    "text": "Software Requirements Specification · Report 3",
+    "role": null,
+    "x": 89,
+    "y": 301,
+    "w": 271,
+    "h": 16
+   },
+   {
+    "text": "114 pages · 27.37 MB · Extraction complete",
+    "role": null,
+    "x": 89,
+    "y": 321,
+    "w": 209,
+    "h": 14
+   },
+   {
+    "text": "Ready for review",
+    "role": null,
+    "x": 48,
+    "y": 348,
+    "w": 95,
+    "h": 16
+   },
+   {
+    "text": "Document information",
+    "role": "button",
+    "x": 83,
+    "y": 377,
+    "w": 34,
+    "h": 34
+   },
+   {
+    "text": "Replace document",
+    "role": "button",
+    "x": 117,
+    "y": 377,
+    "w": 34,
+    "h": 34
+   },
+   {
+    "text": "Total units 65 Extracted from your document",
+    "role": "button",
+    "x": 16,
+    "y": 443,
+    "w": 173,
+    "h": 144
+   },
+   {
+    "text": "Use cases 50 Whole use-case context preserved",
+    "role": "button",
+    "x": 205,
+    "y": 443,
+    "w": 173,
+    "h": 144
+   },
+   {
+    "text": "Other requirements 13 Business rules · Non-funct",
+    "role": "button",
+    "x": 16,
+    "y": 603,
+    "w": 173,
+    "h": 148
+   },
+   {
+    "text": "Needs attention 02 Malformed IDs · nothing disca",
+    "role": "button",
+    "x": 205,
+    "y": 603,
+    "w": 173,
+    "h": 144
+   },
+   {
+    "text": "Inventory 65Findings 0Syllabus checks 3",
+    "role": "group",
+    "x": 32,
+    "y": 767,
+    "w": 285,
+    "h": 48
+   },
+   {
+    "text": "Inventory 65",
+    "role": "button",
+    "x": 32,
+    "y": 767,
+    "w": 91,
+    "h": 48
+   },
+   {
+    "text": "Findings 0",
+    "role": "button",
+    "x": 139,
+    "y": 767,
+    "w": 76,
+    "h": 48
+   },
+   {
+    "text": "Syllabus checks 3",
+    "role": "button",
+    "x": 231,
+    "y": 767,
+    "w": 86,
+    "h": 48
+   },
+   {
+    "text": "Ask document",
+    "role": "button",
+    "x": 321,
+    "y": 771,
+    "w": 40,
+    "h": 40
+   },
+   {
+    "text": "All types",
+    "role": "button",
+    "x": 32,
+    "y": 888,
+    "w": 118,
+    "h": 48
+   },
+   {
+    "text": "All units",
+    "role": "button",
+    "x": 158,
+    "y": 888,
+    "w": 124,
+    "h": 48
+   },
+   {
+    "text": "Requirements inventory",
+    "role": null,
+    "x": 52,
+    "y": 952,
+    "w": 263,
+    "h": 16
+   },
+   {
+    "text": "65 units",
+    "role": null,
+    "x": 315,
+    "y": 952,
+    "w": 46,
+    "h": 16
+   },
+   {
+    "text": "UC01\nRegister account\nUse case\nReady",
+    "role": "group",
+    "x": 16,
+    "y": 976,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC02\nLog in\nUse case\nReady",
+    "role": "group",
+    "x": 16,
+    "y": 1033,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC03\nLog out\nUse case\nReady",
+    "role": "group",
+    "x": 16,
+    "y": 1090,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC04\nReset password\nUse case\nReady",
+    "role": "group",
+    "x": 16,
+    "y": 1147,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC05\nView user profile\nUse case\nReady",
+    "role": "group",
+    "x": 16,
+    "y": 1204,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC06\nUpdate user profile\nUse case\nReady",
+    "role": "group",
+    "x": 16,
+    "y": 1261,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC07\nChange password\nUse case\nReady",
+    "role": "group",
+    "x": 16,
+    "y": 1318,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC08\nManage user accounts\nUse case\nReady",
+    "role": "group",
+    "x": 16,
+    "y": 1375,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "Showing 1–8 of 65 units",
+    "role": null,
+    "x": 24,
+    "y": 1452,
+    "w": 241,
+    "h": 16
+   },
+   {
+    "text": "Previous page",
+    "role": "button",
+    "x": 265,
+    "y": 1440,
+    "w": 40,
+    "h": 40
+   },
+   {
+    "text": "1 / 9",
+    "role": null,
+    "x": 305,
+    "y": 1452,
+    "w": 24,
+    "h": 16
+   },
+   {
+    "text": "Next page",
+    "role": "button",
+    "x": 329,
+    "y": 1440,
+    "w": 40,
+    "h": 40
+   },
+   {
+    "text": "63 units selected",
+    "role": null,
+    "x": 66,
+    "y": 1505,
+    "w": 120,
+    "h": 20
+   },
+   {
+    "text": "2 flagged units are preserved for your review",
+    "role": null,
+    "x": 66,
+    "y": 1525,
+    "w": 178,
+    "h": 32
+   },
+   {
+    "text": "Run review",
+    "role": "button",
+    "x": 244,
+    "y": 1511,
+    "w": 117,
+    "h": 40
+   },
+   {
+    "text": "Review overview",
+    "role": null,
+    "x": 32,
+    "y": 1608,
+    "w": 248,
+    "h": 20
+   },
+   {
+    "text": "Mock mode",
+    "role": null,
+    "x": 288,
+    "y": 1610,
+    "w": 65,
+    "h": 16
+   },
+   {
+    "text": "A good review starts with a clear inventory.",
+    "role": null,
+    "x": 32,
+    "y": 1635,
+    "w": 248,
+    "h": 16
+   },
+   {
+    "text": "63",
+    "role": null,
+    "x": 32,
+    "y": 1667,
+    "w": 42,
+    "h": 44
+   },
+   {
+    "text": "/ 65",
+    "role": null,
+    "x": 74,
+    "y": 1685,
+    "w": 32,
+    "h": 24
+   },
+   {
+    "text": "units selected",
+    "role": null,
+    "x": 280,
+    "y": 1691,
+    "w": 81,
+    "h": 16
+   },
+   {
+    "text": "97",
+    "role": "progressbar",
+    "x": 32,
+    "y": 1719,
+    "w": 329,
+    "h": 5
+   },
+   {
+    "text": "Ready to review",
+    "role": null,
+    "x": 32,
+    "y": 1728,
+    "w": 91,
+    "h": 16
+   },
+   {
+    "text": "97%",
+    "role": null,
+    "x": 337,
+    "y": 1728,
+    "w": 24,
+    "h": 16
+   },
+   {
+    "text": "Whole use-case context",
+    "role": null,
+    "x": 55,
+    "y": 1760,
+    "w": 306,
+    "h": 16
+   },
+   {
+    "text": "Source references preserved",
+    "role": null,
+    "x": 55,
+    "y": 1784,
+    "w": 306,
+    "h": 16
+   },
+   {
+    "text": "No silent truncation",
+    "role": null,
+    "x": 55,
+    "y": 1808,
+    "w": 306,
+    "h": 16
+   },
+   {
+    "text": "2 units need a quick look",
+    "role": null,
+    "x": 65,
+    "y": 1845,
+    "w": 283,
+    "h": 16
+   },
+   {
+    "text": "Unrecognized IDs are kept, not dropped. Check th",
+    "role": null,
+    "x": 45,
+    "y": 1865,
+    "w": 303,
+    "h": 32
+   },
+   {
+    "text": "UC0134",
+    "role": "button",
+    "x": 45,
+    "y": 1905,
+    "w": 50,
+    "h": 23
+   },
+   {
+    "text": "UC0114",
+    "role": "button",
+    "x": 99,
+    "y": 1905,
+    "w": 48,
+    "h": 23
+   },
+   {
+    "text": "Inspect flagged units →",
+    "role": "button",
+    "x": 45,
+    "y": 1936,
+    "w": 136,
+    "h": 16
+   },
+   {
+    "text": "Proxy review · quotes verified before display",
+    "role": null,
+    "x": 51,
+    "y": 1977,
+    "w": 267,
+    "h": 16
+   },
+   {
+    "text": "Change",
+    "role": "button",
+    "x": 318,
+    "y": 1977,
+    "w": 43,
+    "h": 16
+   },
+   {
+    "text": "Evidence, not guesswork.",
+    "role": null,
+    "x": 111,
+    "y": 2077,
+    "w": 172,
+    "h": 20
+   },
+   {
+    "text": "Every finding is checked against your source. No",
+    "role": null,
+    "x": 32,
+    "y": 2101,
+    "w": 329,
+    "h": 32
+   },
+   {
+    "text": "How verification works →",
+    "role": "button",
+    "x": 124,
+    "y": 2145,
+    "w": 146,
+    "h": 16
+   },
+   {
+    "text": "65 units extracted. All detected IDs have been p",
+    "role": null,
+    "x": 0,
+    "y": 769,
+    "w": 393,
+    "h": 83
+   }
+  ],
+  "04-import-modal": [
+   {
+    "text": "Close dialogA fresh set of requirements.Import y",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "Close dialogA fresh set of requirements.Import y",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "Close dialogA fresh set of requirements.Import y",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "Close dialogA fresh set of requirements.Import y",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "Close dialogA fresh set of requirements.Import y",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "Close dialogA fresh set of requirements.Import y",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "Close dialogA fresh set of requirements.Import y",
+    "role": "group",
+    "x": 20,
+    "y": 292,
+    "w": 353,
+    "h": 540
+   },
+   {
+    "text": "Close dialog",
+    "role": "button",
+    "x": 333,
+    "y": 292,
+    "w": 40,
+    "h": 40
+   },
+   {
+    "text": "A fresh set of requirements.",
+    "role": null,
+    "x": 20,
+    "y": 369,
+    "w": 309,
+    "h": 32
+   },
+   {
+    "text": "Import your SRS. We'll build an inventory you ca",
+    "role": null,
+    "x": 20,
+    "y": 409,
+    "w": 353,
+    "h": 40
+   },
+   {
+    "text": "Pick your SRS to build the inventory",
+    "role": null,
+    "x": 41,
+    "y": 528,
+    "w": 239,
+    "h": 20
+   },
+   {
+    "text": "PDF, DOCX · up to 20 MB",
+    "role": null,
+    "x": 92,
+    "y": 552,
+    "w": 137,
+    "h": 16
+   },
+   {
+    "text": "Browse files",
+    "role": "button",
+    "x": 98,
+    "y": 584,
+    "w": 124,
+    "h": 40
+   },
+   {
+    "text": "Parsed locally · no OCR for scanned files. DOCX ",
+    "role": null,
+    "x": 58,
+    "y": 670,
+    "w": 302,
+    "h": 57
+   },
+   {
+    "text": "Just exploring? Load the sample document",
+    "role": "button",
+    "x": 20,
+    "y": 748,
+    "w": 342,
+    "h": 40
+   },
+   {
+    "text": "Synthetic OTES demo · OTES_SRS_v1.0.pdf",
+    "role": null,
+    "x": 20,
+    "y": 788,
+    "w": 242,
+    "h": 16
+   },
+   {
+    "text": "Scrim",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "Scrim",
+    "role": "button",
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 214
+   }
+  ],
+  "05-after-import": [
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": "group",
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANION",
+    "role": null,
+    "x": 16,
+    "y": 74,
+    "w": 234,
+    "h": 16
+   },
+   {
+    "text": "Document review",
+    "role": null,
+    "x": 16,
+    "y": 94,
+    "w": 226,
+    "h": 36
+   },
+   {
+    "text": "A clearer SRS. A more confident submission.",
+    "role": null,
+    "x": 16,
+    "y": 134,
+    "w": 264,
+    "h": 16
+   },
+   {
+    "text": "Export report",
+    "role": "button",
+    "x": 16,
+    "y": 162,
+    "w": 130,
+    "h": 40
+   },
+   {
+    "text": "Import document",
+    "role": "button",
+    "x": 154,
+    "y": 162,
+    "w": 154,
+    "h": 40
+   },
+   {
+    "text": "Import2 Inventory3 Findings4 Export",
+    "role": "group",
+    "x": 16,
+    "y": 218,
+    "w": 307,
+    "h": 21
+   },
+   {
+    "text": "Import",
+    "role": "button",
+    "x": 16,
+    "y": 218,
+    "w": 69,
+    "h": 21
+   },
+   {
+    "text": "2 Inventory",
+    "role": "button",
+    "x": 85,
+    "y": 218,
+    "w": 89,
+    "h": 21
+   },
+   {
+    "text": "3 Findings",
+    "role": "button",
+    "x": 174,
+    "y": 218,
+    "w": 80,
+    "h": 21
+   },
+   {
+    "text": "4 Export",
+    "role": "button",
+    "x": 254,
+    "y": 218,
+    "w": 69,
+    "h": 21
+   },
+   {
+    "text": "sample_srs.docx",
+    "role": null,
+    "x": 89,
+    "y": 271,
+    "w": 116,
+    "h": 20
+   },
+   {
+    "text": "DOCX",
+    "role": null,
+    "x": 41,
+    "y": 306,
+    "w": 26,
+    "h": 12
+   },
+   {
+    "text": "1 pages · 1.4 KB · Extraction complete",
+    "role": null,
+    "x": 89,
+    "y": 315,
+    "w": 184,
+    "h": 14
+   },
+   {
+    "text": "Software Requirements Specification · Report 3",
+    "role": null,
+    "x": 89,
+    "y": 295,
+    "w": 271,
+    "h": 16
+   },
+   {
+    "text": "Ready for review",
+    "role": null,
+    "x": 48,
+    "y": 342,
+    "w": 95,
+    "h": 16
+   },
+   {
+    "text": "Document information",
+    "role": "button",
+    "x": 83,
+    "y": 371,
+    "w": 34,
+    "h": 34
+   },
+   {
+    "text": "Replace document",
+    "role": "button",
+    "x": 117,
+    "y": 371,
+    "w": 34,
+    "h": 34
+   },
+   {
+    "text": "Total units 08 Extracted from your document",
+    "role": "button",
+    "x": 16,
+    "y": 437,
+    "w": 173,
+    "h": 144
+   },
+   {
+    "text": "Use cases 03 Whole use-case context preserved",
+    "role": "button",
+    "x": 205,
+    "y": 437,
+    "w": 173,
+    "h": 144
+   },
+   {
+    "text": "Other requirements 05 Business rules · Non-funct",
+    "role": "button",
+    "x": 16,
+    "y": 597,
+    "w": 173,
+    "h": 148
+   },
+   {
+    "text": "Needs attention 00 Malformed IDs · nothing disca",
+    "role": "button",
+    "x": 205,
+    "y": 597,
+    "w": 173,
+    "h": 144
+   },
+   {
+    "text": "Inventory 8Findings 0Syllabus checks 3",
+    "role": "group",
+    "x": 32,
+    "y": 761,
+    "w": 285,
+    "h": 48
+   },
+   {
+    "text": "Inventory 8",
+    "role": "button",
+    "x": 32,
+    "y": 761,
+    "w": 86,
+    "h": 48
+   },
+   {
+    "text": "Findings 0",
+    "role": "button",
+    "x": 134,
+    "y": 761,
+    "w": 76,
+    "h": 48
+   },
+   {
+    "text": "Syllabus checks 3",
+    "role": "button",
+    "x": 226,
+    "y": 761,
+    "w": 91,
+    "h": 48
+   },
+   {
+    "text": "Ask document",
+    "role": "button",
+    "x": 321,
+    "y": 765,
+    "w": 40,
+    "h": 40
+   },
+   {
+    "text": "All types",
+    "role": "button",
+    "x": 32,
+    "y": 882,
+    "w": 118,
+    "h": 48
+   },
+   {
+    "text": "All units",
+    "role": "button",
+    "x": 158,
+    "y": 882,
+    "w": 124,
+    "h": 48
+   },
+   {
+    "text": "Requirements inventory",
+    "role": null,
+    "x": 52,
+    "y": 946,
+    "w": 270,
+    "h": 16
+   },
+   {
+    "text": "8 units",
+    "role": null,
+    "x": 322,
+    "y": 946,
+    "w": 39,
+    "h": 16
+   },
+   {
+    "text": "FR-01\nThe system shall allow a customer to searc",
+    "role": "group",
+    "x": 16,
+    "y": 970,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "FR-02\nThe system should be user-friendly and fas",
+    "role": "group",
+    "x": 16,
+    "y": 1027,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "FR-03\nThe system must process the payment quickl",
+    "role": "group",
+    "x": 16,
+    "y": 1084,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "FR-04\nThe system shall send an order confirmatio",
+    "role": "group",
+    "x": 16,
+    "y": 1141,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "NFR-01\nThe system should handle a reasonable num",
+    "role": "group",
+    "x": 16,
+    "y": 1198,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC-01\nSearch for a book The customer opens the s",
+    "role": "group",
+    "x": 16,
+    "y": 1255,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC-02\nCheckout The customer clicks checkout. The",
+    "role": "group",
+    "x": 16,
+    "y": 1312,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC-03\nDang nhap he thong Nguoi dung nhap ten dan",
+    "role": "group",
+    "x": 16,
+    "y": 1369,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "Showing 1–8 of 8 units",
+    "role": null,
+    "x": 24,
+    "y": 1446,
+    "w": 244,
+    "h": 16
+   },
+   {
+    "text": "Previous page",
+    "role": "button",
+    "x": 268,
+    "y": 1434,
+    "w": 40,
+    "h": 40
+   },
+   {
+    "text": "1 / 1",
+    "role": null,
+    "x": 308,
+    "y": 1446,
+    "w": 21,
+    "h": 16
+   },
+   {
+    "text": "Next page",
+    "role": "button",
+    "x": 329,
+    "y": 1434,
+    "w": 40,
+    "h": 40
+   },
+   {
+    "text": "8 units selected",
+    "role": null,
+    "x": 66,
+    "y": 1499,
+    "w": 111,
+    "h": 20
+   },
+   {
+    "text": "All detected units are accounted for",
+    "role": null,
+    "x": 66,
+    "y": 1519,
+    "w": 178,
+    "h": 32
+   },
+   {
+    "text": "Run review",
+    "role": "button",
+    "x": 244,
+    "y": 1505,
+    "w": 117,
+    "h": 40
+   },
+   {
+    "text": "Review overview",
+    "role": null,
+    "x": 32,
+    "y": 1602,
+    "w": 248,
+    "h": 20
+   },
+   {
+    "text": "Mock mode",
+    "role": null,
+    "x": 288,
+    "y": 1604,
+    "w": 65,
+    "h": 16
+   },
+   {
+    "text": "A good review starts with a clear inventory.",
+    "role": null,
+    "x": 32,
+    "y": 1629,
+    "w": 248,
+    "h": 16
+   },
+   {
+    "text": "8",
+    "role": null,
+    "x": 32,
+    "y": 1661,
+    "w": 21,
+    "h": 44
+   },
+   {
+    "text": "/ 8",
+    "role": null,
+    "x": 53,
+    "y": 1679,
+    "w": 22,
+    "h": 24
+   },
+   {
+    "text": "units selected",
+    "role": null,
+    "x": 280,
+    "y": 1685,
+    "w": 81,
+    "h": 16
+   },
+   {
+    "text": "100",
+    "role": "progressbar",
+    "x": 32,
+    "y": 1713,
+    "w": 329,
+    "h": 5
+   },
+   {
+    "text": "Ready to review",
+    "role": null,
+    "x": 32,
+    "y": 1722,
+    "w": 91,
+    "h": 16
+   },
+   {
+    "text": "100%",
+    "role": null,
+    "x": 330,
+    "y": 1722,
+    "w": 31,
+    "h": 16
+   },
+   {
+    "text": "Whole use-case context",
+    "role": null,
+    "x": 55,
+    "y": 1754,
+    "w": 306,
+    "h": 16
+   },
+   {
+    "text": "Source references preserved",
+    "role": null,
+    "x": 55,
+    "y": 1778,
+    "w": 306,
+    "h": 16
+   },
+   {
+    "text": "No silent truncation",
+    "role": null,
+    "x": 55,
+    "y": 1802,
+    "w": 306,
+    "h": 16
+   },
+   {
+    "text": "All identifiers look good.",
+    "role": null,
+    "x": 69,
+    "y": 1839,
+    "w": 280,
+    "h": 16
+   },
+   {
+    "text": "Proxy review · quotes verified before display",
+    "role": null,
+    "x": 51,
+    "y": 1879,
+    "w": 267,
+    "h": 16
+   },
+   {
+    "text": "Change",
+    "role": "button",
+    "x": 318,
+    "y": 1879,
+    "w": 43,
+    "h": 16
+   },
+   {
+    "text": "Evidence, not guesswork.",
+    "role": null,
+    "x": 111,
+    "y": 1979,
+    "w": 172,
+    "h": 20
+   },
+   {
+    "text": "Every finding is checked against your source. No",
+    "role": null,
+    "x": 32,
+    "y": 2003,
+    "w": 329,
+    "h": 32
+   },
+   {
+    "text": "How verification works →",
+    "role": "button",
+    "x": 124,
+    "y": 2047,
+    "w": 146,
+    "h": 16
+   },
+   {
+    "text": "8 units extracted. All detected IDs have been pr",
+    "role": null,
+    "x": 0,
+    "y": 769,
+    "w": 393,
+    "h": 83
+   }
+  ],
+  "06-review-modal": [
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": "group",
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANION",
+    "role": null,
+    "x": 16,
+    "y": 74,
+    "w": 234,
+    "h": 16
+   },
+   {
+    "text": "Document review",
+    "role": null,
+    "x": 16,
+    "y": 94,
+    "w": 226,
+    "h": 36
+   },
+   {
+    "text": "A clearer SRS. A more confident submission.",
+    "role": null,
+    "x": 16,
+    "y": 134,
+    "w": 264,
+    "h": 16
+   },
+   {
+    "text": "Export report",
+    "role": "button",
+    "x": 16,
+    "y": 162,
+    "w": 130,
+    "h": 40
+   },
+   {
+    "text": "Import document",
+    "role": "button",
+    "x": 154,
+    "y": 162,
+    "w": 154,
+    "h": 40
+   },
+   {
+    "text": "Import2 Inventory3 Findings4 Export",
+    "role": "group",
+    "x": 16,
+    "y": 218,
+    "w": 307,
+    "h": 21
+   },
+   {
+    "text": "Import",
+    "role": "button",
+    "x": 16,
+    "y": 218,
+    "w": 69,
+    "h": 21
+   },
+   {
+    "text": "2 Inventory",
+    "role": "button",
+    "x": 85,
+    "y": 218,
+    "w": 89,
+    "h": 21
+   },
+   {
+    "text": "3 Findings",
+    "role": "button",
+    "x": 174,
+    "y": 218,
+    "w": 80,
+    "h": 21
+   },
+   {
+    "text": "4 Export",
+    "role": "button",
+    "x": 254,
+    "y": 218,
+    "w": 69,
+    "h": 21
+   },
+   {
+    "text": "sample_srs.docx",
+    "role": null,
+    "x": 89,
+    "y": 271,
+    "w": 116,
+    "h": 20
+   },
+   {
+    "text": "DOCX",
+    "role": null,
+    "x": 41,
+    "y": 306,
+    "w": 26,
+    "h": 12
+   },
+   {
+    "text": "1 pages · 1.4 KB · Extraction complete",
+    "role": null,
+    "x": 89,
+    "y": 315,
+    "w": 184,
+    "h": 14
+   },
+   {
+    "text": "Software Requirements Specification · Report 3",
+    "role": null,
+    "x": 89,
+    "y": 295,
+    "w": 271,
+    "h": 16
+   },
+   {
+    "text": "Ready for review",
+    "role": null,
+    "x": 48,
+    "y": 342,
+    "w": 95,
+    "h": 16
+   },
+   {
+    "text": "Document information",
+    "role": "button",
+    "x": 83,
+    "y": 371,
+    "w": 34,
+    "h": 34
+   },
+   {
+    "text": "Replace document",
+    "role": "button",
+    "x": 117,
+    "y": 371,
+    "w": 34,
+    "h": 34
+   },
+   {
+    "text": "Total units 08 Extracted from your document",
+    "role": "button",
+    "x": 16,
+    "y": 437,
+    "w": 173,
+    "h": 144
+   },
+   {
+    "text": "Use cases 03 Whole use-case context preserved",
+    "role": "button",
+    "x": 205,
+    "y": 437,
+    "w": 173,
+    "h": 144
+   },
+   {
+    "text": "Other requirements 05 Business rules · Non-funct",
+    "role": "button",
+    "x": 16,
+    "y": 597,
+    "w": 173,
+    "h": 148
+   },
+   {
+    "text": "Needs attention 00 Malformed IDs · nothing disca",
+    "role": "button",
+    "x": 205,
+    "y": 597,
+    "w": 173,
+    "h": 144
+   },
+   {
+    "text": "Inventory 8Findings 0Syllabus checks 3",
+    "role": "group",
+    "x": 32,
+    "y": 761,
+    "w": 285,
+    "h": 48
+   },
+   {
+    "text": "Inventory 8",
+    "role": "button",
+    "x": 32,
+    "y": 761,
+    "w": 86,
+    "h": 48
+   },
+   {
+    "text": "Findings 0",
+    "role": "button",
+    "x": 134,
+    "y": 761,
+    "w": 76,
+    "h": 48
+   },
+   {
+    "text": "Syllabus checks 3",
+    "role": "button",
+    "x": 226,
+    "y": 761,
+    "w": 91,
+    "h": 48
+   },
+   {
+    "text": "Ask document",
+    "role": "button",
+    "x": 321,
+    "y": 765,
+    "w": 40,
+    "h": 40
+   },
+   {
+    "text": "All types",
+    "role": "button",
+    "x": 32,
+    "y": 882,
+    "w": 118,
+    "h": 48
+   },
+   {
+    "text": "All units",
+    "role": "button",
+    "x": 158,
+    "y": 882,
+    "w": 124,
+    "h": 48
+   },
+   {
+    "text": "Requirements inventory",
+    "role": null,
+    "x": 52,
+    "y": 946,
+    "w": 270,
+    "h": 16
+   },
+   {
+    "text": "8 units",
+    "role": null,
+    "x": 322,
+    "y": 946,
+    "w": 39,
+    "h": 16
+   },
+   {
+    "text": "FR-01\nThe system shall allow a customer to searc",
+    "role": "group",
+    "x": 16,
+    "y": 970,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "FR-02\nThe system should be user-friendly and fas",
+    "role": "group",
+    "x": 16,
+    "y": 1027,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "FR-03\nThe system must process the payment quickl",
+    "role": "group",
+    "x": 16,
+    "y": 1084,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "FR-04\nThe system shall send an order confirmatio",
+    "role": "group",
+    "x": 16,
+    "y": 1141,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "NFR-01\nThe system should handle a reasonable num",
+    "role": "group",
+    "x": 16,
+    "y": 1198,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC-01\nSearch for a book The customer opens the s",
+    "role": "group",
+    "x": 16,
+    "y": 1255,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC-02\nCheckout The customer clicks checkout. The",
+    "role": "group",
+    "x": 16,
+    "y": 1312,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC-03\nDang nhap he thong Nguoi dung nhap ten dan",
+    "role": "group",
+    "x": 16,
+    "y": 1369,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "Showing 1–8 of 8 units",
+    "role": null,
+    "x": 24,
+    "y": 1446,
+    "w": 244,
+    "h": 16
+   },
+   {
+    "text": "Previous page",
+    "role": "button",
+    "x": 268,
+    "y": 1434,
+    "w": 40,
+    "h": 40
+   },
+   {
+    "text": "1 / 1",
+    "role": null,
+    "x": 308,
+    "y": 1446,
+    "w": 21,
+    "h": 16
+   },
+   {
+    "text": "Next page",
+    "role": "button",
+    "x": 329,
+    "y": 1434,
+    "w": 40,
+    "h": 40
+   },
+   {
+    "text": "8 units selected",
+    "role": null,
+    "x": 66,
+    "y": 1499,
+    "w": 111,
+    "h": 20
+   },
+   {
+    "text": "All detected units are accounted for",
+    "role": null,
+    "x": 66,
+    "y": 1519,
+    "w": 178,
+    "h": 32
+   },
+   {
+    "text": "Run review",
+    "role": "button",
+    "x": 244,
+    "y": 1505,
+    "w": 117,
+    "h": 40
+   },
+   {
+    "text": "Review overview",
+    "role": null,
+    "x": 32,
+    "y": 1602,
+    "w": 248,
+    "h": 20
+   },
+   {
+    "text": "Mock mode",
+    "role": null,
+    "x": 288,
+    "y": 1604,
+    "w": 65,
+    "h": 16
+   },
+   {
+    "text": "A good review starts with a clear inventory.",
+    "role": null,
+    "x": 32,
+    "y": 1629,
+    "w": 248,
+    "h": 16
+   },
+   {
+    "text": "8",
+    "role": null,
+    "x": 32,
+    "y": 1661,
+    "w": 21,
+    "h": 44
+   },
+   {
+    "text": "/ 8",
+    "role": null,
+    "x": 53,
+    "y": 1679,
+    "w": 22,
+    "h": 24
+   },
+   {
+    "text": "units selected",
+    "role": null,
+    "x": 280,
+    "y": 1685,
+    "w": 81,
+    "h": 16
+   },
+   {
+    "text": "100",
+    "role": "progressbar",
+    "x": 32,
+    "y": 1713,
+    "w": 329,
+    "h": 5
+   },
+   {
+    "text": "Ready to review",
+    "role": null,
+    "x": 32,
+    "y": 1722,
+    "w": 91,
+    "h": 16
+   },
+   {
+    "text": "100%",
+    "role": null,
+    "x": 330,
+    "y": 1722,
+    "w": 31,
+    "h": 16
+   },
+   {
+    "text": "Whole use-case context",
+    "role": null,
+    "x": 55,
+    "y": 1754,
+    "w": 306,
+    "h": 16
+   },
+   {
+    "text": "Source references preserved",
+    "role": null,
+    "x": 55,
+    "y": 1778,
+    "w": 306,
+    "h": 16
+   },
+   {
+    "text": "No silent truncation",
+    "role": null,
+    "x": 55,
+    "y": 1802,
+    "w": 306,
+    "h": 16
+   },
+   {
+    "text": "All identifiers look good.",
+    "role": null,
+    "x": 69,
+    "y": 1839,
+    "w": 280,
+    "h": 16
+   },
+   {
+    "text": "Proxy review · quotes verified before display",
+    "role": null,
+    "x": 51,
+    "y": 1879,
+    "w": 267,
+    "h": 16
+   },
+   {
+    "text": "Change",
+    "role": "button",
+    "x": 318,
+    "y": 1879,
+    "w": 43,
+    "h": 16
+   },
+   {
+    "text": "Evidence, not guesswork.",
+    "role": null,
+    "x": 111,
+    "y": 1979,
+    "w": 172,
+    "h": 20
+   },
+   {
+    "text": "Every finding is checked against your source. No",
+    "role": null,
+    "x": 32,
+    "y": 2003,
+    "w": 329,
+    "h": 32
+   },
+   {
+    "text": "How verification works →",
+    "role": "button",
+    "x": 124,
+    "y": 2047,
+    "w": 146,
+    "h": 16
+   },
+   {
+    "text": "8 units extracted. All detected IDs have been pr",
+    "role": null,
+    "x": 0,
+    "y": 769,
+    "w": 393,
+    "h": 83
+   }
+  ],
+  "07-findings": [
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANIONDocument reviewA cl",
+    "role": "group",
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "YOUR PRE-SUBMISSION COMPANION",
+    "role": null,
+    "x": 16,
+    "y": 74,
+    "w": 234,
+    "h": 16
+   },
+   {
+    "text": "Document review",
+    "role": null,
+    "x": 16,
+    "y": 94,
+    "w": 226,
+    "h": 36
+   },
+   {
+    "text": "A clearer SRS. A more confident submission.",
+    "role": null,
+    "x": 16,
+    "y": 134,
+    "w": 264,
+    "h": 16
+   },
+   {
+    "text": "Export report",
+    "role": "button",
+    "x": 16,
+    "y": 162,
+    "w": 130,
+    "h": 40
+   },
+   {
+    "text": "Import document",
+    "role": "button",
+    "x": 154,
+    "y": 162,
+    "w": 154,
+    "h": 40
+   },
+   {
+    "text": "Import2 Inventory3 Findings4 Export",
+    "role": "group",
+    "x": 16,
+    "y": 218,
+    "w": 307,
+    "h": 21
+   },
+   {
+    "text": "Import",
+    "role": "button",
+    "x": 16,
+    "y": 218,
+    "w": 69,
+    "h": 21
+   },
+   {
+    "text": "2 Inventory",
+    "role": "button",
+    "x": 85,
+    "y": 218,
+    "w": 89,
+    "h": 21
+   },
+   {
+    "text": "3 Findings",
+    "role": "button",
+    "x": 174,
+    "y": 218,
+    "w": 80,
+    "h": 21
+   },
+   {
+    "text": "4 Export",
+    "role": "button",
+    "x": 254,
+    "y": 218,
+    "w": 69,
+    "h": 21
+   },
+   {
+    "text": "sample_srs.docx",
+    "role": null,
+    "x": 89,
+    "y": 271,
+    "w": 116,
+    "h": 20
+   },
+   {
+    "text": "DOCX",
+    "role": null,
+    "x": 41,
+    "y": 306,
+    "w": 26,
+    "h": 12
+   },
+   {
+    "text": "1 pages · 1.4 KB · Extraction complete",
+    "role": null,
+    "x": 89,
+    "y": 315,
+    "w": 184,
+    "h": 14
+   },
+   {
+    "text": "Software Requirements Specification · Report 3",
+    "role": null,
+    "x": 89,
+    "y": 295,
+    "w": 271,
+    "h": 16
+   },
+   {
+    "text": "Ready for review",
+    "role": null,
+    "x": 48,
+    "y": 342,
+    "w": 95,
+    "h": 16
+   },
+   {
+    "text": "Document information",
+    "role": "button",
+    "x": 83,
+    "y": 371,
+    "w": 34,
+    "h": 34
+   },
+   {
+    "text": "Replace document",
+    "role": "button",
+    "x": 117,
+    "y": 371,
+    "w": 34,
+    "h": 34
+   },
+   {
+    "text": "Total units 08 Extracted from your document",
+    "role": "button",
+    "x": 16,
+    "y": 437,
+    "w": 173,
+    "h": 144
+   },
+   {
+    "text": "Use cases 03 Whole use-case context preserved",
+    "role": "button",
+    "x": 205,
+    "y": 437,
+    "w": 173,
+    "h": 144
+   },
+   {
+    "text": "Other requirements 05 Business rules · Non-funct",
+    "role": "button",
+    "x": 16,
+    "y": 597,
+    "w": 173,
+    "h": 148
+   },
+   {
+    "text": "Needs attention 00 Malformed IDs · nothing disca",
+    "role": "button",
+    "x": 205,
+    "y": 597,
+    "w": 173,
+    "h": 144
+   },
+   {
+    "text": "Inventory 8Findings 0Syllabus checks 3",
+    "role": "group",
+    "x": 32,
+    "y": 761,
+    "w": 285,
+    "h": 48
+   },
+   {
+    "text": "Inventory 8",
+    "role": "button",
+    "x": 32,
+    "y": 761,
+    "w": 86,
+    "h": 48
+   },
+   {
+    "text": "Findings 0",
+    "role": "button",
+    "x": 134,
+    "y": 761,
+    "w": 76,
+    "h": 48
+   },
+   {
+    "text": "Syllabus checks 3",
+    "role": "button",
+    "x": 226,
+    "y": 761,
+    "w": 91,
+    "h": 48
+   },
+   {
+    "text": "Ask document",
+    "role": "button",
+    "x": 321,
+    "y": 765,
+    "w": 40,
+    "h": 40
+   },
+   {
+    "text": "All types",
+    "role": "button",
+    "x": 32,
+    "y": 882,
+    "w": 118,
+    "h": 48
+   },
+   {
+    "text": "All units",
+    "role": "button",
+    "x": 158,
+    "y": 882,
+    "w": 124,
+    "h": 48
+   },
+   {
+    "text": "Requirements inventory",
+    "role": null,
+    "x": 52,
+    "y": 946,
+    "w": 270,
+    "h": 16
+   },
+   {
+    "text": "8 units",
+    "role": null,
+    "x": 322,
+    "y": 946,
+    "w": 39,
+    "h": 16
+   },
+   {
+    "text": "FR-01\nThe system shall allow a customer to searc",
+    "role": "group",
+    "x": 16,
+    "y": 970,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "FR-02\nThe system should be user-friendly and fas",
+    "role": "group",
+    "x": 16,
+    "y": 1027,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "FR-03\nThe system must process the payment quickl",
+    "role": "group",
+    "x": 16,
+    "y": 1084,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "FR-04\nThe system shall send an order confirmatio",
+    "role": "group",
+    "x": 16,
+    "y": 1141,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "NFR-01\nThe system should handle a reasonable num",
+    "role": "group",
+    "x": 16,
+    "y": 1198,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC-01\nSearch for a book The customer opens the s",
+    "role": "group",
+    "x": 16,
+    "y": 1255,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC-02\nCheckout The customer clicks checkout. The",
+    "role": "group",
+    "x": 16,
+    "y": 1312,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "UC-03\nDang nhap he thong Nguoi dung nhap ten dan",
+    "role": "group",
+    "x": 16,
+    "y": 1369,
+    "w": 361,
+    "h": 57
+   },
+   {
+    "text": "Showing 1–8 of 8 units",
+    "role": null,
+    "x": 24,
+    "y": 1446,
+    "w": 244,
+    "h": 16
+   },
+   {
+    "text": "Previous page",
+    "role": "button",
+    "x": 268,
+    "y": 1434,
+    "w": 40,
+    "h": 40
+   },
+   {
+    "text": "1 / 1",
+    "role": null,
+    "x": 308,
+    "y": 1446,
+    "w": 21,
+    "h": 16
+   },
+   {
+    "text": "Next page",
+    "role": "button",
+    "x": 329,
+    "y": 1434,
+    "w": 40,
+    "h": 40
+   },
+   {
+    "text": "8 units selected",
+    "role": null,
+    "x": 66,
+    "y": 1499,
+    "w": 111,
+    "h": 20
+   },
+   {
+    "text": "All detected units are accounted for",
+    "role": null,
+    "x": 66,
+    "y": 1519,
+    "w": 178,
+    "h": 32
+   },
+   {
+    "text": "Run review",
+    "role": "button",
+    "x": 244,
+    "y": 1505,
+    "w": 117,
+    "h": 40
+   },
+   {
+    "text": "Review overview",
+    "role": null,
+    "x": 32,
+    "y": 1602,
+    "w": 248,
+    "h": 20
+   },
+   {
+    "text": "Mock mode",
+    "role": null,
+    "x": 288,
+    "y": 1604,
+    "w": 65,
+    "h": 16
+   },
+   {
+    "text": "A good review starts with a clear inventory.",
+    "role": null,
+    "x": 32,
+    "y": 1629,
+    "w": 248,
+    "h": 16
+   },
+   {
+    "text": "8",
+    "role": null,
+    "x": 32,
+    "y": 1661,
+    "w": 21,
+    "h": 44
+   },
+   {
+    "text": "/ 8",
+    "role": null,
+    "x": 53,
+    "y": 1679,
+    "w": 22,
+    "h": 24
+   },
+   {
+    "text": "units selected",
+    "role": null,
+    "x": 280,
+    "y": 1685,
+    "w": 81,
+    "h": 16
+   },
+   {
+    "text": "100",
+    "role": "progressbar",
+    "x": 32,
+    "y": 1713,
+    "w": 329,
+    "h": 5
+   },
+   {
+    "text": "Ready to review",
+    "role": null,
+    "x": 32,
+    "y": 1722,
+    "w": 91,
+    "h": 16
+   },
+   {
+    "text": "100%",
+    "role": null,
+    "x": 330,
+    "y": 1722,
+    "w": 31,
+    "h": 16
+   },
+   {
+    "text": "Whole use-case context",
+    "role": null,
+    "x": 55,
+    "y": 1754,
+    "w": 306,
+    "h": 16
+   },
+   {
+    "text": "Source references preserved",
+    "role": null,
+    "x": 55,
+    "y": 1778,
+    "w": 306,
+    "h": 16
+   },
+   {
+    "text": "No silent truncation",
+    "role": null,
+    "x": 55,
+    "y": 1802,
+    "w": 306,
+    "h": 16
+   },
+   {
+    "text": "All identifiers look good.",
+    "role": null,
+    "x": 69,
+    "y": 1839,
+    "w": 280,
+    "h": 16
+   },
+   {
+    "text": "Proxy review · quotes verified before display",
+    "role": null,
+    "x": 51,
+    "y": 1879,
+    "w": 267,
+    "h": 16
+   },
+   {
+    "text": "Change",
+    "role": "button",
+    "x": 318,
+    "y": 1879,
+    "w": 43,
+    "h": 16
+   },
+   {
+    "text": "Evidence, not guesswork.",
+    "role": null,
+    "x": 111,
+    "y": 1979,
+    "w": 172,
+    "h": 20
+   },
+   {
+    "text": "Every finding is checked against your source. No",
+    "role": null,
+    "x": 32,
+    "y": 2003,
+    "w": 329,
+    "h": 32
+   },
+   {
+    "text": "How verification works →",
+    "role": "button",
+    "x": 124,
+    "y": 2047,
+    "w": 146,
+    "h": 16
+   }
+  ],
+  "08-ask": [
+   {
+    "text": "Close dialogFind answers in your source.Offline ",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "Close dialogFind answers in your source.Offline ",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "Close dialogFind answers in your source.Offline ",
+    "role": null,
+    "x": 0,
+    "y": 0,
+    "w": 393,
+    "h": 852
+   },
+   {
+    "text": "Close dialogFind answers in your source.Offline ",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "Close dialogFind answers in your source.Offline ",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "Close dialogFind answers in your source.Offline ",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "Close dialogFind answers in your source.Offline ",
+    "role": "group",
+    "x": 20,
+    "y": 467,
+    "w": 353,
+    "h": 365
+   },
+   {
+    "text": "Close dialog",
+    "role": "button",
+    "x": 333,
+    "y": 467,
+    "w": 40,
+    "h": 40
+   },
+   {
+    "text": "Find answers in your source.",
+    "role": null,
+    "x": 20,
+    "y": 544,
+    "w": 312,
+    "h": 32
+   },
+   {
+    "text": "Offline keyword search with source citations. Th",
+    "role": null,
+    "x": 20,
+    "y": 584,
+    "w": 353,
+    "h": 60
+   },
+   {
+    "text": "Password policy",
+    "role": "checkbox",
+    "x": 20,
+    "y": 720,
+    "w": 143,
+    "h": 38
+   },
+   {
+    "text": "Examination results",
+    "role": "checkbox",
+    "x": 171,
+    "y": 720,
+    "w": 167,
+    "h": 38
+   },
+   {
+    "text": "System performance",
+    "role": "checkbox",
+    "x": 20,
+    "y": 766,
+    "w": 175,
+    "h": 38
+   },
+   {
+    "text": "Scrim",
+    "role": null,
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 794
+   },
+   {
+    "text": "Scrim",
+    "role": "button",
+    "x": 0,
+    "y": 58,
+    "w": 393,
+    "h": 389
+   }
+  ]
+ },
+ "console_errors": [
+  "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+ ],
+ "requests": {
+  "/?smoke=semantics": {
+   "status": 200,
+   "type": "document"
+  },
+  "flutter_bootstrap.js": {
+   "status": 200,
+   "type": "script"
+  },
+  "main.dart.js": {
+   "status": 200,
+   "type": "script"
+  },
+  "FontManifest.json": {
+   "status": 200,
+   "type": "fetch"
+  },
+  "MaterialIcons-Regular.otf": {
+   "status": 200,
+   "type": "fetch"
+  },
+  "DMSans.ttf": {
+   "status": 200,
+   "type": "fetch"
+  },
+  "Manrope.ttf": {
+   "status": 200,
+   "type": "fetch"
+  },
+  "canvaskit.wasm": {
+   "status": 200,
+   "type": "fetch"
+  },
+  "canvaskit.js": {
+   "status": 200,
+   "type": "script"
+  },
+  "KFOmCnqEu92Fr1Me4GZLCzYlKw.woff2": {
+   "status": 200,
+   "type": "fetch"
+  }
+ },
+ "shots": [
+  "01-empty.png",
+  "02-inventory.png",
+  "03-export-empty.png",
+  "04-import-modal.png",
+  "05-after-import.png",
+  "06-review-modal.png",
+  "07-findings.png",
+  "08-ask.png"
+ ],
+ "import_text": "YOUR PRE-SUBMISSION COMPANION\nDocument review\nA clearer SRS. A more confident submission.\nExport report\nImport document\nImport\n2 Inventory\n3 Findings\n4 Export\nsample_srs.docx\nDOCX\n1 pages · 1.4 KB · Extraction complete\nSoftware Requirements Specification · Report 3\nReady for review\nDocument information\nReplace document\nTotal units 08 Extracted from your document\nUse cases 03 Whole use-case context preserved\nOther requirements 05 Business rules · Non-functional · Functional\nNeeds attention 00 Malformed IDs · nothing discarded\nInventory 8\nFindings 0\nSyllabus checks 3\nAsk document\nAll types\nAll units\nRequirements inventory\n8 units\nShowing 1–8 of 8 units\nPrevious page\n1 / 1\nNext page\n8 units selected\nAll detected units are accounted for\nRun review\nReview overview\nMock mode\nA good review starts with a clear inventory.\n8\n/ 8\nunits selected\nReady to review\n100%\nWhole use-case context\nSource ref",
+ "post_review_text": "YOUR PRE-SUBMISSION COMPANION\nDocument review\nA clearer SRS. A more confident submission.\nExport report\nImport document\nImport\n2 Inventory\n3 Findings\n4 Export\nsample_srs.docx\nDOCX\n1 pages · 1.4 KB · Extraction complete\nSoftware Requirements Specification · Report 3\nReady for review\nDocument information\nReplace document\nTotal units 08 Extracted from your document\nUse cases 03 Whole use-case context preserved\nOther requirements 05 Business rules · Non-functional · Functional\nNeeds attention 00 Malformed IDs · nothing discarded\nInventory 8\nFindings 0\nSyllabus checks 3\nAsk document\nAll types\nAll units\nRequirements inventory\n8 units\nShowing 1–8 of 8 units\nPrevious page\n1 / 1\nNext page\n8 units selected\nAll detected units are accounted for\nRun review\nReview overview\nMock mode\nA good review starts with a clear inventory.\n8\n/ 8\nunits selected\nReady to review\n100%\nWhole use-case context\nSource ref",
+ "ask_text": "Close dialog\nFind answers in your source.\nOffline keyword search with source citations. This is not generative AI — only original document passages are shown.\nScrim  e.g. What are the password requirements? Password policy Examination results System performance"
+}

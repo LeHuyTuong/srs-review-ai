@@ -33,3 +33,122 @@ cùng số (không cần mạng, không gọi LLM).
   (có text layer không, có bbox không, bao nhiêu bảng), không đo đúng/sai nội dung.
 - Chưa từng đo token tiêu thụ thật từ provider. Mọi con số token trong docs khác
   là **minh hoạ**, không phải chi phí.
+
+## Phụ lục 2026-09-12 — đóng gap M1: document hash + parser version
+
+Gap duy nhất còn UNMET trong bảng M1 của roadmap (lưu snapshot mà không biết
+nó thuộc tài liệu nào / parser nào) đã đóng:
+
+- `SrsDocument.documentFingerprint` = sha256 của `fullText` (package `crypto`,
+  thêm vào pubspec). Cùng một file import hai lần ra cùng một fingerprint.
+- `SavedSession` + snapshot JSON mang thêm `fingerprint` và `parserVersion`
+  (`SrsDocument.kParserVersion = '1.0.0'`); row cũ viết trước khi có version hoá
+  đọc lại thành chuỗi rỗng và **vẫn mở được** như cũ — không phá history.
+- Gate khôi phục: snapshot/session được viết bởi parser khác `kParserVersion`
+  bị từ chối kèm toast nói rõ phiên parser; units của một bản parse cũ không
+  còn thể lọt lưới vào workspace như thể là của bản parse hiện tại.
+
+Kiểm chứng (chạy được lại):
+
+| Kiểm | Kết quả |
+|---|---|
+| `flutter analyze` | No issues found |
+| `flutter test` | **121/121 pass** (gồm 4 test mới: roundtrip fingerprint/parserVersion, row legacy đọc lại rỗng, snapshot sai parserVersion bị từ chối khi restore, openSession sai parserVersion trả `false`) |
+| `tools/check_guardrails.py` | pass — 153 files |
+
+Ghi chú trung thực:
+
+- Fingerprint băm **text đã parse** (`fullText`), không phải byte file PDF gốc:
+  hai PDF khác byte nhưng parse ra cùng text thì coi là một tài liệu. Đó là
+  hành động đúng cho mục đích resume-skip (đơn vị review là requirement đã tách).
+- Restore chỉ gate theo `parserVersion`; fingerprint được lưu và gắn vào state
+  để so sánh ở tầng trên (demo/import), còn gate cứng hiện tại là phiên parser.
+- Một lần chạy `flutter test` full-suite thất bại 1 test do timing (toast tự
+  xoá sau 4500 ms, shard chạy song song dưới tải cao), chạy lại 2 lần đều
+  121/121. Test khẳng định hành vi người dùng thấy thật, không phải flake logic.
+- Vẫn còn trong M1: FR/NFR/BR là kind riêng (**PARTIAL** — `NF-` hiện bị gộp
+  vào `statement`) và lưu UI category override (**UNMET**). Không ghi hai mục
+  này là xong. → **Đã đóng trong phụ lục 2026-09-12 (bổ sung)** bên dưới.
+
+## 2026-09-12 (bổ sung) — M1: phân loại first-class + lưu override của UI
+
+Hai mục còn treo trong phụ lục trước được kiểm chứng lại **trên code working
+tree** chứ không dựa vào ghi chú audit cũ. Kết quả: cả hai là **MET**; ghi chú
+"UNMET/PARTIAL" trước đó là số liệu audit cũ, viết khi chưa bám vào cây code
+hiện tại.
+
+**UI category override — UNMET → MET.** Chuỗi đầy đủ đã có sẵn và được nối
+kết: dropdown trong `source_sheet.dart` liệt kê đủ 5 giá trị `UnitKind` →
+`viewModel.classifyUnit(key, kind)` → `_mutateUnit` → `unit.classified()`
+(immutable copy; re-classify sang kind cụ thể xoá cờ `malformed`) →
+`_saveSnapshot()` chạy sau **mọi** mutation, nên override sống qua restart.
+`WorkspaceUnit.toJson` ghi `kind.label` và cả hai đường khôi phục (snapshot
+restore, `openSession`) đều decode qua `fromJson` → `UnitKind.fromLabel`,
+nên override đi nguyên vẹn trong cả hai persistence path. Vòng này thêm phần
+đúng là còn thiếu: **bằng chứng hồi quy** — 2 test mới trong
+`workspace_view_model_test.dart`:
+
+- `kind override survives snapshot restore` — classify sang `businessRule`,
+  container cũ huỷ, container mới restore, kind giữ nguyên.
+- `kind override survives session reopen` — classify sang `nonFunctional`,
+  run 1 unit để tạo history row, `openSession`, kind giữ nguyên.
+
+**FR/NFR/BR first-class kinds — PARTIAL → MET.** Phân loại first-class nằm ở
+`UnitKind` (presentation layer): đủ 5 bucket `useCase / businessRule /
+nonFunctional / functional / unknown`, `unitFromRequirement` map theo prefix
+UC/BR/NFR/FR/SR, prefix lạ rơi vào `unknown` (needs attention) thay vì bị nuốt.
+Ghi chú "NF- bị gộp vào statement" áp cho `RequirementKind` — model cấp
+tài liệu, không phải kiểu inventory dùng cho UI. Design split được ghi lại tường
+minh (đã thêm vào `AGENTS.md`): **deterministic syllabus checks (F7/F9) cố ý
+đếm theo kind của parser trên `SrsDocument`** (`requirement.isUseCase`), còn
+override của người dùng điều khiển inventory/review — probe đo tài liệu như đã
+parse, không đo ý kiến người dùng.
+
+Kiểm chứng (chạy được lại):
+
+| Kiểm | Kết quả |
+|---|---|
+| `flutter analyze` | No issues found |
+| `flutter test` | **141/141 pass** (gồm 2 test mới ở trên) |
+| `tools/check_guardrails.py` | pass — 157 files |
+
+Ghi chú trung thực: bài học quy trình — ghi "gap còn tồn tại" mà không bám lại
+vào code working tree thì chính ghi chú đó trở thành dữ liệu sai trong lần chấm
+điểm sau. Audit notes phải re-verify trước khi ghi vào bảng gate.
+
+## Phụ lục — 2026-09-12: server-side bounded payload guard (M3 pre-build)
+
+Roadmap M3 yêu cầu "FastAPI nhận review unit bounded, không upload PDF 27MiB
+qua Function body". Trước vòng này `/review` và `/ask` nhận text/context
+không giới hạn — một blob lớn sẽ trôi qua prompt (tốn token, chậm) hoặc chết
+ở biên 4,5 MB của Vercel Functions với lỗi platform, không đọc được.
+
+**Đã vá (working tree):**
+
+- `server/app/config.py`: thêm `max_text_bytes = 200_000` (policy thử nghiệm
+  theo roadmap — một requirement lớn hơn vậy là bug parse, không phải việc
+  chấm) và `max_image_b64_bytes = 4_000_000` (base64 ~3 MB PNG; hợp đồng cho
+  phép ảnh làm context, không có trần thì toàn-document blob có thể lùa qua
+  `image_b64`).
+- `server/app/main.py`: `_ensure_bounded()` chạy **trước cả limiter lẫn
+  cache lookup** ở cả `/review` lẫn `/ask` → `HTTPException(413)` với detail
+  nêu đúng số byte thực tế và trần. Chạy trước limiter là cố ý: payload bị
+  từ chối không đốt quota ngày.
+- `server/tests/test_api.py`: 5 test mới — text vượt trần → 413 (detail nêu
+  "review-unit limit"); text **đúng bằng** trần → 200 (trần inclusive, yêu
+  cầu hợp lệ dài phải qua được); `/ask` context vượt trần → 413;
+  `image_b64` vượt trần → 413; provider fail (mô phỏng timeout sau 90 s qua
+  `LlmError`) → **502 đọc được, không hang** — đây là đường timeout
+  `request_timeout_s` đi tới client.
+
+Kiểm chứng (chạy được lại):
+
+| Kiểm | Kết quả |
+|---|---|
+| `server/.venv/bin/python -m pytest tests/` | **49 passed** (44 cũ + 5 mới, 5,45 s) |
+| `test_api.py` riêng | 23/23 pass trong 0,54 s |
+| `flutter analyze` / `flutter test` | không đổi — không đụng mã Dart |
+
+Quy tắc giữ lại: **mọi giới hạn server-side phải test được ở biên**
+(limit qua được, limit+1 bị từ chối với detail nêu số) — thêm trần mới mà
+không có cặp test biên là tái tạo class "guard tồn tại nhưng không ai tin".

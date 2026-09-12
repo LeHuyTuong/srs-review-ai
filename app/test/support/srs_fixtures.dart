@@ -1,0 +1,276 @@
+/// Synthetic SRS inputs for end-to-end pipeline tests.
+///
+/// These are built in memory (no checked-in binaries, no third-party sample
+/// document) so the suite can exercise the exact paths a real import takes:
+/// a well-formed SRS, a prose-only one, one with duplicate/malformed IDs, a
+/// scan-like page with no text, an oversized page count, empty files, a
+/// corrupt PDF and several DOCX variants.
+library;
+
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:archive/archive.dart';
+
+// ---------------------------------------------------------------------------
+// minimal PDF writer
+// ---------------------------------------------------------------------------
+
+String _pdfEscape(String text) => text
+    .replaceAll(r'\', r'\\')
+    .replaceAll('(', r'\(')
+    .replaceAll(')', r'\)');
+
+/// Builds a single-byte-encodable PDF with one text line per entry in [pages].
+///
+/// Hand-rolled on purpose: the tests need to control the *content* precisely
+/// (which IDs exist, which are duplicated, whether there is any text at all)
+/// and no PDF-writing package is a dependency of this app.
+Uint8List buildPdf(List<List<String>> pages) {
+  final pageCount = pages.length;
+  // Object numbering: 1 catalog, 2 page tree, 3.. pages, then one content
+  // stream per page, then the single font.
+  final firstContent = 3 + pageCount;
+  final fontObject = firstContent + pageCount;
+
+  final body = <List<int>>[];
+  final offsets = <int>[];
+  var length = 0;
+
+  void add(String text) {
+    final bytes = ascii.encode(text);
+    body.add(bytes);
+    length += bytes.length;
+  }
+
+  void addObject(int number, String content) {
+    // Objects are appended in numeric order, so the offset list stays aligned.
+    // (Growing a List<int> by assigning `length` would backfill with null and
+    // blow up on the non-nullable element type.)
+    assert(number == offsets.length + 1, 'objects must be added in order');
+    offsets.add(length);
+    add('$number 0 obj\n$content\nendobj\n');
+  }
+
+  final header = '%PDF-1.4\n';
+  add(header); // written first, but offsets are relative to file start
+
+  final kids = [
+    for (var i = 0; i < pageCount; i++) '${3 + i} 0 R',
+  ].join(' ');
+  addObject(1, '<</Type/Catalog/Pages 2 0 R>>');
+  addObject(2, '<</Type/Pages/Kids[$kids]/Count $pageCount>>');
+
+  for (var i = 0; i < pageCount; i++) {
+    addObject(
+      3 + i,
+      '<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]'
+          '/Resources<</Font<</F1 $fontObject 0 R>>>>'
+          '/Contents ${firstContent + i} 0 R>>',
+    );
+  }
+
+  for (var i = 0; i < pageCount; i++) {
+    final sb = StringBuffer('BT /F1 10 Tf 40 750 Td 13 TL\n');
+    for (final line in pages[i]) {
+      sb.write('(${_pdfEscape(line)}) Tj T*\n');
+    }
+    sb.write('ET');
+    final stream = sb.toString();
+    addObject(firstContent + i, '<</Length ${stream.length}>>\nstream\n$stream\nendstream');
+  }
+
+  addObject(fontObject, '<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>');
+
+  final xrefOffset = length;
+  final objectCount = fontObject;
+  // The subsection header counts the free entry too: objects 0..objectCount,
+  // which is objectCount + 1 rows.
+  final entryCount = objectCount + 1;
+  final xref = StringBuffer('xref\n0 $entryCount\n0000000000 65535 f \n');
+  for (var i = 0; i < objectCount; i++) {
+    xref.write('${offsets[i].toString().padLeft(10, '0')} 00000 n \n');
+  }
+  add(
+    '$xref'
+    'trailer\n<< /Size $entryCount /Root 1 0 R >>\n'
+    'startxref\n$xrefOffset\n%%EOF\n',
+  );
+
+  final out = BytesBuilder(copy: false);
+  for (final chunk in body) {
+    out.add(chunk);
+  }
+  return out.takeBytes();
+}
+
+/// A tiny valid PDF: three use cases, one business rule, one NFR.
+Uint8List buildValidPdf() => buildPdf([
+  [
+    'Software Requirements Specification',
+    'Online Testing and Examination System',
+    '3.1 User management',
+    'Use Case No. UC01',
+    'Use case name: Register account',
+    'Actor: Student',
+    'Main flow',
+    '1. The student opens the registration form.',
+    '2. The student enters an email and a password.',
+    '3. The system validates the email and creates the account.',
+    'Alternative flow',
+    '1. If the email exists, the system displays an error.',
+  ],
+  [
+    '3.1 User management',
+    'Use Case No. UC02',
+    'Use case name: Log in',
+    'Actor: Student',
+    'Main flow',
+    '1. The student enters the email and the password.',
+    '2. The system authenticates the student.',
+    '3. The system displays the dashboard.',
+  ],
+  [
+    '3.2 Business rules',
+    'Use Case No. UC03',
+    'Use case name: Reset password',
+    'Actor: Student',
+    'Main flow',
+    '1. The student requests a password reset.',
+    '2. The system sends a reset email.',
+    '3. The student sets a new password.',
+  ],
+  [
+    'BR01 Password policy',
+    'The system must enforce a minimum password length of eight characters.',
+    '4. Non-functional requirements',
+    'NFR01 Performance',
+    'The system shall respond to any request within two seconds.',
+  ],
+]);
+
+/// A PDF with recognisable structure but no requirement identifiers at all.
+Uint8List buildProseOnlyPdf() => buildPdf([
+  [
+    'Software Requirements Specification',
+    'Introduction',
+    'This document describes a system for managing examinations.',
+    'The system should be easy to use and fast.',
+    'Users can register, log in and take examinations.',
+  ],
+]);
+
+/// Duplicate identifiers (UC04 three times) plus malformed four-digit ones.
+Uint8List buildDuplicateIdPdf() => buildPdf([
+  [
+    'Use Case No. UC04',
+    'Use case name: View study schedule',
+    'Main flow',
+    '1. The student opens the schedule.',
+    '2. The system displays the schedule.',
+  ],
+  [
+    'Use Case No. UC04',
+    'Use case name: Join classroom',
+    'Main flow',
+    '1. The student selects a classroom.',
+    '2. The system enrols the student.',
+  ],
+  [
+    'Use Case No. UC04',
+    'Use case name: Leave classroom',
+    'Main flow',
+    '1. The student leaves the classroom.',
+    '2. The system removes the enrolment.',
+  ],
+  [
+    'Use Case No. UC0134',
+    'Use case name: Update examination status',
+    'Main flow',
+    '1. The lecturer updates the status.',
+    '2. The system records the change.',
+  ],
+  [
+    'Use Case No. UC0114',
+    'Use case name: View examination history',
+    'Main flow',
+    '1. The lecturer opens the history.',
+    '2. The system lists past examinations.',
+  ],
+]);
+
+/// A page with no text operators at all — what a scanned export looks like.
+Uint8List buildNoTextPdf() => buildPdf([
+  <String>[],
+]);
+
+/// More pages than `PdfParser.maxPageCount` (300).
+Uint8List buildOversizedPageCountPdf() => buildPdf([
+  for (var i = 0; i < 310; i++)
+    ['Section ${i + 1}', 'Use Case No. UC${i + 1}', 'Main flow', '1. Step one.'],
+]);
+
+/// A PDF header followed by garbage: opens like a PDF, is not one.
+Uint8List buildCorruptPdf() =>
+    Uint8List.fromList(<int>[...ascii.encode('%PDF-1.4\n'), ...List.filled(4096, 0x41)]);
+
+// ---------------------------------------------------------------------------
+// minimal DOCX writer
+// ---------------------------------------------------------------------------
+
+String _xmlEscape(String text) => text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+
+Uint8List buildDocx(
+  List<String> paragraphs, {
+  bool withMedia = false,
+  bool omitBody = false,
+}) {
+  final archive = Archive();
+  archive.addFile(
+    ArchiveFile.string(
+      '[Content_Types].xml',
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+          '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+          '<Default Extension="xml" ContentType="application/xml"/>'
+          '</Types>',
+    ),
+  );
+  if (!omitBody) {
+    final sb = StringBuffer(
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+      '<w:body>',
+    );
+    for (final paragraph in paragraphs) {
+      sb.write(
+        '<w:p><w:r><w:t xml:space="preserve">${_xmlEscape(paragraph)}</w:t></w:r></w:p>',
+      );
+    }
+    sb.write('</w:body></w:document>');
+    archive.addFile(ArchiveFile.string('word/document.xml', sb.toString()));
+  }
+  if (withMedia) {
+    archive.addFile(ArchiveFile('word/media/image1.png', 64, <int>[...List.filled(64, 0x89)]));
+  }
+  return Uint8List.fromList(ZipEncoder().encode(archive));
+}
+
+Uint8List buildValidDocx() => buildDocx([
+  'Software Requirements Specification',
+  '3.1 User management',
+  'Use Case No. UC01',
+  'Use case name: Register account',
+  'Main flow',
+  '1. The student opens the registration form.',
+  '2. The student submits an email and a password.',
+  '3. The system creates the account.',
+  'Use Case No. UC02',
+  'Use case name: Log in',
+  'Main flow',
+  '1. The student enters credentials.',
+  '2. The system authenticates the student.',
+  '3. The system shows the dashboard.',
+]);

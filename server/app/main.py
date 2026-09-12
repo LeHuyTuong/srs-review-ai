@@ -86,35 +86,95 @@ def rubric() -> dict[str, object]:
     return load_rubric()
 
 
+def _review_cache_keys(
+    payload: ReviewRequest,
+    settings: Settings,
+    rubric_cfg: dict[str, object],
+    provider: object,
+) -> list[str]:
+    # Cache identity follows the configured model selection even in mock mode.
+    # This prevents switching the selected model from reusing an older result;
+    # provider identity keeps mock and online results isolated.
+    models = [settings.gemini_model, settings.gemini_fallback_model]
+    models = [model for model in models if model]
+    if not models:
+        models = [getattr(provider, "model_id", provider.name)]
+    # Preserve order: primary/fallback selection is part of the result's
+    # identity, so swapping them must invalidate the old result.
+    model_selection = "|".join(models)
+    return [
+        cache_key(
+            payload.requirement_id,
+            payload.text,
+            payload.section or "",
+            payload.image_b64 or "",
+            str(payload.page_index) if payload.page_index is not None else "",
+            provider.name,
+            str(settings.mock_mode),
+            model_selection,
+            settings.prompt_version,
+            str(rubric_cfg["version"]),
+            str(settings.fuzzy_threshold),
+        )
+    ]
+
+
+def _ensure_bounded(*, text: str, image_b64: str | None, settings: Settings) -> None:
+    """Reject payloads this deployment cannot carry — before any work.
+
+    Vercel Functions cap request bodies at 4.5 MB, so a ~27 MiB blob must die
+    here with a readable 413 rather than at the platform edge.
+    """
+    text_size = len(text.encode("utf-8"))
+    if text_size > settings.max_text_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"Text payload is {text_size} bytes; the review-unit limit is "
+                f"{settings.max_text_bytes}. Trim the requirement text."
+            ),
+        )
+    if image_b64 and len(image_b64) > settings.max_image_b64_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"Image payload is {len(image_b64)} bytes; the limit is "
+                f"{settings.max_image_b64_bytes}. Send a smaller page image."
+            ),
+        )
+
+
 @app.post("/review", response_model=ReviewResult, dependencies=[Depends(require_app_token)])
 async def review(
     payload: ReviewRequest,
     settings: Settings = Depends(get_settings),
     user: str = Depends(caller_id),
 ) -> ReviewResult:
+    _ensure_bounded(text=payload.text, image_b64=payload.image_b64, settings=settings)
     rubric_cfg = load_rubric()
-    key = cache_key(
-        payload.requirement_id,
-        payload.text,
-        settings.gemini_model,
-        settings.prompt_version,
-        str(rubric_cfg["version"]),
-    )
-    if hit := _review_cache.get(key):
-        return hit.model_copy(update={"cached": True})
+    provider = build_provider(settings)
+    cache_keys = _review_cache_keys(payload, settings, rubric_cfg, provider)
+    for key in cache_keys:
+        if hit := _review_cache.get(key):
+            return hit.model_copy(update={"cached": True})
 
-    allowed, _ = _limiter.check(user, settings.rate_limit_per_day)
+    allowed, _, retry_after = _limiter.check(user, settings.rate_limit_per_day)
     if not allowed:
         raise HTTPException(
             status_code=429,
-            detail=f"Daily review limit reached ({settings.rate_limit_per_day}). Try again tomorrow.",
+            detail=(
+                f"Daily review limit reached ({settings.rate_limit_per_day}). "
+                f"Retry after {retry_after}s."
+            ),
+            headers={"Retry-After": str(retry_after)},
         )
 
-    provider = build_provider(settings)
     try:
         raw, model = await provider.generate_json(
             system=review_system_prompt(rubric_cfg),
-            user=review_user_prompt(payload.requirement_id, payload.text, payload.section),
+            user=review_user_prompt(
+                payload.requirement_id, payload.text, payload.section, payload.page_index
+            ),
             schema=LLM_REVIEW_SCHEMA,
             image_b64=payload.image_b64,
         )
@@ -140,7 +200,25 @@ async def review(
         cached=False,
         mock=provider.name == "mock",
     )
-    _review_cache.put(key, result)
+    # Store only under the exact configured selection fingerprint. The lookup
+    # list may contain fallback aliases, but a result from one selected model
+    # must not satisfy a later request whose primary model changed.
+    selected_key = cache_key(
+        payload.requirement_id,
+        payload.text,
+        payload.section or "",
+        payload.image_b64 or "",
+        str(payload.page_index) if payload.page_index is not None else "",
+        provider.name,
+        str(settings.mock_mode),
+        "|".join(
+            model_name for model_name in [settings.gemini_model, settings.gemini_fallback_model] if model_name
+        ),
+        settings.prompt_version,
+        str(rubric_cfg["version"]),
+        str(settings.fuzzy_threshold),
+    )
+    _review_cache.put(selected_key, result)
     return result
 
 
@@ -150,9 +228,14 @@ async def ask(
     settings: Settings = Depends(get_settings),
     user: str = Depends(caller_id),
 ) -> AskResponse:
-    allowed, _ = _limiter.check(user, settings.rate_limit_per_day)
+    _ensure_bounded(text=payload.context, image_b64=None, settings=settings)
+    allowed, _, retry_after = _limiter.check(user, settings.rate_limit_per_day)
     if not allowed:
-        raise HTTPException(status_code=429, detail="Daily limit reached.")
+        raise HTTPException(
+            status_code=429,
+            detail=f"Daily limit reached. Retry after {retry_after}s.",
+            headers={"Retry-After": str(retry_after)},
+        )
 
     provider = build_provider(settings)
     try:

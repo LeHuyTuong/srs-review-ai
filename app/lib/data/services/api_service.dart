@@ -24,8 +24,9 @@ class ApiException implements Exception {
 }
 
 class ApiService implements ReviewApi {
-  ApiService({Dio? dio, String? baseUrl})
-    : _dio =
+  ApiService({Dio? dio, String? baseUrl, String? appToken, String? userId})
+    : effectiveBaseUrl = baseUrl ?? AppConfig.apiBaseUrl,
+      _dio =
           dio ??
           Dio(
             BaseOptions(
@@ -35,7 +36,20 @@ class ApiService implements ReviewApi {
               sendTimeout: AppConfig.requestTimeout,
               contentType: Headers.jsonContentType,
             ),
-          );
+          ) {
+    // Identity headers. The proxy's `require_app_token` and per-user rate
+    // limiter read these; without them the server can only fall back to the
+    // caller's IP, which is neither a user nor a secret. Both are optional so
+    // a localhost demo with APP_TOKEN unset keeps working untouched.
+    final token = appToken?.trim() ?? '';
+    if (token.isNotEmpty) _dio.options.headers['X-App-Token'] = token;
+    final user = userId?.trim() ?? '';
+    if (user.isNotEmpty) _dio.options.headers['X-User-Id'] = user;
+  }
+
+  /// The base this instance actually talks to — surfaced in error messages
+  /// and useful in tests asserting the Settings override took effect.
+  final String effectiveBaseUrl;
 
   final Dio _dio;
 
@@ -87,17 +101,75 @@ class ApiService implements ReviewApi {
     return AskResponse.fromJson(data);
   }
 
-  Future<Map<String, dynamic>> _get(String path) async {
+  /// Extra attempts after the first for a retryable failure (so up to three
+  /// round trips), and the pause before each, doubled every attempt.
+  static const int _maxRetries = 2;
+  static const Duration _retryBaseDelay = Duration(milliseconds: 400);
+
+  /// Re-runs [call] when it fails with a retryable [ApiException].
+  ///
+  /// Phone networks drop packets. A request that failed on a flaky connection
+  /// is worth another attempt, and the cost is a few hundred milliseconds
+  /// against a review that already takes seconds per requirement.
+  ///
+  /// What is NEVER retried:
+  /// * **final answers** — a quota rejection (429) or a contract mismatch
+  ///   (422) fails identically next time, so retrying only delays the message
+  ///   the user needs to read. [_translate] marks only transient failures
+  ///   `isRetryable`, which is what this decision hangs on.
+  /// * **a cancelled run** — a cancelled [cancelToken] means the user asked to
+  ///   stop; retrying would ignore them and burn quota.
+  /// * **anything that is not an [ApiException]** — a contract violation, say.
+  ///
+  /// Safe because every call in this class is idempotent: `/health` and
+  /// `/rubric` are reads, and `/review` is keyed by requirement and answered
+  /// from the proxy's cache on a repeat.
+  ///
+  /// Deliberately NOT applied to [isProxyUp]: that probe drives the
+  /// connection pill and must answer immediately, not after backoff.
+  Future<T> _withRetry<T>(
+    Future<T> Function() call, {
+    CancelToken? cancelToken,
+  }) async {
+    var attempt = 0;
+    while (true) {
+      try {
+        return await call();
+      } on ApiException catch (error) {
+        if (!error.isRetryable ||
+            attempt >= _maxRetries ||
+            (cancelToken?.isCancelled ?? false)) {
+          rethrow;
+        }
+        attempt++;
+        await Future<void>.delayed(_retryBaseDelay * (1 << (attempt - 1)));
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>> _get(String path) =>
+      _withRetry(() => _getOnce(path));
+
+  Future<Map<String, dynamic>> _getOnce(String path) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(path);
       return response.data ??
           (throw ApiException('The proxy returned an empty body.'));
     } on DioException catch (error) {
-      throw _translate(error);
+      throw _translate(error, effectiveBaseUrl);
     }
   }
 
   Future<Map<String, dynamic>> _post(
+    String path,
+    Map<String, dynamic> body, {
+    CancelToken? cancelToken,
+  }) => _withRetry(
+    () => _postOnce(path, body, cancelToken: cancelToken),
+    cancelToken: cancelToken,
+  );
+
+  Future<Map<String, dynamic>> _postOnce(
     String path,
     Map<String, dynamic> body, {
     CancelToken? cancelToken,
@@ -111,17 +183,41 @@ class ApiService implements ReviewApi {
       return response.data ??
           (throw ApiException('The proxy returned an empty body.'));
     } on DioException catch (error) {
-      throw _translate(error);
+      throw _translate(error, effectiveBaseUrl);
     }
   }
 
-  /// Turns transport failures into sentences a student can act on.
-  static ApiException _translate(DioException error) {
+  /// 429 message reporting the truthful retry window (M3 gate: báo cửa sổ
+  /// có thể gọi lại). The proxy sends Retry-After seconds when the daily
+  /// quota is exhausted; without one, fall back to the day-scale hint.
+  static String quotaMessage({int? retryAfterSeconds}) {
+    final seconds = retryAfterSeconds;
+    if (seconds == null || seconds <= 0) {
+      return 'Daily review quota reached. '
+          'Reuse a cached result or try again tomorrow.';
+    }
+    if (seconds >= 5400) {
+      return 'Daily review quota reached. '
+          'Retry in about ${(seconds / 3600).ceil()} h.';
+    }
+    return 'Daily review quota reached. '
+        'Retry in about ${(seconds / 60).ceil()} min.';
+  }
+
+  static int? _retryAfterSeconds(Response<dynamic>? response) {
+    final raw = response?.headers.value('retry-after')?.trim();
+    return raw == null || raw.isEmpty ? null : int.tryParse(raw);
+  }
+
+  /// Turns transport failures into sentences a student can act on. Takes the
+  /// effective base URL because the useful message names the endpoint the
+  /// user actually configured (Settings override or build-time default).
+  static ApiException _translate(DioException error, String baseUrl) {
     final status = error.response?.statusCode;
     return switch (error.type) {
       DioExceptionType.connectionError ||
       DioExceptionType.connectionTimeout => ApiException(
-        'Cannot reach the review proxy at ${AppConfig.apiBaseUrl}. '
+        'Cannot reach the review proxy at $baseUrl. '
         'Start it with "uvicorn app.main:app --reload" in server/, or switch on mock mode.',
         isRetryable: true,
       ),
@@ -141,7 +237,9 @@ class ApiService implements ReviewApi {
           statusCode: 422,
         ),
         429 => ApiException(
-          'Daily review quota reached. Reuse a cached result or try again tomorrow.',
+          quotaMessage(
+            retryAfterSeconds: _retryAfterSeconds(error.response),
+          ),
           statusCode: 429,
         ),
         502 || 503 => ApiException(

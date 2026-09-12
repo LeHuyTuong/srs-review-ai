@@ -195,11 +195,23 @@ privacy section too.
 
 ## Status
 
-Day-1 skeleton: parsing, F7–F9 checks, the review pipeline, quote verification,
-offline mode, contract tests and guardrails all work end to end. Still to come:
-PDF viewer with highlight-in-place, the adaptive two-pane desktop layout,
-accept/dismiss per issue, report export and persistence. See
-[docs/roadmap.md](docs/roadmap.md).
+Parsing, F7–F9 checks, the review pipeline, quote verification, offline mode,
+contract tests and guardrails all work end to end.
+
+On top of the skeleton: **findings can be triaged** (accept / dismiss, persisted
+and shown in the report), **reports export to a file** as well as the clipboard,
+**the offline syllabus checks appear in the report** instead of living on their
+own tab, **Ask actually calls `/ask`** and labels whether the model or the local
+search answered, the app **sends `X-App-Token` / `X-User-Id`** so the proxy's
+auth and per-user quota are reachable, a run killed by quota or cancellation
+**saves the units it already reviewed**, and the Online/Offline pill reports the
+proxy's **real** reachability.
+
+Still to come: a PDF viewer with highlight-in-place, resume/checkpoint across
+app restarts, vision review of diagrams (no image is sent to the model yet — the
+report says so), and precision/recall against a labelled gold set. See
+[docs/roadmap.md](docs/roadmap.md) and
+[docs/business-flow-review](docs/business-flow-review-2026-09-11.md).
 
 ## Licence
 

@@ -1,0 +1,827 @@
+{
+  "kind": "m0_syncfusion_end_to_end",
+  "source_fnv1a64": "-5c1d92d527e1aabd",
+  "source_bytes": 28701674,
+  "pdf_total_pages": 217,
+  "scope_pdf_pages": [
+    23,
+    155
+  ],
+  "extraction": "syncfusion_flutter_pdf PdfTextExtractor per page -> RequirementSplitter (the real ParseService path)",
+  "source_use_case_no_labels": 0,
+  "malformed_ids_dropped_silently": [
+    {
+      "id": "UC0134",
+      "physical_page": 56
+    },
+    {
+      "id": "UC0114",
+      "physical_page": 57
+    }
+  ],
+  "source_id_occurrences": 124,
+  "source_literal_unique_ids": 70,
+  "source_numeric_unique_ids": 50,
+  "splitter_total_items": 50,
+  "splitter_use_case_items": 50,
+  "use_cases": [
+    {
+      "id": "UC-01",
+      "physical_page": 26,
+      "section": null,
+      "chars": 1575
+    },
+    {
+      "id": "UC-02",
+      "physical_page": 37,
+      "section": null,
+      "chars": 1407
+    },
+    {
+      "id": "UC-03",
+      "physical_page": 31,
+      "section": null,
+      "chars": 1788
+    },
+    {
+      "id": "UC-04",
+      "physical_page": 42,
+      "section": null,
+      "chars": 1636
+    },
+    {
+      "id": "UC-13",
+      "physical_page": 53,
+      "section": null,
+      "chars": 1928
+    },
+    {
+      "id": "UC-14",
+      "physical_page": 57,
+      "section": null,
+      "chars": 1723
+    },
+    {
+      "id": "UC-15",
+      "physical_page": 60,
+      "section": null,
+      "chars": 1204
+    },
+    {
+      "id": "UC-16",
+      "physical_page": 62,
+      "section": null,
+      "chars": 1493
+    },
+    {
+      "id": "UC-17",
+      "physical_page": 64,
+      "section": null,
+      "chars": 1149
+    },
+    {
+      "id": "UC-21",
+      "physical_page": 66,
+      "section": null,
+      "chars": 1553
+    },
+    {
+      "id": "UC-22",
+      "physical_page": 68,
+      "section": null,
+      "chars": 1314
+    },
+    {
+      "id": "UC-23",
+      "physical_page": 76,
+      "section": null,
+      "chars": 1504
+    },
+    {
+      "id": "UC-25",
+      "physical_page": 74,
+      "section": null,
+      "chars": 1437
+    },
+    {
+      "id": "UC-38",
+      "physical_page": 78,
+      "section": null,
+      "chars": 1324
+    },
+    {
+      "id": "UC-36",
+      "physical_page": 80,
+      "section": null,
+      "chars": 1710
+    },
+    {
+      "id": "UC-27",
+      "physical_page": 82,
+      "section": null,
+      "chars": 1810
+    },
+    {
+      "id": "UC-28",
+      "physical_page": 85,
+      "section": null,
+      "chars": 1454
+    },
+    {
+      "id": "UC-29",
+      "physical_page": 87,
+      "section": null,
+      "chars": 1089
+    },
+    {
+      "id": "UC-30",
+      "physical_page": 89,
+      "section": null,
+      "chars": 1266
+    },
+    {
+      "id": "UC-31",
+      "physical_page": 91,
+      "section": null,
+      "chars": 1204
+    },
+    {
+      "id": "UC-32",
+      "physical_page": 93,
+      "section": null,
+      "chars": 1216
+    },
+    {
+      "id": "UC-33",
+      "physical_page": 94,
+      "section": null,
+      "chars": 1125
+    },
+    {
+      "id": "UC-34",
+      "physical_page": 96,
+      "section": null,
+      "chars": 1563
+    },
+    {
+      "id": "UC-35",
+      "physical_page": 98,
+      "section": null,
+      "chars": 1424
+    },
+    {
+      "id": "UC-37",
+      "physical_page": 103,
+      "section": null,
+      "chars": 1337
+    },
+    {
+      "id": "UC-39",
+      "physical_page": 107,
+      "section": null,
+      "chars": 1050
+    },
+    {
+      "id": "UC-40",
+      "physical_page": 109,
+      "section": null,
+      "chars": 1262
+    },
+    {
+      "id": "UC-41",
+      "physical_page": 111,
+      "section": null,
+      "chars": 1350
+    },
+    {
+      "id": "UC-42",
+      "physical_page": 113,
+      "section": null,
+      "chars": 1261
+    },
+    {
+      "id": "UC-43",
+      "physical_page": 115,
+      "section": null,
+      "chars": 1072
+    },
+    {
+      "id": "UC-44",
+      "physical_page": 117,
+      "section": null,
+      "chars": 1481
+    },
+    {
+      "id": "UC-45",
+      "physical_page": 119,
+      "section": null,
+      "chars": 1335
+    },
+    {
+      "id": "UC-46",
+      "physical_page": 120,
+      "section": null,
+      "chars": 1925
+    },
+    {
+      "id": "UC-47",
+      "physical_page": 122,
+      "section": null,
+      "chars": 1567
+    },
+    {
+      "id": "UC-48",
+      "physical_page": 124,
+      "section": null,
+      "chars": 1357
+    },
+    {
+      "id": "UC-49",
+      "physical_page": 126,
+      "section": null,
+      "chars": 1605
+    },
+    {
+      "id": "UC-50",
+      "physical_page": 128,
+      "section": null,
+      "chars": 1626
+    },
+    {
+      "id": "UC-51",
+      "physical_page": 130,
+      "section": null,
+      "chars": 1159
+    },
+    {
+      "id": "UC-52",
+      "physical_page": 132,
+      "section": null,
+      "chars": 1296
+    },
+    {
+      "id": "UC-53",
+      "physical_page": 133,
+      "section": null,
+      "chars": 1653
+    },
+    {
+      "id": "UC-54",
+      "physical_page": 135,
+      "section": null,
+      "chars": 1414
+    },
+    {
+      "id": "UC-55",
+      "physical_page": 137,
+      "section": null,
+      "chars": 1643
+    },
+    {
+      "id": "UC-56",
+      "physical_page": 139,
+      "section": null,
+      "chars": 1278
+    },
+    {
+      "id": "UC-57",
+      "physical_page": 141,
+      "section": null,
+      "chars": 1444
+    },
+    {
+      "id": "UC-58",
+      "physical_page": 143,
+      "section": null,
+      "chars": 1738
+    },
+    {
+      "id": "UC-59",
+      "physical_page": 145,
+      "section": null,
+      "chars": 1544
+    },
+    {
+      "id": "UC-60",
+      "physical_page": 147,
+      "section": null,
+      "chars": 1150
+    },
+    {
+      "id": "UC-61",
+      "physical_page": 148,
+      "section": null,
+      "chars": 1370
+    },
+    {
+      "id": "UC-62",
+      "physical_page": 150,
+      "section": null,
+      "chars": 1957
+    },
+    {
+      "id": "UC-63",
+      "physical_page": 152,
+      "section": null,
+      "chars": 3996
+    }
+  ],
+  "id_occurrences": [
+    {
+      "id": "UC01",
+      "physical_page": 26
+    },
+    {
+      "id": "UC01",
+      "physical_page": 26
+    },
+    {
+      "id": "UC02",
+      "physical_page": 29
+    },
+    {
+      "id": "UC02",
+      "physical_page": 29
+    },
+    {
+      "id": "UC03",
+      "physical_page": 31
+    },
+    {
+      "id": "UC03",
+      "physical_page": 31
+    },
+    {
+      "id": "UC04",
+      "physical_page": 33
+    },
+    {
+      "id": "UC04",
+      "physical_page": 33
+    },
+    {
+      "id": "UC04",
+      "physical_page": 35
+    },
+    {
+      "id": "UC04",
+      "physical_page": 35
+    },
+    {
+      "id": "UC02",
+      "physical_page": 37
+    },
+    {
+      "id": "UC02",
+      "physical_page": 37
+    },
+    {
+      "id": "UC04",
+      "physical_page": 40
+    },
+    {
+      "id": "UC04",
+      "physical_page": 40
+    },
+    {
+      "id": "UC04",
+      "physical_page": 42
+    },
+    {
+      "id": "UC04",
+      "physical_page": 42
+    },
+    {
+      "id": "UC04",
+      "physical_page": 44
+    },
+    {
+      "id": "UC04",
+      "physical_page": 44
+    },
+    {
+      "id": "UC04",
+      "physical_page": 46
+    },
+    {
+      "id": "UC04",
+      "physical_page": 46
+    },
+    {
+      "id": "UC04",
+      "physical_page": 48
+    },
+    {
+      "id": "UC04",
+      "physical_page": 48
+    },
+    {
+      "id": "UC04",
+      "physical_page": 50
+    },
+    {
+      "id": "UC04",
+      "physical_page": 50
+    },
+    {
+      "id": "UC013",
+      "physical_page": 53
+    },
+    {
+      "id": "UC013",
+      "physical_page": 53
+    },
+    {
+      "id": "UC014",
+      "physical_page": 55
+    },
+    {
+      "id": "UC014",
+      "physical_page": 57
+    },
+    {
+      "id": "UC015",
+      "physical_page": 60
+    },
+    {
+      "id": "UC015",
+      "physical_page": 60
+    },
+    {
+      "id": "UC016",
+      "physical_page": 62
+    },
+    {
+      "id": "UC016",
+      "physical_page": 62
+    },
+    {
+      "id": "UC017",
+      "physical_page": 64
+    },
+    {
+      "id": "UC017",
+      "physical_page": 64
+    },
+    {
+      "id": "UC021",
+      "physical_page": 66
+    },
+    {
+      "id": "UC021",
+      "physical_page": 66
+    },
+    {
+      "id": "UC022",
+      "physical_page": 68
+    },
+    {
+      "id": "UC022",
+      "physical_page": 68
+    },
+    {
+      "id": "UC023",
+      "physical_page": 70
+    },
+    {
+      "id": "UC023",
+      "physical_page": 70
+    },
+    {
+      "id": "UC021",
+      "physical_page": 72
+    },
+    {
+      "id": "UC021",
+      "physical_page": 72
+    },
+    {
+      "id": "UC025",
+      "physical_page": 74
+    },
+    {
+      "id": "UC025",
+      "physical_page": 74
+    },
+    {
+      "id": "UC023",
+      "physical_page": 76
+    },
+    {
+      "id": "UC023",
+      "physical_page": 76
+    },
+    {
+      "id": "UC038",
+      "physical_page": 78
+    },
+    {
+      "id": "UC38",
+      "physical_page": 78
+    },
+    {
+      "id": "UC036",
+      "physical_page": 80
+    },
+    {
+      "id": "UC036",
+      "physical_page": 80
+    },
+    {
+      "id": "UC027",
+      "physical_page": 82
+    },
+    {
+      "id": "UC027",
+      "physical_page": 82
+    },
+    {
+      "id": "UC028",
+      "physical_page": 85
+    },
+    {
+      "id": "UC028",
+      "physical_page": 85
+    },
+    {
+      "id": "UC029",
+      "physical_page": 87
+    },
+    {
+      "id": "UC029",
+      "physical_page": 87
+    },
+    {
+      "id": "UC030",
+      "physical_page": 89
+    },
+    {
+      "id": "UC030",
+      "physical_page": 89
+    },
+    {
+      "id": "UC031",
+      "physical_page": 91
+    },
+    {
+      "id": "UC031",
+      "physical_page": 91
+    },
+    {
+      "id": "UC032",
+      "physical_page": 92
+    },
+    {
+      "id": "UC032",
+      "physical_page": 93
+    },
+    {
+      "id": "UC033",
+      "physical_page": 94
+    },
+    {
+      "id": "UC033",
+      "physical_page": 94
+    },
+    {
+      "id": "UC034",
+      "physical_page": 96
+    },
+    {
+      "id": "UC034",
+      "physical_page": 96
+    },
+    {
+      "id": "UC035",
+      "physical_page": 98
+    },
+    {
+      "id": "UC035",
+      "physical_page": 98
+    },
+    {
+      "id": "UC036",
+      "physical_page": 101
+    },
+    {
+      "id": "UC36",
+      "physical_page": 101
+    },
+    {
+      "id": "UC037",
+      "physical_page": 103
+    },
+    {
+      "id": "UC37",
+      "physical_page": 103
+    },
+    {
+      "id": "UC038",
+      "physical_page": 105
+    },
+    {
+      "id": "UC38",
+      "physical_page": 105
+    },
+    {
+      "id": "UC039",
+      "physical_page": 107
+    },
+    {
+      "id": "UC39",
+      "physical_page": 107
+    },
+    {
+      "id": "UC040",
+      "physical_page": 109
+    },
+    {
+      "id": "UC40",
+      "physical_page": 109
+    },
+    {
+      "id": "UC041",
+      "physical_page": 111
+    },
+    {
+      "id": "UC41",
+      "physical_page": 111
+    },
+    {
+      "id": "UC042",
+      "physical_page": 113
+    },
+    {
+      "id": "UC42",
+      "physical_page": 113
+    },
+    {
+      "id": "UC043",
+      "physical_page": 115
+    },
+    {
+      "id": "UC43",
+      "physical_page": 115
+    },
+    {
+      "id": "UC044",
+      "physical_page": 117
+    },
+    {
+      "id": "UC044",
+      "physical_page": 117
+    },
+    {
+      "id": "UC045",
+      "physical_page": 118
+    },
+    {
+      "id": "UC045",
+      "physical_page": 119
+    },
+    {
+      "id": "UC046",
+      "physical_page": 120
+    },
+    {
+      "id": "UC46",
+      "physical_page": 120
+    },
+    {
+      "id": "UC047",
+      "physical_page": 122
+    },
+    {
+      "id": "UC47",
+      "physical_page": 122
+    },
+    {
+      "id": "UC048",
+      "physical_page": 124
+    },
+    {
+      "id": "UC048",
+      "physical_page": 124
+    },
+    {
+      "id": "UC049",
+      "physical_page": 126
+    },
+    {
+      "id": "UC49",
+      "physical_page": 126
+    },
+    {
+      "id": "UC050",
+      "physical_page": 128
+    },
+    {
+      "id": "UC50",
+      "physical_page": 128
+    },
+    {
+      "id": "UC051",
+      "physical_page": 130
+    },
+    {
+      "id": "UC51",
+      "physical_page": 130
+    },
+    {
+      "id": "UC052",
+      "physical_page": 132
+    },
+    {
+      "id": "UC052",
+      "physical_page": 132
+    },
+    {
+      "id": "UC053",
+      "physical_page": 133
+    },
+    {
+      "id": "UC53",
+      "physical_page": 133
+    },
+    {
+      "id": "UC054",
+      "physical_page": 135
+    },
+    {
+      "id": "UC054",
+      "physical_page": 135
+    },
+    {
+      "id": "UC055",
+      "physical_page": 137
+    },
+    {
+      "id": "UC55",
+      "physical_page": 137
+    },
+    {
+      "id": "UC056",
+      "physical_page": 139
+    },
+    {
+      "id": "UC56",
+      "physical_page": 139
+    },
+    {
+      "id": "UC057",
+      "physical_page": 141
+    },
+    {
+      "id": "UC057",
+      "physical_page": 141
+    },
+    {
+      "id": "UC058",
+      "physical_page": 143
+    },
+    {
+      "id": "UC58",
+      "physical_page": 143
+    },
+    {
+      "id": "UC059",
+      "physical_page": 145
+    },
+    {
+      "id": "UC59",
+      "physical_page": 145
+    },
+    {
+      "id": "UC060",
+      "physical_page": 147
+    },
+    {
+      "id": "UC060",
+      "physical_page": 147
+    },
+    {
+      "id": "UC061",
+      "physical_page": 148
+    },
+    {
+      "id": "UC061",
+      "physical_page": 148
+    },
+    {
+      "id": "UC062",
+      "physical_page": 150
+    },
+    {
+      "id": "UC62",
+      "physical_page": 150
+    },
+    {
+      "id": "UC063",
+      "physical_page": 152
+    },
+    {
+      "id": "UC63",
+      "physical_page": 152
+    }
+  ]
+}

@@ -34,13 +34,16 @@ class PickedDocument {
 class FilePickerService {
   const FilePickerService();
 
-  /// Client-side cap. The server rejects above 25 MB; refuse earlier so the
-  /// user gets a fast, clear answer instead of a failed upload.
-  static const int maxSizeBytes = 20 * 1024 * 1024;
+  /// Client-side cap, raised to 30 MB by product decision (2026-09-10) so
+  /// image-heavy SRS exports still fit; refuse earlier than a failed upload
+  /// so the user gets a fast, clear answer.
+  static const int maxSizeBytes = 30 * 1024 * 1024;
 
   /// Returns null when the user cancels. Throws [ParseException] for a file we
   /// can never handle, so the caller has exactly two outcomes to render.
-  Future<PickedDocument?> pickSrsFile() async {
+  Future<PickedDocument?> pickSrsFile({
+    void Function(String status)? onStatus,
+  }) async {
     final file = await FilePicker.pickFile(
       dialogTitle: 'Choose an SRS document',
       type: FileType.custom,
@@ -62,6 +65,13 @@ class FilePickerService {
         'The limit is ${maxSizeBytes ~/ (1024 * 1024)} MB.',
       );
     }
+
+    // readAsBytes is the long pole for a large file; surface it before the
+    // blocking read so the progress card appears immediately.
+    onStatus?.call(
+      'Reading ${file.name} (${(size / 1024 / 1024).toStringAsFixed(1)} MB)…',
+    );
+    await Future<void>.delayed(Duration.zero);
 
     return PickedDocument(
       fileName: file.name,

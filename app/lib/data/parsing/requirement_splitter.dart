@@ -2,12 +2,17 @@
 /// unit-testable (research 05, week 1 day 3–4).
 ///
 /// Three sources of items, in order of confidence:
-///   1. explicit ids   — `FR-03`, `NFR-2`, `UC-12`, `BR_5`
+///   1. explicit ids   — `FR-03`, `NFR-2`, `UC-12`, `BR_5`, `F-01`, `NF-2`
 ///   2. use case tables — `Use case name: Submit report`
 ///   3. modal sentences — "shall" / "must" / "hệ thống phải"
 ///
-/// Table-of-contents lines are skipped, and when the same id appears twice
-/// (TOC + body) the longer text wins.
+/// `F-01` (single letter + dash) was added after verifying a real VN capstone
+/// SRS that codes requirements exactly that way. The dash is mandatory there:
+/// a bare `F01`/`F 1` would match unrelated prose ("F 1 triệu đồng").
+///
+/// Table-of-contents lines are skipped. Every non-TOC explicit occurrence is
+/// retained, including repeated ids: occurrence order is meaningful in SRS
+/// documents where one id can label several use-case tables.
 library;
 
 import '../models/srs_document.dart';
@@ -16,8 +21,11 @@ class RequirementSplitter {
   const RequirementSplitter();
 
   static final RegExp _sectionHeading = RegExp(r'^(\d+(?:\.\d+){0,3})\.?\s+\S');
+  // Longest prefixes first: `NFR` must win over `NF`, `FR` over the bare
+  // single-letter form. `F-01` (dash mandatory) and `NF-01` come from a real
+  // VN capstone SRS; without them the file parsed to 0 units.
   static final RegExp _idAtLineStart = RegExp(
-    r'^[\s\-•*|]*((?:FR|NFR|UC|BR|SR)[-_ ]?\d{1,3})\b[\s:.)\-|]*',
+    r'^[\s\-•*|]*((?:NFR|FR|NF|UC|BR|SR)[-_ ]?\d+|F-\d+)\b[\s:.)\-|]*',
     caseSensitive: false,
   );
   static final RegExp _tocLine = RegExp(r'\.{4,}\s*\d+\s*$|\t+\d+\s*$');
@@ -41,21 +49,15 @@ class RequirementSplitter {
   );
 
   List<RequirementItem> split(List<String> pageTexts) {
-    final collected = <String, RequirementItem>{};
-    final ordered = <String>[];
+    // Keep a list rather than indexing by id. A repeated id is still a
+    // distinct occurrence in the source (for example, several use-case
+    // tables may legitimately reuse UC04), and downstream rows use the
+    // occurrence index for their stable identity.
+    final collected = <RequirementItem>[];
     var statementSeq = 0;
 
     void add(RequirementItem item) {
-      final existing = collected[item.id];
-      if (existing == null) {
-        collected[item.id] = item;
-        ordered.add(item.id);
-        return;
-      }
-      // TOC entries are short; the body version carries the real text.
-      if (item.text.length > existing.text.length) {
-        collected[item.id] = item;
-      }
+      collected.add(item);
     }
 
     // Deliberately NOT reset per page. A real use-case table (Actor/Summary/
@@ -158,15 +160,20 @@ class RequirementSplitter {
     }
     flush();
 
-    return ordered.map((id) => collected[id]!).toList(growable: false);
+    return List<RequirementItem>.unmodifiable(collected);
   }
 
   static String _canonicalId(String raw) {
     final match = RegExp(r'^([A-Za-z]+)[-_ ]?(\d+)$').firstMatch(raw.trim());
     if (match == null) return raw.trim().toUpperCase();
     final prefix = match.group(1)!.toUpperCase();
-    final number = int.parse(match.group(2)!);
-    return '$prefix-${number.toString().padLeft(2, '0')}';
+    final digits = match.group(2)!;
+    // Preserve malformed source identifiers such as UC0114 verbatim (apart
+    // from case). Padding only short ids avoids silently changing or
+    // collapsing identifiers with four+ digits.
+    if (digits.length > 3) return raw.trim().toUpperCase();
+    final number = digits.padLeft(2, '0');
+    return '$prefix-$number';
   }
 
   static RequirementKind _kindFor(String id) => id.startsWith('UC')

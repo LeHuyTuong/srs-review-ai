@@ -161,4 +161,79 @@ UC02 Raise hand
     expect(items.first.text, isNot(contains('Figure 3')));
     expect(items.first.text, isNot(contains('Table 9')));
   });
+
+  // Regression: a real VN capstone SRS ("ĐẶC TẢ YÊU CẦU PHẦN MỀM (SRS).pdf")
+  // codes functional requirements as `F-01: Trang Chủ`, `F-02: …`. The old
+  // prefix set (FR|NFR|UC|BR|SR) matched none of them and the file parsed to
+  // 0 units. Single-letter ids must keep the dash: bare `F01`/`F 1` would hit
+  // ordinary prose like "F 1 triệu đồng".
+  test('recognises single-letter F- ids from a real Vietnamese SRS', () {
+    final items = splitter.split([
+      '''
+3.1. PHÂN HỆ KHÁCH XEM (USER PAGE) - FRONTEND
+F-01: Trang Chủ
+   - Mô tả: Màn hình chính người dùng tiếp cận đầu tiên.
+   - Quy tắc xử lý: Header chuyển sang nền mờ khi cuộn trang.
+F-02: Trang Dịch Vụ
+   - Mô tả: Danh sách dịch vụ của doanh nghiệp.
+''',
+    ]);
+
+    expect(items.map((i) => i.id), ['F-01', 'F-02']);
+    expect(items.first.kind, RequirementKind.functional);
+    expect(items.first.section, '3.1');
+    expect(items.first.text, contains('Màn hình chính'));
+    expect(items.first.text, contains('nền mờ khi cuộn trang'));
+  });
+
+  test('recognises NF- ids and keeps the dash-only rule for F', () {
+    final withNf = splitter.split(['NF-02 Hệ thống phải phản hồi trong 2s.']);
+    expect(withNf.single.id, 'NF-02');
+
+    // No dash -> not an id; the line must not be swallowed as a requirement.
+    final withoutDash = splitter.split([
+      'F01 This looks like prose, not a requirement id.',
+    ]);
+    expect(withoutDash, isEmpty);
+  });
+
+  test('preserves every explicit occurrence, including repeated ids', () {
+    final items = splitter.split([
+      'UC04 First workflow.',
+      'UC04 Second workflow.',
+      'UC-04 Third workflow.',
+    ]);
+
+    expect(items.map((item) => item.id), ['UC-04', 'UC-04', 'UC-04']);
+    expect(items.map((item) => item.text), [
+      'First workflow.',
+      'Second workflow.',
+      'Third workflow.',
+    ]);
+  });
+
+  test('keeps malformed four-digit ids visible instead of dropping them', () {
+    final items = splitter.split([
+      'UC0114 Legacy workflow.',
+      'UC0134 Another legacy workflow.',
+    ]);
+
+    expect(items.map((item) => item.id), ['UC0114', 'UC0134']);
+    expect(items.every((item) => item.isUseCase), isTrue);
+  });
+
+  test(
+    'keeps modal fallback statements when no explicit scope signal exists',
+    () {
+      final items = splitter.split([
+        'Appendix notes',
+        'The system must retain the audit trail.',
+      ]);
+
+      expect(items, hasLength(1));
+      expect(items.single.id, 'ST-1');
+      expect(items.single.kind, RequirementKind.statement);
+      expect(items.single.section, isNull);
+    },
+  );
 }

@@ -9,9 +9,9 @@
 library;
 
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:flutter/foundation.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:xml/xml.dart';
 
@@ -22,40 +22,93 @@ abstract interface class DocumentParser {
   Future<SrsDocument> parse({
     required String fileName,
     required Uint8List bytes,
+    void Function(String status)? onStatus,
   });
 }
 
+/// One parse request, packaged for the background isolate.
+///
+/// Plain values only: the whole object is copied across the isolate boundary.
+class _ParseJob {
+  const _ParseJob(this.fileName, this.bytes, this.splitter);
+
+  final String fileName;
+  final Uint8List bytes;
+  final RequirementSplitter splitter;
+}
+
+/// Top-level so it can be handed to [compute]. Runs OFF the UI isolate.
+Future<SrsDocument> _parseEntry(_ParseJob job) {
+  final extension = _extensionOf(job.fileName);
+  return switch (extension) {
+    'pdf' => PdfParser(job.splitter).parse(
+      fileName: job.fileName,
+      bytes: job.bytes,
+    ),
+    'docx' => DocxParser(job.splitter).parse(
+      fileName: job.fileName,
+      bytes: job.bytes,
+    ),
+    _ => throw ParseException(
+      'Unsupported file type ".$extension". Choose a PDF or DOCX file.',
+    ),
+  };
+}
+
+String _extensionOf(String fileName) => fileName.split('.').last.toLowerCase();
+
 class ParseService implements DocumentParser {
   ParseService({RequirementSplitter splitter = const RequirementSplitter()})
-    : _pdf = PdfParser(splitter),
-      _docx = DocxParser(splitter);
+    // Named initializing formals cannot target a private field, so this
+    // assignment has to stay explicit.
+    // ignore: prefer_initializing_formals
+    : _splitter = splitter;
 
-  final PdfParser _pdf;
-  final DocxParser _docx;
+  final RequirementSplitter _splitter;
 
   @override
   Future<SrsDocument> parse({
     required String fileName,
     required Uint8List bytes,
+    void Function(String status)? onStatus,
   }) {
-    final extension = fileName.split('.').last.toLowerCase();
-    return switch (extension) {
-      'pdf' => _pdf.parse(fileName: fileName, bytes: bytes),
-      'docx' => _docx.parse(fileName: fileName, bytes: bytes),
+    final extension = _extensionOf(fileName);
+    // Cheap refusals stay on the calling isolate: there is no point spawning a
+    // background one just to reject a file we can rule out from its name.
+    if (extension == 'doc') {
       // Legacy binary .doc cannot be unzipped; refuse early with a clear reason
       // rather than producing an empty document (research 06).
-      'doc' => throw ParseException(
+      throw ParseException(
         'Legacy .doc files are not supported. Save the file as .docx or PDF and try again.',
-      ),
-      _ => throw ParseException(
+      );
+    }
+    if (!kSupportedDocumentExtensions.contains(extension)) {
+      throw ParseException(
         'Unsupported file type ".$extension". Choose a PDF or DOCX file.',
-      ),
-    };
+      );
+    }
+
+    // Parsing is CPU-bound: a 28 MB / 300-page SRS blocks the UI thread for
+    // seconds on a phone and the OS may kill the app. `compute` runs the work
+    // on a background isolate. Web has no isolates, so there `compute` invokes
+    // the callback inline — Chrome behaves exactly as it did before.
+    //
+    // Trade-off: per-page progress cannot cross the isolate boundary, so this
+    // status is coarser than the old page counter. The import UI keeps an
+    // animated spinner and a live elapsed timer, so a long parse still reads as
+    // "working" rather than "hung".
+    onStatus?.call('Parsing $fileName…');
+    return compute(_parseEntry, _ParseJob(fileName, bytes, _splitter));
   }
 }
 
 class PdfParser implements DocumentParser {
   const PdfParser(this._splitter);
+
+  /// Maximum number of pages accepted from a PDF. This is a generic parser
+  /// safeguard, not a document-specific scope rule, and is checked before
+  /// extracting page text.
+  static const int maxPageCount = 300;
 
   /// A page with fewer characters than this, in a document that has real text
   /// elsewhere, is treated as a diagram/mockup page.
@@ -67,20 +120,39 @@ class PdfParser implements DocumentParser {
   Future<SrsDocument> parse({
     required String fileName,
     required Uint8List bytes,
+    void Function(String status)? onStatus,
   }) async {
     late final PdfDocument document;
     try {
       document = PdfDocument(inputBytes: bytes);
-    } on Exception catch (error) {
+    } on Object catch (error) {
+      // `on Exception` was not enough. A truncated or zero-byte PDF makes
+      // Syncfusion throw ArgumentError, which is an *Error*, not an Exception
+      // — so it sailed straight past this handler and crashed the import
+      // instead of showing the user a reason. Measured with a 0-byte file and
+      // a valid-header/garbage-body file: both threw ArgumentError.
       throw ParseException(
-        'Could not open the PDF (it may be corrupted or password protected): $error',
+        'Could not open the PDF (it may be corrupted, empty or password '
+        'protected): $error',
       );
     }
 
     try {
+      final pageCount = document.pages.count;
+      if (pageCount > maxPageCount) {
+        throw ParseException(
+          'This PDF has $pageCount pages. The limit is $maxPageCount pages.',
+        );
+      }
       final extractor = PdfTextExtractor(document);
       final pageTexts = <String>[];
-      for (var page = 0; page < document.pages.count; page++) {
+      for (var page = 0; page < pageCount; page++) {
+        // Large PDFs spend real seconds in text extraction; report per-page
+        // progress (throttled to multi-page documents) so the UI shows life.
+        if (onStatus != null && pageCount >= 8) {
+          onStatus('Extracting text (page ${page + 1}/$pageCount)…');
+          await Future<void>.delayed(Duration.zero);
+        }
         pageTexts.add(
           extractor.extractText(startPageIndex: page, endPageIndex: page),
         );
@@ -135,8 +207,12 @@ class DocxParser implements DocumentParser {
   Future<SrsDocument> parse({
     required String fileName,
     required Uint8List bytes,
+    void Function(String status)? onStatus,
   }) async {
     late final Archive archive;
+    // Yield before the blocking decode so the progress frame can paint.
+    onStatus?.call('Opening DOCX archive…');
+    await Future<void>.delayed(Duration.zero);
     try {
       archive = ZipDecoder().decodeBytes(bytes);
     } on Exception catch (error) {
@@ -155,6 +231,8 @@ class DocxParser implements DocumentParser {
       throw ParseException('The DOCX body is empty.');
     }
 
+    onStatus?.call('Extracting text…');
+    await Future<void>.delayed(Duration.zero);
     final text = extractText(utf8.decode(xmlBytes, allowMalformed: true));
     if (text.trim().isEmpty) {
       throw ParseException('No text found in the DOCX file.');
@@ -163,6 +241,8 @@ class DocxParser implements DocumentParser {
     final hasMedia = archive.files.any((f) => f.name.startsWith(_mediaPrefix));
 
     // DOCX has no page concept before rendering: one logical page.
+    onStatus?.call('Detecting requirements…');
+    await Future<void>.delayed(Duration.zero);
     return SrsDocument(
       fileName: fileName,
       pageCount: 1,
