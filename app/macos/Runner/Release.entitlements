@@ -4,5 +4,15 @@
 <dict>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
+	<!-- Release is the build where a missing entitlement actually bites: the
+	     sandbox is enforced the same way as in debug (entitlements are baked
+	     into the signature either way), but debug builds are run far more often
+	     with the debugger attached and from Xcode, which masks some failures.
+	     Both files therefore carry the same keys — a release-only gap would
+	     ship. -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<key>com.apple.security.files.user-selected.read-only</key>
+	<true/>
 </dict>
 </plist>

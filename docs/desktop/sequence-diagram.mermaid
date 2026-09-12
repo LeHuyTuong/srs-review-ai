@@ -1,0 +1,81 @@
+sequenceDiagram
+    autonumber
+    participant HW as Hardware key event
+    participant FS as FocusManager
+    participant SC as Shortcuts (WorkspaceShortcuts, app level)
+    participant AC as Actions (WorkspaceShortcuts)
+    participant GD as isTextEntryFocused()
+    participant CMD as WorkspaceShortcutCommands
+    participant SH as WorkspaceShell
+    participant VM as WorkspaceViewModel
+    participant NAV as StatefulNavigationShell
+
+    HW->>FS: KeyDownEvent (Cmd+O / Ctrl+O)
+    FS->>SC: dispatch to focused node, then ancestors
+    Note over SC: nearest Shortcuts with a match wins
+    SC->>AC: lookup Action for ImportDocumentIntent
+    AC->>GD: isTextEntryFocused()
+    alt editable text has focus
+        GD-->>AC: true
+        AC-->>FS: no-op (key consumed, nothing runs)
+    else not typing
+        GD-->>AC: false
+        AC->>CMD: openImport?.call()
+        CMD->>SH: closure registered during shell build
+        SH->>VM: ref.read(workspaceViewModelProvider)
+        alt review in flight
+            VM-->>SH: isRunning == true
+            SH-->>AC: no-op
+        else idle
+            VM-->>SH: isRunning == false
+            SH->>SH: showImportModal(context, ref)
+            SH-->>AC: dialog pushed on root Navigator
+        end
+    end
+
+    Note over HW,NAV: Cmd+1 - destination switch
+    HW->>SC: KeyDownEvent (Cmd+1)
+    SC->>AC: GoDestinationIntent(1)
+    AC->>CMD: goDestination?.call(1)
+    CMD->>SH: closure
+    SH->>NAV: goBranch(1, initialLocation: 1 == currentIndex)
+    NAV-->>SH: branch rebuilt, state preserved
+
+    Note over HW,NAV: Esc - dismiss top-most modal
+    HW->>SC: KeyDownEvent (Escape)
+    SC->>AC: DismissIntent
+    AC->>CMD: dismiss?.call()
+    CMD->>SH: closure
+    alt run in flight
+        SH->>VM: cancelReview()
+    else modal open
+        SH->>NAV: Navigator.of(context).canPop() -> pop()
+        NAV-->>SH: ONE route popped
+    end
+
+    Note over HW,NAV: --- resize flow ---
+
+    participant OS as OS window manager
+    participant NAT as Native runner (Swift / Win32)
+    participant ENG as Flutter engine
+    participant MQ as MediaQuery
+    participant VP as AppViewportData.resolve
+    participant AV as AppViewport (InheritedWidget)
+    participant PG as WorkspacePage
+    participant DR as DocumentReviewView
+    participant RR as WorkspaceRightRail
+
+    OS->>NAT: user drags the corner
+    NAT->>NAT: WM_GETMINMAXINFO / NSWindow.minSize clamps at 960 x 680 (frame)
+    NAT->>ENG: new client size (physical px)
+    ENG->>MQ: metrics change -> window resized
+    MQ->>SH: MediaQuery.sizeOf(context).width = 1972
+    SH->>VP: resolve(width, isDesktop: true, hasRightRailContent: hasDocument and index == 0)
+    VP-->>SH: breakpoint = ultra, showRail = true, showFloatingTabBar = false, showRightRail = true, showInnerSplit = false, contentMaxWidth = 1440
+    SH->>AV: AppViewport(data: viewport)
+    AV->>PG: dependOnInheritedWidgetOfExactType
+    PG->>PG: ContentShell(maxWidth: 1440)
+    AV->>DR: AppViewport.of(context).showInnerSplit == false
+    DR->>DR: render _TabbedPanel full width, no 300px column
+    SH->>RR: Positioned(top: 58, right: 0, width: 360) -> ReadinessPanel
+    Note over SH,RR: workspace state lives in Riverpod providers, so nothing is reset by the rebuild

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
+import '../../../core/widgets/app_ink_well.dart';
 
 /// Small rounded label — the brief's `.badge` (neutral / green / amber).
 class WBadge extends StatelessWidget {
@@ -303,51 +304,64 @@ class MetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.workspaceColors;
     final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AppRadius.boxMd,
-      child: WPanel(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    label,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: colors.muted,
+    // Panel OUTSIDE, ink INSIDE. The original order (`InkWell` wrapping
+    // `WPanel`) put an opaque decorated box on top of the ink surface, so the
+    // card had no hover feedback at all on desktop — see the note on
+    // `AppInkWell`. Inverting the two is the whole fix.
+    //
+    // The padding belongs INSIDE the ink, not on the panel. On the panel it
+    // shrinks the tappable area by 16pt on every side — a 240×160 card gave a
+    // 208×128 target — and on desktop it strands the hover wash 16pt short of
+    // the card's edge, with a corner radius that no longer matches the card's.
+    return WPanel(
+      child: AppInkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.boxMd,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: colors.muted,
+                      ),
                     ),
                   ),
-                ),
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: background,
-                    borderRadius: AppRadius.boxSm,
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: background,
+                      borderRadius: AppRadius.boxSm,
+                    ),
+                    child: Icon(icon, size: 16, color: color),
                   ),
-                  child: Icon(icon, size: 16, color: color),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              value.toString().padLeft(2, '0'),
-              style: theme.textTheme.displaySmall?.copyWith(
-                color: colors.ink,
-                fontWeight: FontWeight.w700,
+                ],
               ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              note,
-              style: theme.textTheme.labelSmall?.copyWith(color: colors.muted),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                value.toString().padLeft(2, '0'),
+                style: theme.textTheme.displaySmall?.copyWith(
+                  color: colors.ink,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                note,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colors.muted,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ),
     );

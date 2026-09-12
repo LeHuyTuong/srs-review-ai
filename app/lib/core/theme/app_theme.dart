@@ -5,6 +5,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../data/models/review_models.dart' show Severity;
+import '../platform/app_platform.dart';
 import 'app_tokens.dart';
 import 'glass_tokens.dart';
 import 'workspace_colors.dart';
@@ -76,6 +77,58 @@ class AppTheme {
 
   static ThemeData dark() => _base(Brightness.dark);
 
+  // ---------------------------------------------------------------- desktop
+  // Pointer and keyboard feedback. M3's defaults are `onSurface` washes at
+  // 8-12% alpha, calibrated for a 40dp control on a phone: on a full-width
+  // inventory row they read as a change in ambient light rather than as
+  // feedback, and a keyboard user cannot tell where they are. These three are
+  // the ONLY theme values that differ by platform, and they are applied with
+  // `copyWith` rather than passed to the constructor so that a non-desktop
+  // build keeps Flutter's defaults byte-for-byte.
+  //
+  // `AppInkWell` reads the same two functions, which is why they are public:
+  // one source of truth, two consumers (the theme for every Material control,
+  // the widget for rows that must not depend on the ambient theme).
+
+  /// Tint under the pointer. `onSurface` keeps it neutral — a coloured hover on
+  /// a list row reads as "selected", which is a different state.
+  static Color desktopHoverColor(ColorScheme scheme) =>
+      scheme.onSurface.withValues(alpha: 0.07);
+
+  /// Tint under keyboard focus. `primary` rather than `onSurface`, so focus
+  /// cannot be mistaken for hover.
+  static Color desktopFocusColor(ColorScheme scheme) =>
+      scheme.primary.withValues(alpha: 0.18);
+
+  /// Scrollbar styling — including the one setting P1-8 is actually about.
+  ///
+  /// `thumbVisibility: true` IS the feature. `MaterialScrollBehavior` already
+  /// gives every vertical `ScrollView` a `Scrollbar` on macOS and Windows
+  /// (`Scrollable.build` → `ScrollBehavior.buildScrollbar`), and that
+  /// `Scrollbar` resolves an unset `thumbVisibility` from this theme. So one
+  /// entry here makes every scroll view in the app always show its thumb, with
+  /// no widget changes — and, more importantly, without a SECOND bar: wrapping
+  /// the views in an explicit `Scrollbar` would stack one on top of the
+  /// automatic one and paint two thumbs on hover.
+  static ScrollbarThemeData desktopScrollbarTheme(ColorScheme scheme) =>
+      ScrollbarThemeData(
+        thumbVisibility: const WidgetStatePropertyAll<bool>(true),
+        // 10pt wide: the stock 8pt thumb is hard to grab with a mouse on a
+        // 1440p display scaled to 2x.
+        thickness: const WidgetStatePropertyAll<double>(10),
+        radius: const Radius.circular(8),
+        thumbColor: WidgetStatePropertyAll<Color>(
+          scheme.onSurface.withValues(alpha: 0.35),
+        ),
+        trackColor: WidgetStatePropertyAll<Color>(
+          scheme.onSurface.withValues(alpha: 0.04),
+        ),
+        // macOS and Windows both inset the thumb slightly from the edge; 2pt
+        // keeps it from colliding with a scroll view's own hairline border.
+        crossAxisMargin: 2,
+        mainAxisMargin: 2,
+      );
+
   static TextTheme _textTheme(Brightness brightness) {
     final base = brightness == Brightness.dark
         ? Typography.material2021().white
@@ -144,7 +197,7 @@ class AppTheme {
     final workspace = brightness == Brightness.dark
         ? WorkspaceColors.dark()
         : WorkspaceColors.light();
-    return ThemeData(
+    final data = ThemeData(
       colorScheme: scheme,
       fontFamily: bodyFamily,
       // Same fallback as the TextTheme: some Material widgets take their type
@@ -226,6 +279,18 @@ class AppTheme {
             : GlassTokens.light(),
       ],
     );
+
+    // Desktop-only overlay, applied as a `copyWith` and not as constructor
+    // arguments: phone and web builds must keep Flutter's own defaults
+    // untouched, and the only way to guarantee that is to add nothing at all
+    // rather than to add a value that happens to match.
+    return AppPlatform.isDesktop
+        ? data.copyWith(
+            hoverColor: desktopHoverColor(scheme),
+            focusColor: desktopFocusColor(scheme),
+            scrollbarTheme: desktopScrollbarTheme(scheme),
+          )
+        : data;
   }
 }
 

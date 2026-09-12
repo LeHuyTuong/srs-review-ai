@@ -1,0 +1,159 @@
+classDiagram
+    direction LR
+
+    class AppPlatform {
+        <<abstract final>>
+        +bool isDesktop$
+        +bool isWeb$
+        +bool usesCommandKey$
+        +AppFormFactor formFactor$
+    }
+
+    class AppFormFactor {
+        <<enum>>
+        phone
+        desktop
+        web
+    }
+
+    class AppBreakpoint {
+        <<enum>>
+        compact
+        medium
+        expanded
+        ultra
+        cinema
+    }
+
+    class AppBreakpoints {
+        <<abstract final>>
+        +double railWidth$ = 228
+        +double desktopRailMinWidth$ = 640
+        +double nonDesktopRailMinWidth$ = 1100
+        +double rightRailMinWidth$ = 1440
+        +double rightRailWidth$ = 360
+        +double innerSplitMinWidth$ = 1100
+        +double contentWidthExpanded$ = 1100
+        +double contentWidthUltra$ = 1440
+        +double contentWidthCinema$ = 1680
+        +AppBreakpoint forWidth(double width)$
+    }
+
+    class AppViewportData {
+        +double width
+        +AppBreakpoint breakpoint
+        +bool isDesktop
+        +bool showRail
+        +bool showFloatingTabBar
+        +bool showRightRail
+        +bool showInnerSplit
+        +double contentMaxWidth
+        +AppViewportData resolve(double width, bool isDesktop, bool hasRightRailContent)$
+        +AppViewportData fallback(BuildContext context)$
+    }
+
+    class AppViewport {
+        <<InheritedWidget>>
+        +AppViewportData data
+        +AppViewportData of(BuildContext context)$
+        +bool updateShouldNotify(AppViewport old)
+    }
+
+    class WorkspaceTab {
+        <<enum>>
+        inventory
+        findings
+        syllabus
+    }
+
+    class WorkspaceTabController {
+        +WorkspaceTab build()
+        +void select(WorkspaceTab tab)
+    }
+
+    class WorkspaceShortcutCommands {
+        +VoidCallback? openImport
+        +VoidCallback? startOrCancelReview
+        +VoidCallback? exportReport
+        +VoidCallback? openSettings
+        +ValueChanged~int~? goDestination
+        +ValueChanged~WorkspaceTab~? goSubTab
+        +VoidCallback? showShortcuts
+        +VoidCallback? dismiss
+    }
+
+    class AppShortcut {
+        +String id
+        +String title
+        +String description
+        +List~ShortcutActivator~ activators
+        +bool allowedWhileTyping
+        +String label
+    }
+
+    class WorkspaceShortcuts {
+        <<ConsumerWidget>>
+        +Widget child
+        +Widget build(BuildContext, WidgetRef)
+    }
+
+    class ImportDocumentIntent
+    class StartReviewIntent
+    class ExportReportIntent
+    class OpenSettingsIntent
+    class GoDestinationIntent {
+        +int index
+    }
+    class GoSubTabIntent {
+        +WorkspaceTab tab
+    }
+    class ShowShortcutsIntent
+
+    class WorkspaceShell {
+        <<ConsumerWidget>>
+        +StatefulNavigationShell navigationShell
+        +Widget build(BuildContext, WidgetRef)
+    }
+
+    class WorkspacePage {
+        <<StatelessWidget>>
+        +Widget child
+    }
+
+    class ReadinessPanel {
+        <<ConsumerWidget>>
+    }
+
+    class WorkspaceRightRail {
+        <<ConsumerWidget>>
+        +double width
+    }
+
+    class DocumentReviewView {
+        <<ConsumerWidget>>
+    }
+
+    AppPlatform --> AppFormFactor
+    AppBreakpoints ..> AppBreakpoint : forWidth
+    AppViewportData --> AppBreakpoint
+    AppViewport *-- AppViewportData
+    AppViewportData ..> AppPlatform : isDesktop
+    WorkspaceShortcuts ..> AppShortcut : kAppShortcuts
+    WorkspaceShortcuts ..> ImportDocumentIntent
+    WorkspaceShortcuts ..> StartReviewIntent
+    WorkspaceShortcuts ..> ExportReportIntent
+    WorkspaceShortcuts ..> OpenSettingsIntent
+    WorkspaceShortcuts ..> GoDestinationIntent
+    WorkspaceShortcuts ..> GoSubTabIntent
+    WorkspaceShortcuts ..> ShowShortcutsIntent
+    WorkspaceShortcuts ..> WorkspaceShortcutCommands : reads slots
+    WorkspaceShell ..> WorkspaceShortcutCommands : fills slots
+    WorkspaceShell *-- WorkspaceRightRail
+    WorkspaceShell --> WorkspacePage
+    GoSubTabIntent --> WorkspaceTab
+    WorkspaceTabController ..> WorkspaceTab : NotifierProvider
+    DocumentReviewView ..> WorkspaceTabController : watch
+    DocumentReviewView ..> ReadinessPanel : when showInnerSplit
+    WorkspaceRightRail *-- ReadinessPanel
+    WorkspacePage ..> AppViewport : contentMaxWidth
+    DocumentReviewView ..> AppViewport : showInnerSplit

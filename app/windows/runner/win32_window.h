@@ -52,6 +52,13 @@ class Win32Window {
   // If true, closing this window will quit the application.
   void SetQuitOnClose(bool quit_on_close);
 
+  // Smallest size the user can drag the window down to, in logical pixels.
+  // The floor is enforced by the compositor through WM_GETMINMAXINFO rather
+  // than by clamping in WM_SIZE, so it holds *while* the frame is being
+  // dragged instead of snapping back after the mouse is released.
+  // Pass Size(0, 0) to restore the stock template behaviour of "no floor".
+  void SetMinSize(const Size& size);
+
   // Return a RECT representing the bounds of the current client area.
   RECT GetClientArea();
 
@@ -97,6 +104,10 @@ class Win32Window {
 
   // window handle for hosted content.
   HWND child_content_ = nullptr;
+
+  // Minimum window size in logical pixels; zero means "no floor", which is the
+  // stock template behaviour and is what every other Win32Window gets.
+  Size min_size_ = Size(0, 0);
 };
 
 #endif  // RUNNER_WIN32_WINDOW_H_

@@ -14,6 +14,16 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
 
+  // The window must never be smaller than the layout can survive: below ~944dp
+  // of client width the 228px rail and a content column stop fitting side by
+  // side. 960x680 is a FRAME size, matching macOS `NSWindow.minSize`.
+  //
+  // This belongs here rather than in `main.cpp` because `Create()` calls
+  // `OnCreate()` *after* the HWND exists — `WM_GETMINMAXINFO` is answered from
+  // `min_size_`, so the floor has to be armed while the window is being
+  // created, not after it is shown.
+  SetMinSize(Size(960, 680));
+
   RECT frame = GetClientArea();
 
   // The size here must match the window dimensions to avoid unnecessary surface

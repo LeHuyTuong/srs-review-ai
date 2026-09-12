@@ -6,41 +6,40 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/providers.dart';
+import '../../../core/layout/app_viewport.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
+import '../models/workspace_tab.dart';
+import '../view_model/workspace_tab_controller.dart';
 import '../view_model/workspace_view_model.dart';
 import 'findings_tab.dart';
 import 'inventory_tab.dart';
-import 'source_sheet.dart';
+import 'readiness_panel.dart';
 import 'syllabus_tab.dart';
 import 'workspace_modals.dart';
 import 'workspace_shell.dart';
 import 'workspace_widgets.dart';
 
-enum WorkspaceTab { inventory, findings, syllabus }
+int _workflowStepFor(WorkspaceTab tab) => switch (tab) {
+  WorkspaceTab.inventory => 2,
+  WorkspaceTab.findings => 3,
+  WorkspaceTab.syllabus => 3,
+};
 
-class DocumentReviewView extends ConsumerStatefulWidget {
+class DocumentReviewView extends ConsumerWidget {
   const DocumentReviewView({super.key});
 
   @override
-  ConsumerState<DocumentReviewView> createState() => _DocumentReviewViewState();
-}
-
-class _DocumentReviewViewState extends ConsumerState<DocumentReviewView> {
-  WorkspaceTab _tab = WorkspaceTab.inventory;
-
-  int get _workflowStep => switch (_tab) {
-    WorkspaceTab.inventory => 2,
-    WorkspaceTab.findings => 3,
-    WorkspaceTab.syllabus => 3,
-  };
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(workspaceViewModelProvider);
+    final tab = ref.watch(workspaceTabProvider);
     final colors = context.workspaceColors;
-    final isWide = MediaQuery.sizeOf(context).width >= 1100;
+    // Read from the shell's viewport rather than from MediaQuery: the layout
+    // decision for this column is not "how wide is the window" but "has the
+    // shell already put the readiness panel in its own rail". Re-deriving it
+    // here would be a second, divergent copy of the breakpoint rule.
+    final viewport = AppViewport.of(context);
+    final showInnerSplit = viewport.showInnerSplit;
 
     if (state.restoring) {
       return const Center(child: CircularProgressIndicator());
@@ -140,16 +139,20 @@ class _DocumentReviewViewState extends ConsumerState<DocumentReviewView> {
           ),
           const SizedBox(height: AppSpacing.lg),
           WorkflowSteps(
-            currentStep: _workflowStep,
+            currentStep: _workflowStepFor(tab),
             onStepTap: (step) {
               switch (step) {
                 case 1:
                   showImportModal(context, ref);
                 case 2:
-                  setState(() => _tab = WorkspaceTab.inventory);
+                  ref
+                      .read(workspaceTabProvider.notifier)
+                      .select(WorkspaceTab.inventory);
                 case 3:
                   if (state.hasResult) {
-                    setState(() => _tab = WorkspaceTab.findings);
+                    ref
+                        .read(workspaceTabProvider.notifier)
+                        .select(WorkspaceTab.findings);
                   } else {
                     showReviewModal(context, ref);
                   }
@@ -190,9 +193,9 @@ class _DocumentReviewViewState extends ConsumerState<DocumentReviewView> {
                   icon: icon,
                   color: color,
                   background: bg,
-                  onTap: () => setState(() {
-                    _tab = WorkspaceTab.inventory;
-                  }),
+                  onTap: () => ref
+                      .read(workspaceTabProvider.notifier)
+                      .select(WorkspaceTab.inventory),
                 ),
               );
               return Wrap(
@@ -237,32 +240,37 @@ class _DocumentReviewViewState extends ConsumerState<DocumentReviewView> {
           ),
           const SizedBox(height: AppSpacing.lg),
           Flex(
-            direction: isWide ? Axis.horizontal : Axis.vertical,
+            direction: showInnerSplit ? Axis.horizontal : Axis.vertical,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Flexible(
-                flex: isWide ? 1 : 0,
+                flex: showInnerSplit ? 1 : 0,
                 fit: FlexFit.loose,
                 child: _TabbedPanel(
-                  tab: _tab,
-                  onTabChanged: (tab) => setState(() => _tab = tab),
+                  tab: tab,
+                  onTabChanged: (next) =>
+                      ref.read(workspaceTabProvider.notifier).select(next),
                 ),
               ),
-              if (isWide)
-                const SizedBox(width: AppSpacing.lg)
-              else
-                const SizedBox(height: AppSpacing.lg),
-              Flexible(
-                flex: 0,
-                fit: FlexFit.loose,
-                child: SizedBox(
-                  width: isWide ? 300 : double.infinity,
-                  child: _ReadinessPanel(
-                    onInspectFlagged: () =>
-                        setState(() => _tab = WorkspaceTab.inventory),
+              // When the shell has taken the panel into its 360px rail, it is
+              // omitted here entirely — otherwise the readiness numbers would
+              // be on screen twice, once in each column. When it is not in the
+              // rail it renders exactly as it did before: side-by-side above
+              // 1100, stacked below.
+              if (!viewport.showRightRail) ...[
+                if (showInnerSplit)
+                  const SizedBox(width: AppSpacing.lg)
+                else
+                  const SizedBox(height: AppSpacing.lg),
+                Flexible(
+                  flex: 0,
+                  fit: FlexFit.loose,
+                  child: SizedBox(
+                    width: showInnerSplit ? 300 : double.infinity,
+                    child: const ReadinessPanel(),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         ],
@@ -557,313 +565,6 @@ class _TabbedPanel extends ConsumerWidget {
           },
         ],
       ),
-    );
-  }
-}
-
-class _ReadinessPanel extends ConsumerWidget {
-  const _ReadinessPanel({required this.onInspectFlagged});
-
-  final VoidCallback onInspectFlagged;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(workspaceViewModelProvider);
-    final mockMode = ref.watch(mockModeProvider);
-    final colors = context.workspaceColors;
-    final theme = Theme.of(context);
-    final selected = state.selectedCount;
-    final total = state.units.length;
-    final fraction = total == 0 ? 0.0 : selected / total;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        WPanel(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Review overview',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: colors.ink,
-                      ),
-                    ),
-                  ),
-                  WBadge(
-                    label: mockMode ? 'Mock mode' : 'Online mode',
-                    tint: mockMode ? WBadgeTint.amber : WBadgeTint.green,
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                'A good review starts with a clear inventory.',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colors.muted,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    '$selected',
-                    style: theme.textTheme.displaySmall?.copyWith(
-                      color: colors.brand,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Text(
-                    ' / $total',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: colors.muted,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    'units selected',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colors.muted,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              ClipRRect(
-                borderRadius: AppRadius.boxSm,
-                child: LinearProgressIndicator(
-                  value: fraction,
-                  minHeight: 5,
-                  backgroundColor: colors.amberBg,
-                  color: colors.sage,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Ready to review',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colors.muted,
-                    ),
-                  ),
-                  Text(
-                    '${(fraction * 100).round()}%',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colors.sage,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              ...[
-                ('Whole use-case context', Icons.check_circle_outline),
-                ('Source references preserved', Icons.check_circle_outline),
-                ('No silent truncation', Icons.check_circle_outline),
-              ].map(
-                (row) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: Row(
-                    children: [
-                      Icon(row.$2, size: 15, color: colors.sage),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          row.$1,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: colors.muted,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (state.attentionCount > 0)
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: colors.attentionBg,
-                    borderRadius: AppRadius.boxSm,
-                    border: Border.all(color: colors.attentionBorder),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 16,
-                            color: colors.amber,
-                          ),
-                          const SizedBox(width: AppSpacing.xs),
-                          Expanded(
-                            child: Text(
-                              '${state.attentionCount} units need a quick look',
-                              style: theme.textTheme.labelMedium?.copyWith(
-                                color: colors.amber,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        'Unrecognized IDs are kept, not dropped. Check them '
-                        'before you review.',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: colors.amber,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Wrap(
-                        spacing: AppSpacing.xs,
-                        runSpacing: AppSpacing.xs,
-                        children: [
-                          for (final unit
-                              in state.units.where((u) => u.malformed).take(3))
-                            InkWell(
-                              onTap: () => showSourceSheet(context, ref, unit),
-                              borderRadius: AppRadius.boxSm,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: colors.surface,
-                                  borderRadius: AppRadius.boxSm,
-                                  border: Border.all(color: colors.amberBorder),
-                                ),
-                                child: Text(
-                                  unit.id,
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: colors.amber,
-                                    fontSize: 9,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      InkWell(
-                        onTap: onInspectFlagged,
-                        child: Text(
-                          'Inspect flagged units →',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: colors.amber,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: colors.sageBg,
-                    borderRadius: AppRadius.boxSm,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.check_circle, size: 17, color: colors.sage),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          'All identifiers look good.',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: colors.brand,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              const SizedBox(height: AppSpacing.md),
-              Row(
-                children: [
-                  Icon(
-                    mockMode ? Icons.wifi_off_outlined : Icons.wifi_outlined,
-                    size: 15,
-                    color: colors.muted,
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  Expanded(
-                    child: Text(
-                      mockMode
-                          ? 'Offline mock · no API key needed'
-                          : 'Proxy review · quotes verified before display',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colors.muted,
-                      ),
-                    ),
-                  ),
-                  InkWell(
-                    onTap: () => showSettingsModal(context, ref),
-                    child: Text(
-                      'Change',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colors.muted,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        WPanel(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            children: [
-              Icon(Icons.shield_outlined, size: 28, color: colors.sage),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                'Evidence, not guesswork.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: colors.brand,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                'Every finding is checked against your source. No matching '
-                'quote? It doesn\'t make the cut.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colors.muted,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              InkWell(
-                onTap: () => showHelpModal(context, ref),
-                child: Text(
-                  'How verification works →',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colors.sage,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

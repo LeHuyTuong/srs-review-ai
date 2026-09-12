@@ -207,6 +207,35 @@ Win32Window::MessageHandler(HWND hwnd,
       return 0;
     }
 
+    case WM_GETMINMAXINFO: {
+      // DefWindowProc fills in the system defaults (maximized dimensions,
+      // snapped metrics, ...), so let it run first and only tighten the lower
+      // bound afterwards. Returning early here would regress all of those.
+      DefWindowProc(window_handle_, message, wparam, lparam);
+
+      // Size(0, 0) means "no floor", which is what every other Win32Window
+      // gets. Bail out so the stock template behaviour is untouched.
+      if (min_size_.width == 0 || min_size_.height == 0) {
+        return 0;
+      }
+
+      // ptMinTrackSize is a *frame* size in physical pixels, so the logical
+      // floor has to be scaled for the monitor the window currently lives on
+      // (which may differ from the one it was created on after a drag).
+      const HMONITOR monitor =
+          MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+      const UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
+      const double scale_factor = dpi / 96.0;
+
+      auto* info = reinterpret_cast<MINMAXINFO*>(lparam);
+      // Scale() takes an int; Size stores unsigned ints.
+      info->ptMinTrackSize.x =
+          Scale(static_cast<int>(min_size_.width), scale_factor);
+      info->ptMinTrackSize.y =
+          Scale(static_cast<int>(min_size_.height), scale_factor);
+      return 0;
+    }
+
     case WM_ACTIVATE:
       if (child_content_ != nullptr) {
         SetFocus(child_content_);
@@ -257,6 +286,10 @@ RECT Win32Window::GetClientArea() {
 
 HWND Win32Window::GetHandle() {
   return window_handle_;
+}
+
+void Win32Window::SetMinSize(const Size& size) {
+  min_size_ = size;
 }
 
 void Win32Window::SetQuitOnClose(bool quit_on_close) {

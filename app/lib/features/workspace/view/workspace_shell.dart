@@ -8,13 +8,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/app_config.dart';
+import '../../../core/layout/app_breakpoint.dart';
+import '../../../core/layout/app_viewport.dart';
+import '../../../core/platform/app_platform.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
+import '../../../core/widgets/app_ink_well.dart';
 import '../../../core/widgets/chrome_insets.dart';
 import '../../../core/widgets/content_shell.dart';
 import '../../../core/widgets/glass_surface.dart';
+import '../view_model/workspace_shortcut_commands.dart';
+import '../view_model/workspace_tab_controller.dart';
 import '../view_model/workspace_view_model.dart';
+import 'readiness_panel.dart';
+import 'shortcuts_modal.dart';
 import 'workspace_modals.dart';
 import 'workspace_widgets.dart';
 
@@ -53,8 +61,24 @@ class WorkspaceShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isWide = MediaQuery.sizeOf(context).width >= 1100;
+    final width = MediaQuery.sizeOf(context).width;
     final mockMode = ref.watch(mockModeProvider);
+    // Only `hasDocument` is watched, not the whole view model: the shell must
+    // not rebuild on every progress tick of a run, and the shortcut closures
+    // below read the live state at the moment they are invoked.
+    final hasDocument = ref.watch(
+      workspaceViewModelProvider.select((state) => state.hasDocument),
+    );
+    final viewport = AppViewportData.resolve(
+      width: width,
+      isDesktop: AppPlatform.isDesktop,
+      // The rail carries the readiness panel, which only means something on the
+      // review destination with a document loaded. History and Syllabus would
+      // show 360px of empty gutter.
+      hasRightRailContent: hasDocument && navigationShell.currentIndex == 0,
+    );
+
+    _registerShortcutCommands(ref, context);
 
     // Port of the brief's toast: announcements ("N units reviewed · saved on
     // this device") surface as a transient banner.
@@ -112,12 +136,12 @@ class WorkspaceShell extends ConsumerWidget {
     final safeBottom = MediaQuery.viewPaddingOf(context).bottom;
     final chromeInsets = EdgeInsets.only(
       top: _kTopBarHeight,
-      bottom: isWide ? 0 : _kTabBarReserve + safeBottom,
+      bottom: viewport.showRail ? 0 : _kTabBarReserve + safeBottom,
     );
 
     final body = Row(
       children: [
-        if (isWide) _Sidebar(navigationShell: navigationShell),
+        if (viewport.showRail) _Sidebar(navigationShell: navigationShell),
         Expanded(
           child: Stack(
             children: [
@@ -142,6 +166,12 @@ class WorkspaceShell extends ConsumerWidget {
               // the branch as its own node instead of merging them into this
               // one.
               Positioned.fill(
+                // Hand the content only the width left once the rail has taken
+                // its slice. Insetting the CONTENT rather than shrinking the
+                // stack is what keeps the top bar spanning the whole window.
+                right: viewport.showRightRail
+                    ? AppBreakpoints.rightRailWidth
+                    : 0,
                 child: ChromeInsets(
                   insets: chromeInsets,
                   child: Semantics(
@@ -151,6 +181,7 @@ class WorkspaceShell extends ConsumerWidget {
                   ),
                 ),
               ),
+              if (viewport.showRightRail) const _WorkspaceRightRail(),
               // The review progress surface lives in the SHELL, not in the
               // modal that starts the run. Previously the run button popped
               // the sheet that owned the only progress UI, so a multi-minute
@@ -173,7 +204,7 @@ class WorkspaceShell extends ConsumerWidget {
                   children: [
                     _TopBar(
                       navigationShell: navigationShell,
-                      showMenuButton: !isWide,
+                      showMenuButton: !viewport.showRail,
                       mockMode: mockMode,
                     ),
                     const ReviewProgressBar(),
@@ -183,7 +214,7 @@ class WorkspaceShell extends ConsumerWidget {
               // Narrow screens get a real tab bar instead of only a hamburger.
               // The user's complaint was literally "phải bấm menu chưa ổn lắm"
               // — 3 destinations were two taps away behind a drawer.
-              if (!isWide)
+              if (viewport.showFloatingTabBar)
                 Positioned(
                   left: 0,
                   right: 0,
@@ -197,8 +228,104 @@ class WorkspaceShell extends ConsumerWidget {
     );
 
     return Scaffold(
-      drawer: isWide ? null : _AppDrawer(navigationShell: navigationShell),
-      body: body,
+      drawer: viewport.showRail
+          ? null
+          : _AppDrawer(navigationShell: navigationShell),
+      body: AppViewport(data: viewport, child: body),
+    );
+  }
+
+  /// Fills the shortcut command slots for this build.
+  ///
+  /// Every slot is re-assigned on each build, which sounds wasteful but is the
+  /// point: the closures capture `navigationShell`, the current branch index and
+  /// a `BuildContext` that is valid for `show*Modal`, and all three go stale.
+  /// Registering them again is how they stay correct.
+  ///
+  /// The slots themselves are nullable; a null slot means "this shortcut is
+  /// inert", which is what any widget test that never builds the shell gets.
+  void _registerShortcutCommands(WidgetRef ref, BuildContext context) {
+    final commands = ref.read(workspaceShortcutCommandsProvider);
+    final viewModel = ref.read(workspaceViewModelProvider.notifier);
+
+    commands.openImport = () {
+      // Starting an import mid-run would race the run for the same document
+      // slot, so the key is simply inert while one is in flight.
+      if (ref.read(workspaceViewModelProvider).isRunning) return;
+      showImportModal(context, ref);
+    };
+    commands.startOrCancelReview = () {
+      final state = ref.read(workspaceViewModelProvider);
+      if (state.isRunning) {
+        viewModel.cancelReview();
+        return;
+      }
+      if (state.hasDocument) showReviewModal(context, ref);
+    };
+    commands.exportReport = () {
+      if (!ref.read(workspaceViewModelProvider).hasResult) return;
+      showExportModal(context, ref);
+    };
+    commands.openSettings = () => showSettingsModal(context, ref);
+    commands.goDestination = (index) => navigationShell.goBranch(
+      index,
+      initialLocation: index == navigationShell.currentIndex,
+    );
+    commands.goSubTab = (tab) {
+      if (navigationShell.currentIndex != 0) {
+        navigationShell.goBranch(0);
+      }
+      ref.read(workspaceTabProvider.notifier).select(tab);
+    };
+    commands.showShortcuts = () => showShortcutsModal(context, ref);
+    commands.dismiss = () {
+      final state = ref.read(workspaceViewModelProvider);
+      if (state.isRunning) {
+        // Esc during a run cancels the run; it must not pop the page out from
+        // under a run that is still writing results.
+        viewModel.cancelReview();
+        return;
+      }
+      final navigator = Navigator.of(context);
+      // One route per press. Exactly one Esc handler must run: the app-level
+      // Shortcuts resolves to AppDismissIntent, and because it sits nearer to
+      // the focus than the framework's root Escape->DismissIntent binding, that
+      // binding never fires — see AppDismissIntent in workspace_shortcuts.dart.
+      if (navigator.canPop()) navigator.pop();
+    };
+  }
+}
+
+/// The 360px readiness column, shown only at `ultra`/`cinema` on the review
+/// destination.
+///
+/// It starts BELOW the top bar (`top: _kTopBarHeight`) so the bar spans the
+/// full window instead of stopping at the rail. The review progress bar is a
+/// transient overlay that will cross the top of this column during a run —
+/// accepted, because it is semi-transparent and already overlays content the
+/// same way.
+class _WorkspaceRightRail extends StatelessWidget {
+  const _WorkspaceRightRail();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.workspaceColors;
+    return Positioned(
+      top: _kTopBarHeight,
+      right: 0,
+      bottom: 0,
+      width: AppBreakpoints.rightRailWidth,
+      child: Container(
+        key: const Key('right-rail'),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          border: Border(left: BorderSide(color: colors.border)),
+        ),
+        child: const SingleChildScrollView(
+          padding: EdgeInsets.all(AppSpacing.lg),
+          child: ReadinessPanel(),
+        ),
+      ),
     );
   }
 }
@@ -289,7 +416,7 @@ class _TopBar extends ConsumerWidget {
                 ),
               ),
             ),
-            InkWell(
+            AppInkWell(
               // Rechecking is the natural next gesture when the pill says the
               // proxy is gone: the user fixes the proxy, taps, and it updates
               // without an app restart.
@@ -325,6 +452,17 @@ class _TopBar extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.md),
+            // Desktop-only, and a NEW node rather than an edit of the Help
+            // button's tooltip: `workspace_shell_test.dart` asserts
+            // 'Help & getting started' appears on exactly one semantics node,
+            // so appending a shortcut hint to it would break that count.
+            if (AppPlatform.isDesktop)
+              IconButton(
+                tooltip: 'Keyboard shortcuts',
+                icon: const Icon(Icons.keyboard_command_key),
+                color: colors.muted,
+                onPressed: () => showShortcutsModal(context, ref),
+              ),
             IconButton(
               tooltip: 'Help & getting started',
               icon: const Icon(Icons.help_outline),
@@ -483,7 +621,7 @@ class _Sidebar extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Container(
-      width: 228,
+      width: AppBreakpoints.railWidth,
       decoration: BoxDecoration(
         color: colors.surface,
         border: Border(right: BorderSide(color: colors.border)),
@@ -537,6 +675,7 @@ class _Sidebar extends ConsumerWidget {
             _NavItem(
               destination: kWorkspaceDestinations[i],
               active: navigationShell.currentIndex == i,
+              shortcutHint: _destinationShortcutHint(i),
               onTap: () => navigationShell.goBranch(
                 i,
                 initialLocation: i == navigationShell.currentIndex,
@@ -563,16 +702,28 @@ class _Sidebar extends ConsumerWidget {
 // Private sidebar widgets live below; shared badges come from
 // workspace_widgets.dart.
 
+/// `⌘1` / `Ctrl+1` — the hint shown next to a destination, desktop only.
+///
+/// Returns null off desktop, because a `Tooltip` wraps the item in a second
+/// semantics node carrying this text, and `workspace_shell_test.dart` asserts
+/// each destination label is announced exactly once.
+String? _destinationShortcutHint(int index) {
+  if (!AppPlatform.isDesktop) return null;
+  return AppPlatform.usesCommandKey ? '⌘${index + 1}' : 'Ctrl+${index + 1}';
+}
+
 class _NavItem extends StatelessWidget {
   const _NavItem({
     required this.destination,
     required this.active,
     required this.onTap,
+    this.shortcutHint,
   });
 
   final WorkspaceDestination destination;
   final bool active;
   final VoidCallback onTap;
+  final String? shortcutHint;
 
   @override
   Widget build(BuildContext context) {
@@ -585,7 +736,7 @@ class _NavItem extends StatelessWidget {
     // Without it, the icon and the label each publish their own semantics on
     // top of the InkWell's, so the destination is announced twice — and the
     // merged node still never says it is a button.
-    return Padding(
+    final item = Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.xs),
       child: Semantics(
         button: true,
@@ -594,7 +745,7 @@ class _NavItem extends StatelessWidget {
         // Without this the icon's and label's own semantics are merged on top
         // of ours, so a screen reader announces the item twice.
         excludeSemantics: true,
-        child: InkWell(
+        child: AppInkWell(
           onTap: onTap,
           borderRadius: AppRadius.boxSm,
           child: Container(
@@ -628,6 +779,14 @@ class _NavItem extends StatelessWidget {
           ),
         ),
       ),
+    );
+    if (shortcutHint == null) return item;
+    // Desktop-only hover affordance: a mouse user discovers ⌘1 here. A touch
+    // user never sees it, and a screen reader is unaffected because the
+    // tooltip text is a distinct string from the destination label.
+    return Tooltip(
+      message: '${destination.label} ($shortcutHint)',
+      child: item,
     );
   }
 }
@@ -690,7 +849,7 @@ class _OfflineCard extends ConsumerWidget {
             button: true,
             label: 'Explore mock mode',
             excludeSemantics: true,
-            child: InkWell(
+            child: AppInkWell(
               onTap: () => showSettingsModal(context, ref),
               borderRadius: AppRadius.boxSm,
               child: Row(
@@ -974,7 +1133,10 @@ class WorkspacePage extends StatelessWidget {
     // scrolling up and behind it — an outer Padding would clip it at the bar.
     final insets = ChromeInsets.of(context);
     return ContentShell(
-      maxWidth: 1100,
+      // From the shell's resolved viewport, not from a literal: below 1440
+      // this resolves to 1100 exactly as before, and the wider steps exist
+      // only on desktop, so web and mobile cannot be affected.
+      maxWidth: AppViewport.of(context).contentMaxWidth,
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
           AppSpacing.lg,

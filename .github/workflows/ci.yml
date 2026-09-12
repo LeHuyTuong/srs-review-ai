@@ -60,3 +60,73 @@ jobs:
       # Zero tolerance: infos fail too, so lint debt cannot accumulate.
       - run: flutter analyze --fatal-infos --fatal-warnings
       - run: flutter test
+
+  # The only automated verification either desktop native runner gets.
+  #
+  # Why it is here: the app ships a Windows runner (native window sizing in
+  # windows/runner/**) and a macOS runner (NSWindow sizing and entitlements in
+  # macos/Runner/**), and the development machine can build NEITHER. Windows
+  # needs a Windows host; macOS has Command Line Tools only and no Xcode, so
+  # `xcodebuild` is missing and `flutter build macos` cannot even start — QA got
+  # no further than `swiftc -parse`. Without this job every native change is
+  # eye-reviewed only. See docs/desktop/WINDOWS-REVIEW-CHECKLIST.md.
+  #
+  # Why analyze + test AND a real build: `flutter analyze` and `flutter test`
+  # are platform-agnostic. They prove the Dart half of the desktop work
+  # (platform detection, breakpoints, the shortcut layer) behaves the same on a
+  # desktop host, which is the part that could silently differ — but neither of
+  # them compiles a single line of C++ or Swift.
+  #
+  # `flutter build ${{ matrix.target }} --debug` is the only step that actually
+  # invokes MSVC over windows/runner/** or the Apple toolchain over
+  # macos/Runner/**. Both Windows defects found in review (a method called
+  # without a declaration in win32_window.h, and a min-size member that was
+  # written but never read) passed analyze and test cleanly and broke the build
+  # outright; nothing short of compiling catches that class of bug. macOS is the
+  # one desktop target we can genuinely run, so it is also the cheapest early
+  # warning available.
+  #
+  # This job is a GATE, not a warning light. It deliberately has no
+  # `continue-on-error`: the build step below is the only thing in the whole
+  # pipeline that compiles C++/Swift, and the two Windows P0s found in review
+  # (a method called without a declaration in win32_window.h, and a min-size
+  # member written but never read) both passed analyze and test cleanly. A job
+  # that can detect that class of bug but is not allowed to fail is decoration.
+  #
+  # If the FIRST run goes red for a toolchain reason and not a code reason, the
+  # escape hatch is exactly one line — `continue-on-error: true` — but it must
+  # be added with a dated issue to remove it, never on its own. A mute with no
+  # removal date is how a "temporary" flag outlives the reason it was added, and
+  # that is precisely how we would end up shipping a Windows target that has
+  # never been compiled. Prefer fixing the job over muting it.
+  desktop-verify:
+    name: ${{ matrix.name }} verify (analyze + test + build)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # One platform failing must not cancel the other: the value of this job is
+      # telling the desktop workstream WHICH platform broke.
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+            target: windows
+          - os: macos-latest
+            name: macOS
+            target: macos
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.6"
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze --fatal-infos --fatal-warnings
+      - run: flutter test
+      # Debug, not release: the fastest target that still runs the platform
+      # compiler and linker over every file in the runner directory.
+      - run: flutter build ${{ matrix.target }} --debug

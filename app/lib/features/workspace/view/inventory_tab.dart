@@ -4,12 +4,15 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
+import '../../../core/widgets/app_ink_well.dart';
 import '../models/workspace_unit.dart';
 import '../view_model/workspace_view_model.dart';
+import 'desktop_context_menu.dart';
 import 'source_sheet.dart';
 import 'workspace_modals.dart';
 import 'workspace_widgets.dart';
@@ -242,6 +245,7 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
                   onOpen: () => showSourceSheet(context, ref, unit),
                   onToggle: (value) =>
                       viewModel.setUnitSelected(unit.key, value),
+                  onClassify: (kind) => viewModel.classifyUnit(unit.key, kind),
                 ),
             ],
           ),
@@ -314,11 +318,39 @@ class _UnitRow extends StatelessWidget {
     required this.unit,
     required this.onOpen,
     required this.onToggle,
+    required this.onClassify,
   });
 
   final WorkspaceUnit unit;
   final VoidCallback onOpen;
   final ValueChanged<bool> onToggle;
+
+  /// Re-classifying is the one inventory action with no direct on-screen
+  /// control outside the source sheet, which is exactly why it belongs in the
+  /// right-click menu. Passed as a callback rather than a `WidgetRef` so the
+  /// row stays a pure function of its inputs.
+  final ValueChanged<UnitKind> onClassify;
+
+  /// Maps a menu choice onto the action it names. Every branch calls something
+  /// the app already does elsewhere — nothing here is a new capability.
+  Future<void> _onMenuChoice(
+    BuildContext context,
+    UnitMenuChoice choice,
+  ) async {
+    switch (choice.action) {
+      case UnitMenuAction.openSource:
+        onOpen();
+      case UnitMenuAction.copyText:
+        // The same string the source sheet's copy button puts on the
+        // clipboard: the full requirement text, not the row's truncated title.
+        await Clipboard.setData(ClipboardData(text: unit.text));
+      case UnitMenuAction.toggleSelection:
+        onToggle(!unit.selected);
+      case UnitMenuAction.classify:
+        final kind = choice.kind;
+        if (kind != null) onClassify(kind);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -338,100 +370,113 @@ class _UnitRow extends StatelessWidget {
       ),
     };
 
-    return InkWell(
-      onTap: onOpen,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: colors.border.withValues(alpha: 0.6)),
+    return DesktopContextMenuArea(
+      onSecondaryTapUp: (details) async {
+        final choice = await showUnitContextMenu(
+          context: context,
+          globalPosition: details.globalPosition,
+          unit: unit,
+        );
+        if (choice == null || !context.mounted) return;
+        await _onMenuChoice(context, choice);
+      },
+      child: AppInkWell(
+        onTap: onOpen,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: colors.border.withValues(alpha: 0.6)),
+            ),
           ),
-        ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.sm,
-        ),
-        // Phones drop the page column (the source sheet carries it); wide
-        // screens keep every column from the brief's table.
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final compact = constraints.maxWidth < 560;
-            final columns = <Widget>[
-              SizedBox(
-                width: 32,
-                child: Checkbox(
-                  value: unit.selected,
-                  onChanged: (value) => onToggle(value ?? false),
-                  activeColor: colors.brand,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-              ),
-              SizedBox(
-                width: 74,
-                child: Text(
-                  unit.id,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: colors.muted,
-                    fontFeatures: const [FontFeature.tabularFigures()],
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.sm,
+          ),
+          // Phones drop the page column (the source sheet carries it); wide
+          // screens keep every column from the brief's table.
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 560;
+              final columns = <Widget>[
+                SizedBox(
+                  width: 32,
+                  child: Checkbox(
+                    value: unit.selected,
+                    onChanged: (value) => onToggle(value ?? false),
+                    activeColor: colors.brand,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                 ),
-              ),
-              Expanded(
-                child: Text(
-                  unit.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(color: colors.ink),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              // The type badge used to take its natural width, which pushed
-              // the fixed-width page/status columns 14px past the right edge
-              // on a 390px-wide phone. Let it shrink instead; the unit title
-              // already carries the meaning.
-              Flexible(
-                child: WBadge(
-                  label: unit.kind.label,
-                  tint: unit.kind == UnitKind.unknown
-                      ? WBadgeTint.amber
-                      : unit.kind == UnitKind.businessRule
-                      ? WBadgeTint.purple
-                      : WBadgeTint.neutral,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              if (!compact) ...[
                 SizedBox(
-                  width: 52,
+                  width: 74,
                   child: Text(
-                    'p. ${unit.pageIndex + 1}',
-                    style: theme.textTheme.labelSmall?.copyWith(
+                    unit.id,
+                    style: theme.textTheme.labelMedium?.copyWith(
                       color: colors.muted,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 ),
-              ],
-              SizedBox(
-                width: 72,
-                child: Row(
-                  children: [
-                    Icon(Icons.circle, size: 4, color: statusColor),
-                    const SizedBox(width: AppSpacing.xs),
-                    Expanded(
-                      child: Text(
-                        statusLabel,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: statusColor,
-                          fontSize: 9.5,
-                        ),
+                Expanded(
+                  child: Text(
+                    unit.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.ink,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                // The type badge used to take its natural width, which pushed
+                // the fixed-width page/status columns 14px past the right edge
+                // on a 390px-wide phone. Let it shrink instead; the unit title
+                // already carries the meaning.
+                Flexible(
+                  child: WBadge(
+                    label: unit.kind.label,
+                    tint: unit.kind == UnitKind.unknown
+                        ? WBadgeTint.amber
+                        : unit.kind == UnitKind.businessRule
+                        ? WBadgeTint.purple
+                        : WBadgeTint.neutral,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                if (!compact) ...[
+                  SizedBox(
+                    width: 52,
+                    child: Text(
+                      'p. ${unit.pageIndex + 1}',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colors.muted,
                       ),
                     ),
-                  ],
+                  ),
+                ],
+                SizedBox(
+                  width: 72,
+                  child: Row(
+                    children: [
+                      Icon(Icons.circle, size: 4, color: statusColor),
+                      const SizedBox(width: AppSpacing.xs),
+                      Expanded(
+                        child: Text(
+                          statusLabel,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: statusColor,
+                            fontSize: 9.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Icon(Icons.chevron_right, size: 15, color: colors.muted),
-            ];
-            return Row(children: columns);
-          },
+                Icon(Icons.chevron_right, size: 15, color: colors.muted),
+              ];
+              return Row(children: columns);
+            },
+          ),
         ),
       ),
     );

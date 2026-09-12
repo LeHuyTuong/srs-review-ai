@@ -4,14 +4,17 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
+import '../../../core/widgets/app_ink_well.dart';
 import '../../../data/models/review_models.dart';
 import '../models/workspace_findings.dart';
 import '../view_model/workspace_view_model.dart';
+import 'desktop_context_menu.dart';
 import 'source_sheet.dart';
 import 'workspace_modals.dart';
 import 'workspace_widgets.dart';
@@ -275,6 +278,13 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                   _FindingCard(
                     finding: finding,
                     status: state.statusOf(finding.id),
+                    // Computed here, where the inventory is in scope: a
+                    // finding whose unit is no longer in the document cannot
+                    // open a source, and the menu has to say so instead of
+                    // silently doing nothing when picked.
+                    canOpenSource: state.units.any(
+                      (u) => u.key == finding.unitKey,
+                    ),
                     onOpenSource: () {
                       final unit = state.units
                           .where((u) => u.key == finding.unitKey)
@@ -310,6 +320,7 @@ class _FindingCard extends StatelessWidget {
   const _FindingCard({
     required this.finding,
     required this.status,
+    required this.canOpenSource,
     required this.onOpenSource,
     required this.onAccept,
     required this.onDismiss,
@@ -317,6 +328,11 @@ class _FindingCard extends StatelessWidget {
 
   final FindingRow finding;
   final FindingStatus status;
+
+  /// Whether the finding's unit is still in the inventory. Decides if the
+  /// menu's "Open source" entry is pickable — see the note at the call site.
+  final bool canOpenSource;
+
   final VoidCallback onOpenSource;
 
   /// Marks, or un-marks, the finding as worth acting on.
@@ -337,139 +353,162 @@ class _FindingCard extends StatelessWidget {
       colors.surface,
     );
 
-    return WPanel(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: InkWell(
-        onTap: onOpenSource,
-        borderRadius: AppRadius.boxMd,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 3,
+    return DesktopContextMenuArea(
+      onSecondaryTapUp: (details) async {
+        final choice = await showFindingContextMenu(
+          context: context,
+          globalPosition: details.globalPosition,
+          status: status,
+          canOpenSource: canOpenSource,
+        );
+        if (choice == null || !context.mounted) return;
+        switch (choice) {
+          case FindingMenuAction.openSource:
+            onOpenSource();
+          case FindingMenuAction.copyText:
+            await Clipboard.setData(ClipboardData(text: finding.title));
+          case FindingMenuAction.copyQuote:
+            await Clipboard.setData(ClipboardData(text: finding.quote));
+          case FindingMenuAction.accept:
+            onAccept();
+          case FindingMenuAction.dismiss:
+            onDismiss();
+        }
+      },
+      child: WPanel(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: AppInkWell(
+          onTap: onOpenSource,
+          borderRadius: AppRadius.boxMd,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: severityBg,
+                      borderRadius: AppRadius.boxSm,
+                    ),
+                    child: Text(
+                      finding.severity.name,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: severityFg,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                  decoration: BoxDecoration(
-                    color: severityBg,
-                    borderRadius: AppRadius.boxSm,
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      '${finding.requirementId} · p. ${finding.pageIndex + 1}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colors.muted,
+                      ),
+                    ),
                   ),
-                  child: Text(
-                    finding.severity.name,
+                  Icon(Icons.verified_outlined, size: 14, color: colors.sage),
+                  const SizedBox(width: AppSpacing.xs),
+                  Text(
+                    finding.issue.verification == Verification.exact
+                        ? 'Exact match'
+                        : 'Close match',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: severityFg,
+                      color: colors.sage,
                       fontSize: 9,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                finding.title,
+                style: theme.textTheme.titleSmall?.copyWith(color: colors.ink),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: colors.quoteBg,
+                  borderRadius: AppRadius.boxSm,
+                  border: Border(
+                    left: BorderSide(color: colors.quoteBar, width: 2),
+                  ),
+                ),
+                child: Text(
+                  '"${finding.quote}"',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.muted,
+                    height: 1.7,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                finding.suggestion,
+                style: theme.textTheme.bodySmall?.copyWith(color: colors.muted),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  Text(
+                    'View in source',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colors.sage,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    '${finding.requirementId} · p. ${finding.pageIndex + 1}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colors.muted,
+                  Icon(Icons.arrow_forward, size: 13, color: colors.sage),
+                  const Spacer(),
+                  if (status != FindingStatus.open)
+                    WBadge(
+                      label: status.label,
+                      tint: status == FindingStatus.accepted
+                          ? WBadgeTint.purple
+                          : WBadgeTint.neutral,
                     ),
+                  IconButton(
+                    tooltip: status == FindingStatus.accepted
+                        ? 'Undo accept'
+                        : 'Accept — worth fixing',
+                    icon: Icon(
+                      status == FindingStatus.accepted
+                          ? Icons.check_circle
+                          : Icons.check_circle_outline,
+                      size: 18,
+                    ),
+                    color: status == FindingStatus.accepted
+                        ? colors.purple
+                        : colors.muted,
+                    onPressed: onAccept,
                   ),
-                ),
-                Icon(Icons.verified_outlined, size: 14, color: colors.sage),
-                const SizedBox(width: AppSpacing.xs),
-                Text(
-                  finding.issue.verification == Verification.exact
-                      ? 'Exact match'
-                      : 'Close match',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colors.sage,
-                    fontSize: 9,
+                  IconButton(
+                    tooltip: status == FindingStatus.dismissed
+                        ? 'Undo dismiss'
+                        : 'Dismiss — not a real issue',
+                    icon: Icon(
+                      status == FindingStatus.dismissed
+                          ? Icons.remove_circle
+                          : Icons.remove_circle_outline,
+                      size: 18,
+                    ),
+                    color: status == FindingStatus.dismissed
+                        ? colors.amber
+                        : colors.muted,
+                    onPressed: onDismiss,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              finding.title,
-              style: theme.textTheme.titleSmall?.copyWith(color: colors.ink),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: colors.quoteBg,
-                borderRadius: AppRadius.boxSm,
-                border: Border(
-                  left: BorderSide(color: colors.quoteBar, width: 2),
-                ),
+                ],
               ),
-              child: Text(
-                '"${finding.quote}"',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colors.muted,
-                  height: 1.7,
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              finding.suggestion,
-              style: theme.textTheme.bodySmall?.copyWith(color: colors.muted),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Row(
-              children: [
-                Text(
-                  'View in source',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colors.sage,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Icon(Icons.arrow_forward, size: 13, color: colors.sage),
-                const Spacer(),
-                if (status != FindingStatus.open)
-                  WBadge(
-                    label: status.label,
-                    tint: status == FindingStatus.accepted
-                        ? WBadgeTint.purple
-                        : WBadgeTint.neutral,
-                  ),
-                IconButton(
-                  tooltip: status == FindingStatus.accepted
-                      ? 'Undo accept'
-                      : 'Accept — worth fixing',
-                  icon: Icon(
-                    status == FindingStatus.accepted
-                        ? Icons.check_circle
-                        : Icons.check_circle_outline,
-                    size: 18,
-                  ),
-                  color: status == FindingStatus.accepted
-                      ? colors.purple
-                      : colors.muted,
-                  onPressed: onAccept,
-                ),
-                IconButton(
-                  tooltip: status == FindingStatus.dismissed
-                      ? 'Undo dismiss'
-                      : 'Dismiss — not a real issue',
-                  icon: Icon(
-                    status == FindingStatus.dismissed
-                        ? Icons.remove_circle
-                        : Icons.remove_circle_outline,
-                    size: 18,
-                  ),
-                  color: status == FindingStatus.dismissed
-                      ? colors.amber
-                      : colors.muted,
-                  onPressed: onDismiss,
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

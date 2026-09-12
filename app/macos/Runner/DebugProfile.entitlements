@@ -8,5 +8,18 @@
 	<true/>
 	<key>com.apple.security.network.server</key>
 	<true/>
+	<!-- Outbound network. The sandbox had `network.server` but not
+	     `network.client`, so a sandboxed macOS build could listen but never
+	     reach the FastAPI proxy: every online review failed with no visible
+	     cause. Server-only is the entitlement you want for a local daemon, not
+	     for an app that is the client. -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<!-- Read-only access to whatever the user picked in the open/save panel.
+	     Without it `file_picker` hands back a URL the sandbox then refuses to
+	     read, so importing an SRS fails after the picker closes. Read-only on
+	     purpose: review never writes to the source document. -->
+	<key>com.apple.security.files.user-selected.read-only</key>
+	<true/>
 </dict>
 </plist>

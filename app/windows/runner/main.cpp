@@ -26,8 +26,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
-  Win32Window::Size size(1280, 720);
-  if (!window.Create(L"srs_review_ai", origin, size)) {
+  // 1280 x 860 matches the macOS frame exactly. The old 1280 x 720 was the
+  // stock template's number; the workflow header, the document card and the
+  // metric row need the extra height before the first scroll. This is only the
+  // CREATION size — the floor the user cannot drag below is set separately in
+  // FlutterWindow::OnCreate -> Win32Window::SetMinSize.
+  Win32Window::Size size(1280, 860);
+  // The title was the package name, which is what a user sees in the taskbar
+  // and in Alt-Tab. Spell the product name instead.
+  if (!window.Create(L"SRS Review AI", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);

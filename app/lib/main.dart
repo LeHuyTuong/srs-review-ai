@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/providers.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/workspace/view/workspace_shortcuts.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,5 +47,13 @@ class _SrsReviewAppState extends State<SrsReviewApp> {
     darkTheme: AppTheme.dark(),
     themeMode: ThemeMode.system,
     routerConfig: _router,
+    // `builder` runs ABOVE the Navigator, which is the whole point: a
+    // `Shortcuts` widget installed here is an ancestor of every route,
+    // including the ones `showDialog` pushes. A dialog is a sibling of the
+    // shell inside the root Overlay, so a shortcut layer inside the shell can
+    // never see a key pressed while a modal is open — and Esc-to-close is the
+    // least negotiable desktop shortcut there is.
+    builder: (context, child) =>
+        WorkspaceShortcuts(child: child ?? const SizedBox.shrink()),
   );
 }
