@@ -121,10 +121,34 @@ class WorkspaceShell extends ConsumerWidget {
         Expanded(
           child: Stack(
             children: [
+              // The branch content is a nested Navigator, and every route it
+              // hosts installs a route-scoped semantics node whose modal
+              // barrier marks itself as "blocking the semantics of previously
+              // painted nodes" (see `BlockSemantics`). That flag climbs the
+              // render tree until it meets a semantic boundary —
+              // `RenderObject.isBlockingPreviousSibling` returns false there —
+              // so it climbed all the way to the body's Row and wiped out
+              // every sibling painted before the content: the whole sidebar.
+              //
+              // That is why a screen reader could not reach any destination:
+              // on web with `?smoke=semantics` the left column produced no
+              // `<flt-semantics>` node at all, and the same tree comes out of
+              // a widget test. Verified by removing `navigationShell` — the
+              // sidebar's labels reappeared in the tree the moment it was
+              // replaced by a plain `Text`.
+              //
+              // Making the branch content a boundary stops the climb here.
+              // `explicitChildNodes` then keeps every button and label inside
+              // the branch as its own node instead of merging them into this
+              // one.
               Positioned.fill(
                 child: ChromeInsets(
                   insets: chromeInsets,
-                  child: navigationShell,
+                  child: Semantics(
+                    container: true,
+                    explicitChildNodes: true,
+                    child: navigationShell,
+                  ),
                 ),
               ),
               // The review progress surface lives in the SHELL, not in the
@@ -469,20 +493,29 @@ class _Sidebar extends ConsumerWidget {
           const SizedBox(height: AppSpacing.xl),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-            child: Row(
-              children: [
-                Icon(Icons.description_outlined, color: colors.brand, size: 24),
-                const SizedBox(width: AppSpacing.sm),
-                Text(
-                  'SRS Review',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: colors.ink,
-                    fontWeight: FontWeight.w800,
+            // Read as one name, not as "SRS Review" + a floating "AI" badge.
+            child: Semantics(
+              label: 'SRS Review AI',
+              excludeSemantics: true,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.description_outlined,
+                    color: colors.brand,
+                    size: 24,
                   ),
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                WBadge(label: 'AI', tint: WBadgeTint.green),
-              ],
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
+                    'SRS Review',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: colors.ink,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  WBadge(label: 'AI', tint: WBadgeTint.green),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.xxl),
@@ -543,38 +576,53 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.workspaceColors;
     final theme = Theme.of(context);
+    // Same contract as [_GlassTabItem]: one node per destination, named after
+    // it, flagged as a button because it is tappable, and carrying `selected`
+    // so a screen reader says which destination is on screen.
+    //
+    // Without it, the icon and the label each publish their own semantics on
+    // top of the InkWell's, so the destination is announced twice — and the
+    // merged node still never says it is a button.
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppRadius.boxSm,
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.md - 2,
-          ),
-          decoration: BoxDecoration(
-            color: active ? colors.navActiveBg : Colors.transparent,
-            borderRadius: AppRadius.boxSm,
-          ),
-          child: Row(
-            children: [
-              Icon(
-                destination.icon,
-                size: 19,
-                color: active ? colors.navActiveText : colors.muted,
-              ),
-              const SizedBox(width: AppSpacing.md - 2),
-              Expanded(
-                child: Text(
-                  destination.label,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: active ? colors.navActiveText : colors.muted,
-                    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+      child: Semantics(
+        button: true,
+        selected: active,
+        label: destination.label,
+        // Without this the icon's and label's own semantics are merged on top
+        // of ours, so a screen reader announces the item twice.
+        excludeSemantics: true,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppRadius.boxSm,
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.md - 2,
+            ),
+            decoration: BoxDecoration(
+              color: active ? colors.navActiveBg : Colors.transparent,
+              borderRadius: AppRadius.boxSm,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  destination.icon,
+                  size: 19,
+                  color: active ? colors.navActiveText : colors.muted,
+                ),
+                const SizedBox(width: AppSpacing.md - 2),
+                Expanded(
+                  child: Text(
+                    destination.label,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: active ? colors.navActiveText : colors.muted,
+                      fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -634,20 +682,27 @@ class _OfflineCard extends ConsumerWidget {
             style: theme.textTheme.labelSmall?.copyWith(color: colors.muted),
           ),
           const SizedBox(height: AppSpacing.sm),
-          InkWell(
-            onTap: () => showSettingsModal(context, ref),
-            borderRadius: AppRadius.boxSm,
-            child: Row(
-              children: [
-                Text(
-                  'Explore mock mode',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colors.brand,
-                    fontWeight: FontWeight.w600,
+          // A tappable row of text + arrow is invisible to a screen reader as
+          // a control: it arrives as two loose labels with no button role.
+          Semantics(
+            button: true,
+            label: 'Explore mock mode',
+            excludeSemantics: true,
+            child: InkWell(
+              onTap: () => showSettingsModal(context, ref),
+              borderRadius: AppRadius.boxSm,
+              child: Row(
+                children: [
+                  Text(
+                    'Explore mock mode',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colors.brand,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                Icon(Icons.arrow_forward, size: 14, color: colors.brand),
-              ],
+                  Icon(Icons.arrow_forward, size: 14, color: colors.brand),
+                ],
+              ),
             ),
           ),
         ],

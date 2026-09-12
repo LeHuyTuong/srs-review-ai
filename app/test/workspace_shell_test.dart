@@ -3,6 +3,7 @@
 library;
 
 import 'dart:async';
+import 'dart:ui' show Tristate;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -121,6 +122,29 @@ void _collectLabels(SemanticsNode node, List<String> out) {
     return true;
   });
 }
+
+/// Collects the full [SemanticsData] of every node under [root], depth first.
+///
+/// [SemanticsData] is what carries the flags, so this is the only way to
+/// assert that a node is announced as a *button* and not merely named.
+void _collectData(SemanticsNode node, List<SemanticsData> out) {
+  out.add(node.getSemanticsData());
+  node.visitChildren((child) {
+    _collectData(child, out);
+    return true;
+  });
+}
+
+/// Whether [data] is announced as a tappable control.
+bool _isButton(SemanticsData data) => data.flagsCollection.isButton;
+
+/// Whether [data] is announced as the selected one of a group.
+bool _isSelected(SemanticsData data) =>
+    data.flagsCollection.isSelected == Tristate.isTrue;
+
+/// Button nodes whose accessible name is exactly [label].
+List<SemanticsData> _buttonsNamed(List<SemanticsData> nodes, String label) =>
+    nodes.where((d) => d.label == label && _isButton(d)).toList();
 
 void _noop() {}
 
@@ -853,6 +877,162 @@ void main() {
             'times; a duplicated node makes screen readers say it twice',
       );
     }
+    handle.dispose();
+    await tester.pump(const Duration(seconds: 5));
+  });
+
+  /// Regression: the whole left column was missing from the accessibility
+  /// tree, so a screen reader could not reach a single destination — on web
+  /// with `?smoke=semantics` it produced no `<flt-semantics>` node at all, and
+  /// the only way into Settings was a "Change" button in the right column.
+  ///
+  /// The cause is not a missing label on the sidebar: the sidebar's own
+  /// widgets never reached the tree. The branch content is a nested Navigator,
+  /// and the modal barrier of its top route marks itself as blocking the
+  /// semantics of previously painted nodes. That flag climbs the render tree
+  /// until it meets a semantic boundary (`RenderObject
+  /// .isBlockingPreviousSibling`), so it climbed out of the branch and, at the
+  /// level of the body's Row, discarded every sibling painted before the
+  /// content — the sidebar. Verified by swapping `navigationShell` for a plain
+  /// `Text`: the sidebar's labels came back immediately. The fix wraps the
+  /// branch content in its own boundary so the climb stops there.
+  ///
+  /// This test pins the property a user depends on: every destination is
+  /// announced, as a button, with the active one marked selected.
+  testWidgets('wide shell: every destination is announced as a button', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final handle = tester.ensureSemantics();
+
+    final container = ProviderContainer(
+      overrides: [
+        sessionStoreProvider.overrideWithValue(InMemorySessionStore()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: buildRouter()),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+
+    // flutter_test measures text with a box-shaped fallback font that is much
+    // wider than Roboto, so the fixed 228px sidebar overflows here while it
+    // does not in a browser. Layout is not what this test is about: drain the
+    // reported exceptions so the assertions below can run.
+    while (tester.takeException() != null) {}
+
+    final nodes = <SemanticsData>[];
+    _collectData(tester.getSemantics(find.byType(WorkspaceShell)), nodes);
+    final labels = nodes.map((d) => d.label).toList();
+
+    for (var i = 0; i < kWorkspaceDestinations.length; i++) {
+      final label = kWorkspaceDestinations[i].label;
+      final buttons = _buttonsNamed(nodes, label);
+      expect(
+        buttons,
+        isNotEmpty,
+        reason: '"$label" is not announced as a button; labels were $labels',
+      );
+      // The shell opens on branch 0, so exactly one destination is selected.
+      expect(
+        buttons.every(_isSelected),
+        i == 0,
+        reason: '"$label" is ${i == 0 ? 'the active' : 'not the active'} '
+            'destination, so its selected state must be ${i == 0}',
+      );
+    }
+
+    // Settings was reachable only by a detour through the right column.
+    expect(
+      _buttonsNamed(nodes, 'Settings'),
+      isNotEmpty,
+      reason: 'Settings must be announced as a button; labels were $labels',
+    );
+    // The offline card and its link were missing too.
+    expect(
+      labels.contains('Built to work offline'),
+      isTrue,
+      reason: 'the offline card must be announced; labels were $labels',
+    );
+    expect(
+      _buttonsNamed(nodes, 'Explore mock mode'),
+      isNotEmpty,
+      reason: 'the mock-mode link must be announced as a button; '
+          'labels were $labels',
+    );
+    // And the product name, as one name rather than "SRS Review" + "AI".
+    expect(labels.contains('SRS Review AI'), isTrue, reason: '$labels');
+
+    handle.dispose();
+    await tester.pump(const Duration(seconds: 5));
+  });
+
+  /// The same destinations live in the drawer on a phone, and they had the
+  /// same defect: an `InkWell` around an icon and a label publishes no button,
+  /// so a screen reader reached the drawer and found a pile of loose text.
+  ///
+  /// The drawer shares [_NavItem] with the sidebar, so it is fixed by the same
+  /// change — this pins that the fix really does cover both variants.
+  testWidgets('phone drawer: destinations are announced as buttons', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final handle = tester.ensureSemantics();
+
+    final container = ProviderContainer(
+      overrides: [
+        sessionStoreProvider.overrideWithValue(InMemorySessionStore()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: buildRouter()),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+    while (tester.takeException() != null) {}
+
+    await tester.tap(find.byTooltip('Open navigation'));
+    await tester.pumpAndSettle();
+    while (tester.takeException() != null) {}
+
+    final nodes = <SemanticsData>[];
+    _collectData(tester.getSemantics(find.byType(WorkspaceShell)), nodes);
+    final labels = nodes.map((d) => d.label).toList();
+
+    for (var i = 0; i < kWorkspaceDestinations.length; i++) {
+      final label = kWorkspaceDestinations[i].label;
+      final buttons = _buttonsNamed(nodes, label);
+      expect(
+        buttons,
+        isNotEmpty,
+        reason: '"$label" is not announced as a button; labels were $labels',
+      );
+      expect(
+        buttons.every(_isSelected),
+        i == 0,
+        reason: '"$label" selected state must be ${i == 0}',
+      );
+    }
+    expect(_buttonsNamed(nodes, 'Settings'), isNotEmpty, reason: '$labels');
+    expect(
+      _buttonsNamed(nodes, 'Help & getting started'),
+      isNotEmpty,
+      reason: '$labels',
+    );
+
     handle.dispose();
     await tester.pump(const Duration(seconds: 5));
   });
