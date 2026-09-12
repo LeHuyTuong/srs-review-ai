@@ -167,6 +167,68 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
             ],
           ),
         ),
+        // The selection bar sits ABOVE the list, not below it: with 65 demo
+        // units the Run-review CTA used to land ~700px below the fold on a
+        // phone (y=1562 at 390x844) — measured, unreachable, and the reason
+        // users reported "cannot press Run review".
+        Container(
+          margin: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            0,
+            AppSpacing.lg,
+            AppSpacing.sm,
+          ),
+          decoration: BoxDecoration(
+            color: colors.selectionBarBg,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: colors.border),
+          ),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Row(
+            children: [
+              Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: colors.sageBg,
+                  border: Border.all(color: colors.border),
+                ),
+                child: Icon(Icons.check, size: 14, color: colors.sage),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${state.selectedCount} units selected',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: colors.ink,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      state.attentionCount > 0
+                          ? '${state.attentionCount} flagged units are preserved for your review'
+                          : 'All detected units are accounted for',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              WButton.primary(
+                label: 'Run review',
+                icon: Icons.auto_awesome,
+                onPressed: state.selectedCount == 0 || state.isRunning
+                    ? null
+                    : () => showReviewModal(context, ref),
+              ),
+            ],
+          ),
+        ),
         if (visible.isEmpty)
           WEmptyState(
             icon: Icons.search,
@@ -221,60 +283,6 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
                     : () => setState(() => _page = safePage + 1),
                 icon: const Icon(Icons.chevron_right, size: 18),
                 color: colors.muted,
-              ),
-            ],
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: colors.selectionBarBg,
-            borderRadius: const BorderRadius.vertical(
-              bottom: Radius.circular(AppRadius.md),
-            ),
-            border: Border(top: BorderSide(color: colors.border)),
-          ),
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Row(
-            children: [
-              Container(
-                width: 26,
-                height: 26,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: colors.sageBg,
-                  border: Border.all(color: colors.border),
-                ),
-                child: Icon(Icons.check, size: 14, color: colors.sage),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${state.selectedCount} units selected',
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: colors.ink,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      state.attentionCount > 0
-                          ? '${state.attentionCount} flagged units are preserved for your review'
-                          : 'All detected units are accounted for',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colors.muted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              WButton.primary(
-                label: 'Run review',
-                icon: Icons.auto_awesome,
-                onPressed: state.selectedCount == 0 || state.isRunning
-                    ? null
-                    : () => showReviewModal(context, ref),
               ),
             ],
           ),

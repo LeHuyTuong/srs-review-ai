@@ -118,8 +118,11 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                     color: colors.muted,
                   ),
                 ),
+                // Name the engine that actually produced these findings — a
+                // hardcoded "Mock review" here misled users running the real
+                // Gemini proxy into thinking no AI was involved.
                 WBadge(
-                  label: result.mock ? 'Mock review' : 'Proxy review',
+                  label: result.mock ? 'Mock review' : 'AI review via proxy',
                   tint: result.mock ? WBadgeTint.amber : WBadgeTint.green,
                 ),
               ],
