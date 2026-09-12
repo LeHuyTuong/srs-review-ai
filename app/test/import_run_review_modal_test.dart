@@ -101,6 +101,16 @@ void main() {
 
     await tester.ensureVisible(find.text('Run review'));
     await tester.pumpAndSettle();
+    // `ensureVisible` parks the button at y=0, which the FLOATING TOP BAR
+    // covers (ChromeInsets reserves _kTopBarHeight = 58 at the top). Tapping
+    // there lands on the bar, not the button — so nudge the list back down
+    // until the button clears the chrome. The app itself is fine: this is the
+    // test having to scroll the way ChromeInsets expects, not a product bug.
+    await tester.drag(
+      find.byType(Scrollable).first,
+      const Offset(0, 90),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Run review'));
     await tester.pumpAndSettle();
 
