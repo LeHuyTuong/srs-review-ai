@@ -18,9 +18,7 @@ class RateLimiter:
         self.window_s = window_s
         self._hits: dict[str, list[float]] = defaultdict(list)
 
-    def check(
-        self, user_id: str, limit: int, *, now: float | None = None
-    ) -> tuple[bool, int, int]:
+    def check(self, user_id: str, limit: int, *, now: float | None = None) -> tuple[bool, int, int]:
         """Record a hit. Returns (allowed, remaining, retry_after_s).
 
         When denied, retry_after_s is the seconds until the oldest hit in the

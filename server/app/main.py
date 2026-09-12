@@ -163,8 +163,7 @@ async def review(
         raise HTTPException(
             status_code=429,
             detail=(
-                f"Daily review limit reached ({settings.rate_limit_per_day}). "
-                f"Retry after {retry_after}s."
+                f"Daily review limit reached ({settings.rate_limit_per_day}). Retry after {retry_after}s."
             ),
             headers={"Retry-After": str(retry_after)},
         )

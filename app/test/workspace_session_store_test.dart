@@ -57,15 +57,13 @@ void main() {
 
     test('re-saving the same id replaces instead of duplicating', () async {
       final store = InMemorySessionStore();
-      SavedSession session({
-        required String id,
-        required String payload,
-      }) => SavedSession(
-        id: id,
-        fileName: 'f.pdf',
-        payloadJson: payload,
-        createdAt: DateTime(2026, 1, 1),
-      );
+      SavedSession session({required String id, required String payload}) =>
+          SavedSession(
+            id: id,
+            fileName: 'f.pdf',
+            payloadJson: payload,
+            createdAt: DateTime(2026, 1, 1),
+          );
       await store.save(session(id: 'x', payload: 'one'));
       await store.save(session(id: 'x', payload: 'two'));
       final list = await store.list();

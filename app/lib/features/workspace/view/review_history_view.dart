@@ -137,7 +137,11 @@ class _ReviewHistoryViewState extends ConsumerState<ReviewHistoryView> {
               const SizedBox(height: AppSpacing.lg),
               TextButton.icon(
                 onPressed: () => showSettingsModal(context, ref),
-                icon: Icon(Icons.settings_outlined, size: 16, color: colors.muted),
+                icon: Icon(
+                  Icons.settings_outlined,
+                  size: 16,
+                  color: colors.muted,
+                ),
                 label: Text(
                   'Review settings',
                   style: TextStyle(color: colors.muted),

@@ -43,11 +43,13 @@ void main() {
     }
   });
 
-  test('false positives are acceptable, false negatives are not — case fold',
-      () {
-    expect(detector.detect('CLASS DIAGRAM').mentionsDiagram, isTrue);
-    expect(detector.detect('Sơ Đồ').mentionsDiagram, isTrue);
-  });
+  test(
+    'false positives are acceptable, false negatives are not — case fold',
+    () {
+      expect(detector.detect('CLASS DIAGRAM').mentionsDiagram, isTrue);
+      expect(detector.detect('Sơ Đồ').mentionsDiagram, isTrue);
+    },
+  );
 
   test('first keyword wins and is reported for audit', () {
     final signal = detector.detect('The diagram and the wireframe agree.');

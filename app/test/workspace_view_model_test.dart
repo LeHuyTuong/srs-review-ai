@@ -21,15 +21,14 @@ import 'package:srs_review_ai/features/workspace/models/demo_units.dart';
 import 'package:srs_review_ai/features/workspace/models/workspace_unit.dart';
 import 'package:srs_review_ai/features/workspace/view_model/workspace_view_model.dart';
 
-ProviderContainer _container(InMemorySessionStore store) =>
-    ProviderContainer(
-      overrides: [
-        sessionStoreProvider.overrideWithValue(store),
-        reviewApiProvider.overrideWithValue(
-          const MockReviewApi(latency: Duration.zero),
-        ),
-      ],
-    );
+ProviderContainer _container(InMemorySessionStore store) => ProviderContainer(
+  overrides: [
+    sessionStoreProvider.overrideWithValue(store),
+    reviewApiProvider.overrideWithValue(
+      const MockReviewApi(latency: Duration.zero),
+    ),
+  ],
+);
 
 Future<void> _pumpUntil(
   bool Function() condition, {
@@ -44,30 +43,31 @@ Future<void> _pumpUntil(
 }
 
 void main() {
-  test('loadDemo builds the full inventory with live syllabus findings',
-      () async {
-    final store = InMemorySessionStore();
-    final container = _container(store);
-    addTearDown(container.dispose);
-    final vm = container.read(workspaceViewModelProvider.notifier);
+  test(
+    'loadDemo builds the full inventory with live syllabus findings',
+    () async {
+      final store = InMemorySessionStore();
+      final container = _container(store);
+      addTearDown(container.dispose);
+      final vm = container.read(workspaceViewModelProvider.notifier);
 
-    await vm.loadDemo();
-    final state = container.read(workspaceViewModelProvider);
-    expect(state.hasDocument, isTrue);
-    expect(state.isDemo, isTrue);
-    expect(state.restoring, isFalse);
-    expect(state.units, hasLength(65));
-    expect(state.useCaseCount, 50);
-    expect(state.otherRequirementsCount, 13);
-    expect(state.attentionCount, 2);
-    expect(state.selectedCount, 63);
-    expect(state.syllabusFindings, isNotEmpty);
-    expect(state.sizeLabel, '27.37 MB');
-    expect(state.toast, contains('65 units extracted'));
-  });
+      await vm.loadDemo();
+      final state = container.read(workspaceViewModelProvider);
+      expect(state.hasDocument, isTrue);
+      expect(state.isDemo, isTrue);
+      expect(state.restoring, isFalse);
+      expect(state.units, hasLength(65));
+      expect(state.useCaseCount, 50);
+      expect(state.otherRequirementsCount, 13);
+      expect(state.attentionCount, 2);
+      expect(state.selectedCount, 63);
+      expect(state.syllabusFindings, isNotEmpty);
+      expect(state.sizeLabel, '27.37 MB');
+      expect(state.toast, contains('65 units extracted'));
+    },
+  );
 
-  test('loadDemo stamps the document fingerprint and parser version',
-      () async {
+  test('loadDemo stamps the document fingerprint and parser version', () async {
     final store = InMemorySessionStore();
     final container = _container(store);
     addTearDown(container.dispose);
@@ -80,37 +80,40 @@ void main() {
     expect(state.parserVersion, kParserVersion);
   });
 
-  test('snapshot written by another parser version is refused on restore',
-      () async {
-    final store = InMemorySessionStore();
-    final containerA = _container(store);
-    addTearDown(containerA.dispose);
-    await containerA.read(workspaceViewModelProvider.notifier).loadDemo();
+  test(
+    'snapshot written by another parser version is refused on restore',
+    () async {
+      final store = InMemorySessionStore();
+      final containerA = _container(store);
+      addTearDown(containerA.dispose);
+      await containerA.read(workspaceViewModelProvider.notifier).loadDemo();
 
-    // Tamper the persisted snapshot the way an older parser build would have
-    // written it: same units, different version stamp.
-    // Parenthesised on purpose: `await store.loadSnapshot()!` would apply `!`
-    // to the Future (never null) and still hand `String?` to jsonDecode.
-    final raw =
-        jsonDecode((await store.loadSnapshot())!) as Map<String, dynamic>;
-    raw['parserVersion'] = '0.9.0';
-    await store.saveSnapshot(jsonEncode(raw));
+      // Tamper the persisted snapshot the way an older parser build would have
+      // written it: same units, different version stamp.
+      // Parenthesised on purpose: `await store.loadSnapshot()!` would apply `!`
+      // to the Future (never null) and still hand `String?` to jsonDecode.
+      final raw =
+          jsonDecode((await store.loadSnapshot())!) as Map<String, dynamic>;
+      raw['parserVersion'] = '0.9.0';
+      await store.saveSnapshot(jsonEncode(raw));
 
-    final containerB = _container(store);
-    addTearDown(containerB.dispose);
-    await _pumpUntil(
-      () => !containerB.read(workspaceViewModelProvider).restoring,
-    );
-    final state = containerB.read(workspaceViewModelProvider);
-    expect(
-      state.hasDocument,
-      isFalse,
-      reason: 'stale-parse units must not silently surface as a restored '
-          'workspace',
-    );
-    expect(state.units, isEmpty);
-    expect(state.toast, contains('0.9.0'));
-  });
+      final containerB = _container(store);
+      addTearDown(containerB.dispose);
+      await _pumpUntil(
+        () => !containerB.read(workspaceViewModelProvider).restoring,
+      );
+      final state = containerB.read(workspaceViewModelProvider);
+      expect(
+        state.hasDocument,
+        isFalse,
+        reason:
+            'stale-parse units must not silently surface as a restored '
+            'workspace',
+      );
+      expect(state.units, isEmpty);
+      expect(state.toast, contains('0.9.0'));
+    },
+  );
 
   test('openSession refuses a session from another parser version', () async {
     final store = InMemorySessionStore();
@@ -150,8 +153,7 @@ void main() {
     expect(await vm.openSession('current'), isTrue);
   });
 
-  test('runReview over 40 selected units completes, saves a session',
-      () async {
+  test('runReview over 40 selected units completes, saves a session', () async {
     final store = InMemorySessionStore();
     final container = _container(store);
     addTearDown(container.dispose);
@@ -212,52 +214,58 @@ void main() {
     expect(restored.syllabusFindings, isNotEmpty);
   });
 
-  test('runReview rejects an empty selection and clamps an over-cap one',
-      () async {
-    final store = InMemorySessionStore();
-    final container = _container(store);
-    addTearDown(container.dispose);
-    final vm = container.read(workspaceViewModelProvider.notifier);
-    await vm.loadDemo();
+  test(
+    'runReview rejects an empty selection and clamps an over-cap one',
+    () async {
+      final store = InMemorySessionStore();
+      final container = _container(store);
+      addTearDown(container.dispose);
+      final vm = container.read(workspaceViewModelProvider.notifier);
+      await vm.loadDemo();
 
-    for (final unit in container
-        .read(workspaceViewModelProvider)
-        .units
-        .where((u) => u.selected)
-        .toList()) {
-      vm.setUnitSelected(unit.key, false);
-    }
-    await vm.runReview();
-    expect(
-      container.read(workspaceViewModelProvider).error,
-      contains('No units selected'),
-    );
+      for (final unit
+          in container
+              .read(workspaceViewModelProvider)
+              .units
+              .where((u) => u.selected)
+              .toList()) {
+        vm.setUnitSelected(unit.key, false);
+      }
+      await vm.runReview();
+      expect(
+        container.read(workspaceViewModelProvider).error,
+        contains('No units selected'),
+      );
 
-    // Nothing was deselected, so selecting all 63 exceeds the cap of 40.
-    // The run must PROCEED on the first 40 and report the shortfall rather
-    // than refuse — refusing was the bug: it aborted after the modal had
-    // already closed, leaving the user with a frozen screen and no message
-    // (docs/uiux/audit-2026-09-11.md P0-2, P0-4).
-    vm.setSelectedAll(
-      container.read(workspaceViewModelProvider).units.map((u) => u.key).toSet(),
-      true,
-    );
-    final selected =
-        container.read(workspaceViewModelProvider).selectedCount;
-    expect(selected, greaterThan(AppConfig.maxRequirementsPerRun));
+      // Nothing was deselected, so selecting all 63 exceeds the cap of 40.
+      // The run must PROCEED on the first 40 and report the shortfall rather
+      // than refuse — refusing was the bug: it aborted after the modal had
+      // already closed, leaving the user with a frozen screen and no message
+      // (docs/uiux/audit-2026-09-11.md P0-2, P0-4).
+      vm.setSelectedAll(
+        container
+            .read(workspaceViewModelProvider)
+            .units
+            .map((u) => u.key)
+            .toSet(),
+        true,
+      );
+      final selected = container.read(workspaceViewModelProvider).selectedCount;
+      expect(selected, greaterThan(AppConfig.maxRequirementsPerRun));
 
-    unawaited(vm.runReview());
-    await Future<void>.delayed(const Duration(milliseconds: 300));
-    final after = container.read(workspaceViewModelProvider);
-    expect(after.error, isNull);
-    expect(
-      after.runSkipped,
-      selected - AppConfig.maxRequirementsPerRun,
-      reason: 'the shortfall must be visible, never silent',
-    );
-    expect(after.runReviewed, AppConfig.maxRequirementsPerRun);
-    expect(after.result, isNotNull);
-  });
+      unawaited(vm.runReview());
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      final after = container.read(workspaceViewModelProvider);
+      expect(after.error, isNull);
+      expect(
+        after.runSkipped,
+        selected - AppConfig.maxRequirementsPerRun,
+        reason: 'the shortfall must be visible, never silent',
+      );
+      expect(after.runReviewed, AppConfig.maxRequirementsPerRun);
+      expect(after.result, isNotNull);
+    },
+  );
 
   /// Regression: a run where every unit failed (dead proxy) used to summarise
   /// as "0 units reviewed · 0 verified findings" — indistinguishable from a
@@ -314,8 +322,7 @@ void main() {
       for (final unit in units) {
         vm.setUnitSelected(unit.key, false);
       }
-      final reviewable =
-          units.where((u) => !u.malformed).take(2).toList();
+      final reviewable = units.where((u) => !u.malformed).take(2).toList();
       for (final unit in reviewable) {
         vm.setUnitSelected(unit.key, true);
       }
@@ -350,49 +357,53 @@ void main() {
     },
   );
 
-  test('classifyUnit to unknown deselects; export carries the file name',
-      () async {
-    final store = InMemorySessionStore();
-    final container = _container(store);
-    addTearDown(container.dispose);
-    final vm = container.read(workspaceViewModelProvider.notifier);
-    await vm.loadDemo();
+  test(
+    'classifyUnit to unknown deselects; export carries the file name',
+    () async {
+      final store = InMemorySessionStore();
+      final container = _container(store);
+      addTearDown(container.dispose);
+      final vm = container.read(workspaceViewModelProvider.notifier);
+      await vm.loadDemo();
 
-    final first = container.read(workspaceViewModelProvider).units.first;
-    vm.classifyUnit(first.key, UnitKind.unknown);
-    final state = container.read(workspaceViewModelProvider);
-    expect(
-      state.units.firstWhere((u) => u.key == first.key).malformed,
-      isTrue,
-    );
-    expect(
-      state.units.firstWhere((u) => u.key == first.key).selected,
-      isFalse,
-    );
+      final first = container.read(workspaceViewModelProvider).units.first;
+      vm.classifyUnit(first.key, UnitKind.unknown);
+      final state = container.read(workspaceViewModelProvider);
+      expect(
+        state.units.firstWhere((u) => u.key == first.key).malformed,
+        isTrue,
+      );
+      expect(
+        state.units.firstWhere((u) => u.key == first.key).selected,
+        isFalse,
+      );
 
-    final markdown = vm.exportMarkdown();
-    expect(markdown, contains(demoFileName));
-  });
+      final markdown = vm.exportMarkdown();
+      expect(markdown, contains(demoFileName));
+    },
+  );
 
-  test('snapshot restore brings the inventory back on a fresh container',
-      () async {
-    final store = InMemorySessionStore();
-    final first = _container(store);
-    final vm = first.read(workspaceViewModelProvider.notifier);
-    await vm.loadDemo();
-    first.dispose();
+  test(
+    'snapshot restore brings the inventory back on a fresh container',
+    () async {
+      final store = InMemorySessionStore();
+      final first = _container(store);
+      final vm = first.read(workspaceViewModelProvider.notifier);
+      await vm.loadDemo();
+      first.dispose();
 
-    final second = _container(store);
-    addTearDown(second.dispose);
-    await _pumpUntil(() {
+      final second = _container(store);
+      addTearDown(second.dispose);
+      await _pumpUntil(() {
+        final state = second.read(workspaceViewModelProvider);
+        return !state.restoring;
+      });
       final state = second.read(workspaceViewModelProvider);
-      return !state.restoring;
-    });
-    final state = second.read(workspaceViewModelProvider);
-    expect(state.hasDocument, isTrue);
-    expect(state.units, hasLength(65));
-    expect(state.fileName, demoFileName);
-  });
+      expect(state.hasDocument, isTrue);
+      expect(state.units, hasLength(65));
+      expect(state.fileName, demoFileName);
+    },
+  );
 
   test('kind override survives snapshot restore', () async {
     final store = InMemorySessionStore();
@@ -421,9 +432,7 @@ void main() {
 
     final second = _container(store);
     addTearDown(second.dispose);
-    await _pumpUntil(
-      () => !second.read(workspaceViewModelProvider).restoring,
-    );
+    await _pumpUntil(() => !second.read(workspaceViewModelProvider).restoring);
     final restored = second
         .read(workspaceViewModelProvider)
         .units
@@ -431,7 +440,8 @@ void main() {
     expect(
       restored.kind,
       UnitKind.businessRule,
-      reason: 'classifyUnit mutates through _mutateUnit, which saves the '
+      reason:
+          'classifyUnit mutates through _mutateUnit, which saves the '
           'snapshot — the override must ride along with it',
     );
   });
@@ -512,8 +522,7 @@ class _QuotaKillingApi implements ReviewApi {
     required String context,
     int? pageIndex,
     CancelToken? cancelToken,
-  }) async =>
-      throw ApiException('Provider quota exhausted.', statusCode: 429);
+  }) async => throw ApiException('Provider quota exhausted.', statusCode: 429);
 }
 
 /// Stands in for a dead proxy: every review call fails the way
@@ -535,7 +544,9 @@ class _AlwaysFailingApi implements ReviewApi {
     int? pageIndex,
     CancelToken? cancelToken,
   }) async {
-    throw ApiException('Cannot reach the review proxy at http://localhost:8000.');
+    throw ApiException(
+      'Cannot reach the review proxy at http://localhost:8000.',
+    );
   }
 
   @override

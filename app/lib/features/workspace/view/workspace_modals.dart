@@ -254,11 +254,7 @@ Future<void> showReviewModal(BuildContext context, WidgetRef ref) => _show(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
             child: Row(
               children: [
-                _runSummaryCell(
-                  context,
-                  '${state.selectedCount}',
-                  'selected',
-                ),
+                _runSummaryCell(context, '${state.selectedCount}', 'selected'),
                 _verticalDivider(colors),
                 _runSummaryCell(
                   context,
@@ -279,11 +275,11 @@ Future<void> showReviewModal(BuildContext context, WidgetRef ref) => _show(
             icon: Icons.wifi_off_outlined,
             text: mockMode
                 ? 'Offline mock review — runs entirely on this device with '
-                    'deterministic rules. No model calls are made. Suggestions '
-                    'are illustrative, not an official assessment.'
+                      'deterministic rules. No model calls are made. Suggestions '
+                      'are illustrative, not an official assessment.'
                 : 'Online review — sends requirement text to your local proxy '
-                    'and the configured model. Quotes are verified before any '
-                    'finding is shown.',
+                      'and the configured model. Quotes are verified before any '
+                      'finding is shown.',
           ),
           if (state.attentionCount > 0) ...[
             const SizedBox(height: AppSpacing.sm),
@@ -308,8 +304,9 @@ Future<void> showReviewModal(BuildContext context, WidgetRef ref) => _show(
                 Expanded(
                   child: Text(
                     state.progress?.label ?? 'Reviewing…',
-                    style: theme.textTheme.labelMedium
-                        ?.copyWith(color: colors.ink),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: colors.ink,
+                    ),
                   ),
                 ),
                 TextButton(
@@ -410,11 +407,8 @@ Widget _runSummaryCell(BuildContext context, String value, String label) {
   );
 }
 
-Widget _verticalDivider(WorkspaceColors colors) => Container(
-  width: 1,
-  height: 34,
-  color: colors.border,
-);
+Widget _verticalDivider(WorkspaceColors colors) =>
+    Container(width: 1, height: 34, color: colors.border);
 
 // ---------------------------------------------------------------------------
 // export
@@ -566,7 +560,7 @@ class _ProxyUrlFieldState extends ConsumerState<_ProxyUrlField> {
             hintText: 'http://192.168.1.20:8000',
             helperText: saved == null
                 ? 'Empty = build-in default. Point at a machine running the '
-                    'FastAPI proxy on the same WiFi, then submit.'
+                      'FastAPI proxy on the same WiFi, then submit.'
                 : 'Saved — reviews will call $saved. Clear and submit to reset.',
             isDense: true,
           ),
@@ -624,7 +618,7 @@ class _AppTokenFieldState extends ConsumerState<_AppTokenField> {
             hintText: 'Leave empty when the proxy has no APP_TOKEN',
             helperText: saved == null
                 ? 'Optional. Set it only when your proxy requires one — then it '
-                    'is sent on every request as X-App-Token.'
+                      'is sent on every request as X-App-Token.'
                 : 'Saved — sent as X-App-Token. Clear and submit to remove.',
             isDense: true,
           ),
@@ -646,7 +640,8 @@ Future<void> showSettingsModal(BuildContext context, WidgetRef ref) => _show(
       return _ModalScaffold(
         icon: Icons.settings_outlined,
         title: 'Make this workspace yours.',
-        description: 'Simple, transparent defaults for your pre-submission review.',
+        description:
+            'Simple, transparent defaults for your pre-submission review.',
         children: [
           Row(
             children: [
@@ -753,19 +748,31 @@ Future<void> showHelpModal(BuildContext context, WidgetRef ref) => _show(
       final colors = context.workspaceColors;
       final theme = Theme.of(context);
       const steps = [
-        ('01', 'Import & inspect',
-            'Import a text-layer PDF or DOCX. All detected identifiers stay '
-            'in the inventory, including duplicates and unclassified rows.'),
-        ('02', 'Review with evidence',
-            'The engine checks vague wording, missing shall/must statements '
-            'and more. A quote is displayed only if it matches its source '
-            'unit.'),
-        ('03', 'Follow the source',
-            'Open a finding to see its highlighted quote, the original '
-            'requirement and the parser-provided page.'),
-        ('04', 'Export honestly',
-            'Reports include reviewed/skipped coverage, the rubric version '
-            'and their limitations.'),
+        (
+          '01',
+          'Import & inspect',
+          'Import a text-layer PDF or DOCX. All detected identifiers stay '
+              'in the inventory, including duplicates and unclassified rows.',
+        ),
+        (
+          '02',
+          'Review with evidence',
+          'The engine checks vague wording, missing shall/must statements '
+              'and more. A quote is displayed only if it matches its source '
+              'unit.',
+        ),
+        (
+          '03',
+          'Follow the source',
+          'Open a finding to see its highlighted quote, the original '
+              'requirement and the parser-provided page.',
+        ),
+        (
+          '04',
+          'Export honestly',
+          'Reports include reviewed/skipped coverage, the rubric version '
+              'and their limitations.',
+        ),
       ];
       return _ModalScaffold(
         icon: Icons.shield_outlined,
@@ -841,7 +848,8 @@ Future<void> showRubricModal(BuildContext context, WidgetRef ref) => _show(
       return _ModalScaffold(
         icon: Icons.menu_book_outlined,
         title: 'Clear expectations. Honest limits.',
-        description: 'SEP490 · $version — the numbers this workspace checks against.',
+        description:
+            'SEP490 · $version — the numbers this workspace checks against.',
         children: [
           _settingRow(
             context,
@@ -849,8 +857,8 @@ Future<void> showRubricModal(BuildContext context, WidgetRef ref) => _show(
             rubric == null
                 ? 'Provisional minimum: 20 use cases.'
                 : 'Provisional range: ${rubric.ucCountMin}–${rubric.ucCountMax} '
-                    'use cases. The 75% completion gate requires a verified '
-                    'declared inventory and human assessment.',
+                      'use cases. The 75% completion gate requires a verified '
+                      'declared inventory and human assessment.',
           ),
           _settingRow(
             context,
@@ -865,9 +873,9 @@ Future<void> showRubricModal(BuildContext context, WidgetRef ref) => _show(
             rubric == null
                 ? 'Provisional 3–7 numbered steps per use case.'
                 : 'Provisional ${rubric.ucMinTransactions}–'
-                    '${rubric.ucMaxTransactions} transactions per use case. '
-                    'Alternative flows may affect this count; confirm against '
-                    'the supervisor\'s rubric.',
+                      '${rubric.ucMaxTransactions} transactions per use case. '
+                      'Alternative flows may affect this count; confirm against '
+                      'the supervisor\'s rubric.',
           ),
           const SizedBox(height: AppSpacing.sm),
           const WInfoNote(
@@ -886,45 +894,47 @@ Future<void> showRubricModal(BuildContext context, WidgetRef ref) => _show(
 // document info
 // ---------------------------------------------------------------------------
 
-Future<void> showDocumentInfoModal(BuildContext context, WidgetRef ref) =>
-    _show(
-      context: context,
-      builder: (_) => Consumer(
-        builder: (context, ref, _) {
-          final state = ref.watch(workspaceViewModelProvider);
-          return _ModalScaffold(
-            icon: Icons.description_outlined,
-            title: 'About this document',
-            description: state.fileName,
-            children: [
-              _detailGrid(context, [
-                ('Document type', 'Software Requirements Specification'),
-                ('Pages', '${state.pageCount}'),
-                ('File size', state.sizeLabel),
-                ('Extracted units', '${state.units.length} · no silent cap'),
-                (
-                  'Source',
-                  state.isDemo
-                      ? 'Synthetic demo fixture'
-                      : 'Locally imported document',
-                ),
-              ]),
-              const SizedBox(height: AppSpacing.md),
-              WInfoNote(
-                icon: Icons.help_outline,
-                text: state.isDemo
-                    ? 'The sample uses illustrative content inspired by the '
-                        'brief. Its units are not measured OTES extraction '
-                        'results.'
-                    : 'Original file bytes stay on your device. Inventory text '
-                        'is kept in app storage; sessions are saved only when '
-                        'you run a review.',
-              ),
-            ],
-          );
-        },
-      ),
-    );
+Future<void> showDocumentInfoModal(
+  BuildContext context,
+  WidgetRef ref,
+) => _show(
+  context: context,
+  builder: (_) => Consumer(
+    builder: (context, ref, _) {
+      final state = ref.watch(workspaceViewModelProvider);
+      return _ModalScaffold(
+        icon: Icons.description_outlined,
+        title: 'About this document',
+        description: state.fileName,
+        children: [
+          _detailGrid(context, [
+            ('Document type', 'Software Requirements Specification'),
+            ('Pages', '${state.pageCount}'),
+            ('File size', state.sizeLabel),
+            ('Extracted units', '${state.units.length} · no silent cap'),
+            (
+              'Source',
+              state.isDemo
+                  ? 'Synthetic demo fixture'
+                  : 'Locally imported document',
+            ),
+          ]),
+          const SizedBox(height: AppSpacing.md),
+          WInfoNote(
+            icon: Icons.help_outline,
+            text: state.isDemo
+                ? 'The sample uses illustrative content inspired by the '
+                      'brief. Its units are not measured OTES extraction '
+                      'results.'
+                : 'Original file bytes stay on your device. Inventory text '
+                      'is kept in app storage; sessions are saved only when '
+                      'you run a review.',
+          ),
+        ],
+      );
+    },
+  ),
+);
 
 Widget _detailGrid(BuildContext context, List<(String, String)> rows) {
   final colors = context.workspaceColors;
@@ -963,11 +973,8 @@ Widget _detailGrid(BuildContext context, List<(String, String)> rows) {
 // ask
 // ---------------------------------------------------------------------------
 
-Future<void> showAskModal(BuildContext context, WidgetRef ref) => _show(
-  context: context,
-  wide: true,
-  builder: (_) => const _AskSheet(),
-);
+Future<void> showAskModal(BuildContext context, WidgetRef ref) =>
+    _show(context: context, wide: true, builder: (_) => const _AskSheet());
 
 class _AskSheet extends ConsumerStatefulWidget {
   const _AskSheet();
@@ -1062,7 +1069,7 @@ class _AskSheetState extends ConsumerState<_AskSheet> {
             warning: true,
             text: _outcome!.answer.isEmpty
                 ? 'No matching source found. Try a specific term used in your '
-                    'document. No answer was invented.'
+                      'document. No answer was invented.'
                 : _outcome!.answer,
           )
         else
@@ -1131,8 +1138,7 @@ class _AskSheetState extends ConsumerState<_AskSheet> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             WBadge(
-                              label:
-                                  citation.verification == Verification.exact
+                              label: citation.verification == Verification.exact
                                   ? 'Exact match'
                                   : 'Close match',
                               tint: WBadgeTint.green,

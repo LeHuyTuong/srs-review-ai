@@ -64,9 +64,7 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
                     hintText: 'Search ID or requirement…',
                     prefixIcon: const Icon(Icons.search, size: 18),
                     isDense: true,
-                    border: OutlineInputBorder(
-                      borderRadius: AppRadius.boxSm,
-                    ),
+                    border: OutlineInputBorder(borderRadius: AppRadius.boxSm),
                   ),
                 ),
               ),
@@ -125,9 +123,7 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
               spacing: AppSpacing.sm,
               children: [
                 InputChip(
-                  label: Text(
-                    _status != 'All units' ? _status : _kind,
-                  ),
+                  label: Text(_status != 'All units' ? _status : _kind),
                   onDeleted: () => setState(() {
                     _status = 'All units';
                     _kind = 'All types';
@@ -162,7 +158,9 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
               ),
               Text(
                 '${filtered.length} units',
-                style: theme.textTheme.labelSmall?.copyWith(color: colors.muted),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colors.muted,
+                ),
               ),
             ],
           ),
@@ -257,8 +255,8 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
                   filtered.isEmpty
                       ? ''
                       : 'Showing ${(safePage - 1) * _rowsPerPage + 1}–'
-                          '${((safePage - 1) * _rowsPerPage) + visible.length} '
-                          'of ${filtered.length} units',
+                            '${((safePage - 1) * _rowsPerPage) + visible.length} '
+                            'of ${filtered.length} units',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: colors.muted,
                   ),
@@ -274,7 +272,9 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
               ),
               Text(
                 '$safePage / $pageCount',
-                style: theme.textTheme.labelSmall?.copyWith(color: colors.muted),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colors.muted,
+                ),
               ),
               IconButton(
                 tooltip: 'Next page',
@@ -301,8 +301,9 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
                   (_status == 'Needs attention' && u.malformed) ||
                   (_status == 'Selected' && u.selected) ||
                   (_status == 'Reviewed' && u.status == UnitStatus.reviewed)) &&
-              ('${u.id} ${u.title} ${u.section ?? ''}'.toLowerCase())
-                  .contains(query),
+              ('${u.id} ${u.title} ${u.section ?? ''}'.toLowerCase()).contains(
+                query,
+              ),
         )
         .toList(growable: false);
   }
@@ -331,14 +332,19 @@ class _UnitRow extends StatelessWidget {
       (false, UnitStatus.reviewed) => (colors.brand, 'Reviewed'),
       (false, UnitStatus.failed) => (colors.amber, 'Failed'),
       (false, UnitStatus.skipped) => (colors.muted, 'Skipped'),
-      (false, UnitStatus.pending) => (colors.sage, unit.selected ? 'Ready' : 'Skipped'),
+      (false, UnitStatus.pending) => (
+        colors.sage,
+        unit.selected ? 'Ready' : 'Skipped',
+      ),
     };
 
     return InkWell(
       onTap: onOpen,
       child: Container(
         decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: colors.border.withValues(alpha: 0.6))),
+          border: Border(
+            bottom: BorderSide(color: colors.border.withValues(alpha: 0.6)),
+          ),
         ),
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
@@ -374,9 +380,7 @@ class _UnitRow extends StatelessWidget {
                   unit.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colors.ink,
-                  ),
+                  style: theme.textTheme.bodySmall?.copyWith(color: colors.ink),
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),

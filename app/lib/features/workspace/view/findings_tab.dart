@@ -376,11 +376,7 @@ class _FindingCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                Icon(
-                  Icons.verified_outlined,
-                  size: 14,
-                  color: colors.sage,
-                ),
+                Icon(Icons.verified_outlined, size: 14, color: colors.sage),
                 const SizedBox(width: AppSpacing.xs),
                 Text(
                   finding.issue.verification == Verification.exact
@@ -405,7 +401,9 @@ class _FindingCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: colors.quoteBg,
                 borderRadius: AppRadius.boxSm,
-                border: Border(left: BorderSide(color: colors.quoteBar, width: 2)),
+                border: Border(
+                  left: BorderSide(color: colors.quoteBar, width: 2),
+                ),
               ),
               child: Text(
                 '"${finding.quote}"',

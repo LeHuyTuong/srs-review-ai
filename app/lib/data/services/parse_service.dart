@@ -41,14 +41,12 @@ class _ParseJob {
 Future<SrsDocument> _parseEntry(_ParseJob job) {
   final extension = _extensionOf(job.fileName);
   return switch (extension) {
-    'pdf' => PdfParser(job.splitter).parse(
-      fileName: job.fileName,
-      bytes: job.bytes,
-    ),
-    'docx' => DocxParser(job.splitter).parse(
-      fileName: job.fileName,
-      bytes: job.bytes,
-    ),
+    'pdf' => PdfParser(
+      job.splitter,
+    ).parse(fileName: job.fileName, bytes: job.bytes),
+    'docx' => DocxParser(
+      job.splitter,
+    ).parse(fileName: job.fileName, bytes: job.bytes),
     _ => throw ParseException(
       'Unsupported file type ".$extension". Choose a PDF or DOCX file.',
     ),

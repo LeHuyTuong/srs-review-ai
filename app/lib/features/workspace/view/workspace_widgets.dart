@@ -95,11 +95,7 @@ class WButton extends StatelessWidget {
       children: [
         if (icon != null) ...[Icon(icon, size: 17), const SizedBox(width: 7)],
         Flexible(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
         ),
       ],
     );
@@ -347,9 +343,7 @@ class MetricCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.xs),
             Text(
               note,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: colors.muted,
-              ),
+              style: theme.textTheme.labelSmall?.copyWith(color: colors.muted),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -478,9 +472,7 @@ class WEmptyState extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: colors.brand,
-              ),
+              style: theme.textTheme.titleMedium?.copyWith(color: colors.brand),
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
@@ -517,9 +509,9 @@ class WErrorBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: colors.ink,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: colors.ink),
             ),
           ),
         ],
@@ -559,10 +551,9 @@ class WInfoNote extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: colors.muted,
-                height: 1.6,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: colors.muted, height: 1.6),
             ),
           ),
         ],

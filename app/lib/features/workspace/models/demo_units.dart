@@ -13,34 +13,74 @@ const String demoFileName = 'OTES_SRS_v1.0.pdf';
 const int demoPageCount = 114;
 
 const List<String> _useCaseNames = [
-  'Register account', 'Log in', 'Log out', 'Reset password',
-  'View user profile', 'Update user profile', 'Change password',
-  'Manage user accounts', 'Create an examination', 'Update an examination',
-  'View examination details', 'Delete an examination',
-  'Publish an examination', 'Search examinations',
-  'Register for an examination', 'Cancel examination registration',
-  'View examination schedule', 'Manage question bank', 'Create a question',
-  'Update a question', 'Delete a question', 'Import questions',
-  'Export questions', 'Generate examination paper', 'Review examination paper',
-  'Assign an invigilator', 'Start an examination', 'Submit examination answers',
-  'Save examination progress', 'View remaining time', 'Auto-submit examination',
-  'Grade an examination', 'Review examination results',
-  'Publish examination results', 'View student results', 'Request a regrade',
-  'Approve a regrade', 'Generate results report', 'Export results',
-  'Send a notification', 'View notifications', 'Manage departments',
-  'Manage subjects', 'Manage classes', 'Enroll a student',
-  'View activity logs', 'Configure examination rules',
-  'Manage access permissions', 'Archive an examination', 'View dashboard',
+  'Register account',
+  'Log in',
+  'Log out',
+  'Reset password',
+  'View user profile',
+  'Update user profile',
+  'Change password',
+  'Manage user accounts',
+  'Create an examination',
+  'Update an examination',
+  'View examination details',
+  'Delete an examination',
+  'Publish an examination',
+  'Search examinations',
+  'Register for an examination',
+  'Cancel examination registration',
+  'View examination schedule',
+  'Manage question bank',
+  'Create a question',
+  'Update a question',
+  'Delete a question',
+  'Import questions',
+  'Export questions',
+  'Generate examination paper',
+  'Review examination paper',
+  'Assign an invigilator',
+  'Start an examination',
+  'Submit examination answers',
+  'Save examination progress',
+  'View remaining time',
+  'Auto-submit examination',
+  'Grade an examination',
+  'Review examination results',
+  'Publish examination results',
+  'View student results',
+  'Request a regrade',
+  'Approve a regrade',
+  'Generate results report',
+  'Export results',
+  'Send a notification',
+  'View notifications',
+  'Manage departments',
+  'Manage subjects',
+  'Manage classes',
+  'Enroll a student',
+  'View activity logs',
+  'Configure examination rules',
+  'Manage access permissions',
+  'Archive an examination',
+  'View dashboard',
 ];
 
 const List<String> _businessRuleNames = [
-  'Unique email address', 'Password policy', 'Examination eligibility',
-  'Attempt limit', 'Submission deadline', 'Grading policy',
-  'Role-based access', 'Data retention',
+  'Unique email address',
+  'Password policy',
+  'Examination eligibility',
+  'Attempt limit',
+  'Submission deadline',
+  'Grading policy',
+  'Role-based access',
+  'Data retention',
 ];
 
 const List<String> _nonFunctionalNames = [
-  'System performance', 'Availability', 'Security', 'Usability',
+  'System performance',
+  'Availability',
+  'Security',
+  'Usability',
   'Compatibility',
 ];
 
@@ -58,7 +98,7 @@ String _useCaseText(String id, String title, int i) =>
     'Postconditions\n'
     'The request is recorded in the system.'
     '${i % 9 == 0 ? '' : '\nAlternative flow\n1. If validation fails, the '
-        'system displays an error and preserves the input.'}\n'
+              'system displays an error and preserves the input.'}\n'
     'Business rules\nOnly authorized users may perform this action.';
 
 /// The parsed requirements behind "Load the sample document".
@@ -118,7 +158,10 @@ SrsDocument demoDocument() {
     );
   }
   const malformed = ['UC0134', 'UC0114'];
-  const malformedTitles = ['Update examination status', 'View examination history'];
+  const malformedTitles = [
+    'Update examination status',
+    'View examination history',
+  ];
   for (var i = 0; i < malformed.length; i++) {
     items.add(
       RequirementItem(

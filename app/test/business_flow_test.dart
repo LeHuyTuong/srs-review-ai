@@ -20,17 +20,15 @@ import 'package:srs_review_ai/features/workspace/models/report_export.dart';
 import 'package:srs_review_ai/features/workspace/models/workspace_findings.dart';
 import 'package:srs_review_ai/features/workspace/view_model/workspace_view_model.dart';
 
-ProviderContainer _container(
-  InMemorySessionStore store, {
-  ReviewApi? api,
-}) => ProviderContainer(
-  overrides: [
-    sessionStoreProvider.overrideWithValue(store),
-    reviewApiProvider.overrideWithValue(
-      api ?? const MockReviewApi(latency: Duration.zero),
-    ),
-  ],
-);
+ProviderContainer _container(InMemorySessionStore store, {ReviewApi? api}) =>
+    ProviderContainer(
+      overrides: [
+        sessionStoreProvider.overrideWithValue(store),
+        reviewApiProvider.overrideWithValue(
+          api ?? const MockReviewApi(latency: Duration.zero),
+        ),
+      ],
+    );
 
 Future<void> _pumpUntil(
   bool Function() condition, {
@@ -65,13 +63,12 @@ class _AnsweringApi implements ReviewApi {
     String? section,
     int? pageIndex,
     CancelToken? cancelToken,
-  }) async =>
-      ReviewResult(
-        requirementId: requirementId,
-        score: 8,
-        issues: const [],
-        model: 'fake',
-      );
+  }) async => ReviewResult(
+    requirementId: requirementId,
+    score: 8,
+    issues: const [],
+    model: 'fake',
+  );
 
   @override
   Future<AskResponse> ask({
@@ -83,7 +80,9 @@ class _AnsweringApi implements ReviewApi {
     askCalls++;
     lastContext = context;
     if (throwOnAsk) {
-      throw ApiException('Cannot reach the review proxy at http://localhost:8000.');
+      throw ApiException(
+        'Cannot reach the review proxy at http://localhost:8000.',
+      );
     }
     return AskResponse(
       answer: 'The document requires a password policy.',
@@ -134,33 +133,37 @@ class _FailsAfterNApi implements ReviewApi {
     required String context,
     int? pageIndex,
     CancelToken? cancelToken,
-  }) async =>
-      throw ApiException('Provider quota exhausted.', statusCode: 429);
+  }) async => throw ApiException('Provider quota exhausted.', statusCode: 429);
 }
 
 void main() {
   group('Ask reaches the proxy instead of stopping at local search', () {
-    test('online answers come from the model and carry verified citations',
-        () async {
-      final store = InMemorySessionStore();
-      final api = _AnsweringApi();
-      final container = _container(store, api: api);
-      addTearDown(container.dispose);
-      final vm = container.read(workspaceViewModelProvider.notifier);
-      await vm.loadDemo();
+    test(
+      'online answers come from the model and carry verified citations',
+      () async {
+        final store = InMemorySessionStore();
+        final api = _AnsweringApi();
+        final container = _container(store, api: api);
+        addTearDown(container.dispose);
+        final vm = container.read(workspaceViewModelProvider.notifier);
+        await vm.loadDemo();
 
-      final outcome = await vm.askQuestion('What is the password policy?');
+        final outcome = await vm.askQuestion('What is the password policy?');
 
-      expect(api.askCalls, 1, reason: 'the /ask endpoint used to have no caller');
-      expect(outcome.engine, AskEngine.model);
-      expect(outcome.grounded, isTrue);
-      expect(outcome.answer, contains('password policy'));
-      expect(outcome.citations, hasLength(1));
-      expect(outcome.model, 'fake-ask');
-    });
+        expect(
+          api.askCalls,
+          1,
+          reason: 'the /ask endpoint used to have no caller',
+        );
+        expect(outcome.engine, AskEngine.model);
+        expect(outcome.grounded, isTrue);
+        expect(outcome.answer, contains('password policy'));
+        expect(outcome.citations, hasLength(1));
+        expect(outcome.model, 'fake-ask');
+      },
+    );
 
-    test('only the matching units are sent, never the whole document',
-        () async {
+    test('only the matching units are sent, never the whole document', () async {
       final store = InMemorySessionStore();
       final api = _AnsweringApi();
       final container = _container(store, api: api);
@@ -199,21 +202,27 @@ void main() {
       expect(outcome.note, contains('no model was involved'));
     });
 
-    test('no match means no answer is invented — and no token is spent',
-        () async {
-      final store = InMemorySessionStore();
-      final api = _AnsweringApi();
-      final container = _container(store, api: api);
-      addTearDown(container.dispose);
-      final vm = container.read(workspaceViewModelProvider.notifier);
-      await vm.loadDemo();
+    test(
+      'no match means no answer is invented — and no token is spent',
+      () async {
+        final store = InMemorySessionStore();
+        final api = _AnsweringApi();
+        final container = _container(store, api: api);
+        addTearDown(container.dispose);
+        final vm = container.read(workspaceViewModelProvider.notifier);
+        await vm.loadDemo();
 
-      final outcome = await vm.askQuestion('zzzqqq nonexistent phrase');
+        final outcome = await vm.askQuestion('zzzqqq nonexistent phrase');
 
-      expect(outcome.grounded, isFalse);
-      expect(outcome.answer, contains('Not found in the document'));
-      expect(api.askCalls, 0, reason: 'a hopeless question must not cost a call');
-    });
+        expect(outcome.grounded, isFalse);
+        expect(outcome.answer, contains('Not found in the document'));
+        expect(
+          api.askCalls,
+          0,
+          reason: 'a hopeless question must not cost a call',
+        );
+      },
+    );
   });
 
   group('findings have a lifecycle', () {
@@ -224,8 +233,10 @@ void main() {
       final vm = container.read(workspaceViewModelProvider.notifier);
       await vm.loadDemo();
 
-      expect(container.read(workspaceViewModelProvider).statusOf('f-0'),
-          FindingStatus.open);
+      expect(
+        container.read(workspaceViewModelProvider).statusOf('f-0'),
+        FindingStatus.open,
+      );
       vm.setFindingStatus('f-0', FindingStatus.accepted);
       vm.setFindingStatus('f-1', FindingStatus.dismissed);
       expect(container.read(workspaceViewModelProvider).acceptedCount, 1);

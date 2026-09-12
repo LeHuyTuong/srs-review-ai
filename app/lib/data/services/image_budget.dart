@@ -24,10 +24,13 @@ class ImageBudget {
   /// A runtime guard, not an assert: asserts are stripped from release
   /// builds, and a silently negative budget would just never be spent.
   ImageBudget({int? maxPages})
-      : maxPages = maxPages ?? kRoadmapDefaultMaxPageImages {
+    : maxPages = maxPages ?? kRoadmapDefaultMaxPageImages {
     if (this.maxPages < 0) {
       throw ArgumentError.value(
-          maxPages, 'maxPages', 'a budget of ${this.maxPages} pages cannot be spent');
+        maxPages,
+        'maxPages',
+        'a budget of ${this.maxPages} pages cannot be spent',
+      );
     }
   }
 

@@ -4,12 +4,12 @@ import 'package:srs_review_ai/data/services/image_budget.dart';
 import 'package:srs_review_ai/data/services/page_image_selector.dart';
 
 void main() {
-  const diagramText = 'The flow of UC04 is shown in the use case diagram below.';
+  const diagramText =
+      'The flow of UC04 is shown in the use case diagram below.';
   const plainText = 'The system shall reject an expired membership card.';
 
-  PageImageSelector selectorWith(int maxPages) => PageImageSelector(
-        budget: ImageBudget(maxPages: maxPages),
-      );
+  PageImageSelector selectorWith(int maxPages) =>
+      PageImageSelector(budget: ImageBudget(maxPages: maxPages));
 
   test('no intent skips without spending budget, even when a page exists', () {
     final selector = selectorWith(2);
@@ -65,8 +65,11 @@ void main() {
     );
     expect(first.decision, PageImageDecision.selected);
     expect(first.reason, isNull);
-    expect(second.decision, PageImageDecision.selected,
-        reason: 'same page shares one reservation');
+    expect(
+      second.decision,
+      PageImageDecision.selected,
+      reason: 'same page shares one reservation',
+    );
     expect(selector.budget.used, 1);
   });
 
@@ -97,8 +100,11 @@ void main() {
       pageIndex: 3,
       candidatePages: {3},
     );
-    expect(plan.decision, PageImageDecision.skippedNoDiagramIntent,
-        reason: 'budget exhaustion must not mask a text-only requirement');
+    expect(
+      plan.decision,
+      PageImageDecision.skippedNoDiagramIntent,
+      reason: 'budget exhaustion must not mask a text-only requirement',
+    );
     expect(selector.budget.used, 0);
   });
 
@@ -116,20 +122,25 @@ void main() {
     expect(plan.decision, PageImageDecision.skippedNoDiagramIntent);
   });
 
-  test('selector with a permissive detector and a default budget still caps',
-      () {
-    final selector = PageImageSelector(budget: ImageBudget());
-    var selected = 0;
-    for (var page = 0; page < 20; page++) {
-      final plan = selector.planFor(
-        requirementId: 'u-page-$page',
-        text: diagramText,
-        pageIndex: page,
-        candidatePages: {for (var i = 0; i < 20; i++) i},
+  test(
+    'selector with a permissive detector and a default budget still caps',
+    () {
+      final selector = PageImageSelector(budget: ImageBudget());
+      var selected = 0;
+      for (var page = 0; page < 20; page++) {
+        final plan = selector.planFor(
+          requirementId: 'u-page-$page',
+          text: diagramText,
+          pageIndex: page,
+          candidatePages: {for (var i = 0; i < 20; i++) i},
+        );
+        if (plan.decision == PageImageDecision.selected) selected++;
+      }
+      expect(
+        selected,
+        selector.budget.maxPages,
+        reason: 'roadmap default is 12; the rest defer, the run continues',
       );
-      if (plan.decision == PageImageDecision.selected) selected++;
-    }
-    expect(selected, selector.budget.maxPages,
-        reason: 'roadmap default is 12; the rest defer, the run continues');
-  });
+    },
+  );
 }

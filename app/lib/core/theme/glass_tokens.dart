@@ -47,11 +47,7 @@ class GlassTokens extends ThemeExtension<GlassTokens> {
     rimDark: 0.16,
     strokeWidth: 1.0,
     shadow: [
-      BoxShadow(
-        offset: Offset(0, 8),
-        blurRadius: 24,
-        color: Color(0x1A000000),
-      ),
+      BoxShadow(offset: Offset(0, 8), blurRadius: 24, color: Color(0x1A000000)),
     ],
     panelRadius: 20,
   );
@@ -68,11 +64,7 @@ class GlassTokens extends ThemeExtension<GlassTokens> {
     rimDark: 0.16,
     strokeWidth: 1.0,
     shadow: [
-      BoxShadow(
-        offset: Offset(0, 6),
-        blurRadius: 22,
-        color: Color(0x57000000),
-      ),
+      BoxShadow(offset: Offset(0, 6), blurRadius: 22, color: Color(0x57000000)),
     ],
     panelRadius: 20,
   );

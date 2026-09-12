@@ -103,25 +103,23 @@ void main() {
 
     test('a quota rejection is final — never retried', () async {
       final adapter = _FakeAdapter(
-        Queue<Object>.of(<Object>[_json(const <String, Object?>{}, status: 429)]),
+        Queue<Object>.of(<Object>[
+          _json(const <String, Object?>{}, status: 429),
+        ]),
       );
 
       await expectLater(
         _service(adapter).review(requirementId: 'FR-01', text: 'x'),
         throwsA(
           isA<ApiException>()
-            .having(
-              (error) => error.statusCode,
-              'statusCode',
-              429,
-            )
-            .having(
-              // No Retry-After header on the fake response => day-scale
-              // fallback must survive so the sentence never comes up blank.
-              (error) => error.message,
-              'message',
-              contains('try again tomorrow'),
-            ),
+              .having((error) => error.statusCode, 'statusCode', 429)
+              .having(
+                // No Retry-After header on the fake response => day-scale
+                // fallback must survive so the sentence never comes up blank.
+                (error) => error.message,
+                'message',
+                contains('try again tomorrow'),
+              ),
         ),
       );
       expect(
@@ -166,7 +164,10 @@ void main() {
         contains('Retry in about 2 min'),
       );
       expect(ApiService.quotaMessage(), contains('try again tomorrow'));
-      expect(ApiService.quotaMessage(retryAfterSeconds: 0), contains('tomorrow'));
+      expect(
+        ApiService.quotaMessage(retryAfterSeconds: 0),
+        contains('tomorrow'),
+      );
     });
 
     test('a run the user cancelled is not retried', () async {
@@ -177,11 +178,9 @@ void main() {
       );
 
       await expectLater(
-        _service(adapter).review(
-          requirementId: 'FR-01',
-          text: 'x',
-          cancelToken: token,
-        ),
+        _service(
+          adapter,
+        ).review(requirementId: 'FR-01', text: 'x', cancelToken: token),
         throwsA(isA<ApiException>()),
       );
       expect(

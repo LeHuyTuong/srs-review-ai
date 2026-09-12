@@ -159,10 +159,7 @@ String deriveTitle(String id, String text) {
 /// the intended identifier. The app's splitter canonicalises `UC0134` →
 /// `UC-134` for real documents, so the rule mostly fires on raw fixtures —
 /// still the same "check me by hand" signal.
-WorkspaceUnit unitFromRequirement(
-  RequirementItem item, {
-  required int index,
-}) {
+WorkspaceUnit unitFromRequirement(RequirementItem item, {required int index}) {
   final id = item.id.toUpperCase();
   final UnitKind kind;
   if (id.startsWith('UC')) {

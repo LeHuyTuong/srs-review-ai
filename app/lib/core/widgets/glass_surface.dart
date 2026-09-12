@@ -60,7 +60,8 @@ class GlassSurface extends StatelessWidget {
     // building a bare MaterialApp did exactly that), and the resulting
     // RenderErrorBox takes infinite height — which surfaced as a baffling
     // 99,214px layout overflow rather than as the null error it really was.
-    final tokens = theme.extension<GlassTokens>() ??
+    final tokens =
+        theme.extension<GlassTokens>() ??
         (theme.brightness == Brightness.dark
             ? GlassTokens.dark()
             : GlassTokens.light());
@@ -181,10 +182,26 @@ class _Saturate extends StatelessWidget {
     const lr = 0.2126, lg = 0.7152, lb = 0.0722;
     final sr = (1 - s) * lr, sg = (1 - s) * lg, sb = (1 - s) * lb;
     return <double>[
-      sr + s, sg, sb, 0, 0,
-      sr, sg + s, sb, 0, 0,
-      sr, sg, sb + s, 0, 0,
-      0, 0, 0, 1, 0,
+      sr + s,
+      sg,
+      sb,
+      0,
+      0,
+      sr,
+      sg + s,
+      sb,
+      0,
+      0,
+      sr,
+      sg,
+      sb + s,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
     ];
   }
 }
@@ -211,7 +228,9 @@ class _PressScaleState extends State<_PressScale> {
   @override
   Widget build(BuildContext context) {
     return Listener(
-      onPointerDown: widget.enabled ? (_) => setState(() => _down = true) : null,
+      onPointerDown: widget.enabled
+          ? (_) => setState(() => _down = true)
+          : null,
       onPointerUp: widget.enabled ? (_) => setState(() => _down = false) : null,
       onPointerCancel: widget.enabled
           ? (_) => setState(() => _down = false)

@@ -56,15 +56,14 @@ class _StubProgressRepository extends DocumentRepository {
   }
 }
 
-ProviderContainer _container(InMemorySessionStore store) =>
-    ProviderContainer(
-      overrides: [
-        sessionStoreProvider.overrideWithValue(store),
-        reviewApiProvider.overrideWithValue(
-          const MockReviewApi(latency: Duration.zero),
-        ),
-      ],
-    );
+ProviderContainer _container(InMemorySessionStore store) => ProviderContainer(
+  overrides: [
+    sessionStoreProvider.overrideWithValue(store),
+    reviewApiProvider.overrideWithValue(
+      const MockReviewApi(latency: Duration.zero),
+    ),
+  ],
+);
 
 Future<void> _pumpWhile(
   WidgetTester tester,
@@ -194,9 +193,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         sessionStoreProvider.overrideWithValue(InMemorySessionStore()),
-        documentRepositoryProvider.overrideWithValue(
-          _StubProgressRepository(),
-        ),
+        documentRepositoryProvider.overrideWithValue(_StubProgressRepository()),
       ],
     );
     addTearDown(container.dispose);
@@ -403,8 +400,11 @@ void main() {
     expect(find.byType(GlassSurface), findsWidgets);
     // Every destination is directly tappable — no drawer required.
     for (final d in kWorkspaceDestinations) {
-      expect(find.text(d.label), findsWidgets,
-          reason: '${d.label} must be reachable from the tab bar');
+      expect(
+        find.text(d.label),
+        findsWidgets,
+        reason: '${d.label} must be reachable from the tab bar',
+      );
     }
     expect(tester.takeException(), isNull);
     await tester.pump(const Duration(seconds: 5));
@@ -450,8 +450,11 @@ void main() {
     expect(ink, findsWidgets);
     for (var i = 0; i < ink.evaluate().length; i++) {
       final size = tester.getSize(ink.at(i));
-      expect(size.height, greaterThanOrEqualTo(44),
-          reason: 'tab $i tap target too short: ${size.height}');
+      expect(
+        size.height,
+        greaterThanOrEqualTo(44),
+        reason: 'tab $i tap target too short: ${size.height}',
+      );
     }
     await tester.pump(const Duration(seconds: 5));
   });
@@ -469,23 +472,30 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.light(),
-      home: Scaffold(
-        body: Column(children: [
-          WButton.primary(label: 'Primary', onPressed: () {}),
-          WButton.secondary(label: 'Secondary', onPressed: () {}),
-        ]),
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: Column(
+            children: [
+              WButton.primary(label: 'Primary', onPressed: () {}),
+              WButton.secondary(label: 'Secondary', onPressed: () {}),
+            ],
+          ),
+        ),
       ),
-    ));
+    );
     await tester.pump();
 
     for (final type in [FilledButton, OutlinedButton]) {
       final f = find.byType(type);
       expect(f, findsOneWidget, reason: 'expected one $type');
       final h = tester.getSize(f).height;
-      expect(h, greaterThanOrEqualTo(44),
-          reason: '$type tap target too short: $h');
+      expect(
+        h,
+        greaterThanOrEqualTo(44),
+        reason: '$type tap target too short: $h',
+      );
     }
   });
 
@@ -529,9 +539,9 @@ void main() {
     var checked = 0;
     for (var i = 0; i < buttons.evaluate().length; i++) {
       final size = tester.getSize(buttons.at(i));
-      final label = buttons.at(i).evaluate().first
-          .widget is IconButton
-          ? (buttons.at(i).evaluate().first.widget as IconButton).tooltip ?? '#$i'
+      final label = buttons.at(i).evaluate().first.widget is IconButton
+          ? (buttons.at(i).evaluate().first.widget as IconButton).tooltip ??
+                '#$i'
           : '#$i';
       expect(
         size.height,
@@ -574,7 +584,8 @@ void main() {
     expect(
       theme.materialTapTargetSize,
       MaterialTapTargetSize.padded,
-      reason: 'on linux/macos/windows ThemeData defaults this to shrinkWrap, '
+      reason:
+          'on linux/macos/windows ThemeData defaults this to shrinkWrap, '
           'which drops IconButton to 40x40 — and Flutter web reports a desktop '
           'platform, so real desktop users get the small target',
     );
@@ -599,7 +610,8 @@ void main() {
     expect(
       size.width,
       greaterThanOrEqualTo(44),
-      reason: 'IconButton is $size on a desktop platform; the tap target must '
+      reason:
+          'IconButton is $size on a desktop platform; the tap target must '
           'clear the 44px platform floor regardless of host OS',
     );
     expect(
@@ -875,7 +887,8 @@ void main() {
       expect(
         labels.where((l) => l == wanted).length,
         1,
-        reason: '"$wanted" announced ${labels.where((l) => l == wanted).length} '
+        reason:
+            '"$wanted" announced ${labels.where((l) => l == wanted).length} '
             'times; a duplicated node makes screen readers say it twice',
       );
     }
@@ -946,7 +959,8 @@ void main() {
       expect(
         buttons.every(_isSelected),
         i == 0,
-        reason: '"$label" is ${i == 0 ? 'the active' : 'not the active'} '
+        reason:
+            '"$label" is ${i == 0 ? 'the active' : 'not the active'} '
             'destination, so its selected state must be ${i == 0}',
       );
     }
@@ -966,7 +980,8 @@ void main() {
     expect(
       _buttonsNamed(nodes, 'Explore mock mode'),
       isNotEmpty,
-      reason: 'the mock-mode link must be announced as a button; '
+      reason:
+          'the mock-mode link must be announced as a button; '
           'labels were $labels',
     );
     // And the product name, as one name rather than "SRS Review" + "AI".

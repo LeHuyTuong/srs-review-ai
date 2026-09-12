@@ -24,8 +24,7 @@ class DocumentReviewView extends ConsumerStatefulWidget {
   const DocumentReviewView({super.key});
 
   @override
-  ConsumerState<DocumentReviewView> createState() =>
-      _DocumentReviewViewState();
+  ConsumerState<DocumentReviewView> createState() => _DocumentReviewViewState();
 }
 
 class _DocumentReviewViewState extends ConsumerState<DocumentReviewView> {
@@ -175,22 +174,27 @@ class _DocumentReviewViewState extends ConsumerState<DocumentReviewView> {
               final columns = constraints.maxWidth >= 700 ? 4 : 2;
               final metricWidth =
                   (constraints.maxWidth - gap * (columns - 1)) / columns;
-              Widget metric(String label, int value, String note, IconData icon,
-                      Color color, Color bg) =>
-                  SizedBox(
-                    width: metricWidth,
-                    child: MetricCard(
-                      label: label,
-                      value: value,
-                      note: note,
-                      icon: icon,
-                      color: color,
-                      background: bg,
-                      onTap: () => setState(() {
-                        _tab = WorkspaceTab.inventory;
-                      }),
-                    ),
-                  );
+              Widget metric(
+                String label,
+                int value,
+                String note,
+                IconData icon,
+                Color color,
+                Color bg,
+              ) => SizedBox(
+                width: metricWidth,
+                child: MetricCard(
+                  label: label,
+                  value: value,
+                  note: note,
+                  icon: icon,
+                  color: color,
+                  background: bg,
+                  onTap: () => setState(() {
+                    _tab = WorkspaceTab.inventory;
+                  }),
+                ),
+              );
               return Wrap(
                 spacing: gap,
                 runSpacing: gap,
@@ -516,11 +520,8 @@ class _TabbedPanel extends ConsumerWidget {
                                       ),
                                       child: Text(
                                         '${switch (entry.$1) {
-                                          WorkspaceTab.inventory =>
-                                              state.units.length,
-                                          WorkspaceTab.findings =>
-                                              state.result?.findings.length ??
-                                                  0,
+                                          WorkspaceTab.inventory => state.units.length,
+                                          WorkspaceTab.findings => state.result?.findings.length ?? 0,
                                           WorkspaceTab.syllabus => 3,
                                         }}',
                                         style: theme.textTheme.labelSmall
@@ -602,7 +603,9 @@ class _ReadinessPanel extends ConsumerWidget {
               const SizedBox(height: AppSpacing.xs),
               Text(
                 'A good review starts with a clear inventory.',
-                style: theme.textTheme.labelSmall?.copyWith(color: colors.muted),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colors.muted,
+                ),
               ),
               const SizedBox(height: AppSpacing.lg),
               Row(
@@ -727,9 +730,8 @@ class _ReadinessPanel extends ConsumerWidget {
                         spacing: AppSpacing.xs,
                         runSpacing: AppSpacing.xs,
                         children: [
-                          for (final unit in state.units.where(
-                            (u) => u.malformed,
-                          ).take(3))
+                          for (final unit
+                              in state.units.where((u) => u.malformed).take(3))
                             InkWell(
                               onTap: () => showSourceSheet(context, ref, unit),
                               borderRadius: AppRadius.boxSm,
@@ -843,7 +845,9 @@ class _ReadinessPanel extends ConsumerWidget {
                 'Every finding is checked against your source. No matching '
                 'quote? It doesn\'t make the cut.',
                 textAlign: TextAlign.center,
-                style: theme.textTheme.labelSmall?.copyWith(color: colors.muted),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colors.muted,
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
               InkWell(

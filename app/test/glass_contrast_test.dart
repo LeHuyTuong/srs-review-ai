@@ -37,18 +37,17 @@ double _contrast(Color a, Color b) {
 /// `GlassSurface` paints `tint.withValues(alpha: fill)` above a backdrop blur,
 /// so this mirrors what actually ends up behind the text.
 Color _glassBody(Color tint, Color backdrop, double fill) => Color.from(
-      red: fill * tint.r + (1 - fill) * backdrop.r,
-      green: fill * tint.g + (1 - fill) * backdrop.g,
-      blue: fill * tint.b + (1 - fill) * backdrop.b,
-      alpha: 1.0,
-    );
+  red: fill * tint.r + (1 - fill) * backdrop.r,
+  green: fill * tint.g + (1 - fill) * backdrop.g,
+  blue: fill * tint.b + (1 - fill) * backdrop.b,
+  alpha: 1.0,
+);
 
 void main() {
   const aaSmall = 4.5; // WCAG AA for body/small text.
 
   group('glass does not break text contrast', () {
-    test('light: ink and muted clear AA at rest and over the worst backdrop',
-        () {
+    test('light: ink and muted clear AA at rest and over the worst backdrop', () {
       final colors = WorkspaceColors.light();
       final tokens = GlassTokens.light();
 
@@ -70,13 +69,17 @@ void main() {
       };
 
       for (final entry in backdrops.entries) {
-        final body =
-            _glassBody(tokens.lightTint, entry.value, tokens.fillLight);
+        final body = _glassBody(
+          tokens.lightTint,
+          entry.value,
+          tokens.fillLight,
+        );
         for (final text in {'ink': colors.ink, 'muted': colors.muted}.entries) {
           expect(
             _contrast(text.value, body),
             greaterThanOrEqualTo(aaSmall),
-            reason: '${text.key} on glass over ${entry.key} '
+            reason:
+                '${text.key} on glass over ${entry.key} '
                 'is ${_contrast(text.value, body).toStringAsFixed(2)}:1, '
                 'below AA $aaSmall. Raising transparency (fillLight) '
                 'or lightening a text token causes this.',
@@ -85,8 +88,7 @@ void main() {
       }
     });
 
-    test('dark: ink and muted clear AA at rest and over the worst backdrop',
-        () {
+    test('dark: ink and muted clear AA at rest and over the worst backdrop', () {
       final colors = WorkspaceColors.dark();
       final tokens = GlassTokens.dark();
 
@@ -104,13 +106,13 @@ void main() {
       };
 
       for (final entry in backdrops.entries) {
-        final body =
-            _glassBody(tokens.darkTint, entry.value, tokens.fillDark);
+        final body = _glassBody(tokens.darkTint, entry.value, tokens.fillDark);
         for (final text in {'ink': colors.ink, 'muted': colors.muted}.entries) {
           expect(
             _contrast(text.value, body),
             greaterThanOrEqualTo(aaSmall),
-            reason: 'dark ${text.key} on glass over ${entry.key} is '
+            reason:
+                'dark ${text.key} on glass over ${entry.key} is '
                 '${_contrast(text.value, body).toStringAsFixed(2)}:1',
           );
         }
@@ -124,7 +126,8 @@ void main() {
       expect(
         _contrast(colors.muted, colors.canvas),
         greaterThanOrEqualTo(aaSmall),
-        reason: 'muted is used for small secondary labels on plain surfaces '
+        reason:
+            'muted is used for small secondary labels on plain surfaces '
             'too, so it must pass AA without any glass on top',
       );
     });
@@ -134,19 +137,27 @@ void main() {
       // 1.0, which leaves a flat panel and no reason for the blur to exist.
       final tokens = GlassTokens.light();
       final light = _glassBody(
-          tokens.lightTint, WorkspaceColors.light().canvas, tokens.fillLight);
+        tokens.lightTint,
+        WorkspaceColors.light().canvas,
+        tokens.fillLight,
+      );
       final dark = _glassBody(
-          tokens.lightTint, WorkspaceColors.light().ink, tokens.fillLight);
+        tokens.lightTint,
+        WorkspaceColors.light().ink,
+        tokens.fillLight,
+      );
       final swing = (_luminance(light) - _luminance(dark)).abs();
       expect(
         swing,
         greaterThan(0.15),
-        reason: 'luminance only moves $swing between a light and a dark '
+        reason:
+            'luminance only moves $swing between a light and a dark '
             'backdrop, i.e. the bar no longer reacts to what passes behind '
             'it — it is an opaque panel with a pointless blur under it',
       );
     });
   });
+
   /// The body font is not a free aesthetic choice: `DMSans.ttf` covers 403
   /// codepoints and contains **none** of the 44 Vietnamese precomposed
   /// characters this app paints (`ơ ư ạ ề ỗ ự …`), verified against the bundled
@@ -170,13 +181,15 @@ void main() {
           expect(
             entry.value?.fontFamily,
             'DM Sans',
-            reason: '${entry.key} is no longer the body face; if that changed '
+            reason:
+                '${entry.key} is no longer the body face; if that changed '
                 'deliberately, this guard and app_theme.dart need updating',
           );
           expect(
             entry.value?.fontFamilyFallback,
             contains('Manrope'),
-            reason: '${entry.key} lost its fallback, so Vietnamese glyphs in '
+            reason:
+                '${entry.key} lost its fallback, so Vietnamese glyphs in '
                 'running text trigger a fonts.gstatic.com fetch',
           );
         }
@@ -191,15 +204,15 @@ void main() {
           AppTheme.light().textTheme.bodyMedium,
           AppTheme.dark().textTheme.bodyLarge,
         ])
-          if (style != null)
-            ...?style.fontFamilyFallback,
+          if (style != null) ...?style.fontFamilyFallback,
       };
       expect(fallbacks, isNotEmpty);
       for (final family in fallbacks) {
         expect(
           [AppTheme.headingFamily, AppTheme.bodyFamily],
           contains(family),
-          reason: '$family is used as a fallback but is not a bundled family, '
+          reason:
+              '$family is used as a fallback but is not a bundled family, '
               'so it cannot resolve without a network fetch',
         );
       }

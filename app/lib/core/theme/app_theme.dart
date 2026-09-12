@@ -204,10 +204,9 @@ class AppTheme {
           // strip the family (ButtonStyle merges per field, not per TextStyle
           // property) and push every default FilledButton onto the engine's
           // gstatic Roboto fetch. See audit §14.
-          textStyle: _textTheme(brightness).labelLarge?.copyWith(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: _textTheme(
+            brightness,
+          ).labelLarge?.copyWith(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -216,7 +215,7 @@ class AppTheme {
           padding: const EdgeInsets.symmetric(horizontal: 24),
         ),
       ),
-inputDecorationTheme: const InputDecorationTheme(
+      inputDecorationTheme: const InputDecorationTheme(
         border: OutlineInputBorder(),
       ),
       extensions: [

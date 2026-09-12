@@ -36,8 +36,7 @@ String buildMarkdownReport({
   /// Per-finding triage, keyed by finding id.
   Map<String, FindingStatus> findingStatus = const {},
 }) {
-  final skipped =
-      result?.skipped ?? units.where((u) => !u.selected).length;
+  final skipped = result?.skipped ?? units.where((u) => !u.selected).length;
   final findings = result?.findings ?? const <FindingRow>[];
   final dropped = result?.droppedIssueCount ?? 0;
   final reportOffline = result?.mock ?? offline;
@@ -131,8 +130,8 @@ String buildMarkdownReport({
     for (final finding in syllabusFindings) {
       lines.add(
         '| ${finding.check.label} | ${finding.subject ?? 'whole document'} | '
-            '${finding.passed ? 'passed' : '**${finding.severity.name}**'} | '
-            '${finding.message.replaceAll('|', '\\|')} |',
+        '${finding.passed ? 'passed' : '**${finding.severity.name}**'} | '
+        '${finding.message.replaceAll('|', '\\|')} |',
       );
     }
     lines.add('');
@@ -145,10 +144,10 @@ String buildMarkdownReport({
     final message = result == null
         ? '*No findings yet — run a review to populate this section.*'
         : result.reviewed > 0
-            ? '*The run reviewed ${result.reviewed} unit(s) and verified no '
-                'issues worth reporting.*'
-            : '*No findings — no unit was successfully reviewed. See the '
-                'warning above.*';
+        ? '*The run reviewed ${result.reviewed} unit(s) and verified no '
+              'issues worth reporting.*'
+        : '*No findings — no unit was successfully reviewed. See the '
+              'warning above.*';
     lines
       ..add('## Findings')
       ..add('')
@@ -184,9 +183,11 @@ String buildMarkdownReport({
           ..add('')
           ..add('#### ${finding.requirementId} · ${finding.title}')
           ..add('')
-          ..add('`page ${finding.pageIndex + 1}` · '
-              '`${finding.issue.verification.name} match` · '
-              '`${statusFor(finding.id).label}`')
+          ..add(
+            '`page ${finding.pageIndex + 1}` · '
+            '`${finding.issue.verification.name} match` · '
+            '`${statusFor(finding.id).label}`',
+          )
           ..add('')
           ..addAll(finding.quote.split('\n').map((line) => '> $line'))
           ..add('')
@@ -202,7 +203,9 @@ String buildMarkdownReport({
     ..add('| ID | Requirement | Kind | Page | Status |')
     ..add('|---|---|---|---|---|');
   for (final unit in units) {
-    final status = unit.malformed ? '${unit.status.name} · MALFORMED' : unit.status.name;
+    final status = unit.malformed
+        ? '${unit.status.name} · MALFORMED'
+        : unit.status.name;
     lines.add(
       '| ${unit.id} | ${unit.title.replaceAll('|', '\\|')} | '
       '${unit.kind.label} | ${unit.pageIndex + 1} | $status |',

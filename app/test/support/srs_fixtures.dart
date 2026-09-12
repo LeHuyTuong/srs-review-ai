@@ -16,10 +16,8 @@ import 'package:archive/archive.dart';
 // minimal PDF writer
 // ---------------------------------------------------------------------------
 
-String _pdfEscape(String text) => text
-    .replaceAll(r'\', r'\\')
-    .replaceAll('(', r'\(')
-    .replaceAll(')', r'\)');
+String _pdfEscape(String text) =>
+    text.replaceAll(r'\', r'\\').replaceAll('(', r'\(').replaceAll(')', r'\)');
 
 /// Builds a single-byte-encodable PDF with one text line per entry in [pages].
 ///
@@ -55,9 +53,7 @@ Uint8List buildPdf(List<List<String>> pages) {
   final header = '%PDF-1.4\n';
   add(header); // written first, but offsets are relative to file start
 
-  final kids = [
-    for (var i = 0; i < pageCount; i++) '${3 + i} 0 R',
-  ].join(' ');
+  final kids = [for (var i = 0; i < pageCount; i++) '${3 + i} 0 R'].join(' ');
   addObject(1, '<</Type/Catalog/Pages 2 0 R>>');
   addObject(2, '<</Type/Pages/Kids[$kids]/Count $pageCount>>');
 
@@ -65,8 +61,8 @@ Uint8List buildPdf(List<List<String>> pages) {
     addObject(
       3 + i,
       '<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]'
-          '/Resources<</Font<</F1 $fontObject 0 R>>>>'
-          '/Contents ${firstContent + i} 0 R>>',
+      '/Resources<</Font<</F1 $fontObject 0 R>>>>'
+      '/Contents ${firstContent + i} 0 R>>',
     );
   }
 
@@ -77,7 +73,10 @@ Uint8List buildPdf(List<List<String>> pages) {
     }
     sb.write('ET');
     final stream = sb.toString();
-    addObject(firstContent + i, '<</Length ${stream.length}>>\nstream\n$stream\nendstream');
+    addObject(
+      firstContent + i,
+      '<</Length ${stream.length}>>\nstream\n$stream\nendstream',
+    );
   }
 
   addObject(fontObject, '<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>');
@@ -200,19 +199,24 @@ Uint8List buildDuplicateIdPdf() => buildPdf([
 ]);
 
 /// A page with no text operators at all — what a scanned export looks like.
-Uint8List buildNoTextPdf() => buildPdf([
-  <String>[],
-]);
+Uint8List buildNoTextPdf() => buildPdf([<String>[]]);
 
 /// More pages than `PdfParser.maxPageCount` (300).
 Uint8List buildOversizedPageCountPdf() => buildPdf([
   for (var i = 0; i < 310; i++)
-    ['Section ${i + 1}', 'Use Case No. UC${i + 1}', 'Main flow', '1. Step one.'],
+    [
+      'Section ${i + 1}',
+      'Use Case No. UC${i + 1}',
+      'Main flow',
+      '1. Step one.',
+    ],
 ]);
 
 /// A PDF header followed by garbage: opens like a PDF, is not one.
-Uint8List buildCorruptPdf() =>
-    Uint8List.fromList(<int>[...ascii.encode('%PDF-1.4\n'), ...List.filled(4096, 0x41)]);
+Uint8List buildCorruptPdf() => Uint8List.fromList(<int>[
+  ...ascii.encode('%PDF-1.4\n'),
+  ...List.filled(4096, 0x41),
+]);
 
 // ---------------------------------------------------------------------------
 // minimal DOCX writer
@@ -253,7 +257,9 @@ Uint8List buildDocx(
     archive.addFile(ArchiveFile.string('word/document.xml', sb.toString()));
   }
   if (withMedia) {
-    archive.addFile(ArchiveFile('word/media/image1.png', 64, <int>[...List.filled(64, 0x89)]));
+    archive.addFile(
+      ArchiveFile('word/media/image1.png', 64, <int>[...List.filled(64, 0x89)]),
+    );
   }
   return Uint8List.fromList(ZipEncoder().encode(archive));
 }

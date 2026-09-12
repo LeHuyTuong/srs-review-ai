@@ -49,6 +49,5 @@ abstract final class AppRadius {
   /// A radius from a runtime value (glass surfaces take a configurable
   /// radius). Widget files must not call `BorderRadius.circular` themselves —
   /// the guardrail in tools/check_guardrails.py bans it outside core/theme/.
-  static BorderRadius boxOf(double r) =>
-      BorderRadius.all(Radius.circular(r));
+  static BorderRadius boxOf(double r) => BorderRadius.all(Radius.circular(r));
 }

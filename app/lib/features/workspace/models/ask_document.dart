@@ -9,8 +9,16 @@ import '../../../data/models/review_models.dart' show Citation;
 import 'workspace_unit.dart';
 
 const List<String> _stopwords = [
-  'what', 'does', 'this', 'that', 'with', 'have', 'which', 'about',
-  'document', 'requirements',
+  'what',
+  'does',
+  'this',
+  'that',
+  'with',
+  'have',
+  'which',
+  'about',
+  'document',
+  'requirements',
 ];
 
 class AskDocument {
@@ -33,9 +41,7 @@ class AskDocument {
     final scored = <({WorkspaceUnit unit, int score})>[];
     for (final unit in units) {
       final lowered = unit.text.toLowerCase();
-      final score = words
-          .where(lowered.contains)
-          .length;
+      final score = words.where(lowered.contains).length;
       if (score > 0) scored.add((unit: unit, score: score));
     }
     scored.sort((a, b) => b.score.compareTo(a.score));

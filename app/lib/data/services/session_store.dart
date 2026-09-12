@@ -115,7 +115,8 @@ class InMemorySessionStore implements SessionStore {
   Future<String?> loadSnapshot() async => _snapshot;
 
   @override
-  Future<void> saveSnapshot(String snapshotJson) async => _snapshot = snapshotJson;
+  Future<void> saveSnapshot(String snapshotJson) async =>
+      _snapshot = snapshotJson;
 
   @override
   Future<void> clearSnapshot() async => _snapshot = null;
@@ -147,10 +148,7 @@ class SharedPreferencesSessionStore implements SessionStore {
   Future<void> _writeAll(List<SavedSession> sessions) async {
     await _prefs.setStringList(
       _sessionsKey,
-      sessions
-          .take(maxSessions)
-          .map((s) => s.encode())
-          .toList(growable: false),
+      sessions.take(maxSessions).map((s) => s.encode()).toList(growable: false),
     );
   }
 

@@ -61,17 +61,18 @@ void main() {
         'useCases': document.useCaseCount,
         'pages': document.pageCount,
         'diagramPages': document.imagePageIndexes.length,
-        'ids': [
-          for (final r in document.requirements.take(20)) r.id,
-        ],
+        'ids': [for (final r in document.requirements.take(20)) r.id],
         'firstText': document.requirements.isEmpty
             ? ''
-            : document.requirements.first.text.replaceAll('\n', ' ').substring(
-                0,
-                document.requirements.first.text.length.clamp(0, 160),
-              ),
+            : document.requirements.first.text
+                  .replaceAll('\n', ' ')
+                  .substring(
+                    0,
+                    document.requirements.first.text.length.clamp(0, 160),
+                  ),
         'checks': [
-          for (final f in findings) '${f.check.name}:${f.passed ? 'pass' : 'fail'}',
+          for (final f in findings)
+            '${f.check.name}:${f.passed ? 'pass' : 'fail'}',
         ],
         'messages': [for (final f in findings) f.message],
       };
@@ -90,7 +91,9 @@ void main() {
       };
       _record(caseId, result);
       if (expectSuccess) {
-        fail('$caseId: expected a parsed document, was refused: ${error.message}');
+        fail(
+          '$caseId: expected a parsed document, was refused: ${error.message}',
+        );
       }
       return result;
     } on Object catch (error) {
@@ -102,7 +105,9 @@ void main() {
         'message': '$error',
       };
       _record(caseId, result);
-      fail('$caseId: threw ${error.runtimeType} instead of a ParseException: $error');
+      fail(
+        '$caseId: threw ${error.runtimeType} instead of a ParseException: $error',
+      );
     }
   }
 
@@ -125,7 +130,11 @@ void main() {
       final result = await run(
         'TC-03',
         'with_media.docx',
-        buildDocx(['Use Case No. UC01', 'Main flow', '1. Step one.'], withMedia: true),
+        buildDocx([
+          'Use Case No. UC01',
+          'Main flow',
+          '1. Step one.',
+        ], withMedia: true),
       );
       expect(result['diagramPages'], 1);
     });
@@ -141,29 +150,46 @@ void main() {
       expect(result['useCases'], 0);
     });
 
-    test('TC-05 duplicate and malformed identifiers are all preserved', () async {
-      final result = await run('TC-05', 'duplicate_ids.pdf', buildDuplicateIdPdf());
-      // UC04 appears three times; UC0134 and UC0114 are the malformed pair.
-      expect(result['units'], 5);
-      expect(result['useCases'], 5);
-    });
+    test(
+      'TC-05 duplicate and malformed identifiers are all preserved',
+      () async {
+        final result = await run(
+          'TC-05',
+          'duplicate_ids.pdf',
+          buildDuplicateIdPdf(),
+        );
+        // UC04 appears three times; UC0134 and UC0114 are the malformed pair.
+        expect(result['units'], 5);
+        expect(result['useCases'], 5);
+      },
+    );
 
-    test('TC-06 a document with zero requirements still yields F7/F8/F9', () async {
-      final result = await run('TC-06', 'prose_only.pdf', buildProseOnlyPdf());
-      final messages = (result['messages']! as List).cast<String>();
-      expect(messages.join(' '), contains('use cases'));
-    });
+    test(
+      'TC-06 a document with zero requirements still yields F7/F8/F9',
+      () async {
+        final result = await run(
+          'TC-06',
+          'prose_only.pdf',
+          buildProseOnlyPdf(),
+        );
+        final messages = (result['messages']! as List).cast<String>();
+        expect(messages.join(' '), contains('use cases'));
+      },
+    );
 
-    test('TC-07 text-free PDF is refused as a scan, not parsed silently', () async {
-      final result = await run(
-        'TC-07',
-        'scan.pdf',
-        buildNoTextPdf(),
-        expectSuccess: false,
-      );
-      expect(result['isScannedPdf'], isTrue);
-      expect(result['message'], contains('text layer'));
-    });
+    test(
+      'TC-07 text-free PDF is refused as a scan, not parsed silently',
+      () async {
+        final result = await run(
+          'TC-07',
+          'scan.pdf',
+          buildNoTextPdf(),
+          expectSuccess: false,
+        );
+        expect(result['isScannedPdf'], isTrue);
+        expect(result['message'], contains('text layer'));
+      },
+    );
 
     test('TC-08 more pages than the cap is refused with the number', () async {
       final result = await run(
@@ -226,7 +252,11 @@ void main() {
         return;
       }
       final bytes = File(path).readAsBytesSync();
-      final result = await run('TC-14', 'OTES_officially_document.docx.pdf', bytes);
+      final result = await run(
+        'TC-14',
+        'OTES_officially_document.docx.pdf',
+        bytes,
+      );
       expect(result['pages'], 217);
       expect(result['units'], greaterThan(0));
     });
@@ -242,13 +272,23 @@ void main() {
       final timings = <int>[];
       int? units;
       for (var i = 0; i < 3; i++) {
-        final result = await run('TC-15.${i + 1}', 'OTES_officially_document.docx.pdf', bytes);
+        final result = await run(
+          'TC-15.${i + 1}',
+          'OTES_officially_document.docx.pdf',
+          bytes,
+        );
         timings.add(result['ms']! as int);
         units ??= result['units']! as int;
-        expect(result['units'], units, reason: 'a repeat parse must be deterministic');
+        expect(
+          result['units'],
+          units,
+          reason: 'a repeat parse must be deterministic',
+        );
       }
       // ignore: avoid_print
-      print('QA|TC-15-summary|${jsonEncode({'timingsMs': timings, 'units': units})}');
+      print(
+        'QA|TC-15-summary|${jsonEncode({'timingsMs': timings, 'units': units})}',
+      );
     });
   });
 }

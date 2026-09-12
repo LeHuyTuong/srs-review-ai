@@ -58,40 +58,40 @@ class WorkspaceShell extends ConsumerWidget {
 
     // Port of the brief's toast: announcements ("N units reviewed · saved on
     // this device") surface as a transient banner.
-    ref.listen(
-      workspaceViewModelProvider.select((state) => state.toast),
-      (previous, next) {
-        if (next.isEmpty) return;
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(
-              content: Text(next),
-              duration: const Duration(seconds: 4),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-      },
-    );
+    ref.listen(workspaceViewModelProvider.select((state) => state.toast), (
+      previous,
+      next,
+    ) {
+      if (next.isEmpty) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(next),
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    });
 
     // Errors must reach the shell too. A run used to be started from a modal
     // that popped itself immediately, so any error it produced was written
     // into a widget tree that no longer existed — the user saw nothing at all.
-    ref.listen(
-      workspaceViewModelProvider.select((state) => state.error),
-      (previous, next) {
-        if (next == null || next.isEmpty) return;
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(
-              content: Text(next),
-              duration: const Duration(seconds: 6),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-      },
-    );
+    ref.listen(workspaceViewModelProvider.select((state) => state.error), (
+      previous,
+      next,
+    ) {
+      if (next == null || next.isEmpty) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(next),
+            duration: const Duration(seconds: 6),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    });
 
     // The chrome FLOATS OVER the content, which is what makes the glass glass.
     //
@@ -233,105 +233,105 @@ class _TopBar extends ConsumerWidget {
         radius: 0,
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         child: Row(
-        children: [
-          if (showMenuButton)
-            // No `Semantics` wrapper here. `IconButton(tooltip:)` already names
-            // the button and gives it `role=button` — verified as one node,
-            // labelled, on the help button below. Wrapping it in an explicit
-            // labelled Semantics produced TWO button nodes with the same name
-            // (the wrapper's `label` and the IconButton's own `tooltip`), so a
-            // screen reader announced "Open navigation" twice. Same class of
-            // duplication as the tab items, which needed the opposite fix
-            // because they had no built-in label to begin with.
-            Builder(
-              builder: (drawerContext) => IconButton(
-                tooltip: 'Open navigation',
-                icon: const Icon(Icons.menu),
-                onPressed: () => Scaffold.of(drawerContext).openDrawer(),
+          children: [
+            if (showMenuButton)
+              // No `Semantics` wrapper here. `IconButton(tooltip:)` already names
+              // the button and gives it `role=button` — verified as one node,
+              // labelled, on the help button below. Wrapping it in an explicit
+              // labelled Semantics produced TWO button nodes with the same name
+              // (the wrapper's `label` and the IconButton's own `tooltip`), so a
+              // screen reader announced "Open navigation" twice. Same class of
+              // duplication as the tab items, which needed the opposite fix
+              // because they had no built-in label to begin with.
+              Builder(
+                builder: (drawerContext) => IconButton(
+                  tooltip: 'Open navigation',
+                  icon: const Icon(Icons.menu),
+                  onPressed: () => Scaffold.of(drawerContext).openDrawer(),
+                ),
               ),
-            ),
-          Expanded(
-            // The breadcrumb is announced once, as a single header, instead of
-            // as three fragments ("Workspace", "/", "Document review") that a
-            // screen reader has to reassemble.
-            //
-            // This publishes correctly now that the chrome floats over the
-            // content: it reaches the tree as an <h2> "Workspace / Document
-            // review". It used to be missing entirely, which six rounds of this
-            // audit attributed to shell/route composition — see the correction
-            // in docs/uiux/audit-2026-09-11.md §10.
-            child: Semantics(
-              header: true,
-              label: 'Workspace / ${current.label}',
-              excludeSemantics: true,
-              child: Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Workspace',
-                      style: TextStyle(color: colors.muted),
-                    ),
-                    TextSpan(
-                      text: '  /  ',
-                      style: TextStyle(color: colors.muted),
-                    ),
-                    TextSpan(
-                      text: current.label,
-                      style: TextStyle(
-                        color: colors.ink,
-                        fontWeight: FontWeight.w600,
+            Expanded(
+              // The breadcrumb is announced once, as a single header, instead of
+              // as three fragments ("Workspace", "/", "Document review") that a
+              // screen reader has to reassemble.
+              //
+              // This publishes correctly now that the chrome floats over the
+              // content: it reaches the tree as an <h2> "Workspace / Document
+              // review". It used to be missing entirely, which six rounds of this
+              // audit attributed to shell/route composition — see the correction
+              // in docs/uiux/audit-2026-09-11.md §10.
+              child: Semantics(
+                header: true,
+                label: 'Workspace / ${current.label}',
+                excludeSemantics: true,
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'Workspace',
+                        style: TextStyle(color: colors.muted),
                       ),
-                    ),
-                  ],
+                      TextSpan(
+                        text: '  /  ',
+                        style: TextStyle(color: colors.muted),
+                      ),
+                      TextSpan(
+                        text: current.label,
+                        style: TextStyle(
+                          color: colors.ink,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  style: theme.textTheme.labelMedium,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                style: theme.textTheme.labelMedium,
-                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ),
-          InkWell(
-            // Rechecking is the natural next gesture when the pill says the
-            // proxy is gone: the user fixes the proxy, taps, and it updates
-            // without an app restart.
-            onTap: () => ref.invalidate(proxyStatusProvider),
-            borderRadius: AppRadius.boxSm,
-            child: Semantics(
-              button: true,
-              label:
-                  'Connection status: ${connectionStatus.label}. Double tap to recheck.',
-              excludeSemantics: true,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                  vertical: AppSpacing.xs,
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      connectionStatus.icon,
-                      size: 16,
-                      color: connectionStatus.color,
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Text(
-                      connectionStatus.label,
-                      style: theme.textTheme.labelSmall?.copyWith(
+            InkWell(
+              // Rechecking is the natural next gesture when the pill says the
+              // proxy is gone: the user fixes the proxy, taps, and it updates
+              // without an app restart.
+              onTap: () => ref.invalidate(proxyStatusProvider),
+              borderRadius: AppRadius.boxSm,
+              child: Semantics(
+                button: true,
+                label:
+                    'Connection status: ${connectionStatus.label}. Double tap to recheck.',
+                excludeSemantics: true,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xs,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        connectionStatus.icon,
+                        size: 16,
                         color: connectionStatus.color,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(
+                        connectionStatus.label,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: connectionStatus.color,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          IconButton(
-            tooltip: 'Help & getting started',
-            icon: const Icon(Icons.help_outline),
-            color: colors.muted,
-            onPressed: () => showHelpModal(context, ref),
-          ),
-        ],
+            const SizedBox(width: AppSpacing.md),
+            IconButton(
+              tooltip: 'Help & getting started',
+              icon: const Icon(Icons.help_outline),
+              color: colors.muted,
+              onPressed: () => showHelpModal(context, ref),
+            ),
+          ],
         ),
       ),
     );
@@ -370,7 +370,8 @@ class ReviewProgressBar extends ConsumerWidget {
     String? eta;
     if (elapsed != null && progress.completed > 0 && remaining > 0) {
       final per = elapsed.inMilliseconds / progress.completed;
-      eta = '~${formatElapsed(Duration(milliseconds: (per * remaining).round()))} left';
+      eta =
+          '~${formatElapsed(Duration(milliseconds: (per * remaining).round()))} left';
     }
 
     return Semantics(
@@ -434,8 +435,9 @@ class ReviewProgressBar extends ConsumerWidget {
                   const SizedBox(width: AppSpacing.sm),
                   Text(
                     eta,
-                    style: theme.textTheme.labelSmall
-                        ?.copyWith(color: colors.muted),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colors.muted,
+                    ),
                   ),
                 ],
                 // 48 px tap target: the old progress row had no reachable

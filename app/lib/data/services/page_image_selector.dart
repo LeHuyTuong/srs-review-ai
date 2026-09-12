@@ -49,8 +49,12 @@ enum PageImageDecision {
 /// [reason] is null exactly when the decision is [PageImageDecision.selected];
 /// every non-selection names why, from the fixed token set below.
 class PageImagePlan {
-  const PageImagePlan._(this.requirementId, this.pageIndex, this.decision,
-      this.reason);
+  const PageImagePlan._(
+    this.requirementId,
+    this.pageIndex,
+    this.decision,
+    this.reason,
+  );
 
   /// The caller's identity for the requirement (occurrence key in the run
   /// loop); opaque here.
@@ -97,18 +101,34 @@ class PageImageSelector {
     required Set<int> candidatePages,
   }) {
     if (!_detector.detect(text).hasIntent) {
-      return PageImagePlan._(requirementId, pageIndex,
-          PageImageDecision.skippedNoDiagramIntent, 'no-diagram-intent');
+      return PageImagePlan._(
+        requirementId,
+        pageIndex,
+        PageImageDecision.skippedNoDiagramIntent,
+        'no-diagram-intent',
+      );
     }
     if (pageIndex == null || !candidatePages.contains(pageIndex)) {
-      return PageImagePlan._(requirementId, pageIndex,
-          PageImageDecision.skippedNoCandidatePage, 'no-candidate-page');
+      return PageImagePlan._(
+        requirementId,
+        pageIndex,
+        PageImageDecision.skippedNoCandidatePage,
+        'no-candidate-page',
+      );
     }
     if (!budget.tryReserve(pageIndex)) {
-      return PageImagePlan._(requirementId, pageIndex,
-          PageImageDecision.deferredBudgetSpent, 'budget-spent');
+      return PageImagePlan._(
+        requirementId,
+        pageIndex,
+        PageImageDecision.deferredBudgetSpent,
+        'budget-spent',
+      );
     }
     return PageImagePlan._(
-        requirementId, pageIndex, PageImageDecision.selected, null);
+      requirementId,
+      pageIndex,
+      PageImageDecision.selected,
+      null,
+    );
   }
 }

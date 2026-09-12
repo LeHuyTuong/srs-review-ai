@@ -64,63 +64,61 @@ Future<void> _pumpWhile(
 }
 
 void main() {
-  testWidgets('desktop: imported document opens the review modal on Run review', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1077, 909);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
+  testWidgets(
+    'desktop: imported document opens the review modal on Run review',
+    (tester) async {
+      tester.view.physicalSize = const Size(1077, 909);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
 
-    final container = ProviderContainer(
-      overrides: [
-        sessionStoreProvider.overrideWithValue(InMemorySessionStore()),
-        documentRepositoryProvider.overrideWithValue(_StubImportRepository()),
-        reviewApiProvider.overrideWithValue(
-          const MockReviewApi(latency: Duration.zero),
+      final container = ProviderContainer(
+        overrides: [
+          sessionStoreProvider.overrideWithValue(InMemorySessionStore()),
+          documentRepositoryProvider.overrideWithValue(_StubImportRepository()),
+          reviewApiProvider.overrideWithValue(
+            const MockReviewApi(latency: Duration.zero),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: buildRouter()),
         ),
-      ],
-    );
-    addTearDown(container.dispose);
+      );
+      await tester.pump(const Duration(milliseconds: 100));
 
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp.router(routerConfig: buildRouter()),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Import document'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Browse files'));
+      await _pumpWhile(
+        tester,
+        () => find.text('FR-01', skipOffstage: false).evaluate().isEmpty,
+      );
+      expect(find.text('FR-01', skipOffstage: false), findsWidgets);
 
-    await tester.tap(find.text('Import document'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Browse files'));
-    await _pumpWhile(
-      tester,
-      () => find.text('FR-01', skipOffstage: false).evaluate().isEmpty,
-    );
-    expect(find.text('FR-01', skipOffstage: false), findsWidgets);
+      await tester.ensureVisible(find.text('Run review'));
+      await tester.pumpAndSettle();
+      // `ensureVisible` parks the button at y=0, which the FLOATING TOP BAR
+      // covers (ChromeInsets reserves _kTopBarHeight = 58 at the top). Tapping
+      // there lands on the bar, not the button — so nudge the list back down
+      // until the button clears the chrome. The app itself is fine: this is the
+      // test having to scroll the way ChromeInsets expects, not a product bug.
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 90));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Run review'));
+      await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('Run review'));
-    await tester.pumpAndSettle();
-    // `ensureVisible` parks the button at y=0, which the FLOATING TOP BAR
-    // covers (ChromeInsets reserves _kTopBarHeight = 58 at the top). Tapping
-    // there lands on the bar, not the button — so nudge the list back down
-    // until the button clears the chrome. The app itself is fine: this is the
-    // test having to scroll the way ChromeInsets expects, not a product bug.
-    await tester.drag(
-      find.byType(Scrollable).first,
-      const Offset(0, 90),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Run review'));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text('Review 2 units', skipOffstage: false),
-      findsOneWidget,
-      reason:
-          'the review modal must open with its run action after a real import',
-    );
-    // Let the load toast timer expire so no Timer is pending at teardown.
-    await tester.pump(const Duration(seconds: 5));
-  });
+      expect(
+        find.text('Review 2 units', skipOffstage: false),
+        findsOneWidget,
+        reason:
+            'the review modal must open with its run action after a real import',
+      );
+      // Let the load toast timer expire so no Timer is pending at teardown.
+      await tester.pump(const Duration(seconds: 5));
+    },
+  );
 }

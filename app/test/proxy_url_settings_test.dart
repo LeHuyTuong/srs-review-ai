@@ -22,11 +22,14 @@ void main() {
     return c;
   }
 
-  test('no saved url means null (build-time default stays in charge)', () async {
-    final c = await container();
-    addTearDown(c.dispose);
-    expect(c.read(proxyUrlProvider), isNull);
-  });
+  test(
+    'no saved url means null (build-time default stays in charge)',
+    () async {
+      final c = await container();
+      addTearDown(c.dispose);
+      expect(c.read(proxyUrlProvider), isNull);
+    },
+  );
 
   test('set() persists and survives a fresh container', () async {
     final c = await container();

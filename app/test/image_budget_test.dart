@@ -23,8 +23,7 @@ void main() {
   });
 
   group('exhaustion degrades, never throws', () {
-    test('tryReserve on a spent budget returns false and reserves nothing',
-        () {
+    test('tryReserve on a spent budget returns false and reserves nothing', () {
       final budget = ImageBudget(maxPages: 1)
         ..tryReserve(1)
         ..tryReserve(2);
@@ -57,14 +56,16 @@ void main() {
     expect(() => ImageBudget(maxPages: -1), throwsArgumentError);
   });
 
-  test('a run without configuration still gets a ceiling, not a free pass',
-      () {
+  test('a run without configuration still gets a ceiling, not a free pass', () {
     final budget = ImageBudget();
     expect(budget.maxPages, 12, reason: 'roadmap M4 experimental default');
     for (var page = 0; page < 12; page++) {
       expect(budget.tryReserve(page), isTrue);
     }
-    expect(budget.tryReserve(12), isFalse,
-        reason: 'degrade to text-only, never balloon');
+    expect(
+      budget.tryReserve(12),
+      isFalse,
+      reason: 'degrade to text-only, never balloon',
+    );
   });
 }

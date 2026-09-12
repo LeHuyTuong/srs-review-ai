@@ -237,9 +237,7 @@ class ApiService implements ReviewApi {
           statusCode: 422,
         ),
         429 => ApiException(
-          quotaMessage(
-            retryAfterSeconds: _retryAfterSeconds(error.response),
-          ),
+          quotaMessage(retryAfterSeconds: _retryAfterSeconds(error.response)),
           statusCode: 429,
         ),
         502 || 503 => ApiException(

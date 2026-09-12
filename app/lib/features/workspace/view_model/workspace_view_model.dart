@@ -675,7 +675,8 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         answer: '',
         grounded: true,
         units: offline,
-        note: 'The proxy could not answer (${_shortError(error)}). These are '
+        note:
+            'The proxy could not answer (${_shortError(error)}). These are '
             'the matching passages from your document instead — no model was '
             'involved.',
       );
@@ -718,7 +719,8 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       if (session.parserVersion.isNotEmpty &&
           session.parserVersion != kParserVersion) {
         state = state.copyWith(
-          toast: 'Saved review was written by parser '
+          toast:
+              'Saved review was written by parser '
               '${session.parserVersion}; re-import the document to review '
               'again.',
         );
@@ -741,8 +743,8 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       // Sessions written before triage existed carry no such key; every id
       // then reads back as open, which is how they always behaved.
       final findingStatus = <String, FindingStatus>{
-        for (final entry in (payload['findingStatus'] as Map<dynamic, dynamic>?)
-                    ?.entries ??
+        for (final entry
+            in (payload['findingStatus'] as Map<dynamic, dynamic>?)?.entries ??
                 const <MapEntry<dynamic, dynamic>>[])
           entry.key as String: FindingStatus.fromName(entry.value as String?),
       };
@@ -810,7 +812,9 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
 
   String _reportFileName() {
     final base = state.fileName.trim().isEmpty ? 'srs' : state.fileName;
-    final stem = base.contains('.') ? base.substring(0, base.lastIndexOf('.')) : base;
+    final stem = base.contains('.')
+        ? base.substring(0, base.lastIndexOf('.'))
+        : base;
     final safe = stem.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
     final stamp = DateTime.now().toIso8601String().substring(0, 10);
     return 'srs-review-$safe-$stamp.md';
@@ -882,7 +886,8 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       if (savedParserVersion != null && savedParserVersion != kParserVersion) {
         state = WorkspaceState(
           restoring: false,
-          toast: 'Saved workspace was written by parser $savedParserVersion; '
+          toast:
+              'Saved workspace was written by parser $savedParserVersion; '
               're-import the document to start fresh.',
         );
         _scheduleToastClear();
@@ -906,8 +911,8 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
               .toList(growable: false) ??
           const <DeterministicFinding>[];
       final findingStatus = <String, FindingStatus>{
-        for (final entry in (payload['findingStatus'] as Map<dynamic, dynamic>?)
-                    ?.entries ??
+        for (final entry
+            in (payload['findingStatus'] as Map<dynamic, dynamic>?)?.entries ??
                 const <MapEntry<dynamic, dynamic>>[])
           entry.key as String: FindingStatus.fromName(entry.value as String?),
       };
@@ -925,8 +930,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         result: resultJson == null
             ? null
             : WorkspaceReviewResult.fromJson(resultJson),
-        documentFingerprint:
-            payload['documentFingerprint'] as String? ?? '',
+        documentFingerprint: payload['documentFingerprint'] as String? ?? '',
         parserVersion: savedParserVersion ?? '',
         restoring: false,
       );

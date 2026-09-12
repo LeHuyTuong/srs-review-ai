@@ -148,18 +148,22 @@ class _SourceSheetBody extends ConsumerWidget {
                   initialValue: current.kind.label,
                   decoration: InputDecoration(
                     labelText: 'Classification',
-                    border: OutlineInputBorder(
-                      borderRadius: AppRadius.boxSm,
-                    ),
+                    border: OutlineInputBorder(borderRadius: AppRadius.boxSm),
                     isDense: true,
                   ),
                   items: [
                     for (final kind in UnitKind.values)
-                      DropdownMenuItem(value: kind.label, child: Text(kind.label)),
+                      DropdownMenuItem(
+                        value: kind.label,
+                        child: Text(kind.label),
+                      ),
                   ],
                   onChanged: (value) {
                     if (value == null) return;
-                    viewModel.classifyUnit(current.key, UnitKind.fromLabel(value));
+                    viewModel.classifyUnit(
+                      current.key,
+                      UnitKind.fromLabel(value),
+                    );
                   },
                 ),
                 const SizedBox(height: AppSpacing.sm),

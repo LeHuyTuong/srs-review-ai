@@ -10,64 +10,87 @@ import 'package:srs_review_ai/core/widgets/glass_surface.dart';
 /// touches only core/theme + core/widgets so a concurrent agent's in-flight
 /// breakage elsewhere cannot mask the result.
 void main() {
-  Widget host(Widget child, {bool highContrast = false, bool noMotion = false}) =>
-      MaterialApp(
-        theme: AppTheme.light(),
-        home: MediaQuery(
-          data: MediaQueryData(
-            highContrast: highContrast,
-            disableAnimations: noMotion,
+  Widget host(
+    Widget child, {
+    bool highContrast = false,
+    bool noMotion = false,
+  }) => MaterialApp(
+    theme: AppTheme.light(),
+    home: MediaQuery(
+      data: MediaQueryData(
+        highContrast: highContrast,
+        disableAnimations: noMotion,
+      ),
+      child: Scaffold(body: Column(children: [child])),
+    ),
+  );
+
+  testWidgets(
+    'glass renders a blurred, bounded surface in an unbounded Column',
+    (tester) async {
+      await tester.pumpWidget(
+        host(
+          const GlassSurface(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [Text('x')],
+            ),
           ),
-          child: Scaffold(body: Column(children: [child])),
         ),
       );
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      final size = tester.getSize(find.byType(GlassSurface));
+      expect(
+        size.height,
+        lessThan(200),
+        reason: 'must hug content, not take infinite height (was 100000)',
+      );
+      expect(find.byType(BackdropFilter), findsOneWidget);
+      expect(find.byType(ClipRRect), findsWidgets);
+    },
+  );
 
-  testWidgets('glass renders a blurred, bounded surface in an unbounded Column',
-      (tester) async {
-    await tester.pumpWidget(host(const GlassSurface(
-      child: Column(mainAxisSize: MainAxisSize.min, children: [Text('x')]),
-    )));
+  testWidgets('Reduce Transparency drops the blur and stays opaque', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      host(const GlassSurface(child: Text('x')), highContrast: true),
+    );
     await tester.pump();
-    expect(tester.takeException(), isNull);
-    final size = tester.getSize(find.byType(GlassSurface));
-    expect(size.height, lessThan(200),
-        reason: 'must hug content, not take infinite height (was 100000)');
-    expect(find.byType(BackdropFilter), findsOneWidget);
-    expect(find.byType(ClipRRect), findsWidgets);
-  });
-
-  testWidgets('Reduce Transparency drops the blur and stays opaque',
-      (tester) async {
-    await tester.pumpWidget(host(
-      const GlassSurface(child: Text('x')),
-      highContrast: true,
-    ));
-    await tester.pump();
-    expect(find.byType(BackdropFilter), findsNothing,
-        reason: 'no blur when the user asks for less transparency');
+    expect(
+      find.byType(BackdropFilter),
+      findsNothing,
+      reason: 'no blur when the user asks for less transparency',
+    );
     expect(find.byType(GlassSurface), findsOneWidget);
   });
 
   testWidgets('Reduce Motion leaves the surface static', (tester) async {
-    await tester.pumpWidget(host(
-      const GlassSurface(interactive: true, child: Text('x')),
-      noMotion: true,
-    ));
+    await tester.pumpWidget(
+      host(
+        const GlassSurface(interactive: true, child: Text('x')),
+        noMotion: true,
+      ),
+    );
     await tester.pump();
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('survives a theme that has no GlassTokens registered',
-      (tester) async {
+  testWidgets('survives a theme that has no GlassTokens registered', (
+    tester,
+  ) async {
     // Regression: this used to be `extension<GlassTokens>()!`, and a bare
     // MaterialApp (no app theme) made it throw. Flutter then swapped in a
     // RenderErrorBox, which takes INFINITE height — so the crash showed up as
     // a 99,214px "RenderFlex overflowed" instead of the null error it was.
-    await tester.pumpWidget(const MaterialApp(
-      home: Scaffold(body: Column(children: [
-        GlassSurface(child: Text('x')),
-      ])),
-    ));
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Column(children: [GlassSurface(child: Text('x'))]),
+        ),
+      ),
+    );
     await tester.pump();
     expect(tester.takeException(), isNull);
     expect(tester.getSize(find.byType(GlassSurface)).height, lessThan(200));
@@ -90,10 +113,9 @@ void main() {
   });
 
   testWidgets('a saturation matrix is only applied when > 1.0', (tester) async {
-    await tester.pumpWidget(host(const GlassSurface(
-      intensity: 1.0,
-      child: Text('x'),
-    )));
+    await tester.pumpWidget(
+      host(const GlassSurface(intensity: 1.0, child: Text('x'))),
+    );
     await tester.pump();
     // Saturation is always 1.8 in tokens, so a filter is expected.
     expect(find.byType(ColorFiltered), findsWidgets);
