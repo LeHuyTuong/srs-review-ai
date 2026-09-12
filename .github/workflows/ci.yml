@@ -1,6 +1,10 @@
 name: CI
 
 on:
+  # Manual runs matter here: the Windows and macOS runners are the only place
+  # the native code is ever compiled, and a push is not always what you want to
+  # make just to see it. `gh workflow run CI` or the Actions tab both work.
+  workflow_dispatch:
   push:
     branches: [main, dev]
   pull_request:
