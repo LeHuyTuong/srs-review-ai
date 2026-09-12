@@ -180,7 +180,7 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
           ),
           decoration: BoxDecoration(
             color: colors.selectionBarBg,
-            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderRadius: AppRadius.boxMd,
             border: Border.all(color: colors.border),
           ),
           padding: const EdgeInsets.all(AppSpacing.lg),
