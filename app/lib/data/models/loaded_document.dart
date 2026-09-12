@@ -5,6 +5,8 @@
 /// loaded document should not have to import a repository to name its type.
 library;
 
+import 'dart:typed_data';
+
 import 'deterministic_finding.dart';
 import 'srs_document.dart';
 
@@ -14,6 +16,11 @@ class LoadedDocument {
     required this.findings,
     required this.sizeBytes,
     this.path,
+
+    /// Original PDF bytes are deliberately transient: the ViewModel may keep
+    /// them for the current session's page renderer, but persistence code must
+    /// never serialize this field. Null for DOCX and demo documents.
+    this.pdfBytes,
   });
 
   final SrsDocument document;
@@ -22,6 +29,9 @@ class LoadedDocument {
   final List<DeterministicFinding> findings;
   final int sizeBytes;
   final String? path;
+
+  /// In-memory source bytes retained only while an imported PDF is active.
+  final Uint8List? pdfBytes;
 
   Iterable<DeterministicFinding> get failedFindings =>
       findings.where((f) => !f.passed);

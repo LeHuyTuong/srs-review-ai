@@ -517,6 +517,169 @@ void main() {
       expect(restored.outcome, 'done');
       expect(restored.reviewed, 2);
     });
+
+    test('online image-reviewed PDF reports coverage and decision reasons', () {
+      final report = buildMarkdownReport(
+        fileName: 'diagrams.pdf',
+        offline: false,
+        result: WorkspaceReviewResult(
+          findings: const [],
+          reviewed: 3,
+          skipped: 1,
+          failed: 0,
+          droppedIssueCount: 0,
+          mock: false,
+          rubricVersion: 'test',
+          createdAt: DateTime(2026),
+        ),
+        units: const [],
+        imageReviewAvailable: true,
+        imageReviewedCount: 2,
+        imageCoverage: const PageImageCoverage(
+          candidates: 4,
+          extracted: 3,
+          reviewed: 2,
+          skipped: 1,
+          failed: 0,
+          decisions: {'selected': 2, 'skippedNoDiagramIntent': 2},
+          reasons: {'no-diagram-intent': 2},
+        ),
+      );
+
+      expect(
+        report,
+        contains(
+          'PDF image review was available, and 2 requirement(s) were '
+          'reviewed with page images.',
+        ),
+      );
+      expect(report, contains('## PDF page-image coverage'));
+      expect(
+        report,
+        contains(
+          '| Candidates | Extracted | Image-reviewed | '
+          'Text-only/skipped | Image failures |',
+        ),
+      );
+      expect(report, contains('| 4 | 3 | 2 | 1 | 0 |'));
+      expect(
+        report,
+        contains(
+          'Image-review decisions: selected=2, skippedNoDiagramIntent=2',
+        ),
+      );
+      expect(
+        report,
+        contains('Image-review reasons: reason=no-diagram-intent=2'),
+      );
+    });
+
+    test('available PDF with zero image reviews says none were attached', () {
+      final report = buildMarkdownReport(
+        fileName: 'diagrams.pdf',
+        offline: false,
+        result: WorkspaceReviewResult(
+          findings: const [],
+          reviewed: 2,
+          skipped: 0,
+          failed: 0,
+          droppedIssueCount: 0,
+          mock: false,
+          rubricVersion: 'test',
+          createdAt: DateTime(2026),
+        ),
+        units: const [],
+        imageReviewAvailable: true,
+        imageReviewedCount: 0,
+        imageCoverage: const PageImageCoverage(
+          candidates: 1,
+          extracted: 0,
+          reviewed: 0,
+          skipped: 1,
+          failed: 0,
+          decisions: {'skippedNoDiagramIntent': 1},
+          reasons: {'no-diagram-intent': 1},
+        ),
+      );
+
+      expect(
+        report,
+        contains(
+          'PDF page images were available, but none were attached to a '
+          'successful review request.',
+        ),
+      );
+      expect(report, contains('## PDF page-image coverage'));
+      expect(report, contains('| 1 | 0 | 0 | 1 | 0 |'));
+      expect(report, contains('reason=no-diagram-intent=1'));
+    });
+
+    test('unavailable or text-only document names the text-only boundary', () {
+      final report = buildMarkdownReport(
+        fileName: 'text-only.pdf',
+        offline: false,
+        result: WorkspaceReviewResult(
+          findings: const [],
+          reviewed: 1,
+          skipped: 0,
+          failed: 0,
+          droppedIssueCount: 0,
+          mock: false,
+          rubricVersion: 'test',
+          createdAt: DateTime(2026),
+        ),
+        units: const [],
+        diagramPageCount: 2,
+        imageReviewAvailable: false,
+        imageReviewedCount: 0,
+      );
+
+      expect(
+        report,
+        contains(
+          'PDF page images were NOT available for this document or session.',
+        ),
+      );
+      expect(report, isNot(contains('## PDF page-image coverage')));
+      expect(report, contains('Any diagram content was text-only'));
+    });
+
+    test('offline mock keeps image coverage but says no images were sent', () {
+      final report = buildMarkdownReport(
+        fileName: 'mock.pdf',
+        offline: true,
+        result: WorkspaceReviewResult(
+          findings: const [],
+          reviewed: 2,
+          skipped: 0,
+          failed: 0,
+          droppedIssueCount: 0,
+          mock: true,
+          rubricVersion: 'test',
+          createdAt: DateTime(2026),
+        ),
+        units: const [],
+        imageReviewAvailable: true,
+        imageReviewedCount: 2,
+        imageCoverage: const PageImageCoverage(
+          candidates: 2,
+          extracted: 0,
+          reviewed: 0,
+          skipped: 2,
+          failed: 0,
+          decisions: {'skippedNoDiagramIntent': 2},
+          reasons: {'no-diagram-intent': 2},
+        ),
+      );
+
+      expect(
+        report,
+        contains('Offline mock mode performed a text-only review.'),
+      );
+      expect(report, contains('PDF page images were not sent to the model'));
+      expect(report, contains('## PDF page-image coverage'));
+      expect(report, contains('| 2 | 0 | 0 | 2 | 0 |'));
+    });
   });
 
   group('AskDocument.search (port of askDocument)', () {

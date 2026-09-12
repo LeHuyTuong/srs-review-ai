@@ -4,6 +4,7 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,8 +12,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:srs_review_ai/core/app_config.dart';
 import 'package:srs_review_ai/core/providers.dart';
 import 'package:srs_review_ai/data/checks/rubric_config.dart';
+import 'package:srs_review_ai/data/models/loaded_document.dart';
 import 'package:srs_review_ai/data/models/review_models.dart';
+import 'package:srs_review_ai/data/models/review_progress.dart';
 import 'package:srs_review_ai/data/models/srs_document.dart';
+import 'package:srs_review_ai/data/repositories/document_repository.dart';
+import 'package:srs_review_ai/data/repositories/review_repository.dart';
 import 'package:srs_review_ai/data/services/api_service.dart';
 import 'package:srs_review_ai/data/services/mock_review_api.dart';
 import 'package:srs_review_ai/data/services/review_api.dart';
@@ -21,12 +26,23 @@ import 'package:srs_review_ai/features/workspace/models/demo_units.dart';
 import 'package:srs_review_ai/features/workspace/models/workspace_unit.dart';
 import 'package:srs_review_ai/features/workspace/view_model/workspace_view_model.dart';
 
-ProviderContainer _container(InMemorySessionStore store) => ProviderContainer(
+ProviderContainer _container(
+  InMemorySessionStore store, {
+  DocumentRepository? documentRepository,
+  ReviewRepository? reviewRepository,
+  bool? mockMode,
+}) => ProviderContainer(
   overrides: [
     sessionStoreProvider.overrideWithValue(store),
     reviewApiProvider.overrideWithValue(
       const MockReviewApi(latency: Duration.zero),
     ),
+    if (documentRepository != null)
+      documentRepositoryProvider.overrideWithValue(documentRepository),
+    if (reviewRepository != null)
+      reviewRepositoryProvider.overrideWithValue(reviewRepository),
+    if (mockMode != null)
+      mockModeProvider.overrideWith(() => _ForcedMockModeNotifier()),
   ],
 );
 
@@ -41,6 +57,126 @@ Future<void> _pumpUntil(
   }
   fail('condition not reached within the allotted time');
 }
+
+class _ForcedMockModeNotifier extends MockModeNotifier {
+  @override
+  bool build() => true;
+}
+
+class _StubDocumentRepository extends DocumentRepository {
+  _StubDocumentRepository(this.loaded);
+
+  final LoadedDocument? loaded;
+
+  @override
+  Future<LoadedDocument?> pickAndParse({
+    void Function(String status)? onStatus,
+  }) async {
+    onStatus?.call('Reading test document…');
+    return loaded;
+  }
+}
+
+class _ControlledReviewRepository extends ReviewRepository {
+  _ControlledReviewRepository({required this.coverage})
+    : super(const MockReviewApi(latency: Duration.zero));
+
+  final PageImageCoverage coverage;
+  final Completer<void> started = Completer<void>();
+  final Completer<void> _finish = Completer<void>();
+  int calls = 0;
+  Uint8List? passedPdfBytes;
+  bool? passedImageReviewEnabled;
+
+  @override
+  Stream<ReviewProgress> run(
+    SrsDocument document, {
+    required void Function(ReviewRun run) onComplete,
+    int concurrency = AppConfig.reviewConcurrency,
+    Uint8List? pdfBytes,
+    bool imageReviewEnabled = false,
+  }) {
+    calls++;
+    passedPdfBytes = pdfBytes;
+    passedImageReviewEnabled = imageReviewEnabled;
+    started.complete();
+
+    final controller = StreamController<ReviewProgress>();
+    unawaited(() async {
+      controller.add(
+        ReviewProgress(
+          stage: ReviewStage.parsing,
+          total: document.requirements.length,
+        ),
+      );
+      await _finish.future;
+
+      final occurrenceKey = document.occurrenceKeys.isNotEmpty
+          ? document.occurrenceKeys.first
+          : 'u0-${document.requirements.first.id}';
+      onComplete(
+        ReviewRun(
+          results: {
+            occurrenceKey: ReviewResult(
+              requirementId: document.requirements.first.id,
+              score: 8,
+              issues: const [],
+              model: 'fake',
+            ),
+          },
+          failures: const {},
+          stage: ReviewStage.done,
+          imageCoverage: coverage,
+        ),
+      );
+      controller.add(
+        ReviewProgress(
+          stage: ReviewStage.done,
+          completed: 1,
+          total: document.requirements.length,
+        ),
+      );
+      await controller.close();
+    }());
+    return controller.stream;
+  }
+
+  void finish() => _finish.complete();
+}
+
+SrsDocument _singleRequirementDocument({
+  String fileName = 'imported.pdf',
+  List<int> imagePageIndexes = const [0],
+}) => SrsDocument(
+  fileName: fileName,
+  pageCount: 1,
+  pageTexts: const ['UC-01 The system shall review its diagrams.'],
+  requirements: const [
+    RequirementItem(
+      id: 'UC-01',
+      text: 'UC-01 The system shall review its diagrams.',
+      kind: RequirementKind.useCase,
+      pageIndex: 0,
+    ),
+  ],
+  occurrenceKeys: const ['u0-UC-01'],
+  imagePageIndexes: imagePageIndexes,
+);
+
+LoadedDocument _loadedDocument({
+  required String fileName,
+  required int sizeBytes,
+  Uint8List? pdfBytes,
+  List<int> imagePageIndexes = const [0],
+}) => LoadedDocument(
+  document: _singleRequirementDocument(
+    fileName: fileName,
+    imagePageIndexes: imagePageIndexes,
+  ),
+  findings: const [],
+  sizeBytes: sizeBytes,
+  pdfBytes: pdfBytes,
+);
 
 void main() {
   test(
@@ -151,6 +287,206 @@ void main() {
       ),
     );
     expect(await vm.openSession('current'), isTrue);
+  });
+
+  test(
+    'imported PDF keeps bytes transient and reports image coverage',
+    () async {
+      final store = InMemorySessionStore();
+      final pdfBytes = Uint8List.fromList([0, 1, 2, 255, 254, 9, 8, 7]);
+      final coverage = const PageImageCoverage(
+        candidates: 2,
+        extracted: 1,
+        reviewed: 1,
+        skipped: 1,
+        failed: 0,
+        decisions: {'selected': 1, 'skippedNoDiagramIntent': 1},
+        reasons: {'no-diagram-intent': 1},
+      );
+      final reviewRepository = _ControlledReviewRepository(coverage: coverage);
+      final container = _container(
+        store,
+        documentRepository: _StubDocumentRepository(
+          _loadedDocument(
+            fileName: 'diagrams.pdf',
+            sizeBytes: pdfBytes.length,
+            pdfBytes: pdfBytes,
+          ),
+        ),
+        reviewRepository: reviewRepository,
+      );
+      addTearDown(container.dispose);
+      final vm = container.read(workspaceViewModelProvider.notifier);
+
+      vm.state = vm.state.copyWith(
+        imageReviewedCount: 7,
+        imageCoverage: const PageImageCoverage(reviewed: 7),
+      );
+      await vm.importDocument();
+      var state = container.read(workspaceViewModelProvider);
+      expect(state.imageReviewAvailable, isTrue);
+      expect(state.imageReviewedCount, 0);
+      expect(state.imageCoverage, isNull);
+
+      final snapshot = await store.loadSnapshot();
+      expect(snapshot, isNotNull);
+      expect(snapshot!, isNot(contains('pdfBytes')));
+      expect(snapshot, isNot(contains(base64Encode(pdfBytes))));
+
+      vm.state = vm.state.copyWith(
+        imageReviewedCount: 9,
+        imageCoverage: const PageImageCoverage(reviewed: 9),
+      );
+      final running = vm.runReview();
+      await reviewRepository.started.future;
+      state = container.read(workspaceViewModelProvider);
+      expect(state.imageReviewedCount, 0);
+      expect(state.imageCoverage, isNull);
+      expect(reviewRepository.calls, 1);
+      expect(reviewRepository.passedImageReviewEnabled, isTrue);
+      expect(reviewRepository.passedPdfBytes, same(pdfBytes));
+
+      reviewRepository.finish();
+      await running;
+      await _pumpUntil(() {
+        final current = container.read(workspaceViewModelProvider);
+        return current.hasResult && !current.isRunning;
+      });
+      await _pumpUntil(
+        () => container.read(workspaceViewModelProvider).history.isNotEmpty,
+      );
+
+      state = container.read(workspaceViewModelProvider);
+      expect(state.imageReviewedCount, coverage.reviewed);
+      expect(state.imageCoverage, coverage);
+      final session = (await store.list()).single;
+      expect(session.payloadJson, isNot(contains('pdfBytes')));
+      expect(session.payloadJson, isNot(contains(base64Encode(pdfBytes))));
+      final report = vm.exportMarkdown();
+      expect(report, contains('## PDF page-image coverage'));
+      expect(report, contains('| 2 | 1 | 1 | 1 | 0 |'));
+      expect(report, contains('reason=no-diagram-intent=1'));
+    },
+  );
+
+  test('DOCX imports stay text-only and never send PDF bytes', () async {
+    final store = InMemorySessionStore();
+    final reviewRepository = _ControlledReviewRepository(
+      coverage: const PageImageCoverage(reviewed: 1),
+    );
+    final container = _container(
+      store,
+      documentRepository: _StubDocumentRepository(
+        _loadedDocument(
+          fileName: 'notes.docx',
+          sizeBytes: 12,
+          pdfBytes: null,
+          imagePageIndexes: const [],
+        ),
+      ),
+      reviewRepository: reviewRepository,
+    );
+    addTearDown(container.dispose);
+    final vm = container.read(workspaceViewModelProvider.notifier);
+
+    await vm.importDocument();
+    expect(
+      container.read(workspaceViewModelProvider).imageReviewAvailable,
+      isFalse,
+    );
+
+    final running = vm.runReview();
+    await reviewRepository.started.future;
+    expect(reviewRepository.passedImageReviewEnabled, isFalse);
+    expect(reviewRepository.passedPdfBytes, isNull);
+    reviewRepository.finish();
+    await running;
+    await _pumpUntil(() {
+      final state = container.read(workspaceViewModelProvider);
+      return state.hasResult && !state.isRunning;
+    });
+
+    final state = container.read(workspaceViewModelProvider);
+    expect(state.imageReviewAvailable, isFalse);
+    expect(state.imageReviewedCount, 0);
+    expect(state.imageCoverage, isNull);
+  });
+
+  test('demo and mock-mode runs stay text-only', () async {
+    final store = InMemorySessionStore();
+    final reviewRepository = _ControlledReviewRepository(
+      coverage: const PageImageCoverage(reviewed: 1),
+    );
+    final container = _container(
+      store,
+      reviewRepository: reviewRepository,
+      mockMode: true,
+    );
+    addTearDown(container.dispose);
+    final vm = container.read(workspaceViewModelProvider.notifier);
+
+    await vm.loadDemo();
+    expect(
+      container.read(workspaceViewModelProvider).imageReviewAvailable,
+      isFalse,
+    );
+    final running = vm.runReview();
+    await reviewRepository.started.future;
+    expect(reviewRepository.passedImageReviewEnabled, isFalse);
+    expect(reviewRepository.passedPdfBytes, isNull);
+    reviewRepository.finish();
+    await running;
+    await _pumpUntil(() {
+      final state = container.read(workspaceViewModelProvider);
+      return state.hasResult && !state.isRunning;
+    });
+
+    final state = container.read(workspaceViewModelProvider);
+    expect(state.imageReviewAvailable, isFalse);
+    expect(state.imageReviewedCount, 0);
+    expect(state.imageCoverage, isNull);
+  });
+
+  test('restored sessions remain text-only and refuse a new run', () async {
+    final store = InMemorySessionStore();
+    final unit = unitsFromDocument(
+      _singleRequirementDocument(fileName: 'restored.pdf'),
+    ).single;
+    await store.save(
+      SavedSession(
+        id: 'restored',
+        fileName: 'restored.pdf',
+        payloadJson: jsonEncode({
+          'fileName': 'restored.pdf',
+          'pageCount': 1,
+          'sizeLabel': '1 B',
+          'isDemo': false,
+          'units': [unit.toJson()],
+          'syllabusFindings': const <Map<String, dynamic>>[],
+          'findingStatus': const <String, String>{},
+          'diagramPageCount': 0,
+        }),
+        createdAt: DateTime(2026, 1, 1),
+        parserVersion: kParserVersion,
+      ),
+    );
+    final reviewRepository = _ControlledReviewRepository(
+      coverage: const PageImageCoverage(reviewed: 1),
+    );
+    final container = _container(store, reviewRepository: reviewRepository);
+    addTearDown(container.dispose);
+    final vm = container.read(workspaceViewModelProvider.notifier);
+
+    expect(await vm.openSession('restored'), isTrue);
+    final state = container.read(workspaceViewModelProvider);
+    expect(state.imageReviewAvailable, isFalse);
+    expect(state.imageCoverage, isNull);
+
+    await vm.runReview();
+    final afterRun = container.read(workspaceViewModelProvider);
+    expect(reviewRepository.calls, 0);
+    expect(afterRun.error, contains('Restored sessions hold no file bytes'));
+    expect(afterRun.imageCoverage, isNull);
   });
 
   test('runReview over 40 selected units completes, saves a session', () async {
@@ -511,6 +847,7 @@ class _QuotaKillingApi implements ReviewApi {
     required String text,
     String? section,
     int? pageIndex,
+    String? imageB64,
     CancelToken? cancelToken,
   }) async {
     throw ApiException('Provider quota exhausted.', statusCode: 429);
@@ -542,6 +879,7 @@ class _AlwaysFailingApi implements ReviewApi {
     required String text,
     String? section,
     int? pageIndex,
+    String? imageB64,
     CancelToken? cancelToken,
   }) async {
     throw ApiException(

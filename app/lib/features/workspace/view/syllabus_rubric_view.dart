@@ -49,8 +49,9 @@ class SyllabusRubricView extends ConsumerWidget {
       (
         '→',
         'Outside this release',
-        'Live full-document model review, OCR, atomic resume, vision and '
-            'precision/recall evaluation remain future work.',
+        'OCR, atomic resume, and precision/recall evaluation remain future '
+            'work; page-image review is limited to detector-selected PDF pages '
+            'and does not imply full visual understanding.',
         Icons.schedule_outlined,
       ),
     ];

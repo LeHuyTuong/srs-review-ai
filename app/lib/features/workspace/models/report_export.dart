@@ -12,6 +12,7 @@ library;
 
 import '../../../data/models/deterministic_finding.dart';
 import '../../../data/models/review_models.dart';
+import '../../../data/models/review_progress.dart';
 import 'workspace_findings.dart';
 import 'workspace_unit.dart';
 
@@ -28,10 +29,23 @@ String buildMarkdownReport({
   /// free was missing from the one artefact a supervisor actually reads.
   List<DeterministicFinding> syllabusFindings = const [],
 
-  /// Pages that look like diagrams. No image is sent to the model in this
-  /// release, so "reviewed" only ever meant "the text was read" — the report
-  /// owes the reader that caveat instead of leaving it implicit.
+  /// Pages that look like diagrams. This is a page count, not an image-review
+  /// coverage count; image review is reported separately below.
   int diagramPageCount = 0,
+
+  /// True while original bytes from a newly imported PDF are retained for this
+  /// live session. DOCX, demo, and restored sessions are text-only.
+  bool imageReviewAvailable = false,
+
+  /// Requirements in the latest run whose successful request carried a PDF page
+  /// image. This is a requirement count, not a page or diagram count, and is
+  /// deliberately transient rather than persisted with the report input.
+  int imageReviewedCount = 0,
+
+  /// Full page-image selection, extraction, and request coverage for the latest
+  /// run. This is transient report context and is never persisted with the
+  /// snapshot or saved session.
+  PageImageCoverage? imageCoverage,
 
   /// Per-finding triage, keyed by finding id.
   Map<String, FindingStatus> findingStatus = const {},
@@ -40,6 +54,11 @@ String buildMarkdownReport({
   final findings = result?.findings ?? const <FindingRow>[];
   final dropped = result?.droppedIssueCount ?? 0;
   final reportOffline = result?.mock ?? offline;
+  final effectiveImageReviewedCount =
+      imageCoverage?.reviewed ?? imageReviewedCount;
+  final imageReviewUsed =
+      imageReviewAvailable && !reportOffline && effectiveImageReviewedCount > 0;
+  final imageReviewCapable = imageReviewAvailable && !reportOffline;
 
   String two(int n) => n.toString().padLeft(2, '0');
   final now = DateTime.now().toUtc();
@@ -77,15 +96,85 @@ String buildMarkdownReport({
     '',
   ];
 
-  if (diagramPageCount > 0) {
+  final showImageReviewNote =
+      diagramPageCount > 0 ||
+      imageReviewAvailable ||
+      imageReviewedCount > 0 ||
+      imageCoverage != null;
+  if (showImageReviewNote) {
+    final effectiveImageReviewedCount =
+        imageCoverage?.reviewed ?? imageReviewedCount;
+    final imageReviewNote = reportOffline
+        ? '> 🖼️ **Offline mock mode performed a text-only review.** PDF page '
+              'images were not sent to the model; any diagram content was assessed '
+              'from extracted text. Treat "no issues found" as "nothing the text '
+              'gave away".'
+        : imageReviewUsed
+        ? '> 🖼️ **PDF image review was available, and '
+              '$effectiveImageReviewedCount requirement(s) were reviewed with page '
+              'images.** Other requirements were assessed from extracted text '
+              'alone; diagram content without an attached image was text-only. '
+              'Treat "no issues found" for those requirements as "nothing the '
+              'text gave away".'
+        : imageReviewCapable
+        ? '> 🖼️ **PDF page images were available, but none were '
+              'attached to a successful review request.** Any diagram '
+              'content was therefore text-only; treat "no issues found" as '
+              '"nothing the text gave away".'
+        : '> 🖼️ **PDF page images were NOT available for this document '
+              'or session.** Any diagram content was text-only; review '
+              'findings came from extracted text. Treat "no issues found" '
+              'as "nothing the text gave away".';
     lines
+      ..add(imageReviewNote)
+      ..add('');
+  }
+
+  if (imageCoverage != null) {
+    final coverage = imageCoverage;
+    lines
+      ..add('## PDF page-image coverage')
+      ..add('')
       ..add(
-        '> 🖼️ **$diagramPageCount page(s) look like diagrams and were NOT '
-        'reviewed.** No image is sent to the model in this release, so every '
-        'finding below was reached through text alone. Treat "no issues found" '
-        'as "nothing the *text* gave away".',
+        '| Candidates | Extracted | Image-reviewed | Text-only/skipped | Image failures |',
+      )
+      ..add('|---:|---:|---:|---:|---:|')
+      ..add(
+        '| ${coverage.candidates} | ${coverage.extracted} | '
+        '${coverage.reviewed} | ${coverage.skipped} | ${coverage.failed} |',
+      )
+      ..add('')
+      ..add(
+        '`Text-only/skipped` includes ordinary text-only requirements and '
+        'requirements whose image path was deferred or failed; `Image failures` '
+        'counts image preparation or image-bearing request failures, not ordinary '
+        'text-only requirements.',
       )
       ..add('');
+
+    final reasonEntries = coverage.reasons.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    if (reasonEntries.isEmpty) {
+      lines.add('Image-review reasons: none');
+    } else {
+      final reasonTokens = reasonEntries
+          .map((entry) => 'reason=${entry.key}=${entry.value}')
+          .join(', ');
+      lines.add('Image-review reasons: $reasonTokens');
+    }
+    lines.add('');
+
+    final decisionEntries = coverage.decisions.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    if (decisionEntries.isEmpty) {
+      lines.add('Image-review decisions: none');
+    } else {
+      final decisionTokens = decisionEntries
+          .map((entry) => '${entry.key}=${entry.value}')
+          .join(', ');
+      lines.add('Image-review decisions: $decisionTokens');
+    }
+    lines.add('');
   }
 
   // A run that never finished (cancelled, killed by quota/auth) or returned
@@ -212,24 +301,35 @@ String buildMarkdownReport({
     );
   }
 
+  final limitations = <String>[
+    reportOffline
+        ? '- This is a mock review, not official grading; syllabus thresholds '
+              'are provisional.'
+        : '- Online proxy review is not official grading; syllabus thresholds '
+              'are provisional.',
+    '- No OCR. PDF page images are sent only for eligible pages in a newly '
+        'imported PDF during an online run; DOCX, demo, and restored sessions '
+        'are text-only. Requirements without an attached image are assessed '
+        'from extracted text.',
+    '- Page-image review is limited to detector-selected PDF pages and does '
+        'not imply full visual understanding.',
+    '- No resume/checkpoint, and no precision/recall evaluation against a '
+        'labelled gold set.',
+    '- DOCX page references are logical extraction pages, not rendered '
+        'pagination.',
+    reportOffline
+        ? '- Offline mock review sends no model requests; source bytes are '
+              'never saved in snapshots or sessions.'
+        : '- Online PDF reviews may send bounded page images plus requirement '
+              'text to the proxy; source bytes are never saved in snapshots or '
+              'sessions. DOCX, demo, and restored sessions are text-only.',
+    '- Demo content is synthetic, not measured OTES evidence.',
+  ];
   lines
     ..add('')
     ..add('## Limitations & future work')
     ..add('')
-    ..addAll(const [
-      '- This is a mock review, not official grading; syllabus thresholds are '
-          'provisional.',
-      '- No OCR. Diagrams were detected but never reviewed visually — no image '
-          'is sent to the model in this release, so every finding above was '
-          'reached through text alone.',
-      '- No resume/checkpoint, and no precision/recall evaluation against a '
-          'labelled gold set.',
-      '- DOCX page references are logical extraction pages, not rendered '
-          'pagination.',
-      '- Imported documents are parsed locally; only explicitly saved sessions '
-          'leave this device.',
-      '- Demo content is synthetic, not measured OTES evidence.',
-    ]);
+    ..addAll(limitations);
   return lines.join('\n');
 }
 

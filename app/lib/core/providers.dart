@@ -12,6 +12,7 @@ import '../data/repositories/document_repository.dart';
 import '../data/repositories/review_repository.dart';
 import '../data/services/api_service.dart';
 import '../data/services/mock_review_api.dart';
+import '../data/services/page_image_renderer.dart';
 import '../data/services/review_api.dart';
 import '../data/services/session_store.dart';
 import 'app_config.dart';
@@ -181,7 +182,10 @@ final documentRepositoryProvider = Provider<DocumentRepository>((ref) {
 });
 
 final reviewRepositoryProvider = Provider<ReviewRepository>(
-  (ref) => ReviewRepository(ref.watch(reviewApiProvider)),
+  (ref) => ReviewRepository(
+    ref.watch(reviewApiProvider),
+    renderer: PageImageRenderer(),
+  ),
 );
 
 /// Overridden in `main()` with the instance awaited before `runApp`, so the

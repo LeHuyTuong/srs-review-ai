@@ -75,14 +75,19 @@ class ApiService implements ReviewApi {
     required String text,
     String? section,
     int? pageIndex,
+    String? imageB64,
     CancelToken? cancelToken,
   }) async {
-    final data = await _post('/review', {
+    final body = <String, dynamic>{
       'requirement_id': requirementId,
       'text': text,
       'section': ?section,
       'page_index': ?pageIndex,
-    }, cancelToken: cancelToken);
+    };
+    if (imageB64 != null) {
+      body['image_b64'] = imageB64;
+    }
+    final data = await _post('/review', body, cancelToken: cancelToken);
     return ReviewResult.fromJson(data);
   }
 

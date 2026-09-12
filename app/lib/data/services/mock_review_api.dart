@@ -47,6 +47,7 @@ class MockReviewApi implements ReviewApi {
     required String text,
     String? section,
     int? pageIndex,
+    String? imageB64,
     CancelToken? cancelToken,
   }) async {
     await Future<void>.delayed(latency);

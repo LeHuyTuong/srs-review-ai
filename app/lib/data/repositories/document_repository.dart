@@ -72,6 +72,11 @@ class DocumentRepository {
       findings: SyllabusChecks(_rubric).runAll(document),
       sizeBytes: sizeBytes,
       path: path,
+      // Keep source bytes only for PDFs. DOCX has no page rasterizer in this
+      // release, and the ViewModel is responsible for keeping this transient.
+      pdfBytes: _isPdf(fileName) ? bytes : null,
     );
   }
 }
+
+bool _isPdf(String fileName) => fileName.toLowerCase().endsWith('.pdf');

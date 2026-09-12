@@ -62,6 +62,7 @@ class _AnsweringApi implements ReviewApi {
     required String text,
     String? section,
     int? pageIndex,
+    String? imageB64,
     CancelToken? cancelToken,
   }) async => ReviewResult(
     requirementId: requirementId,
@@ -114,6 +115,7 @@ class _FailsAfterNApi implements ReviewApi {
     required String text,
     String? section,
     int? pageIndex,
+    String? imageB64,
     CancelToken? cancelToken,
   }) async {
     if (++calls > successes) {
@@ -278,10 +280,17 @@ void main() {
       // from the one artefact a supervisor reads.
       expect(report, contains('Deterministic checks'));
       expect(report, contains('Found 3 use cases'));
-      // No image is ever sent to the model, so "reviewed" must not be read as
-      // "everything was looked at".
-      expect(report, contains('NOT'));
-      expect(report, contains('4 page(s) look like diagrams'));
+      // Mock mode is explicit about the text-only boundary so diagram silence
+      // cannot be mistaken for visual inspection.
+      expect(
+        report,
+        contains('Offline mock mode performed a text-only review.'),
+      );
+      expect(
+        report,
+        contains('diagram content was assessed from extracted text'),
+      );
+      expect(report, isNot(contains('4 page(s) look like diagrams')));
     });
 
     test('a report with no diagrams does not claim they were checked', () {

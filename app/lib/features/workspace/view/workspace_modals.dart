@@ -20,6 +20,7 @@ import '../../../data/models/review_progress.dart';
 import '../models/ask_document.dart';
 import '../models/demo_units.dart';
 import '../view_model/workspace_view_model.dart';
+import 'shortcuts_modal.dart';
 import 'workspace_widgets.dart';
 
 // ---------------------------------------------------------------------------
@@ -199,7 +200,10 @@ Future<void> showImportModal(BuildContext context, WidgetRef ref) => _show(
           const WInfoNote(
             text:
                 'Parsed locally · no OCR for scanned files. DOCX source '
-                'references use logical pages. Nothing leaves this device.',
+                'references use logical pages. Original file bytes stay on '
+                'this device. Online PDF reviews may send bounded page images '
+                'plus requirement text to your proxy; DOCX, demo, and restored '
+                'sessions are text-only.',
           ),
           const SizedBox(height: AppSpacing.sm),
           TextButton.icon(
@@ -277,9 +281,14 @@ Future<void> showReviewModal(BuildContext context, WidgetRef ref) => _show(
                 ? 'Offline mock review — runs entirely on this device with '
                       'deterministic rules. No model calls are made. Suggestions '
                       'are illustrative, not an official assessment.'
-                : 'Online review — sends requirement text to your local proxy '
-                      'and the configured model. Quotes are verified before any '
-                      'finding is shown.',
+                : state.imageReviewAvailable
+                ? 'Online review — sends requirement text and, for '
+                      'eligible pages in this imported PDF, bounded page '
+                      'images to your local proxy and configured model. '
+                      'Quotes are verified before any finding is shown.'
+                : 'Online review — sends requirement text only (DOCX, '
+                      'demo, or restored session); no page image is sent. '
+                      'Quotes are verified before any finding is shown.',
           ),
           if (state.attentionCount > 0) ...[
             const SizedBox(height: AppSpacing.sm),
@@ -827,6 +836,43 @@ Future<void> showHelpModal(BuildContext context, WidgetRef ref) => _show(
             ),
             const SizedBox(height: AppSpacing.lg),
           ],
+          // Discoverability for the desktop keyboard layer. The shortcut sheet
+          // gets its own row here rather than a hint appended to the Help
+          // button's tooltip, because `workspace_shell_test.dart` asserts that
+          // tooltip appears on exactly one semantics node.
+          Semantics(
+            button: true,
+            label: 'Keyboard shortcuts',
+            excludeSemantics: true,
+            child: InkWell(
+              onTap: () => showShortcutsModal(context, ref),
+              borderRadius: AppRadius.boxSm,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.keyboard_command_key,
+                      size: 16,
+                      color: colors.brand,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        'Keyboard shortcuts',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: colors.brand,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Icon(Icons.arrow_forward, size: 14, color: colors.brand),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
           WButton.primary(
             label: 'Got it',
             icon: Icons.check,
@@ -881,8 +927,10 @@ Future<void> showRubricModal(BuildContext context, WidgetRef ref) => _show(
           const WInfoNote(
             icon: Icons.arrow_outward,
             text:
-                'Outside this release: live model review of full documents, '
-                'OCR, atomic resume, vision and precision/recall evaluation.',
+                'Outside this release: OCR, atomic resume, and '
+                'precision/recall evaluation remain future work. Page-image '
+                'review is limited to detector-selected PDF pages and does '
+                'not imply full visual understanding.',
           ),
         ],
       );
@@ -926,9 +974,16 @@ Future<void> showDocumentInfoModal(
                 ? 'The sample uses illustrative content inspired by the '
                       'brief. Its units are not measured OTES extraction '
                       'results.'
-                : 'Original file bytes stay on your device. Inventory text '
-                      'is kept in app storage; sessions are saved only when '
-                      'you run a review.',
+                : state.imageReviewAvailable
+                ? 'Original PDF bytes stay in memory only for this session. '
+                      'Online reviews may send bounded page images plus '
+                      'requirement text to your proxy. Inventory text is '
+                      'kept in app storage; sessions save findings/results, '
+                      'never source bytes.'
+                : 'This DOCX, demo, or restored session is text-only; no '
+                      'page image is sent. Inventory text is kept in app '
+                      'storage; sessions save findings/results, never '
+                      'source bytes.',
           ),
         ],
       );

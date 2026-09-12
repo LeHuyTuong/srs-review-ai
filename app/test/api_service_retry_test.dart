@@ -28,6 +28,7 @@ class _FakeAdapter implements HttpClientAdapter {
   /// How many times the transport was actually hit — the whole point of these
   /// tests: retried work shows up here as more than one call.
   int calls = 0;
+  final List<Object?> requestData = <Object?>[];
 
   @override
   Future<ResponseBody> fetch(
@@ -36,6 +37,7 @@ class _FakeAdapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     calls++;
+    requestData.add(options.data);
     final next = _script.removeFirst();
     if (next is ResponseBody) return next;
     return switch (next as _Action) {
@@ -88,6 +90,27 @@ ApiService _service(_FakeAdapter adapter) => ApiService(
 
 void main() {
   group('ApiService retry', () {
+    test('review serializes an optional image_b64 payload', () async {
+      final adapter = _FakeAdapter(
+        Queue<Object>.of(<Object>[_Action.ok, _Action.ok]),
+      );
+      final service = _service(adapter);
+
+      await service.review(
+        requirementId: 'FR-01',
+        text: 'The system shall store reports.',
+        imageB64: 'AQID',
+      );
+      await service.review(
+        requirementId: 'FR-02',
+        text: 'The system shall archive reports.',
+      );
+
+      expect(adapter.requestData, hasLength(2));
+      expect(adapter.requestData[0], containsPair('image_b64', 'AQID'));
+      expect(adapter.requestData[1], isNot(contains('image_b64')));
+    });
+
     test('a dropped connection is retried and can still succeed', () async {
       final adapter = _FakeAdapter(
         Queue<Object>.of(<Object>[_Action.dropped, _Action.ok]),

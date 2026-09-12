@@ -9,6 +9,7 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -58,6 +59,9 @@ class WorkspaceState {
     this.runSkipped = 0,
     this.findingStatus = const {},
     this.diagramPageCount = 0,
+    this.imageReviewAvailable = false,
+    this.imageReviewedCount = 0,
+    this.imageCoverage,
     this.documentFingerprint = '',
     this.parserVersion = '',
   });
@@ -106,9 +110,21 @@ class WorkspaceState {
 
   /// Pages that look like a diagram.
   ///
-  /// Zero means "none detected", never "all checked". No image is sent to the
-  /// model in this release, so the report has to state that caveat itself.
+  /// Zero means "none detected", never "all checked". Image review is tracked
+  /// separately because only a current imported PDF can supply page bytes.
   final int diagramPageCount;
+
+  /// True only while original bytes from a newly imported PDF are retained in
+  /// memory. DOCX, demo, and restored sessions are always text-only here.
+  final bool imageReviewAvailable;
+
+  /// Requirements in the latest run whose successful request carried a PDF
+  /// page image. This is not persisted with snapshots or saved sessions.
+  final int imageReviewedCount;
+
+  /// Full page-image selection, extraction, and request coverage for the latest
+  /// run. This is transient UI/report context and is never serialized.
+  final PageImageCoverage? imageCoverage;
 
   /// Identity of the reviewed content: the document fingerprint and the
   /// parser version that produced it. Snapshots and sessions record both so a
@@ -181,6 +197,10 @@ class WorkspaceState {
     int? runSkipped,
     Map<String, FindingStatus>? findingStatus,
     int? diagramPageCount,
+    bool? imageReviewAvailable,
+    int? imageReviewedCount,
+    PageImageCoverage? imageCoverage,
+    bool clearImageCoverage = false,
     String? documentFingerprint,
     String? parserVersion,
   }) => WorkspaceState(
@@ -208,6 +228,11 @@ class WorkspaceState {
     runSkipped: runSkipped ?? this.runSkipped,
     findingStatus: findingStatus ?? this.findingStatus,
     diagramPageCount: diagramPageCount ?? this.diagramPageCount,
+    imageReviewAvailable: imageReviewAvailable ?? this.imageReviewAvailable,
+    imageReviewedCount: imageReviewedCount ?? this.imageReviewedCount,
+    imageCoverage: clearImageCoverage
+        ? null
+        : (imageCoverage ?? this.imageCoverage),
     documentFingerprint: documentFingerprint ?? this.documentFingerprint,
     parserVersion: parserVersion ?? this.parserVersion,
   );
@@ -220,6 +245,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   static const ReportExporter _exporter = ReportExporter();
 
   SrsDocument? _document;
+  Uint8List? _pdfBytes;
   StreamSubscription<ReviewProgress>? _subscription;
   Timer? _toastTimer;
   Timer? _elapsedTimer;
@@ -266,6 +292,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
           unit,
     ];
     _document = document;
+    _pdfBytes = null;
     state = WorkspaceState(
       hasDocument: true,
       fileName: demoFileName,
@@ -275,6 +302,9 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       units: units,
       syllabusFindings: SyllabusChecks(RubricConfig.fallback).runAll(document),
       diagramPageCount: document.imagePageIndexes.length,
+      imageReviewAvailable: false,
+      imageReviewedCount: 0,
+      imageCoverage: null,
       documentFingerprint: document.documentFingerprint,
       parserVersion: kParserVersion,
       toast:
@@ -297,11 +327,12 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         onStatus: (status) => state = state.copyWith(importStatus: status),
       );
       if (loaded == null) {
-        // user cancelled the picker
+        // user cancelled the picker; keep the current document and bytes
         state = state.copyWith(clearImportStatus: true);
         return;
       }
       _document = loaded.document;
+      _pdfBytes = loaded.pdfBytes;
       state = WorkspaceState(
         hasDocument: true,
         fileName: loaded.document.fileName,
@@ -311,8 +342,11 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         units: unitsFromDocument(loaded.document),
         syllabusFindings: loaded.findings,
         // How many pages look like diagrams. Recorded at import so the report
-        // can say, in as many words, that none of them were read.
+        // can distinguish diagram detection from actual image review.
         diagramPageCount: loaded.document.imagePageIndexes.length,
+        imageReviewAvailable: loaded.pdfBytes != null,
+        imageReviewedCount: 0,
+        imageCoverage: null,
         documentFingerprint: loaded.document.documentFingerprint,
         parserVersion: kParserVersion,
         toast:
@@ -441,11 +475,18 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       imagePageIndexes: document.imagePageIndexes,
     );
 
+    final imageReviewEnabled =
+        state.imageReviewAvailable &&
+        !ref.read(mockModeProvider) &&
+        _pdfBytes != null;
+
     state = state.copyWith(
       clearError: true,
       clearResult: true,
       runStartedAt: DateTime.now(),
       runReviewed: 0,
+      imageReviewedCount: 0,
+      clearImageCoverage: true,
       runSkipped: selected.length - selectedItems.length,
       progress: ReviewProgress(
         stage: ReviewStage.parsing,
@@ -466,6 +507,8 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     _subscription = repository
         .run(
           filtered,
+          pdfBytes: imageReviewEnabled ? _pdfBytes : null,
+          imageReviewEnabled: imageReviewEnabled,
           onComplete: (run) {
             final result = WorkspaceReviewResult.fromRun(
               run: run,
@@ -482,6 +525,10 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
             // failed; units left out of the selection stay skipped.
             state = state.copyWith(
               result: result,
+              imageReviewedCount: imageReviewEnabled
+                  ? run.imageCoverage.reviewed
+                  : 0,
+              imageCoverage: imageReviewEnabled ? run.imageCoverage : null,
               units: [
                 for (final unit in state.units)
                   unit.copyWith(
@@ -749,6 +796,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
           entry.key as String: FindingStatus.fromName(entry.value as String?),
       };
       _document = null; // a restored session reviews no new file
+      _pdfBytes = null;
       state = state.copyWith(
         hasDocument: true,
         // Only `units` is load-bearing; the rest is display metadata. Casting
@@ -763,6 +811,9 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         syllabusFindings: syllabusFindings,
         findingStatus: findingStatus,
         diagramPageCount: (payload['diagramPageCount'] as int?) ?? 0,
+        imageReviewAvailable: false,
+        imageReviewedCount: 0,
+        clearImageCoverage: true,
         result: resultJson == null
             ? null
             : WorkspaceReviewResult.fromJson(resultJson),
@@ -797,6 +848,9 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     // could read.
     syllabusFindings: state.syllabusFindings,
     diagramPageCount: state.diagramPageCount,
+    imageReviewAvailable: state.imageReviewAvailable,
+    imageReviewedCount: state.imageReviewedCount,
+    imageCoverage: state.imageCoverage,
     findingStatus: state.findingStatus,
   );
 
@@ -917,6 +971,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
           entry.key as String: FindingStatus.fromName(entry.value as String?),
       };
       _document = null;
+      _pdfBytes = null;
       state = WorkspaceState(
         hasDocument: true,
         fileName: payload['fileName'] as String,
