@@ -14,8 +14,10 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:srs_review_ai/data/checks/reference_checks.dart';
 import 'package:srs_review_ai/data/checks/rubric_config.dart';
 import 'package:srs_review_ai/data/checks/syllabus_checks.dart';
+import 'package:srs_review_ai/data/models/deterministic_finding.dart';
 import 'package:srs_review_ai/data/models/srs_document.dart';
 import 'package:srs_review_ai/data/services/parse_service.dart';
 import 'support/srs_fixtures.dart';
@@ -54,6 +56,17 @@ void main() {
       );
       stopwatch.stop();
       final findings = SyllabusChecks(RubricConfig.fallback).runAll(document);
+      // Round 7 acceptance: emit the same parse-side counts for the M2
+      // reference family so a single run reports both F7/F8/F9 and the
+      // duplicate-id + missing-postcondition families on the real document.
+      final referenceFindings =
+          const ReferenceChecks().runAll(document);
+      final m2DuplicateIds = referenceFindings
+          .where((f) => f.check == CheckId.duplicateIds)
+          .toList(growable: false);
+      final m2MissingPostcondition = referenceFindings
+          .where((f) => f.check == CheckId.missingPostcondition)
+          .toList(growable: false);
       final result = <String, Object?>{
         'outcome': 'parsed',
         'ms': stopwatch.elapsedMilliseconds,
@@ -75,6 +88,14 @@ void main() {
             '${f.check.name}:${f.passed ? 'pass' : 'fail'}',
         ],
         'messages': [for (final f in findings) f.message],
+        'm2DuplicateIdsCount': m2DuplicateIds.length,
+        'm2MissingPostconditionCount': m2MissingPostcondition.length,
+        'm2DuplicateIds': [
+          for (final f in m2DuplicateIds) '${f.subject}:${f.actual}',
+        ],
+        'm2MissingPostconditionIds': [
+          for (final f in m2MissingPostcondition) f.subject,
+        ],
       };
       _record(caseId, result);
       if (!expectSuccess) {
@@ -259,6 +280,27 @@ void main() {
       );
       expect(result['pages'], 217);
       expect(result['units'], greaterThan(0));
+      // Round 7 acceptance: the OTES pattern is the entire reason M2 exists.
+      // The freshly-extracted ReferenceChecks must detect the canonical
+      // signals on the real document — duplicate ids (UC04 reused, etc.)
+      // and missing postconditions (the goal-quoted "63/63 UC không có
+      // post-condition"). These thresholds are loose on purpose so a
+      // parser regression that loses a few rows does not flip the suite
+      // red; what matters is the family is exercised end-to-end.
+      expect(
+        result['m2DuplicateIdsCount'] as int,
+        greaterThan(0),
+        reason:
+            'OTES must surface at least one duplicate-id finding (UC04 is '
+            'used 7+ times in the source).',
+      );
+      expect(
+        result['m2MissingPostconditionCount'] as int,
+        greaterThan(0),
+        reason:
+            'OTES use cases rarely carry a Postcondition section; the M2 '
+            'check must surface that.',
+      );
     });
 
     test('TC-15 repeat parses are stable', () async {
