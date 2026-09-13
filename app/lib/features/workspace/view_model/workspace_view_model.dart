@@ -802,6 +802,15 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
               )
               .toList(growable: false) ??
           const <DeterministicFinding>[];
+      final referenceFindings =
+          (payload['referenceFindings'] as List<dynamic>?)
+              ?.map(
+                (entry) => DeterministicFinding.fromJson(
+                  entry as Map<String, dynamic>,
+                ),
+              )
+              .toList(growable: false) ??
+          const <DeterministicFinding>[];
       // Sessions written before triage existed carry no such key; every id
       // then reads back as open, which is how they always behaved.
       final findingStatus = <String, FindingStatus>{
@@ -824,6 +833,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         isDemo: (payload['isDemo'] as bool?) ?? false,
         units: units,
         syllabusFindings: syllabusFindings,
+        referenceFindings: referenceFindings,
         findingStatus: findingStatus,
         diagramPageCount: (payload['diagramPageCount'] as int?) ?? 0,
         imageReviewAvailable: false,
@@ -916,6 +926,9 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       'syllabusFindings': state.syllabusFindings
           .map((finding) => finding.toJson())
           .toList(growable: false),
+      'referenceFindings': state.referenceFindings
+          .map((finding) => finding.toJson())
+          .toList(growable: false),
       'findingStatus': state.findingStatus.map(
         (id, status) => MapEntry(id, status.name),
       ),
@@ -979,6 +992,18 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
               )
               .toList(growable: false) ??
           const <DeterministicFinding>[];
+      // M2 reference findings: written by Round 5+ snapshots. Snapshots
+      // without the key (Round ≤4) round-trip as an empty list so the
+      // dashboard renders no M2 rows for older sessions instead of breaking.
+      final referenceFindings =
+          (payload['referenceFindings'] as List<dynamic>?)
+              ?.map(
+                (entry) => DeterministicFinding.fromJson(
+                  entry as Map<String, dynamic>,
+                ),
+              )
+              .toList(growable: false) ??
+          const <DeterministicFinding>[];
       final findingStatus = <String, FindingStatus>{
         for (final entry
             in (payload['findingStatus'] as Map<dynamic, dynamic>?)?.entries ??
@@ -995,6 +1020,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         isDemo: payload['isDemo'] as bool,
         units: units,
         syllabusFindings: syllabusFindings,
+        referenceFindings: referenceFindings,
         findingStatus: findingStatus,
         diagramPageCount: (payload['diagramPageCount'] as int?) ?? 0,
         result: resultJson == null
@@ -1017,6 +1043,9 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       'isDemo': state.isDemo,
       'units': state.units.map((u) => u.toJson()).toList(),
       'syllabusFindings': state.syllabusFindings
+          .map((finding) => finding.toJson())
+          .toList(growable: false),
+      'referenceFindings': state.referenceFindings
           .map((finding) => finding.toJson())
           .toList(growable: false),
       'findingStatus': state.findingStatus.map(
