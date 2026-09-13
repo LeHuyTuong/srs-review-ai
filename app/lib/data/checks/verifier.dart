@@ -70,8 +70,19 @@ class Verifier {
     });
 
     // For every fresh failure we have not seen before, open it.
+    // UNV rows (requiresVisionEvidence) start as pendingVision — the
+    // brief says vision-required findings must never be tinted green,
+    // so they begin in the limbo state and the Verifier's transition
+    // table promotes them only when the text-only path confirms.
+    final visionRequired = <String>{
+      for (final f in _failingFindings(syllabusFindings)
+        .followedBy(_failingFindings(referenceFindings)))
+        if (f.requiresVisionEvidence) _keyOf(f),
+    };
     for (final key in stillFailing) {
-      next.putIfAbsent(key, () => FindingStatus.open);
+      if (next.containsKey(key)) continue;
+      next[key] =
+          visionRequired.contains(key) ? FindingStatus.pendingVision : FindingStatus.open;
     }
     return next;
   }

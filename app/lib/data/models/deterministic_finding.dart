@@ -102,6 +102,7 @@ class DeterministicFinding {
     this.actual,
     this.expectedMin,
     this.expectedMax,
+    this.requiresVisionEvidence = false,
   });
 
   factory DeterministicFinding.fromJson(Map<String, dynamic> json) =>
@@ -118,6 +119,8 @@ class DeterministicFinding {
         actual: json['actual'] as num?,
         expectedMin: json['expected_min'] as num?,
         expectedMax: json['expected_max'] as num?,
+        requiresVisionEvidence:
+            json['requires_vision_evidence'] as bool? ?? false,
       );
 
   final CheckId check;
@@ -131,6 +134,14 @@ class DeterministicFinding {
   final num? expectedMin;
   final num? expectedMax;
 
+  /// True when this finding cannot be verified by deterministic
+  /// re-derivation alone — it needs vision (LLM call on the actual
+  /// diagram) or some other out-of-Dart evidence. The Verifier honors
+  /// this by seeding the row with `FindingStatus.pendingVision` instead
+  /// of `open`, per goal §3 rule 3 ("MỤC TIÊU KHÔNG KIỂM ĐƯỢC → dòng
+  /// ⬜ PENDING-VISION, tuyệt đối không được tô xanh").
+  final bool requiresVisionEvidence;
+
   Map<String, dynamic> toJson() => {
     'check': check.wire,
     'passed': passed,
@@ -140,5 +151,6 @@ class DeterministicFinding {
     'actual': actual,
     'expected_min': expectedMin,
     'expected_max': expectedMax,
+    'requires_vision_evidence': requiresVisionEvidence,
   };
 }

@@ -233,4 +233,93 @@ void main() {
       expect(next['language:UC-01'], FindingStatus.verified);
     });
   });
+
+  // --------------------------------------------------- R26 — UNV upstream
+  // signal: a finding whose DeterministicFinding.requiresVisionEvidence is
+  // true must be seeded as pendingVision, not open. The brief says vision-
+  // required findings must NEVER be tinted green, so they begin in limbo
+  // and the Verifier's transition table can only promote them when the
+  // text-only path confirms the check no longer fires.
+  group('Verifier — UNV upstream signal (pendingVision seeded for vision-required findings)', () {
+    test(
+      'fresh finding with requiresVisionEvidence → initial status is pendingVision, not open',
+      () {
+        final next = _verifier.verify(
+          previousStatuses: const {},
+          syllabusFindings: const [],
+          referenceFindings: const [
+            DeterministicFinding(
+              check: CheckId.crossArtifactName,
+              passed: false,
+              severity: Severity.high,
+              subject: 'UC-01',
+              message: 'diagram-vs-text inconsistency',
+              requiresVisionEvidence: true,
+            ),
+          ],
+        );
+        expect(next['cross_artifact_name:UC-01'],
+            FindingStatus.pendingVision);
+      },
+    );
+
+    test(
+      'fresh finding WITHOUT requiresVisionEvidence → initial status stays open',
+      () {
+        final next = _verifier.verify(
+          previousStatuses: const {},
+          syllabusFindings: const [],
+          referenceFindings: const [
+            DeterministicFinding(
+              check: CheckId.duplicateIds,
+              passed: false,
+              severity: Severity.high,
+              subject: 'UC04',
+              message: 'id reused',
+            ),
+          ],
+        );
+        expect(next['duplicate_ids:UC04'], FindingStatus.open);
+      },
+    );
+
+    test(
+      'pendingVision + check no longer fires → verified (text-only path confirms)',
+      () {
+        final next = _verifier.verify(
+          previousStatuses: const {
+            'cross_artifact_name:UC-01': FindingStatus.pendingVision,
+          },
+          syllabusFindings: const [],
+          referenceFindings: const [],
+        );
+        expect(next['cross_artifact_name:UC-01'],
+            FindingStatus.verified);
+      },
+    );
+
+    test(
+      'pendingVision + check still fails → pendingVision (never auto-promotes)',
+      () {
+        final next = _verifier.verify(
+          previousStatuses: const {
+            'cross_artifact_name:UC-01': FindingStatus.pendingVision,
+          },
+          syllabusFindings: const [],
+          referenceFindings: const [
+            DeterministicFinding(
+              check: CheckId.crossArtifactName,
+              passed: false,
+              severity: Severity.high,
+              subject: 'UC-01',
+              message: 'still inconsistent',
+              requiresVisionEvidence: true,
+            ),
+          ],
+        );
+        expect(next['cross_artifact_name:UC-01'],
+            FindingStatus.pendingVision);
+      },
+    );
+  });
 }
