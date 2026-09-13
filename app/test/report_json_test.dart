@@ -91,6 +91,33 @@ void main() {
       expect(checks[2]['passed'], isTrue);
       expect(checks[0]['check'], 'cross_artifact_name');
     });
+
+    test('M2 reference findings are included with family label', () {
+      // Round 32 review caught both report twins omitting referenceFindings —
+      // the OTES headline pattern (63/63 use cases without a Postcondition)
+      // lives in this family, so a report without it hides the most valuable
+      // deterministic findings.
+      final json = buildJsonReport(
+        fileName: 'a.pdf',
+        offline: true,
+        result: null,
+        units: const [],
+        syllabusFindings: [check(CheckId.ucCount)],
+        referenceFindings: [
+          check(CheckId.duplicateIds, requiresVisionEvidence: true),
+          check(CheckId.missingPostcondition),
+        ],
+      );
+      final checks = (json['deterministic_checks'] as List<dynamic>)
+          .cast<Map<String, dynamic>>();
+      expect(checks, hasLength(3));
+      expect(checks[0]['family'], 'syllabus');
+      expect(checks[1]['family'], 'reference');
+      expect(checks[2]['family'], 'reference');
+      expect(checks[1]['check'], 'duplicate_ids');
+      expect(checks[2]['check'], 'missing_postcondition');
+      expect(checks[1]['requires_vision_evidence'], isTrue);
+    });
   });
 
   group('buildJsonReport — numbers agree with the markdown inputs', () {

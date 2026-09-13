@@ -30,6 +30,13 @@ String buildMarkdownReport({
   /// free was missing from the one artefact a supervisor actually reads.
   List<DeterministicFinding> syllabusFindings = const [],
 
+  /// M2 family: duplicateIds, missingPostcondition, missingActor, and the
+  /// contradiction pass. Round 32 review caught both twins omitting these —
+  /// the OTES pattern (63/63 use cases without a Postcondition) is exactly
+  /// this family, so a report without it hides the most valuable findings
+  /// from the one artefact a supervisor reads.
+  List<DeterministicFinding> referenceFindings = const [],
+
   /// Pages that look like diagrams. This is a page count, not an image-review
   /// coverage count; image review is reported separately below.
   int diagramPageCount = 0,
@@ -226,24 +233,36 @@ String buildMarkdownReport({
       ..add('');
   }
 
-  if (syllabusFindings.isNotEmpty) {
-    final failing = syllabusFindings
-        .where((finding) => !finding.passed)
+  // Both offline families share the table: syllabus (F7/F8/F9) and reference
+  // (M2) are separate engines on the same data path, and the Findings tab
+  // renders them under different headings — the report must not merge them
+  // silently, so each row carries its family label.
+  final allDeterministic = [
+    for (final finding in syllabusFindings)
+      ('syllabus', finding),
+    for (final finding in referenceFindings)
+      ('reference (M2)', finding),
+  ];
+  if (allDeterministic.isNotEmpty) {
+    final failing = allDeterministic
+        .where((entry) => !entry.$2.passed)
         .toList(growable: false);
     lines
-      ..add('## Deterministic checks (${syllabusFindings.length})')
+      ..add('## Deterministic checks (${allDeterministic.length})')
       ..add('')
       ..add(
-        'Offline rule checks taken from the SEP490 syllabus — no model, zero '
-        'tokens, run the moment the document is imported. '
-        '${failing.isEmpty ? 'All checks passed.' : '${failing.length} of ${syllabusFindings.length} need attention.'}',
+        'Offline rule checks — no model, zero tokens, run the moment the '
+        'document is imported. "syllabus" rows come from the SEP490 rubric '
+        '(F7/F8/F9); "reference (M2)" rows are the consistency checks '
+        '(duplicate ids, missing postconditions, cross-artifact names). '
+        '${failing.isEmpty ? 'All checks passed.' : '${failing.length} of ${allDeterministic.length} need attention.'}',
       )
       ..add('')
-      ..add('| Check | Subject | Result | Detail |')
-      ..add('|---|---|---|---|');
-    for (final finding in syllabusFindings) {
+      ..add('| Family | Check | Subject | Result | Detail |')
+      ..add('|---|---|---|---|---|');
+    for (final (family, finding) in allDeterministic) {
       lines.add(
-        '| ${finding.check.label} | ${finding.subject ?? 'whole document'} | '
+        '| $family | ${finding.check.label} | ${finding.subject ?? 'whole document'} | '
         '${finding.passed ? 'passed' : '**${finding.severity.name}**'} | '
         '${finding.message.replaceAll('|', '\\|')} |',
       );
@@ -380,6 +399,7 @@ Map<String, dynamic> buildJsonReport({
   required WorkspaceReviewResult? result,
   required List<WorkspaceUnit> units,
   List<DeterministicFinding> syllabusFindings = const [],
+  List<DeterministicFinding> referenceFindings = const [],
   int diagramPageCount = 0,
   bool imageReviewAvailable = false,
   int imageReviewedCount = 0,
@@ -440,6 +460,7 @@ Map<String, dynamic> buildJsonReport({
     'deterministic_checks': [
       for (final finding in syllabusFindings)
         {
+          'family': 'syllabus',
           'check': finding.check.wire,
           'subject': finding.subject,
           'passed': finding.passed,
@@ -447,6 +468,16 @@ Map<String, dynamic> buildJsonReport({
           'message': finding.message,
           // Round 26's UNV upstream flag: a JSON consumer filters on this
           // instead of re-parsing messages.
+          'requires_vision_evidence': finding.requiresVisionEvidence,
+        },
+      for (final finding in referenceFindings)
+        {
+          'family': 'reference',
+          'check': finding.check.wire,
+          'subject': finding.subject,
+          'passed': finding.passed,
+          'severity': finding.severity.name,
+          'message': finding.message,
           'requires_vision_evidence': finding.requiresVisionEvidence,
         },
     ],

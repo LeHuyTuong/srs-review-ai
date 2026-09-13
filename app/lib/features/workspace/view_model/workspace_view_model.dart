@@ -934,6 +934,9 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     // live only on their own tab and never made it into anything a supervisor
     // could read.
     syllabusFindings: state.syllabusFindings,
+    // M2 family must reach the report too — the OTES pattern (63/63 use
+    // cases without a Postcondition) lives here, not in the syllabus list.
+    referenceFindings: state.referenceFindings,
     diagramPageCount: state.diagramPageCount,
     imageReviewAvailable: state.imageReviewAvailable,
     imageReviewedCount: state.imageReviewedCount,
@@ -960,6 +963,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       result: state.result,
       units: state.units,
       syllabusFindings: state.syllabusFindings,
+      referenceFindings: state.referenceFindings,
       diagramPageCount: state.diagramPageCount,
       imageReviewAvailable: state.imageReviewAvailable,
       imageReviewedCount: state.imageReviewedCount,
