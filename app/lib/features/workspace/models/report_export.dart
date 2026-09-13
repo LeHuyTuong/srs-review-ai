@@ -428,6 +428,10 @@ Map<String, dynamic> buildJsonReport({
       'failed': result?.failed ?? 0,
       'total_units': units.length,
       'unverified_dropped': result?.droppedIssueCount ?? 0,
+      // Round 32 audit: the markdown prints a plain-words warning when the
+      // run ended in anything but a clean full completion; the JSON needs
+      // the structured counterpart so a consumer can flag the same rows.
+      if (result != null) 'run_outcome': result.outcome,
       if (imageCoverage != null)
         'page_images': {
           'candidates': imageCoverage.candidates,
@@ -449,9 +453,26 @@ Map<String, dynamic> buildJsonReport({
         },
     },
     'scores': {
+      // Round 32 audit: the first JSON cut labeled result.scores entries as
+      // sections, but that map is keyed by UNIT key with the raw per-unit
+      // score — a different number than the markdown's "Scores by section"
+      // table, which uses summarizeSections (per-section averages, worst
+      // first). The JSON now consumes the exact same rollup, so the two
+      // twins print the same table by construction.
       'sections': [
-        for (final entry in (result?.scores ?? const <String, int>{}).entries)
-          {'section': entry.key, 'worst_score': entry.value},
+        for (final section
+            in (result == null || units.isEmpty
+                ? const <SectionScore>[]
+                : summarizeSections(units: units, result: result)))
+          {
+            'section': section.section,
+            'average_score': section.averageScore == null
+                ? null
+                : double.parse(section.averageScore!.toStringAsFixed(1)),
+            'reviewed_count': section.reviewedCount,
+            'finding_count': section.findingCount,
+            'high_severity_count': section.highSeverityCount,
+          },
       ],
     },
     'findings': [
