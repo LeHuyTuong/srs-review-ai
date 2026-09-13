@@ -616,7 +616,33 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
               AppSpacing.lg,
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Round 29 — the model findings used to render as a bare
+                // list, while the two deterministic families above each
+                // carried a heading explaining what they are and where
+                // they came from. A reader could not tell a paid,
+                // model-scored finding from a free, deterministic one
+                // without opening it. Goal §4 draws that line explicitly
+                // (Checker vs AI layer), so the section now declares
+                // itself the same way the other two do.
+                Text(
+                  'Model findings',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: colors.ink,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Scored by the model from the text you sent. These cost '
+                  'tokens and they are the only rows that depend on the '
+                  'API being reachable — the two sections above ran '
+                  'offline.',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colors.muted,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
                 for (final finding in findings)
                   _FindingCard(
                     finding: finding,

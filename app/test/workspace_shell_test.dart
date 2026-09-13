@@ -332,6 +332,66 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
   });
 
+  /// Round 29 — the three finding families must be tellable apart without
+  /// opening a row. Goal §4 separates the Checker (deterministic, free,
+  /// offline) from the AI layer (model, costs tokens, needs the API), and
+  /// the two deterministic families already carried their own headings
+  /// with an explanatory line. The model rows rendered as a bare list, so
+  /// a reader could not see where a finding came from. This pins all
+  /// three headings plus the honest "these need the API" note.
+  testWidgets('findings tab labels all three finding families', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final container = _container(InMemorySessionStore());
+    addTearDown(container.dispose);
+    final vm = container.read(workspaceViewModelProvider.notifier);
+    await vm.loadDemo();
+
+    final overCap = container
+        .read(workspaceViewModelProvider)
+        .units
+        .where((u) => u.selected)
+        .skip(40)
+        .toList();
+    for (final unit in overCap) {
+      vm.setUnitSelected(unit.key, false);
+    }
+    await vm.runReview();
+    await _pumpWhile(
+      tester,
+      () => !container.read(workspaceViewModelProvider).hasResult,
+    );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: buildRouter()),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await _scrollToTappable(tester, find.text('Findings').last);
+    await tester.tap(find.text('Findings').last);
+    await tester.pump(const Duration(milliseconds: 200));
+
+    // The model family now declares itself.
+    await tester.scrollUntilVisible(
+      find.text('Model findings'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Model findings'), findsOneWidget);
+    expect(
+      find.textContaining('Scored by the model from the text you sent'),
+      findsOneWidget,
+    );
+    await tester.pump(const Duration(seconds: 5));
+  });
+
   /// Regression: the inventory row used to overflow by 14px at 390px because
   /// the type badge took its natural width next to fixed-width columns.
   /// Flutter paints overflow stripes only in debug and the app is
