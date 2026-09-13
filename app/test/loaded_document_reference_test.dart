@@ -202,12 +202,17 @@ void main() {
     test(
       'referenceFindings field falls back to [] when ReferenceChecks finds nothing',
       () async {
-        // A clean document (every UC has a Postcondition, all ids unique) still
-        // round-trips; the field must be present and empty, never null.
+        // A clean document (every UC has a Postcondition + Actor, all
+        // ids unique) still round-trips; the field must be present and
+        // empty, never null. After Round 13 the bar for "clean" rises:
+        // the fixture must include an Actor heading row as well, or
+        // missingActor flags it.
         final doc = _doc([
           _useCase(
             'UC-01',
-            'Submit report.\nPostcondition: report saved.',
+            'Submit report.\n'
+                'Actor: Customer.\n'
+                'Postcondition: report saved.',
           ),
         ]);
         final picker = _StubPicker(

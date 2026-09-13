@@ -33,7 +33,16 @@ enum CheckId {
   /// sections of the document. The original 8 cross-artifact
   /// contradictions in the HisWise SDS review were all of this shape:
   /// one concept labelled differently in different diagrams.
-  crossArtifactName;
+  crossArtifactName,
+
+  /// Round 13 — the use case text does not name an actor. A use case
+  /// without an actor leaves the system boundary undefined: it is
+  /// unclear whether the flow is driven by a human, another system,
+  /// or time, and the test designer cannot pick a "who" to instrument.
+  /// Structurally the same as [missingPostcondition] — a required
+  /// sub-section is absent — so it lives in the same M2 family and
+  /// renders under "Consistency smells" on the dashboard.
+  missingActor;
 
   String get wire => switch (this) {
     CheckId.ucCount => 'uc_count',
@@ -42,6 +51,7 @@ enum CheckId {
     CheckId.duplicateIds => 'duplicate_ids',
     CheckId.missingPostcondition => 'missing_postcondition',
     CheckId.crossArtifactName => 'cross_artifact_name',
+    CheckId.missingActor => 'missing_actor',
   };
 
   String get label => switch (this) {
@@ -51,6 +61,7 @@ enum CheckId {
     CheckId.duplicateIds => 'Duplicate requirement ids',
     CheckId.missingPostcondition => 'Missing postcondition',
     CheckId.crossArtifactName => 'Cross-artifact entity naming',
+    CheckId.missingActor => 'Missing actor',
   };
 
   /// True for M2 reference checks; they live next to F7/F8/F9 in the
@@ -60,7 +71,8 @@ enum CheckId {
   bool get isReferenceCheck => switch (this) {
     CheckId.duplicateIds ||
     CheckId.missingPostcondition ||
-    CheckId.crossArtifactName => true,
+    CheckId.crossArtifactName ||
+    CheckId.missingActor => true,
     _ => false,
   };
 }

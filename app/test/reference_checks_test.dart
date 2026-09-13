@@ -232,12 +232,91 @@ Luồng chính:
         _useCase('UC-04', 'Use case B — no Postcondition.'),
       ]);
       final findings = checks.runAll(doc);
-      // 1 duplicate id + 2 missing postconditions = 3 distinct findings.
-      expect(findings, hasLength(3));
+      // 1 duplicate id + 2 missing postconditions + 2 missing actors = 5
+      // distinct findings. The three M2 checks now run in the same
+      // ordered pipeline; the dedup-vs-postcondition math is preserved
+      // and a new actor count joins.
+      expect(findings, hasLength(5));
       expect(findings.map((f) => f.check).toSet(), {
         CheckId.duplicateIds,
         CheckId.missingPostcondition,
+        CheckId.missingActor,
       });
+    });
+  });
+
+  group('missingActor', () {
+    test('UC with English Actor label passes', () {
+      final doc = _doc([
+        _useCase('UC-01', '''Use case 1.
+Actor: Customer.
+Steps:
+  1. Customer logs in.
+Postcondition: session active.
+'''),
+      ]);
+      expect(const ReferenceChecks().missingActor(doc), isEmpty);
+    });
+
+    test('UC with Vietnamese Tác nhân label passes', () {
+      final doc = _doc([
+        _useCase('UC-02', '''Use case 2.
+Tác nhân: Sinh viên.
+Bước:
+  1. Sinh viên đăng nhập.
+Điều kiện sau: phiên hoạt động.
+'''),
+      ]);
+      expect(const ReferenceChecks().missingActor(doc), isEmpty);
+    });
+
+    test('UC with no actor label is flagged', () {
+      // The Vietnamese OTES shape: a use case that describes the flow
+      // but never puts the role on a heading row.
+      final doc = _doc([
+        _useCase('UC-03', '''Use case 3.
+Hệ thống cho phép đăng nhập bằng email.
+Điều kiện sau: phiên hoạt động.
+'''),
+      ]);
+      final findings = const ReferenceChecks().missingActor(doc);
+      expect(findings, hasLength(1));
+      expect(findings.single.check, CheckId.missingActor);
+      expect(findings.single.subject, 'UC-03');
+      expect(findings.single.passed, isFalse);
+      expect(findings.single.severity, Severity.high);
+    });
+
+    test('Primary actor label is also accepted', () {
+      final doc = _doc([
+        _useCase('UC-04', 'Primary actor: Admin.\nSteps: ...\n'),
+      ]);
+      expect(const ReferenceChecks().missingActor(doc), isEmpty);
+    });
+
+    test('statements (non-UC) are skipped', () {
+      // RequirementKind.statement rows are not "use cases" — the
+      // missing-actor check must not produce phantom findings on bare
+      // requirement statements.
+      final doc = _doc([
+        _statement('The system shall persist the record.'),
+      ]);
+      expect(const ReferenceChecks().missingActor(doc), isEmpty);
+    });
+
+    test('mentions "actor" mid-paragraph do NOT pass', () {
+      // The marker is the heading row. A sentence mid-paragraph that
+      // uses the word is exactly the failure mode the check exists to
+      // catch — the role was not declared, it was merely alluded to.
+      final doc = _doc([
+        _useCase(
+          'UC-05',
+          'The flow is initiated when the actor presses the button.',
+        ),
+      ]);
+      final findings = const ReferenceChecks().missingActor(doc);
+      expect(findings, hasLength(1));
+      expect(findings.single.subject, 'UC-05');
     });
   });
 }

@@ -33,8 +33,11 @@ class ReferenceChecks {
   /// Always returns a list (never null); an empty list means the document
   /// is "clean" against this family. Findings come out grouped per check so
   /// the dashboard can show one section per smell type.
-  List<DeterministicFinding> runAll(SrsDocument document) =>
-      [...duplicateIds(document), ...missingPostcondition(document)];
+  List<DeterministicFinding> runAll(SrsDocument document) => [
+      ...duplicateIds(document),
+      ...missingPostcondition(document),
+      ...missingActor(document),
+    ];
 
   // ---------------------------------------------------------------- duplicateIds
   /// Reports every explicit id that two or more requirements share.
@@ -110,6 +113,53 @@ class ReferenceChecks {
               'Use case "$uc" has no Postcondition section. Without a '
               'measurable end-state the tester cannot tell when the flow is '
               'done.',
+          subject: uc.id,
+        ),
+      );
+    }
+    return findings;
+  }
+
+  // ---------------------------------------------------------------- missingActor
+
+  /// Round 13 — reports every use case whose requirement text does not
+  /// name an actor. A use case without an actor leaves the system
+  /// boundary undefined: the flow has no "who" — was it a human, another
+  /// system, or time? The marker is the **heading** row, exactly like
+  /// [missingPostcondition]: a bare "Actor:" line counts, a sentence
+  /// mid-paragraph that *uses* the word does not.
+  ///
+  /// Matches both English (`Actor`, `Primary actor`) and Vietnamese
+  /// (`Tác nhân`, `Người dùng`, `Actor chính`) labels. OTES is
+  /// Vietnamese, so the regex has to be bilingual — otherwise the check
+  /// silently returns 0 on a 28.7 MB document full of UCs and the
+  /// reader concludes "no actor smells, all good", which is the
+  /// exact opposite of the truth.
+  static final RegExp _actorHeading = RegExp(
+    r'^[\s\-•*|]*'
+    r'(?:primary\s+)?actors?|tác\s*nhân|người\s*dùng(?:\s+chính)?'
+    r'\s*[:.\-–—|]',
+    caseSensitive: false,
+    multiLine: true,
+  );
+
+  List<DeterministicFinding> missingActor(SrsDocument document) {
+    final findings = <DeterministicFinding>[];
+    // Sort by id for the same ledger-stability reason as
+    // [missingPostcondition].
+    final useCases = document.requirements.where((r) => r.isUseCase).toList()
+      ..sort((a, b) => a.id.compareTo(b.id));
+    for (final uc in useCases) {
+      if (_actorHeading.hasMatch(uc.text)) continue;
+      findings.add(
+        DeterministicFinding(
+          check: CheckId.missingActor,
+          passed: false,
+          severity: Severity.high,
+          message:
+              'Use case "$uc" has no Actor label. A use case without an '
+              'actor leaves the system boundary undefined — the flow has '
+              'no "who".',
           subject: uc.id,
         ),
       );

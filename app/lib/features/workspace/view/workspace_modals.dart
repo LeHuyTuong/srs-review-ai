@@ -1312,6 +1312,11 @@ class _SyllabusCheckDetail extends StatelessWidget {
           'or more sections of the document. One of the labels is right; the '
           'others are spelling, casing, or plural drift that confuses a reader '
           'who has to follow the entity across diagrams.',
+    CheckId.missingActor =>
+      'A use case without an Actor row leaves the system boundary '
+          'undefined. The flow has no "who" — was it a human, another '
+          'system, or time? A reader cannot tell, and a test designer '
+          'cannot pick the right tool to drive the scenario.',
   };
 
   String get _fix => switch (finding.check) {
@@ -1342,6 +1347,11 @@ class _SyllabusCheckDetail extends StatelessWidget {
           'replace every other occurrence across the document. A search '
           'across the source for the variant string is usually enough — '
           'these are short labels, not long phrases.',
+    CheckId.missingActor =>
+      'Add an Actor row to every flagged use case. One short label is '
+          'enough (Customer, Admin, Scheduler, External System) — name '
+          'the role, not the person, so the test designer can pick the '
+          'right tool to drive it.',
   };
 
   @override

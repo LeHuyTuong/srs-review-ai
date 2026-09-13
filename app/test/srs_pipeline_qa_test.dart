@@ -70,6 +70,9 @@ void main() {
       final m2CrossArtifactName = referenceFindings
           .where((f) => f.check == CheckId.crossArtifactName)
           .toList(growable: false);
+      final m2MissingActor = referenceFindings
+          .where((f) => f.check == CheckId.missingActor)
+          .toList(growable: false);
       final result = <String, Object?>{
         'outcome': 'parsed',
         'ms': stopwatch.elapsedMilliseconds,
@@ -94,6 +97,7 @@ void main() {
         'm2DuplicateIdsCount': m2DuplicateIds.length,
         'm2MissingPostconditionCount': m2MissingPostcondition.length,
         'm2CrossArtifactNameCount': m2CrossArtifactName.length,
+        'm2MissingActorCount': m2MissingActor.length,
         'm2DuplicateIds': [
           for (final f in m2DuplicateIds) '${f.subject}:${f.actual}',
         ],
@@ -105,6 +109,9 @@ void main() {
         ],
         'm2CrossArtifactNameActuals': [
           for (final f in m2CrossArtifactName) f.actual,
+        ],
+        'm2MissingActorIds': [
+          for (final f in m2MissingActor) f.subject,
         ],
       };
       _record(caseId, result);
