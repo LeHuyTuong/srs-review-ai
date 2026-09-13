@@ -329,6 +329,43 @@ void main() {
         result['m2CrossArtifactNameCount'] as int,
         greaterThanOrEqualTo(0),
       );
+      // Round 13 — every UC in the OTES table also lacks an Actor
+      // heading row (bullet-list format). The threshold is loose on
+      // purpose: a parser regression that loses a few rows does not
+      // flip the suite red, but the family must be exercised.
+      expect(
+        result['m2MissingActorCount'] as int,
+        greaterThan(0),
+        reason:
+            'OTES UC tables are bullet-list only — every UC must surface '
+            'a missing-actor finding. Zero would mean the bilingual '
+            'regex silently broke.',
+      );
+      // Round 14 — deterministic ceiling on the real document. The
+      // four M2 families together emit ≥ 200 red findings on OTES
+      // (measured 285 on 2026-09-13: 33 + 126 + 0 + 126 = 285).
+      // This is the single-number gate that ties the deterministic
+      // pipeline to the goal §6 "≥ 8 red M2" requirement with a 25×
+      // safety margin. See docs/evidence/r13_otes_deterministic_ceiling.md
+      // for the breakdown.
+      final duplicateIds = result['m2DuplicateIdsCount'] as int;
+      final missingPost = result['m2MissingPostconditionCount'] as int;
+      final crossArtifact = result['m2CrossArtifactNameCount'] as int;
+      final missingActor = result['m2MissingActorCount'] as int;
+      final deterministicCeiling = duplicateIds +
+          missingPost +
+          crossArtifact +
+          missingActor;
+      expect(
+        deterministicCeiling,
+        greaterThanOrEqualTo(200),
+        reason:
+            'Deterministic ceiling (33 + 126 + 0 + 126 = 285 measured on '
+            '2026-09-13) must hold with a 25× safety margin against the '
+            'goal §6 "≥ 8 red M2" gate. A regression that drops the '
+            'count below 200 means the pipeline stopped reading the '
+            'document, not that the document got cleaner.',
+      );
     });
 
     test('TC-15 repeat parses are stable', () async {
