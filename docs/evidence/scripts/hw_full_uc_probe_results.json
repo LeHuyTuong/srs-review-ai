@@ -1,0 +1,409 @@
+{
+  "model": "gemini-3.5-flash",
+  "source": "hiswise \u00a72 use cases",
+  "uc_count": 15,
+  "total_findings": 46,
+  "red_findings": 24,
+  "scores": [
+    5,
+    5,
+    4,
+    5,
+    5,
+    5,
+    3,
+    4,
+    3,
+    4,
+    3,
+    3,
+    2,
+    3,
+    2
+  ],
+  "issues_by_type": {
+    "vagueness": 1,
+    "ambiguity": 15,
+    "incomplete": 16,
+    "untestable": 13,
+    "duplicate": 1
+  },
+  "issues_by_severity": {
+    "high": 24,
+    "medium": 21,
+    "low": 1
+  },
+  "cached_hits": 0,
+  "fresh_calls": 15,
+  "failures": [],
+  "findings": [
+    {
+      "requirement_id": "HW-UC-01",
+      "uc_name": "Browse Website",
+      "type": "vagueness",
+      "severity": "high",
+      "quote": "general information",
+      "suggestion": "Specify exactly what constitutes 'general information' (e.g., contact information, system terms of service, or FAQs) to make this requirement verifiable."
+    },
+    {
+      "requirement_id": "HW-UC-01",
+      "uc_name": "Browse Website",
+      "type": "ambiguity",
+      "severity": "medium",
+      "quote": "public pages",
+      "suggestion": "List the specific public pages that guest users are permitted to access (e.g., Homepage, About Us page)."
+    },
+    {
+      "requirement_id": "HW-UC-01",
+      "uc_name": "Browse Website",
+      "type": "incomplete",
+      "severity": "medium",
+      "quote": "Allows guests to browse public pages and access general information about the system.",
+      "suggestion": "Rewrite the requirement using a standard imperative structure, such as: 'The system shall allow guest users to access the Home page and the FAQ page without requiring authentication.'"
+    },
+    {
+      "requirement_id": "HW-UC-02",
+      "uc_name": "Register",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "such as username, email, and password.",
+      "suggestion": "Replace the open-ended phrase 'such as' with an exhaustive list of registration fields required by the system."
+    },
+    {
+      "requirement_id": "HW-UC-02",
+      "uc_name": "Register",
+      "type": "incomplete",
+      "severity": "medium",
+      "quote": "Allows guests to create a new account by providing registration information such as username, email, and password.",
+      "suggestion": "Specify the expected outcome of a successful registration (e.g., saving the credentials, sending a verification email) and how the system handles invalid inputs (e.g., if the email is already registered)."
+    },
+    {
+      "requirement_id": "HW-UC-02",
+      "uc_name": "Register",
+      "type": "untestable",
+      "severity": "low",
+      "quote": "Allows guests to create a new account",
+      "suggestion": "Rephrase using the standard imperative 'The system shall allow guests to...' to establish a clear, testable system obligation."
+    },
+    {
+      "requirement_id": "HW-UC-03",
+      "uc_name": "Login",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Allows students and administrators to log into the system using valid credentials.",
+      "suggestion": "Rewrite the requirement to use an active system-shall format and specify the expected outcome of a successful login, such as: 'The system shall authenticate students and administrators upon submission of their credentials and redirect them to their respective home screen.'"
+    },
+    {
+      "requirement_id": "HW-UC-03",
+      "uc_name": "Login",
+      "type": "ambiguity",
+      "severity": "medium",
+      "quote": "valid credentials",
+      "suggestion": "Specify precisely what constitutes 'valid credentials' (e.g., a registered university email address and password matching the system database)."
+    },
+    {
+      "requirement_id": "HW-UC-03",
+      "uc_name": "Login",
+      "type": "incomplete",
+      "severity": "medium",
+      "quote": "Allows students and administrators to log into the system using valid credentials.",
+      "suggestion": "Define the expected error-handling behavior when an authentication attempt fails (e.g., displaying an error message and limiting login attempts)."
+    },
+    {
+      "requirement_id": "HW-UC-04",
+      "uc_name": "Search Document",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "semantic retrieval",
+      "suggestion": "Define what constitutes 'semantic retrieval' (e.g., natural language query matching with a specific threshold) to remove ambiguity."
+    },
+    {
+      "requirement_id": "HW-UC-04",
+      "uc_name": "Search Document",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "Allows students to search documents using keywords or semantic retrieval within their folders.",
+      "suggestion": "Specify measurable acceptance criteria, such as maximum response time (e.g., 'within 2 seconds') and how search accuracy is verified."
+    },
+    {
+      "requirement_id": "HW-UC-04",
+      "uc_name": "Search Document",
+      "type": "incomplete",
+      "severity": "medium",
+      "quote": "Allows students",
+      "suggestion": "Rephrase using formal system requirements language, such as 'The system shall allow students...'"
+    },
+    {
+      "requirement_id": "HW-UC-05",
+      "uc_name": "Preview Document",
+      "type": "incomplete",
+      "severity": "medium",
+      "quote": "Allows students",
+      "suggestion": "Rewrite the requirement to start with a standard system actor and imperative verb, such as: 'The system shall allow students...'"
+    },
+    {
+      "requirement_id": "HW-UC-05",
+      "uc_name": "Preview Document",
+      "type": "ambiguity",
+      "severity": "medium",
+      "quote": "preview the content of uploaded documents",
+      "suggestion": "Define the format and rendering method of the preview (e.g., 'render the uploaded documents in an inline PDF viewer')."
+    },
+    {
+      "requirement_id": "HW-UC-05",
+      "uc_name": "Preview Document",
+      "type": "untestable",
+      "severity": "medium",
+      "quote": "before asking AI questions",
+      "suggestion": "Clarify if this is a strict sequential constraint (e.g., the system must block AI questions until a preview is rendered) or if it is merely optional, and specify the testable system state."
+    },
+    {
+      "requirement_id": "HW-UC-06",
+      "uc_name": "Ask AI about Document",
+      "type": "ambiguity",
+      "severity": "medium",
+      "quote": "relevant chunks",
+      "suggestion": "Define how relevance is determined (e.g., using a specific similarity search metric and threshold, such as cosine similarity score > 0.7)."
+    },
+    {
+      "requirement_id": "HW-UC-06",
+      "uc_name": "Ask AI about Document",
+      "type": "untestable",
+      "severity": "medium",
+      "quote": "AI service to generate answers with citations",
+      "suggestion": "Specify the expected format of the citations (e.g., listing document name and page number) and the maximum response time allowed for the AI service."
+    },
+    {
+      "requirement_id": "HW-UC-06",
+      "uc_name": "Ask AI about Document",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "The system retrieves relevant chunks and sends them to the AI service to generate answers with citations.",
+      "suggestion": "Add requirements detailing the system behavior when no relevant chunks are found, or when the external AI service is unavailable or times out."
+    },
+    {
+      "requirement_id": "HW-UC-07",
+      "uc_name": "Manage Own Documents",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "organizing and maintaining uploaded files.",
+      "suggestion": "Define what operations are permitted under 'organizing' and 'maintaining', such as creating folders, renaming files, moving files, or deleting files."
+    },
+    {
+      "requirement_id": "HW-UC-07",
+      "uc_name": "Manage Own Documents",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "Allows students to manage their personal document collections, including organizing and maintaining uploaded files.",
+      "suggestion": "Convert this high-level goal into specific, verifiable requirements (e.g., 'The system shall allow students to create folders with names up to 50 characters long and move files into those folders')."
+    },
+    {
+      "requirement_id": "HW-UC-07",
+      "uc_name": "Manage Own Documents",
+      "type": "incomplete",
+      "severity": "medium",
+      "quote": "Allows students to manage",
+      "suggestion": "Rephrase to state the system's role explicitly (e.g., 'The system shall provide a user interface for students to...'), and specify the expected outcome and constraints of the management actions."
+    },
+    {
+      "requirement_id": "HW-UC-08",
+      "uc_name": "Upload Document",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "validates",
+      "suggestion": "Specify the explicit validation criteria (e.g., allowed file formats like PDF/DOCX, maximum file size in MB) and the system behavior if the validation fails."
+    },
+    {
+      "requirement_id": "HW-UC-08",
+      "uc_name": "Upload Document",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "indexes the document for AI retrieval",
+      "suggestion": "Clarify the observable criteria for indexing, such as defining the specific metadata or text extraction required, so that testers can verify that the document is searchable by the AI."
+    },
+    {
+      "requirement_id": "HW-UC-08",
+      "uc_name": "Upload Document",
+      "type": "incomplete",
+      "severity": "medium",
+      "quote": "Allows students to upload a document into a selected folder.",
+      "suggestion": "Specify the expected behavior and error handling if the student's storage limit is exceeded or if the connection fails during the upload."
+    },
+    {
+      "requirement_id": "HW-UC-09",
+      "uc_name": "Delete Document",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "The system may perform soft delete or permanent delete based on system rules.",
+      "suggestion": "Replace \"may perform\" with the mandatory \"shall\" and explicitly define the \"system rules\" (e.g., \"The system shall permanently delete the document if it has no dependencies, otherwise it shall soft-delete the document\")."
+    },
+    {
+      "requirement_id": "HW-UC-09",
+      "uc_name": "Delete Document",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "based on system rules",
+      "suggestion": "Specify the exact rules or provide a reference to the rules so that a tester can verify whether the system correctly applies soft delete versus permanent delete."
+    },
+    {
+      "requirement_id": "HW-UC-09",
+      "uc_name": "Delete Document",
+      "type": "incomplete",
+      "severity": "medium",
+      "quote": "Allows students to remove documents from their collection.",
+      "suggestion": "Rewrite the requirement using a standard active system-shall format (e.g., \"The system shall allow students to remove documents from their collection.\")."
+    },
+    {
+      "requirement_id": "HW-UC-10",
+      "uc_name": "Edit Document",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "Reindexing may be triggered after modification.",
+      "suggestion": "Replace the optional and non-deterministic phrase 'may be triggered' with a mandatory and specific condition, such as: 'The system shall automatically reindex the document within 10 seconds of any metadata update or content replacement.'"
+    },
+    {
+      "requirement_id": "HW-UC-10",
+      "uc_name": "Edit Document",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "Reindexing may be triggered after modification.",
+      "suggestion": "Specify a measurable and verifiable outcome for the reindexing process so that testers can verify it, rather than leaving it optional."
+    },
+    {
+      "requirement_id": "HW-UC-10",
+      "uc_name": "Edit Document",
+      "type": "incomplete",
+      "severity": "medium",
+      "quote": "Allows students to update document metadata or replace document content.",
+      "suggestion": "Rewrite using standard requirement language specifying the system as the subject (e.g., 'The system shall allow students to...') and split this into two atomic requirements: one for updating metadata and one for replacing document content."
+    },
+    {
+      "requirement_id": "HW-UC-11",
+      "uc_name": "Create Folder",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "logical groups",
+      "suggestion": "Define what constitutes a 'logical group' or specify the constraints for folder structure (e.g., depth limit, naming conventions)."
+    },
+    {
+      "requirement_id": "HW-UC-11",
+      "uc_name": "Create Folder",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Allows students to create folders",
+      "suggestion": "Specify the system response upon creation, behavior for invalid characters, and handling of duplicate folder names."
+    },
+    {
+      "requirement_id": "HW-UC-11",
+      "uc_name": "Create Folder",
+      "type": "untestable",
+      "severity": "medium",
+      "quote": "Allows students to create folders",
+      "suggestion": "Rephrase as a verifiable requirement, e.g., 'The system shall allow the student to create a new folder via the UI, which shall appear in the directory listing within 1 second'."
+    },
+    {
+      "requirement_id": "HW-UC-12",
+      "uc_name": "View Document List",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "Allows students",
+      "suggestion": "Specify the actor using a specific role name defined in the glossary, e.g., 'The authenticated student'."
+    },
+    {
+      "requirement_id": "HW-UC-12",
+      "uc_name": "View Document List",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Allows students to view all documents inside a selected folder.",
+      "suggestion": "The requirement is missing the system state or error handling (e.g., what happens if the folder is empty or the student lacks permissions)."
+    },
+    {
+      "requirement_id": "HW-UC-12",
+      "uc_name": "View Document List",
+      "type": "untestable",
+      "severity": "medium",
+      "quote": "view all documents",
+      "suggestion": "Define the maximum response time or performance constraint for loading the document list to make it verifiable."
+    },
+    {
+      "requirement_id": "HW-UC-13",
+      "uc_name": "Configure Website",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "Allows administrators to configure system settings such as allowed file types, AI integration settings, and security rules.",
+      "suggestion": "Specify the actor clearly as 'The system shall allow the administrator to...' and define the scope of settings precisely; avoid the open-ended list 'such as' by providing an exhaustive list of configurable parameters."
+    },
+    {
+      "requirement_id": "HW-UC-13",
+      "uc_name": "Configure Website",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "configure system settings",
+      "suggestion": "Define what constitutes a 'configuration' action (e.g., store in database, apply to engine) and define success/failure criteria for those actions."
+    },
+    {
+      "requirement_id": "HW-UC-13",
+      "uc_name": "Configure Website",
+      "type": "incomplete",
+      "severity": "medium",
+      "quote": "configure system settings such as allowed file types, AI integration settings, and security rules.",
+      "suggestion": "The requirement is missing error handling (e.g., validation of invalid file types, failed API connection for AI settings) and the expected system outcome upon saving these configurations."
+    },
+    {
+      "requirement_id": "HW-UC-13",
+      "uc_name": "Configure Website",
+      "type": "duplicate",
+      "severity": "medium",
+      "quote": "allowed file types, AI integration settings, and security rules.",
+      "suggestion": "Split this into three distinct atomic requirements, one for each specific configuration type, as they likely impact different system components."
+    },
+    {
+      "requirement_id": "HW-UC-14",
+      "uc_name": "View Document Statistics",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "Allows administrators to monitor document-related statistics",
+      "suggestion": "Specify the exact statistics required and define 'monitor' in terms of frequency, latency, or presentation format (e.g., 'The system shall display the total upload count, indexing status, and storage usage on the Administrator Dashboard within 5 seconds of request')."
+    },
+    {
+      "requirement_id": "HW-UC-14",
+      "uc_name": "View Document Statistics",
+      "type": "incomplete",
+      "severity": "medium",
+      "quote": "Allows administrators to monitor document-related statistics such as total uploads, indexing status, and storage usage.",
+      "suggestion": "The requirement is missing an actor action trigger and a specific outcome. Define how the statistics are accessed and what happens if the data is unavailable."
+    },
+    {
+      "requirement_id": "HW-UC-14",
+      "uc_name": "View Document Statistics",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "Allows administrators to monitor",
+      "suggestion": "Replace 'allows' with 'shall'. Define a verifiable metric such as 'The system shall provide a report of...'"
+    },
+    {
+      "requirement_id": "HW-UC-15",
+      "uc_name": "View User Statistics",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "Allows administrators to monitor user activities",
+      "suggestion": "Specify the exact platform or interface where monitoring occurs and define the specific metrics to be captured."
+    },
+    {
+      "requirement_id": "HW-UC-15",
+      "uc_name": "View User Statistics",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "system usage trends",
+      "suggestion": "Define what constitutes a 'trend' and the timeframe/granularity required for reporting."
+    },
+    {
+      "requirement_id": "HW-UC-15",
+      "uc_name": "View User Statistics",
+      "type": "incomplete",
+      "severity": "medium",
+      "quote": "Allows administrators to monitor user activities such as registrations, active users, and system usage trends.",
+      "suggestion": "Define the expected outcome or format of the monitoring data (e.g., visual dashboard, CSV export) and include error handling for data retrieval failure."
+    }
+  ]
+}
