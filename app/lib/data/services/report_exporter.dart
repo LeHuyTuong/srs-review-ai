@@ -9,9 +9,11 @@
 library;
 
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ReportExporter {
   const ReportExporter();
@@ -35,5 +37,30 @@ class ReportExporter {
     // is, it is the only handle the user gets to where the report went, so it
     // is what the confirmation message shows.
     return uri.toString();
+  }
+
+  /// Opens the OS share sheet with the report attached as a file.
+  ///
+  /// Goal §4 Output row: "ledger.md + JSON + share sheet". Writing a file is
+  /// not the same as handing it to a supervisor — on mobile the native flow
+  /// is AirDrop / Drive / Mail, and this is the only entry into it.
+  ///
+  /// Writes a temp file (the share sheet needs a real path on mobile
+  /// targets) and returns the temp path so the caller can surface it. All
+  /// ShareResultStatus outcomes (success/dismiss/unavailable) mean "the
+  /// sheet opened and the user did whatever they did" — the app has no
+  /// business second-guessing the user's choice, so the path is returned
+  /// regardless.
+  Future<String> share({
+    required String fileName,
+    required String contents,
+  }) async {
+    final dir = await Directory.systemTemp.createTemp('srs-review');
+    final file = File('${dir.path}/$fileName');
+    await file.writeAsString(contents, flush: true);
+    await SharePlus.instance.share(
+      ShareParams(files: [XFile(file.path)], title: fileName),
+    );
+    return file.path;
   }
 }

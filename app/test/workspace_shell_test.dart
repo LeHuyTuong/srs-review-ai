@@ -392,6 +392,67 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
   });
 
+  /// Round 33 — the brief's Output row names three legs (ledger.md + JSON +
+  /// share sheet). The export modal is where all three meet, so the test
+  /// opens it through the real shell after a real run and pins that every
+  /// leg has its button. The finders use skipOffstage: false because the
+  /// 390px sheet scrolls its last buttons below the fold; what the test
+  /// owns is that they exist and are wired, not their scroll position.
+  testWidgets('export modal offers markdown, JSON, and share', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final container = _container(InMemorySessionStore());
+    addTearDown(container.dispose);
+    final vm = container.read(workspaceViewModelProvider.notifier);
+    await vm.loadDemo();
+
+    final overCap = container
+        .read(workspaceViewModelProvider)
+        .units
+        .where((u) => u.selected)
+        .skip(40)
+        .toList();
+    for (final unit in overCap) {
+      vm.setUnitSelected(unit.key, false);
+    }
+    await vm.runReview();
+    await _pumpWhile(
+      tester,
+      () => !container.read(workspaceViewModelProvider).hasResult,
+    );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: buildRouter()),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Open through the real entry point (document review's Export report
+    // button), not by calling showExportModal on a synthetic context — the
+    // wiring under test includes that button.
+    await _scrollToTappable(tester, find.text('Export report').first);
+    await tester.tap(find.text('Export report').first);
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    Finder leg(String label) => find.text(label, skipOffstage: false);
+    expect(leg('Save as Markdown file'), findsOneWidget);
+    expect(leg('Save as JSON file'), findsOneWidget);
+    expect(leg('Share report'), findsOneWidget);
+    expect(leg('Copy Markdown report'), findsOneWidget);
+    // The modal previews the markdown report it is about to save — pinned
+    // so the JSON button can never silently replace the markdown preview.
+    expect(
+      find.textContaining('# SRS Review Report', skipOffstage: false),
+      findsOneWidget,
+    );
+    await tester.pump(const Duration(seconds: 5));
+  });
+
   /// Regression: the inventory row used to overflow by 14px at 390px because
   /// the type badge took its natural width next to fixed-width columns.
   /// Flutter paints overflow stripes only in debug and the app is

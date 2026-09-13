@@ -982,6 +982,16 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     );
   }
 
+  /// Opens the OS share sheet with the markdown report attached. The third
+  /// leg of the brief's Output row ("ledger.md + JSON + share sheet") — the
+  /// native AirDrop/Drive/Mail flow is how a report actually reaches a
+  /// supervisor on mobile. Shares the markdown, not the JSON: the share
+  /// target is a human reader.
+  Future<String> shareReport() => _exporter.share(
+    fileName: _reportFileName(),
+    contents: exportMarkdown(),
+  );
+
   String _reportFileName({String extension = 'md'}) {
     final base = state.fileName.trim().isEmpty ? 'srs' : state.fileName;
     final stem = base.contains('.')
