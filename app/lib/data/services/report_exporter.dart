@@ -1,8 +1,13 @@
-/// Writes a text report to a file the user chooses.
+/// Writes a text report to a file the user chooses, or shares it.
 ///
 /// `file_picker`'s saveFile writes the bytes itself and works on every target
 /// this app ships on — including web, where it triggers a browser download —
-/// so this needs no `dart:io` and no platform channels.
+/// so the save path needs no `dart:io` and no platform channels.
+///
+/// The share path is different: the OS share sheet is native-only, and while
+/// `dart:io` compiles for web it throws `UnsupportedError` at the first call.
+/// [share] therefore guards the platform itself instead of letting a stray
+/// caller meet the cryptic error.
 ///
 /// Before this the only way to get a report out of the app was the clipboard.
 /// A review you cannot attach to a submission is not really an export.
@@ -14,6 +19,8 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
+
+import '../../core/platform/app_platform.dart';
 
 class ReportExporter {
   const ReportExporter();
@@ -55,6 +62,15 @@ class ReportExporter {
     required String fileName,
     required String contents,
   }) async {
+    if (AppPlatform.isWeb) {
+      // The UI hides the button in the browser; this guard is for callers
+      // that reach the service directly — an explicit, explainable failure
+      // beats a runtime UnsupportedError from dart:io.
+      throw UnsupportedError(
+        'The share sheet is not available in the browser; save the report '
+        'as a file instead.',
+      );
+    }
     final dir = await Directory.systemTemp.createTemp('srs-review');
     final file = File('${dir.path}/$fileName');
     await file.writeAsString(contents, flush: true);

@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/app_config.dart';
+import '../../../core/platform/app_platform.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
@@ -541,31 +542,39 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
               }
             },
           ),
-          const SizedBox(height: AppSpacing.sm),
           // Goal §4 Output row's third leg: the OS share sheet. Save-file
           // and clipboard both assume the user knows where the report
           // should go; on mobile the native sheet IS that knowledge.
-          WButton.secondary(
-            label: 'Share report',
-            icon: Icons.ios_share,
-            expanded: true,
-            onPressed: () async {
-              try {
-                final path = await viewModel.shareReport();
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Report ready to share ($path)')),
-                  );
+          // Native-only: the browser has no attachable-file share sheet this
+          // app can reach, and dart:io (temp file) throws there — on web the
+          // save-file and clipboard legs cover export, so hide the button
+          // rather than offer a guaranteed failure.
+          if (!AppPlatform.isWeb) ...[
+            const SizedBox(height: AppSpacing.sm),
+            WButton.secondary(
+              label: 'Share report',
+              icon: Icons.ios_share,
+              expanded: true,
+              onPressed: () async {
+                try {
+                  final path = await viewModel.shareReport();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Report ready to share ($path)')),
+                    );
+                  }
+                } on Object catch (error) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Could not share the report: $error'),
+                      ),
+                    );
+                  }
                 }
-              } on Object catch (error) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Could not share the report: $error')),
-                  );
-                }
-              }
-            },
-          ),
+              },
+            ),
+          ],
           const SizedBox(height: AppSpacing.sm),
           const WInfoNote(
             icon: Icons.info_outline,
