@@ -442,6 +442,7 @@ void main() {
     Finder leg(String label) => find.text(label, skipOffstage: false);
     expect(leg('Save as Markdown file'), findsOneWidget);
     expect(leg('Save as JSON file'), findsOneWidget);
+    expect(leg('Save as HTML dashboard'), findsOneWidget);
     expect(leg('Share report'), findsOneWidget);
     expect(leg('Copy Markdown report'), findsOneWidget);
     // The modal previews the markdown report it is about to save — pinned

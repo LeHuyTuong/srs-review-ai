@@ -528,6 +528,35 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
             },
           ),
           const SizedBox(height: AppSpacing.sm),
+          // The brief's Report row — a dashboard a supervisor opens in a
+          // browser, from the same data as the markdown and JSON twins.
+          WButton.secondary(
+            label: 'Save as HTML dashboard',
+            icon: Icons.dashboard_outlined,
+            expanded: true,
+            onPressed: () async {
+              String? destination;
+              try {
+                destination = await viewModel.saveHtmlReportToFile();
+              } on Object catch (error) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Could not save the HTML dashboard: $error',
+                      ),
+                    ),
+                  );
+                }
+                return;
+              }
+              if (!context.mounted || destination == null) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('HTML dashboard saved to $destination')),
+              );
+            },
+          ),
+          const SizedBox(height: AppSpacing.sm),
           WButton.secondary(
             label: 'Copy Markdown report',
             icon: Icons.copy,

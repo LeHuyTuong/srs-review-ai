@@ -32,11 +32,14 @@ class ReportExporter {
   Future<String?> save({
     required String fileName,
     required String contents,
+    // The export family grew beyond markdown: the JSON and HTML twins need
+    // their own MIME so the platform dialog suggests the right type.
+    String mimeType = 'text/markdown',
   }) async {
     final uri = await FilePicker.saveFile(
       fileName: fileName,
       bytes: Uint8List.fromList(utf8.encode(contents)),
-      mimeType: 'text/markdown',
+      mimeType: mimeType,
       dialogTitle: 'Save review report',
     );
     if (uri == null) return null;

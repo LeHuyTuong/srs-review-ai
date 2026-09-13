@@ -27,6 +27,7 @@ import '../../../data/services/session_store.dart';
 
 import '../models/ask_document.dart';
 import '../models/demo_units.dart';
+import '../models/html_report.dart';
 import '../models/report_export.dart';
 import '../models/workspace_findings.dart';
 import '../models/workspace_unit.dart';
@@ -979,6 +980,34 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     return _exporter.save(
       fileName: _reportFileName(extension: 'json'),
       contents: report,
+    );
+  }
+
+  /// Dashboard twin of [exportMarkdown] — the brief's Report row asks for a
+  /// dashboard a supervisor opens in a browser, not just prose for a repo.
+  /// Same inputs as both twins; the numbers agree by construction.
+  String exportHtml() => buildHtmlReport(
+    fileName: state.fileName,
+    offline: ref.read(mockModeProvider),
+    result: state.result,
+    units: state.units,
+    syllabusFindings: state.syllabusFindings,
+    referenceFindings: state.referenceFindings,
+    diagramPageCount: state.diagramPageCount,
+    imageReviewAvailable: state.imageReviewAvailable,
+    imageReviewedCount: state.imageReviewedCount,
+    imageCoverage: state.imageCoverage,
+    findingStatus: state.findingStatus,
+  );
+
+  /// Writes the HTML dashboard to a file the user chooses. Same dialog and
+  /// error contract as the markdown and JSON twins.
+  Future<String?> saveHtmlReportToFile() async {
+    final report = exportHtml();
+    return _exporter.save(
+      fileName: _reportFileName(extension: 'html'),
+      contents: report,
+      mimeType: 'text/html',
     );
   }
 

@@ -19,6 +19,37 @@ import 'workspace_unit.dart';
 
 const String kRubricLabel = 'SEP490 · provisional v0.1';
 
+/// The honesty contract, as one source of truth for every report twin.
+///
+/// The markdown used to inline its seven limitation lines and the JSON a
+/// near-copy of six — the classic twin drift the R32 audit series kept
+/// finding. All three twins (markdown, JSON, HTML) now call this, so a new
+/// caveat can be added exactly once and lands everywhere by construction.
+List<String> reportLimitations({required bool offline}) => [
+  offline
+      ? 'This is a mock review, not official grading; syllabus thresholds '
+            'are provisional.'
+      : 'Online proxy review is not official grading; syllabus thresholds '
+            'are provisional.',
+  'No OCR. PDF page images are sent only for eligible pages in a newly '
+      'imported PDF during an online run; DOCX, demo, and restored sessions '
+      'are text-only. Requirements without an attached image are assessed '
+      'from extracted text.',
+  'Page-image review is limited to detector-selected PDF pages and does '
+      'not imply full visual understanding.',
+  'No resume/checkpoint, and no precision/recall evaluation against a '
+      'labelled gold set.',
+  'DOCX page references are logical extraction pages, not rendered '
+      'pagination.',
+  offline
+      ? 'Offline mock review sends no model requests; source bytes are '
+            'never saved in snapshots or sessions.'
+      : 'Online PDF reviews may send bounded page images plus requirement '
+            'text to the proxy; source bytes are never saved in snapshots or '
+            'sessions. DOCX, demo, and restored sessions are text-only.',
+  'Demo content is synthetic, not measured OTES evidence.',
+];
+
 String buildMarkdownReport({
   required String fileName,
   required bool offline,
@@ -345,35 +376,14 @@ String buildMarkdownReport({
     );
   }
 
-  final limitations = <String>[
-    reportOffline
-        ? '- This is a mock review, not official grading; syllabus thresholds '
-              'are provisional.'
-        : '- Online proxy review is not official grading; syllabus thresholds '
-              'are provisional.',
-    '- No OCR. PDF page images are sent only for eligible pages in a newly '
-        'imported PDF during an online run; DOCX, demo, and restored sessions '
-        'are text-only. Requirements without an attached image are assessed '
-        'from extracted text.',
-    '- Page-image review is limited to detector-selected PDF pages and does '
-        'not imply full visual understanding.',
-    '- No resume/checkpoint, and no precision/recall evaluation against a '
-        'labelled gold set.',
-    '- DOCX page references are logical extraction pages, not rendered '
-        'pagination.',
-    reportOffline
-        ? '- Offline mock review sends no model requests; source bytes are '
-              'never saved in snapshots or sessions.'
-        : '- Online PDF reviews may send bounded page images plus requirement '
-              'text to the proxy; source bytes are never saved in snapshots or '
-              'sessions. DOCX, demo, and restored sessions are text-only.',
-    '- Demo content is synthetic, not measured OTES evidence.',
-  ];
   lines
     ..add('')
     ..add('## Limitations & future work')
     ..add('')
-    ..addAll(limitations);
+    ..addAll([
+      for (final limitation in reportLimitations(offline: reportOffline))
+        '- $limitation',
+    ]);
   return lines.join('\n');
 }
 
@@ -409,6 +419,10 @@ Map<String, dynamic> buildJsonReport({
   final findings = result?.findings ?? const <FindingRow>[];
   FindingStatus statusFor(String id) =>
       findingStatus[id] ?? FindingStatus.open;
+  // The run's own mock flag outranks the current toggle, exactly as the
+  // markdown twin does — a report describes the run that happened, not the
+  // setting at the moment of export.
+  final reportOffline = result?.mock ?? offline;
 
   return {
     'schema': 'srs-review/report',
@@ -417,9 +431,7 @@ Map<String, dynamic> buildJsonReport({
     'document': {
       'file_name': fileName,
       'rubric_version': result?.rubricVersion ?? kRubricLabel,
-      'mode': offline
-          ? 'offline_mock'
-          : 'online_proxy',
+      'mode': reportOffline ? 'offline_mock' : 'online_proxy',
     },
     'coverage': {
       // Markdown twin: the Coverage table row. Same arithmetic, same source.
@@ -524,19 +536,11 @@ Map<String, dynamic> buildJsonReport({
         },
     ],
     'limitations': [
-      // The same honesty contract the markdown carries, structured so a
-      // downstream tool can display it without scraping prose. The DOCX
-      // pagination and demo-content caveats from the markdown list are
-      // included too — they were dropped in the first JSON cut, which broke
-      // the "same honesty contract" claim.
-      offline
-          ? 'Mock review, not official grading; syllabus thresholds are provisional.'
-          : 'Online proxy review is not official grading; syllabus thresholds are provisional.',
-      'No OCR. PDF page images are sent only for eligible pages in a newly imported PDF during an online run; DOCX, demo, and restored sessions are text-only.',
-      'Page-image review is limited to detector-selected PDF pages and does not imply full visual understanding.',
-      'No resume/checkpoint, and no precision/recall evaluation against a labelled gold set.',
-      'DOCX page references are logical extraction pages, not rendered pagination.',
-      'Demo content is synthetic, not measured OTES evidence.',
+      // The same honesty contract the markdown carries, from one shared
+      // source — see reportLimitations. The DOCX pagination and demo-content
+      // caveats the first JSON cut dropped are now structurally impossible
+      // to omit.
+      ...reportLimitations(offline: reportOffline),
     ],
   };
 }
