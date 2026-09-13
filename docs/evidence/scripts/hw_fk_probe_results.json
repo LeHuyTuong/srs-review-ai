@@ -1,0 +1,234 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_kind": "fk_extraction",
+  "per_quadrant": {
+    "erd-tl": [
+      {
+        "child": "Folder",
+        "col": "owner_id",
+        "parent": "User"
+      },
+      {
+        "child": "Document",
+        "col": "subject_id",
+        "parent": "Subject"
+      },
+      {
+        "child": "Document",
+        "col": "folder_id",
+        "parent": "Folder"
+      },
+      {
+        "child": "Document",
+        "col": "owner_id",
+        "parent": "User"
+      },
+      {
+        "child": "DocumentChunk",
+        "col": "document_id",
+        "parent": "Document"
+      },
+      {
+        "child": "Subscription",
+        "col": "user_id",
+        "parent": "User"
+      },
+      {
+        "child": "Subscription",
+        "col": "plan_id",
+        "parent": "Plan"
+      }
+    ],
+    "erd-tr": [
+      {
+        "child": "Folder",
+        "col": "owner_id",
+        "parent": "User"
+      },
+      {
+        "child": "RefreshToken",
+        "col": "user_id",
+        "parent": "User"
+      },
+      {
+        "child": "UsageEvent",
+        "col": "user_id",
+        "parent": "User"
+      },
+      {
+        "child": "UsageEvent",
+        "col": "usage_period_id",
+        "parent": "UsagePeriod"
+      },
+      {
+        "child": "UserSubscription",
+        "col": "user_id",
+        "parent": "User"
+      },
+      {
+        "child": "UsagePeriod",
+        "col": "user_id",
+        "parent": "User"
+      },
+      {
+        "child": "UsagePeriod",
+        "col": "subscription_id",
+        "parent": "UserSubscription"
+      }
+    ],
+    "erd-bl": [
+      {
+        "child": "DownloadEvent",
+        "col": "document_id",
+        "parent": "Document"
+      },
+      {
+        "child": "Subscription",
+        "col": "user_id",
+        "parent": "User"
+      },
+      {
+        "child": "Subscription",
+        "col": "plan_id",
+        "parent": "Plan"
+      }
+    ],
+    "erd-br": [
+      {
+        "child": "UserSubscription",
+        "col": "plan_id",
+        "parent": "BillingPlan"
+      },
+      {
+        "child": "UsagePeriod",
+        "col": "subscription_id",
+        "parent": "UserSubscription"
+      }
+    ]
+  },
+  "raw_text": {
+    "erd-tl": "FK: Folder.owner_id -> User\nFK: Document.subject_id -> Subject\nFK: Document.folder_id -> Folder\nFK: Document.owner_id -> User\nFK: DocumentChunk.document_id -> Document\nFK: Subscription.user_id -> User\nFK: Subscription.plan_id -> Plan",
+    "erd-tr": "FK: Folder.owner_id -> User\nFK: RefreshToken.user_id -> User\nFK: UsageEvent.user_id -> User\nFK: UsageEvent.usage_period_id -> UsagePeriod\nFK: UserSubscription.user_id -> User\nFK: UsagePeriod.user_id -> User\nFK: UsagePeriod.subscription_id -> UserSubscription",
+    "erd-bl": "FK: DownloadEvent.document_id -> Document\nFK: Subscription.user_id -> User\nFK: Subscription.plan_id -> Plan",
+    "erd-br": "FK: UserSubscription.plan_id -> BillingPlan\nFK: UsagePeriod.subscription_id -> UserSubscription"
+  },
+  "total_fks": 19,
+  "cross_quadrant_conflicts": 4,
+  "multi_quadrant_pairs": 4,
+  "all_fks": [
+    {
+      "quadrant": "erd-tl",
+      "child": "Folder",
+      "col": "owner_id",
+      "parent": "User"
+    },
+    {
+      "quadrant": "erd-tl",
+      "child": "Document",
+      "col": "subject_id",
+      "parent": "Subject"
+    },
+    {
+      "quadrant": "erd-tl",
+      "child": "Document",
+      "col": "folder_id",
+      "parent": "Folder"
+    },
+    {
+      "quadrant": "erd-tl",
+      "child": "Document",
+      "col": "owner_id",
+      "parent": "User"
+    },
+    {
+      "quadrant": "erd-tl",
+      "child": "DocumentChunk",
+      "col": "document_id",
+      "parent": "Document"
+    },
+    {
+      "quadrant": "erd-tl",
+      "child": "Subscription",
+      "col": "user_id",
+      "parent": "User"
+    },
+    {
+      "quadrant": "erd-tl",
+      "child": "Subscription",
+      "col": "plan_id",
+      "parent": "Plan"
+    },
+    {
+      "quadrant": "erd-tr",
+      "child": "Folder",
+      "col": "owner_id",
+      "parent": "User"
+    },
+    {
+      "quadrant": "erd-tr",
+      "child": "RefreshToken",
+      "col": "user_id",
+      "parent": "User"
+    },
+    {
+      "quadrant": "erd-tr",
+      "child": "UsageEvent",
+      "col": "user_id",
+      "parent": "User"
+    },
+    {
+      "quadrant": "erd-tr",
+      "child": "UsageEvent",
+      "col": "usage_period_id",
+      "parent": "UsagePeriod"
+    },
+    {
+      "quadrant": "erd-tr",
+      "child": "UserSubscription",
+      "col": "user_id",
+      "parent": "User"
+    },
+    {
+      "quadrant": "erd-tr",
+      "child": "UsagePeriod",
+      "col": "user_id",
+      "parent": "User"
+    },
+    {
+      "quadrant": "erd-tr",
+      "child": "UsagePeriod",
+      "col": "subscription_id",
+      "parent": "UserSubscription"
+    },
+    {
+      "quadrant": "erd-bl",
+      "child": "DownloadEvent",
+      "col": "document_id",
+      "parent": "Document"
+    },
+    {
+      "quadrant": "erd-bl",
+      "child": "Subscription",
+      "col": "user_id",
+      "parent": "User"
+    },
+    {
+      "quadrant": "erd-bl",
+      "child": "Subscription",
+      "col": "plan_id",
+      "parent": "Plan"
+    },
+    {
+      "quadrant": "erd-br",
+      "child": "UserSubscription",
+      "col": "plan_id",
+      "parent": "BillingPlan"
+    },
+    {
+      "quadrant": "erd-br",
+      "child": "UsagePeriod",
+      "col": "subscription_id",
+      "parent": "UserSubscription"
+    }
+  ]
+}
