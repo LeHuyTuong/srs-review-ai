@@ -222,5 +222,36 @@ void main() {
       expect(msg, contains('8.2 Review'));
       expect(msg, contains('pick one name'));
     });
+
+    test(
+      'cross-artifact findings carry requiresVisionEvidence:true (UNV upstream signal)',
+      () {
+        // Goal §3 rule 3 (UNV-01/02 not green): a finding whose
+        // verification needs vision evidence (cross-artifact name
+        // consistency vs. class diagram) must start as pendingVision
+        // in the Verifier, never open. The ContradictionPass sets the
+        // flag on its emission so the Verifier knows.
+        final findings = _pass.detect(
+          _doc([
+            _req(
+              id: 'UC-10',
+              text: 'Customers browse their profile.',
+              section: '4. Database',
+            ),
+            _req(
+              id: 'FR-01',
+              text: 'Customer updates the profile settings.',
+              section: '5. Class Diagram',
+            ),
+          ]),
+        );
+        expect(findings, hasLength(1));
+        expect(findings.first.check, CheckId.crossArtifactName);
+        expect(findings.first.requiresVisionEvidence, isTrue,
+            reason: 'cross-artifact name variation is a text signal but '
+                'verifying the variants really refer to one entity needs '
+                'the class diagram — Verifier must seed it pendingVision.');
+      },
+    );
   });
 }

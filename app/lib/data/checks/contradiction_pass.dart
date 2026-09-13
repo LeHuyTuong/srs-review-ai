@@ -84,6 +84,13 @@ class ContradictionPass {
               'different labels — pick one name.',
           subject: stem,
           actual: variantList.length,
+          // Vision-required: text-level name variation is a *signal*
+          // but verifying the variants really refer to one entity
+          // needs the class diagram (out of the text-only pipeline's
+          // reach). Per goal §3 rule 3 these start as pendingVision
+          // and only graduate to verified when vision or explicit
+          // user confirmation resolves them.
+          requiresVisionEvidence: true,
         ),
       );
     }
