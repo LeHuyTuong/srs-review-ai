@@ -1,0 +1,1075 @@
+{
+  "model": "gemini-3.5-flash (with 3.1-flash-lite fallback)",
+  "sample_size": 52,
+  "total_findings": 131,
+  "red_findings": 108,
+  "scores_total": 77,
+  "severities": {
+    "high": 108,
+    "medium": 22,
+    "low": 1
+  },
+  "issue_types": {
+    "ambiguity": 31,
+    "untestable": 45,
+    "incomplete": 52,
+    "vagueness": 3
+  },
+  "brief_named_matches": {
+    "SRS-01": 13,
+    "API-01": 19,
+    "NAME-01": 5,
+    "CLS": 22,
+    "TEST-01": 10
+  },
+  "findings": [
+    {
+      "requirement_id": "OTES-UC01",
+      "uc_id": "UC01",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "This use case allows the user to login the system.",
+      "suggestion": "Specify the exact mechanism and authentication criteria required for a successful login."
+    },
+    {
+      "requirement_id": "OTES-UC01",
+      "uc_id": "UC01",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "This use case allows the user to login the system.",
+      "suggestion": "Define the observable outcome of a successful login (e.g., redirection to the dashboard) and the expected behavior for failed login attempts."
+    },
+    {
+      "requirement_id": "OTES-UC01",
+      "uc_id": "UC01",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case allows the user to login the system.",
+      "suggestion": "Add pre-conditions, post-conditions, and a detailed flow of events including error handling for invalid credentials."
+    },
+    {
+      "requirement_id": "OTES-UC02",
+      "uc_id": "UC02",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "helps students to send a raised hand signal",
+      "suggestion": "Specify the exact system response (e.g., 'The system shall display a raised hand icon next to the student's name in the participant list') rather than describing the intent."
+    },
+    {
+      "requirement_id": "OTES-UC02",
+      "uc_id": "UC02",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "helps students to send a raised hand signal.",
+      "suggestion": "The requirement lacks an expected outcome and a clear trigger condition. Define what the system does once the signal is sent, how it is acknowledged, and if there is any timeout or reset mechanism."
+    },
+    {
+      "requirement_id": "OTES-UC02",
+      "uc_id": "UC02",
+      "type": "untestable",
+      "severity": "medium",
+      "quote": "helps students to send a raised hand signal",
+      "suggestion": "Rephrase as a verifiable requirement: 'The system shall transmit a notification to the instructor within 500ms of the student triggering the raise hand function.'"
+    },
+    {
+      "requirement_id": "OTES-UC03",
+      "uc_id": "UC03",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "This use case allows the student to take exams.",
+      "suggestion": "The requirement is a statement of purpose, not a functional requirement. Define specific inputs, processing, and system outputs for taking an exam."
+    },
+    {
+      "requirement_id": "OTES-UC03",
+      "uc_id": "UC03",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "This use case allows the student to take exams.",
+      "suggestion": "Define observable outcomes that determine successful completion of the 'take exam' process."
+    },
+    {
+      "requirement_id": "OTES-UC03",
+      "uc_id": "UC03",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case allows the student to take exams.",
+      "suggestion": "The requirement lacks defined preconditions, postconditions, flow of events, and error handling."
+    },
+    {
+      "requirement_id": "OTES-UC04",
+      "uc_id": "UC04",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "This use case helps students to view study schedules.",
+      "suggestion": "Define the specific data fields included in the study schedule and specify the conditions or parameters under which the schedule is retrieved."
+    },
+    {
+      "requirement_id": "OTES-UC04",
+      "uc_id": "UC04",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "This use case helps students to view study schedules.",
+      "suggestion": "Define measurable success criteria, such as the system displaying the schedule within a specific time or indicating the data source for the schedule."
+    },
+    {
+      "requirement_id": "OTES-UC04",
+      "uc_id": "UC04",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case helps students to view study schedules.",
+      "suggestion": "The requirement lacks the trigger (how the view is initiated), the UI mechanism, and the error handling (e.g., what happens if no schedule exists or the database is unreachable)."
+    },
+    {
+      "requirement_id": "OTES-UC013",
+      "uc_id": "UC013",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "This use case helps the lecturer create a group.",
+      "suggestion": "Define specific functional requirements, such as 'The system shall allow the Lecturer to input a group name and size, and create a group record upon clicking save.'"
+    },
+    {
+      "requirement_id": "OTES-UC013",
+      "uc_id": "UC013",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case helps the lecturer create a group.",
+      "suggestion": "Specify the preconditions, postconditions, inputs, expected outcomes, and error handling for the create group action."
+    },
+    {
+      "requirement_id": "OTES-UC013",
+      "uc_id": "UC013",
+      "type": "ambiguity",
+      "severity": "medium",
+      "quote": "helps the lecturer create a group",
+      "suggestion": "Replace 'helps' with a direct system action, e.g., 'The system shall provide an interface for the Lecturer to register a new group.'"
+    },
+    {
+      "requirement_id": "OTES-UC0134",
+      "uc_id": "UC0134",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "refresh student",
+      "suggestion": "Define the specific business action meant by 'refresh'. Does this imply clearing a cache, updating a database record, or re-fetching student profile data?"
+    },
+    {
+      "requirement_id": "OTES-UC0134",
+      "uc_id": "UC0134",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "allows the lecturer to refresh student",
+      "suggestion": "Specify the observable system state change or output that verifies the 'refresh' action has been successfully completed."
+    },
+    {
+      "requirement_id": "OTES-UC0134",
+      "uc_id": "UC0134",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case allows the lecturer to refresh student.",
+      "suggestion": "Identify the criteria for which students can be refreshed, the trigger, and the behavior when the action fails (e.g., student not found, connection error)."
+    },
+    {
+      "requirement_id": "OTES-UC0114",
+      "uc_id": "UC0114",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Summary:",
+      "suggestion": "The requirement is missing all content under the 'Summary' section. Please provide the functional description of how the system manages the removal of a student from a group."
+    },
+    {
+      "requirement_id": "OTES-UC0114",
+      "uc_id": "UC0114",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "Kick a student out of group",
+      "suggestion": "Use formal terminology instead of colloquialisms like 'Kick'. Define the system behavior, such as 'The Lecturer shall be able to remove a student from a group'."
+    },
+    {
+      "requirement_id": "OTES-UC0114",
+      "uc_id": "UC0114",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "Kick a student out of group",
+      "suggestion": "Define specific triggers and success criteria (e.g., system updates group membership database and notifies the student) to allow for black-box testing."
+    },
+    {
+      "requirement_id": "OTES-UC015",
+      "uc_id": "UC015",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case helps the lecturer turn off group mode.",
+      "suggestion": "The requirement lacks a trigger (pre-condition), a defined system state, and an expected outcome (post-condition). Specify what actions occur in the system when group mode is turned off and the result of that action."
+    },
+    {
+      "requirement_id": "OTES-UC015",
+      "uc_id": "UC015",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "turn off group mode",
+      "suggestion": "The requirement describes an objective rather than a functional requirement. Define the specific system behaviors or API responses that constitute 'turning off group mode' to allow for black-box testing."
+    },
+    {
+      "requirement_id": "OTES-UC016",
+      "uc_id": "UC016",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "This use case helps the lecturer join/leaves a group.",
+      "suggestion": "Define the specific triggers and conditions under which a lecturer can join or leave a group, and separate these into distinct atomic requirements."
+    },
+    {
+      "requirement_id": "OTES-UC016",
+      "uc_id": "UC016",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "This use case helps the lecturer join/leaves a group.",
+      "suggestion": "Provide measurable acceptance criteria for the joining and leaving processes, such as database state changes or system feedback messages."
+    },
+    {
+      "requirement_id": "OTES-UC016",
+      "uc_id": "UC016",
+      "type": "incomplete",
+      "severity": "medium",
+      "quote": "This use case helps the lecturer join/leaves a group.",
+      "suggestion": "The requirement is missing the expected outcome (e.g., confirmation of the action) and error/edge handling (e.g., what happens if the group is full or does not exist)."
+    },
+    {
+      "requirement_id": "OTES-UC017",
+      "uc_id": "UC017",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Download a student\u2019s group file",
+      "suggestion": "The requirement is missing the full functional description including preconditions, main flow of events, postconditions, and error handling. Define the specific action the system must perform when the Lecturer initiates the download."
+    },
+    {
+      "requirement_id": "OTES-UC017",
+      "uc_id": "UC017",
+      "type": "vagueness",
+      "severity": "medium",
+      "quote": "Download a student\u2019s group file",
+      "suggestion": "The requirement lacks a clear verb phrase defining system behavior. State clearly what the system shall do (e.g., 'The system shall allow the Lecturer to download...') and define the scope of 'group file'."
+    },
+    {
+      "requirement_id": "OTES-UC021",
+      "uc_id": "UC021",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use describes how lecturer close a group",
+      "suggestion": "The requirement is missing the functional specification, preconditions, postconditions, and the step-by-step flow required for a use case description."
+    },
+    {
+      "requirement_id": "OTES-UC021",
+      "uc_id": "UC021",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "This use describes how lecturer close a group",
+      "suggestion": "Define specific system behaviors and success criteria for closing a group so that a tester can verify the outcome."
+    },
+    {
+      "requirement_id": "OTES-UC022",
+      "uc_id": "UC022",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "This use case helps the lecturer turn on/off a student camera.",
+      "suggestion": "The requirement fails to specify the system's role in the action, whether the student has permission to decline, or what the expected behavior is for the system after the toggle. Rephrase to state the system's functional response clearly."
+    },
+    {
+      "requirement_id": "OTES-UC022",
+      "uc_id": "UC022",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "This use case helps the lecturer turn on/off a student camera.",
+      "suggestion": "Define the specific system interface, the protocol for changing the camera state, and the feedback mechanism to verify the state change."
+    },
+    {
+      "requirement_id": "OTES-UC022",
+      "uc_id": "UC022",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case helps the lecturer turn on/off a student camera.",
+      "suggestion": "Missing critical system details: edge cases (student is offline), error handling (camera inaccessible), and concurrency (what happens if multiple students are selected)."
+    },
+    {
+      "requirement_id": "OTES-UC023",
+      "uc_id": "UC023",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "This use case helps lecturer mute/unmute student microphones.",
+      "suggestion": "Define the specific observable system behavior. For example: 'The system shall provide a toggle control for the Lecturer to change the audio input status of any individual student from unmuted to muted and vice-versa within 500ms of the interaction.'"
+    },
+    {
+      "requirement_id": "OTES-UC023",
+      "uc_id": "UC023",
+      "type": "incomplete",
+      "severity": "medium",
+      "quote": "This use case helps lecturer mute/unmute student microphones.",
+      "suggestion": "Specify the scope of the action (all students vs individual), the feedback mechanism for the lecturer, and the notification sent to the student whose microphone status has changed."
+    },
+    {
+      "requirement_id": "OTES-UC023",
+      "uc_id": "UC023",
+      "type": "ambiguity",
+      "severity": "low",
+      "quote": "helps lecturer",
+      "suggestion": "Replace 'helps' with a precise functional verb such as 'allows' or 'enables'."
+    },
+    {
+      "requirement_id": "OTES-UC025",
+      "uc_id": "UC025",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Summary: 74",
+      "suggestion": "The requirement is missing all functional details. Replace the placeholder '74' with a clear description of the actor's goal, the trigger, and the expected system outcome for changing the presentation screen."
+    },
+    {
+      "requirement_id": "OTES-UC025",
+      "uc_id": "UC025",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "Change presentation screen",
+      "suggestion": "Define what constitutes a 'change'. Does this refer to switching slides, changing the layout, or selecting a different presentation file?"
+    },
+    {
+      "requirement_id": "OTES-UC38",
+      "uc_id": "UC38",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Summary:",
+      "suggestion": "The requirement is missing the summary of the use case, which is critical for defining the scope and objective of the attendance taking functionality."
+    },
+    {
+      "requirement_id": "OTES-UC38",
+      "uc_id": "UC38",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "Take attendance",
+      "suggestion": "The requirement lacks specific functional steps, triggers, constraints, or success criteria to define how attendance is taken, making it impossible to verify."
+    },
+    {
+      "requirement_id": "OTES-UC036",
+      "uc_id": "UC036",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case describes how the lecturer turns on/ off drawing on the screen.",
+      "suggestion": "The requirement is missing the functional specification; it provides a description of the use case rather than a requirement statement defining what the system must do to allow the lecturer to toggle drawing mode."
+    },
+    {
+      "requirement_id": "OTES-UC036",
+      "uc_id": "UC036",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "This use case describes how the lecturer turns on/ off drawing on the screen.",
+      "suggestion": "There is no observable outcome or acceptance criterion defined for the system behavior. Specify the expected system reaction (e.g., UI feedback, enabling/disabling of input tools) upon the lecturer's action."
+    },
+    {
+      "requirement_id": "OTES-UC027",
+      "uc_id": "UC027",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Create exam",
+      "suggestion": "The requirement text is entirely missing; provide a complete functional statement including actor, trigger, and expected system behavior for creating an exam."
+    },
+    {
+      "requirement_id": "OTES-UC028",
+      "uc_id": "UC028",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "This use case help lecturer get student\u2019s status",
+      "suggestion": "Specify exactly what data defines a 'student's status' (e.g., current score, completion status, or submission time) and define the criteria for what constitutes a status."
+    },
+    {
+      "requirement_id": "OTES-UC028",
+      "uc_id": "UC028",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "get student\u2019s status",
+      "suggestion": "Define the specific input parameters (e.g., student ID, quiz ID) and the expected output format or display mechanism."
+    },
+    {
+      "requirement_id": "OTES-UC028",
+      "uc_id": "UC028",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case help lecturer get student\u2019s status",
+      "suggestion": "Include the missing trigger, preconditions, postconditions, and error handling for scenarios where the student or quiz does not exist."
+    },
+    {
+      "requirement_id": "OTES-UC029",
+      "uc_id": "UC029",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case helps the lecturer export grades.",
+      "suggestion": "The requirement lacks a trigger, specific pre-conditions, the target file format, and the expected system response or success criteria for the export action."
+    },
+    {
+      "requirement_id": "OTES-UC029",
+      "uc_id": "UC029",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "helps the lecturer export grades",
+      "suggestion": "Replace the vague term 'helps' with a precise functional requirement defining the specific steps and expected system output (e.g., file generation or download trigger)."
+    },
+    {
+      "requirement_id": "OTES-UC030",
+      "uc_id": "UC030",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "helps the lecturer talk private",
+      "suggestion": "The requirement describes a goal rather than a functional capability. Define the specific action the system must perform, such as 'The system shall provide a toggle control to mute/unmute the lecturer's microphone.'"
+    },
+    {
+      "requirement_id": "OTES-UC030",
+      "uc_id": "UC030",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Turn on/off private talk",
+      "suggestion": "The requirement lacks a defined trigger, expected state representation, and error handling for the private talk mechanism."
+    },
+    {
+      "requirement_id": "OTES-UC030",
+      "uc_id": "UC030",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "helps the lecturer talk private",
+      "suggestion": "Replace vague terminology with measurable outcomes, such as 'When the lecturer clicks the Private Talk button, the system shall disable audio transmission to the student participants within 500ms'."
+    },
+    {
+      "requirement_id": "OTES-UC031",
+      "uc_id": "UC031",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case helps the lecturer mute/unmute all student\u2019s audio",
+      "suggestion": "The requirement fails to define the system response for edge cases, such as when a student is already muted or offline, and lacks a performance constraint or verification criteria."
+    },
+    {
+      "requirement_id": "OTES-UC031",
+      "uc_id": "UC031",
+      "type": "ambiguity",
+      "severity": "medium",
+      "quote": "mute/unmute all student\u2019s audio",
+      "suggestion": "Specify the scope of 'all'. Does this include students who join the session after the action is taken? Define the state persistence for new participants."
+    },
+    {
+      "requirement_id": "OTES-UC031",
+      "uc_id": "UC031",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "helps the lecturer mute/unmute all student\u2019s audio",
+      "suggestion": "Replace 'helps' with a verifiable statement defining the expected system state change and the latency between the lecturer's action and the audio state update."
+    },
+    {
+      "requirement_id": "OTES-UC032",
+      "uc_id": "UC032",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case helps the lecturer save the student's video.",
+      "suggestion": "The requirement lacks a trigger, precondition, postcondition, functional steps, and error handling. Define the specific sequence of actions the system must perform to save the video."
+    },
+    {
+      "requirement_id": "OTES-UC032",
+      "uc_id": "UC032",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "helps the lecturer save the student's video",
+      "suggestion": "This is a summary of the use case rather than a functional requirement. Define an observable system response or state change that indicates the video has been successfully saved."
+    },
+    {
+      "requirement_id": "OTES-UC033",
+      "uc_id": "UC033",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Summary:",
+      "suggestion": "The requirement is missing all content under the summary section. Please define the system behavior, triggers, and expected outcomes for the Rewind student\u2019s video use case."
+    },
+    {
+      "requirement_id": "OTES-UC033",
+      "uc_id": "UC033",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "Rewind student\u2019s video",
+      "suggestion": "Define the specific functionality of 'rewind'. Does this require a seek bar, a specific time jump (e.g., 10 seconds), or a variable speed rewind? Without functional details, the requirement cannot be tested."
+    },
+    {
+      "requirement_id": "OTES-UC034",
+      "uc_id": "UC034",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "This use case helps the lecturer view teaching schedule",
+      "suggestion": "Define the specific functional requirement, such as 'The system shall display the teaching schedule for the authenticated Lecturer upon their request, including course name, time, and location.'"
+    },
+    {
+      "requirement_id": "OTES-UC034",
+      "uc_id": "UC034",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "view teaching schedule",
+      "suggestion": "The requirement lacks defined inputs (e.g., date range, semester), system response behavior, and error handling (e.g., what happens if no schedule is found)."
+    },
+    {
+      "requirement_id": "OTES-UC035",
+      "uc_id": "UC035",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Summary:",
+      "suggestion": "The requirement is missing the functional description, preconditions, postconditions, and the step-by-step flow required for a use case specification."
+    },
+    {
+      "requirement_id": "OTES-UC36",
+      "uc_id": "UC36",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case allows admin to get list student.",
+      "suggestion": "Specify the conditions for getting the list (e.g., filters), the expected output format (e.g., JSON, table), and the behavior when no students exist."
+    },
+    {
+      "requirement_id": "OTES-UC36",
+      "uc_id": "UC36",
+      "type": "vagueness",
+      "severity": "medium",
+      "quote": "get list student",
+      "suggestion": "Define the specific data fields included in the list (e.g., student ID, name, email) to ensure the requirement is verifiable."
+    },
+    {
+      "requirement_id": "OTES-UC37",
+      "uc_id": "UC37",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "sorted list of students",
+      "suggestion": "Define the specific sorting criteria and the expected file format (e.g., CSV, Excel) required for the import."
+    },
+    {
+      "requirement_id": "OTES-UC37",
+      "uc_id": "UC37",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "Import the sorted list of students into the database",
+      "suggestion": "Define the acceptance criteria, such as the maximum time allowed for the import, the handling of duplicate records, and the expected feedback provided to the Admin upon success or failure."
+    },
+    {
+      "requirement_id": "OTES-UC37",
+      "uc_id": "UC37",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Import the sorted list of students into the database.",
+      "suggestion": "The requirement is missing error handling (e.g., invalid file format, incomplete data) and success/failure notification requirements."
+    },
+    {
+      "requirement_id": "OTES-UC39",
+      "uc_id": "UC39",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Delete the student on database.",
+      "suggestion": "The requirement lacks the trigger (how the admin initiates the deletion), the selection mechanism (how the specific student is identified), and the expected outcomes or error handling (e.g., confirmation prompt, feedback on success/failure, or handling of constraints)."
+    },
+    {
+      "requirement_id": "OTES-UC39",
+      "uc_id": "UC39",
+      "type": "ambiguity",
+      "severity": "medium",
+      "quote": "Delete the student on database.",
+      "suggestion": "Specify the conditions for deletion. Does it require a hard delete or a logical delete (soft delete/status change)? Provide clear business rules regarding associated data dependencies."
+    },
+    {
+      "requirement_id": "OTES-UC39",
+      "uc_id": "UC39",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "Delete the student on database.",
+      "suggestion": "Define observable success criteria. For example: 'The system shall remove the student record from the database and display a success message to the Admin within 2 seconds'."
+    },
+    {
+      "requirement_id": "OTES-UC40",
+      "uc_id": "UC40",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "get all lecture",
+      "suggestion": "Specify the expected output format (e.g., return a list of all lecturers in JSON format)."
+    },
+    {
+      "requirement_id": "OTES-UC40",
+      "uc_id": "UC40",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case allows admin to get all lecture.",
+      "suggestion": "The requirement is missing the expected outcome (e.g., what happens if the database is empty?) and potential error handling (e.g., access denied, system timeout)."
+    },
+    {
+      "requirement_id": "OTES-UC40",
+      "uc_id": "UC40",
+      "type": "untestable",
+      "severity": "medium",
+      "quote": "get all lecture",
+      "suggestion": "Define the criteria for 'get'. Does this imply a REST API response, a UI display, or a CSV export? Without a defined output or performance constraint, it cannot be verified."
+    },
+    {
+      "requirement_id": "OTES-UC41",
+      "uc_id": "UC41",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "sorted list",
+      "suggestion": "Specify the exact sorting criteria (e.g., alphabetically by surname) or provide the file format specification required for the input."
+    },
+    {
+      "requirement_id": "OTES-UC41",
+      "uc_id": "UC41",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "Import the sorted list of lecturer into the database",
+      "suggestion": "Define the expected outcome of the import (e.g., record count success/failure) and the error handling procedure for invalid data entries."
+    },
+    {
+      "requirement_id": "OTES-UC41",
+      "uc_id": "UC41",
+      "type": "incomplete",
+      "severity": "medium",
+      "quote": "Import the sorted list of lecturer into the database",
+      "suggestion": "The requirement lacks a trigger (e.g., user action) and an input specification (e.g., file format or source)."
+    },
+    {
+      "requirement_id": "OTES-UC42",
+      "uc_id": "UC42",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Export lecturers list to Excel file.",
+      "suggestion": "The requirement lacks a trigger (when the export starts), a format specification (e.g., .xlsx or .xls), the scope of the data (all lecturers or filtered results), and error handling (what happens if the export fails)."
+    },
+    {
+      "requirement_id": "OTES-UC42",
+      "uc_id": "UC42",
+      "type": "untestable",
+      "severity": "medium",
+      "quote": "Export lecturers list to Excel file.",
+      "suggestion": "There is no acceptance criterion defined (e.g., max response time or file integrity) to determine if the export function is working correctly."
+    },
+    {
+      "requirement_id": "OTES-UC43",
+      "uc_id": "UC43",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Delete the lecturer on database.",
+      "suggestion": "Specify the conditions for deletion, the input required (e.g., lecturer ID), and the expected system behavior in case of failure (e.g., if the lecturer is linked to active classes)."
+    },
+    {
+      "requirement_id": "OTES-UC43",
+      "uc_id": "UC43",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "Delete the lecturer on database.",
+      "suggestion": "Define the observable success criteria, such as the lecturer record being removed from the database and the system displaying a confirmation message."
+    },
+    {
+      "requirement_id": "OTES-UC43",
+      "uc_id": "UC43",
+      "type": "ambiguity",
+      "severity": "medium",
+      "quote": "Delete the lecturer on database.",
+      "suggestion": "Clarify if this requires a UI confirmation step or if it is an automated background task, as 'Delete' alone describes a database action rather than a system-level requirement."
+    },
+    {
+      "requirement_id": "OTES-UC044",
+      "uc_id": "UC044",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "This use case allows admin to get list student in class.",
+      "suggestion": "The requirement must define the functional behavior using SHALL language, the input criteria (e.g., class ID), and the output format (e.g., CSV, PDF) for the export action."
+    },
+    {
+      "requirement_id": "OTES-UC044",
+      "uc_id": "UC044",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "get list student in class",
+      "suggestion": "Specify the exact criteria for 'get', such as the system exporting a file containing student records for a selected class."
+    },
+    {
+      "requirement_id": "OTES-UC044",
+      "uc_id": "UC044",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case allows admin to get list student in class.",
+      "suggestion": "Missing explicit error handling (e.g., when the class is empty or the admin lacks permission) and success criteria."
+    },
+    {
+      "requirement_id": "OTES-UC045",
+      "uc_id": "UC045",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "download excel file which contain all student in class",
+      "suggestion": "Specify the exact format of the Excel file (e.g., .xlsx), the trigger mechanism, and the criteria for selecting the class."
+    },
+    {
+      "requirement_id": "OTES-UC045",
+      "uc_id": "UC045",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case allows admin to download excel file which contain all student in class.",
+      "suggestion": "The requirement is missing error handling (e.g., what happens if the class is empty, or if the file generation fails) and the specific process for selecting a class."
+    },
+    {
+      "requirement_id": "OTES-UC045",
+      "uc_id": "UC045",
+      "type": "untestable",
+      "severity": "medium",
+      "quote": "download excel file which contain all student in class",
+      "suggestion": "Define the success criteria, such as the time taken to initiate the download or the system response when no students are associated with the selected class."
+    },
+    {
+      "requirement_id": "OTES-UC46",
+      "uc_id": "UC46",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case allows admin to import excel file which contain a list of students in",
+      "suggestion": "The sentence is truncated. Define the destination or context of the student import (e.g., 'into a specific class') and specify the system behavior upon successful and unsuccessful import."
+    },
+    {
+      "requirement_id": "OTES-UC46",
+      "uc_id": "UC46",
+      "type": "ambiguity",
+      "severity": "medium",
+      "quote": "import excel file",
+      "suggestion": "Specify the expected file format version (e.g., .xlsx) and whether the system validates the file structure or specific columns."
+    },
+    {
+      "requirement_id": "OTES-UC46",
+      "uc_id": "UC46",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "This use case allows admin to import excel file",
+      "suggestion": "Define the acceptance criteria, such as the system successfully parsing the file and updating the database records within a defined time limit."
+    },
+    {
+      "requirement_id": "OTES-UC47",
+      "uc_id": "UC47",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Summary:",
+      "suggestion": "The requirement is empty and lacks functional specification, trigger, expected behavior, and error handling."
+    },
+    {
+      "requirement_id": "OTES-UC47",
+      "uc_id": "UC47",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "Delete student in class",
+      "suggestion": "Define the specific steps, preconditions, and post-conditions for the deletion process to allow for verification."
+    },
+    {
+      "requirement_id": "OTES-UC048",
+      "uc_id": "UC048",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Summary:",
+      "suggestion": "The requirement is missing the functional description (summary) of what the system or user actually does when fetching a semester."
+    },
+    {
+      "requirement_id": "OTES-UC048",
+      "uc_id": "UC048",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "Get semester",
+      "suggestion": "Define the specific input criteria, processing steps, and expected output (e.g., return list of active semesters) to allow for black-box testing."
+    },
+    {
+      "requirement_id": "OTES-UC49",
+      "uc_id": "UC49",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case allows admin to import excel file which contain a list of semesters into",
+      "suggestion": "The sentence is truncated and lacks a destination or outcome; complete the statement by specifying where the semesters are imported to and define the expected success criteria."
+    },
+    {
+      "requirement_id": "OTES-UC49",
+      "uc_id": "UC49",
+      "type": "ambiguity",
+      "severity": "medium",
+      "quote": "import excel file",
+      "suggestion": "Specify the required Excel format (e.g., .xlsx or .xls) and mention if a specific template or schema validation is required for the import process."
+    },
+    {
+      "requirement_id": "OTES-UC49",
+      "uc_id": "UC49",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "This use case allows admin to import excel file which contain a list of semesters into",
+      "suggestion": "Define measurable acceptance criteria, such as the system successfully processing valid rows or providing error feedback for malformed files."
+    },
+    {
+      "requirement_id": "OTES-UC50",
+      "uc_id": "UC50",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case allows admin to delete semester which is chosen.",
+      "suggestion": "Define the expected outcome (e.g., system database update), the trigger (e.g., selection and confirmation), and the edge handling (e.g., preventing deletion of a semester that has registered courses)."
+    },
+    {
+      "requirement_id": "OTES-UC50",
+      "uc_id": "UC50",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "delete semester which is chosen",
+      "suggestion": "Specify the criteria for a successful deletion, such as a confirmation prompt or a specific system response upon success."
+    },
+    {
+      "requirement_id": "OTES-UC50",
+      "uc_id": "UC50",
+      "type": "ambiguity",
+      "severity": "medium",
+      "quote": "delete semester which is chosen",
+      "suggestion": "Specify the mechanism of selection, such as 'The admin shall select a semester from the semester list UI component'."
+    },
+    {
+      "requirement_id": "OTES-UC51",
+      "uc_id": "UC51",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "This use case allows admin to download Excel file semesters.",
+      "suggestion": "Specify the exact data scope (e.g., all semesters or filtered by year) and define the functional requirement as a system behavior (e.g., 'The system shall provide a mechanism for the Admin to download all semester records in .xlsx format')."
+    },
+    {
+      "requirement_id": "OTES-UC51",
+      "uc_id": "UC51",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "download Excel file semesters",
+      "suggestion": "Define the success criteria, such as file format versioning (e.g., .xlsx), the expected structure of the exported file, and the performance requirement for the download trigger."
+    },
+    {
+      "requirement_id": "OTES-UC51",
+      "uc_id": "UC51",
+      "type": "incomplete",
+      "severity": "medium",
+      "quote": "This use case allows admin to download Excel file semesters.",
+      "suggestion": "Add missing error handling requirements, such as how the system responds when the database is empty or when a network failure occurs during the generation of the file."
+    },
+    {
+      "requirement_id": "OTES-UC052",
+      "uc_id": "UC052",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case allows admin to get a list of course.",
+      "suggestion": "Define the criteria for the list (e.g., all courses, active courses only), the expected output format, and the behavior when no courses are found."
+    },
+    {
+      "requirement_id": "OTES-UC052",
+      "uc_id": "UC052",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "get a list of course",
+      "suggestion": "Specify the endpoint, parameters, and successful response criteria (e.g., HTTP status code and expected JSON structure) to make this requirement verifiable."
+    },
+    {
+      "requirement_id": "OTES-UC052",
+      "uc_id": "UC052",
+      "type": "ambiguity",
+      "severity": "medium",
+      "quote": "get a list of course",
+      "suggestion": "Clarify if the 'get' action refers to a system query, an API call, or an export function to remove ambiguity regarding the intended functionality."
+    },
+    {
+      "requirement_id": "OTES-UC53",
+      "uc_id": "UC53",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Summary:",
+      "suggestion": "The requirement is empty and lacks a description, trigger, preconditions, postconditions, and functional steps."
+    },
+    {
+      "requirement_id": "OTES-UC054",
+      "uc_id": "UC054",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Summary:",
+      "suggestion": "The requirement is missing a functional description or business logic. Please define the expected behavior for the 'Export courses' use case, including the input format, output destination, and system response."
+    },
+    {
+      "requirement_id": "OTES-UC054",
+      "uc_id": "UC054",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "Export courses",
+      "suggestion": "The requirement lacks a measurable outcome or acceptance criteria. Please specify the output file format (e.g., CSV, PDF) and the criteria for a successful export operation."
+    },
+    {
+      "requirement_id": "OTES-UC55",
+      "uc_id": "UC55",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Delete course",
+      "suggestion": "The requirement is missing the functional specification, preconditions, postconditions, and the step-by-step interaction flow required for an SRS."
+    },
+    {
+      "requirement_id": "OTES-UC55",
+      "uc_id": "UC55",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "Delete course",
+      "suggestion": "Without defined success criteria or error handling scenarios, the requirement cannot be verified by a black-box test."
+    },
+    {
+      "requirement_id": "OTES-UC56",
+      "uc_id": "UC56",
+      "type": "vagueness",
+      "severity": "high",
+      "quote": "This use case allows admin to get schedules class.",
+      "suggestion": "Specify what 'get' means in terms of system behavior (e.g., retrieve from database, display on screen) and define the criteria for a 'schedule class' (e.g., list of time slots, specific format)."
+    },
+    {
+      "requirement_id": "OTES-UC56",
+      "uc_id": "UC56",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case allows admin to get schedules class.",
+      "suggestion": "The requirement lacks defined input parameters (e.g., date range, course ID) and clear output specifications (e.g., success message, error handling for empty results)."
+    },
+    {
+      "requirement_id": "OTES-UC56",
+      "uc_id": "UC56",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "get schedules class",
+      "suggestion": "Define an observable success criterion, such as 'The system shall display a list of all scheduled classes for the requested date'."
+    },
+    {
+      "requirement_id": "OTES-UC057",
+      "uc_id": "UC057",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "download a list of schedules",
+      "suggestion": "Specify the output file format (e.g., CSV, PDF) and the specific fields to be included in the exported file."
+    },
+    {
+      "requirement_id": "OTES-UC057",
+      "uc_id": "UC057",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "allows admin to download a list of schedules",
+      "suggestion": "Define the conditions for a successful export, such as time constraints or specific trigger actions (e.g., clicking an 'Export' button), and the expected system response."
+    },
+    {
+      "requirement_id": "OTES-UC057",
+      "uc_id": "UC057",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "download a list of schedules",
+      "suggestion": "Missing error handling for scenarios where the download fails, empty schedules exist, or the user lacks sufficient permissions."
+    },
+    {
+      "requirement_id": "OTES-UC58",
+      "uc_id": "UC58",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case allows admin to import a list of schedules.",
+      "suggestion": "Define the input format (e.g., CSV, Excel), the expected behavior when the import succeeds, and error handling for invalid data or file formats."
+    },
+    {
+      "requirement_id": "OTES-UC58",
+      "uc_id": "UC58",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "import a list of schedules",
+      "suggestion": "Specify the success criteria for the import, such as database updates or system feedback, to allow for black-box testing."
+    },
+    {
+      "requirement_id": "OTES-UC58",
+      "uc_id": "UC58",
+      "type": "ambiguity",
+      "severity": "medium",
+      "quote": "import a list of schedules",
+      "suggestion": "Specify the source and the mechanism for the import operation."
+    },
+    {
+      "requirement_id": "OTES-UC59",
+      "uc_id": "UC59",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case allows admin to delete a schedule in database.",
+      "suggestion": "Define the trigger, preconditions (e.g., existing schedule ID), the sequence of steps, and postconditions including the expected behavior when a schedule does not exist or has associated dependencies."
+    },
+    {
+      "requirement_id": "OTES-UC59",
+      "uc_id": "UC59",
+      "type": "untestable",
+      "severity": "medium",
+      "quote": "delete a schedule in database",
+      "suggestion": "Specify the required interface or confirmation mechanism the Admin must interact with to perform this deletion, rather than describing the backend result."
+    },
+    {
+      "requirement_id": "OTES-UC060",
+      "uc_id": "UC060",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "get subject class",
+      "suggestion": "Specify the functional behavior, such as 'The system shall display a list of all subject classes' or 'The system shall retrieve details for a specific subject class ID'."
+    },
+    {
+      "requirement_id": "OTES-UC060",
+      "uc_id": "UC060",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "This use case allows admin to get subject class",
+      "suggestion": "Define specific criteria for successful retrieval (e.g., status codes, response time, or data attributes to be returned) to allow for objective pass/fail testing."
+    },
+    {
+      "requirement_id": "OTES-UC060",
+      "uc_id": "UC060",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case allows admin to get subject class.",
+      "suggestion": "The requirement lacks a trigger condition, specific input parameters (e.g., search filters), and error handling for scenarios where classes are not found or access is denied."
+    },
+    {
+      "requirement_id": "OTES-UC061",
+      "uc_id": "UC061",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "Summary: 148",
+      "suggestion": "The requirement text is completely missing a functional description, expected system behavior, and business rules for exporting subject classes."
+    },
+    {
+      "requirement_id": "OTES-UC62",
+      "uc_id": "UC62",
+      "type": "ambiguity",
+      "severity": "high",
+      "quote": "This use case allows admin to import excel file which contain information about subject",
+      "suggestion": "The requirement lacks defined behavior, constraints, and success/failure criteria. It should define the system's response to valid and invalid files, file format constraints, and the outcome of the import."
+    },
+    {
+      "requirement_id": "OTES-UC62",
+      "uc_id": "UC62",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case allows admin to import excel file which contain information about subject",
+      "suggestion": "The requirement is missing the expected outcome (e.g., system updates the database), error handling (e.g., what happens if the file is corrupted or formatted incorrectly), and the trigger mechanism."
+    },
+    {
+      "requirement_id": "OTES-UC62",
+      "uc_id": "UC62",
+      "type": "untestable",
+      "severity": "high",
+      "quote": "This use case allows admin to import excel file",
+      "suggestion": "There is no observable criterion to verify success or failure. Define specific success scenarios and measurable validation rules for the Excel file content."
+    },
+    {
+      "requirement_id": "OTES-UC63",
+      "uc_id": "UC63",
+      "type": "incomplete",
+      "severity": "high",
+      "quote": "This use case allows admin to delete subject\u2019s class which is chosen.",
+      "suggestion": "The requirement is missing the expected outcome (what happens to records linked to the subject class?), error handling (what happens if the class cannot be deleted?), and a clear trigger."
+    },
+    {
+      "requirement_id": "OTES-UC63",
+      "uc_id": "UC63",
+      "type": "ambiguity",
+      "severity": "medium",
+      "quote": "which is chosen",
+      "suggestion": "Specify the selection mechanism for the subject class (e.g., 'selected from the subject class management list')."
+    },
+    {
+      "requirement_id": "OTES-UC63",
+      "uc_id": "UC63",
+      "type": "untestable",
+      "severity": "medium",
+      "quote": "allows admin to delete",
+      "suggestion": "Define the acceptance criteria, such as verifying the removal of the data from the database or the non-existence of the class in subsequent system queries."
+    }
+  ]
+}
