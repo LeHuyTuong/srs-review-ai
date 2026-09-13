@@ -10,6 +10,7 @@ library;
 
 import 'dart:typed_data';
 
+import '../checks/reference_checks.dart';
 import '../checks/rubric_config.dart';
 import '../checks/syllabus_checks.dart';
 import '../models/loaded_document.dart';
@@ -67,9 +68,20 @@ class DocumentRepository {
     );
     onStatus?.call('Running syllabus checks…');
     await Future<void>.delayed(Duration.zero);
+    onStatus?.call('Running reference checks…');
+    // Both check families are pure-Dart deterministic — running them one
+    // after the other keeps every finding reproducible by re-running the
+    // repository with the same parser version on the same bytes. The brief
+    // order matters: syllabus (F7/F8/F9) first so a dashboard that only
+    // knows that family keeps working unchanged; reference (M2) next so
+    // its findings land on a LoadedDocument that's already carrying the
+    // rest of the offline evidence.
+    final syllabus = SyllabusChecks(_rubric).runAll(document);
+    final reference = const ReferenceChecks().runAll(document);
     return LoadedDocument(
       document: document,
-      findings: SyllabusChecks(_rubric).runAll(document),
+      findings: syllabus,
+      referenceFindings: reference,
       sizeBytes: sizeBytes,
       path: path,
       // Keep source bytes only for PDFs. DOCX has no page rasterizer in this

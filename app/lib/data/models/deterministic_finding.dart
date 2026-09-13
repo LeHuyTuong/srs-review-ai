@@ -14,18 +14,42 @@ enum CheckId {
   language,
 
   /// F9 — each medium UC should hold 3–7 transactions.
-  ucSize;
+  ucSize,
+
+  /// M2 — same explicit id used by two or more requirements. Reuse is the
+  /// signal, not the verdict: a real UC table may legitimately repeat UC04,
+  /// so the finding names the id and the count, not a "fix it" command.
+  duplicateIds,
+
+  /// M2 — use case table does not declare a Postcondition / "điều kiện sau"
+  /// section. This is the OTES SRS-01 finding in deterministic form: 63/63
+  /// UCs without a measurable end-state, so a tester cannot know when the
+  /// use case is "done".
+  missingPostcondition;
 
   String get wire => switch (this) {
     CheckId.ucCount => 'uc_count',
     CheckId.language => 'language',
     CheckId.ucSize => 'uc_size',
+    CheckId.duplicateIds => 'duplicate_ids',
+    CheckId.missingPostcondition => 'missing_postcondition',
   };
 
   String get label => switch (this) {
     CheckId.ucCount => 'Use case count',
     CheckId.language => 'English only',
     CheckId.ucSize => 'Use case size',
+    CheckId.duplicateIds => 'Duplicate requirement ids',
+    CheckId.missingPostcondition => 'Missing postcondition',
+  };
+
+  /// True for M2 reference checks; they live next to F7/F8/F9 in the
+  /// deterministic family but are reported under their own section so the
+  /// dashboard can keep "syllabus failures" and "consistency smells"
+  /// visually separate.
+  bool get isReferenceCheck => switch (this) {
+    CheckId.duplicateIds || CheckId.missingPostcondition => true,
+    _ => false,
   };
 }
 

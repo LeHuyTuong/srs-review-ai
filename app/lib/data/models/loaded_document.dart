@@ -17,6 +17,13 @@ class LoadedDocument {
     required this.sizeBytes,
     this.path,
 
+    /// M2 reference-check results — duplicate ids, missing postconditions.
+    /// Lives next to `findings` (F7/F8/F9) so a view that already knows the
+    /// syllabus family does not need a second parameter to render both.
+    /// Empty list keeps older snapshots valid; the dashboard surfaces
+    /// reference findings under their own heading via [CheckId.isReferenceCheck].
+    this.referenceFindings = const <DeterministicFinding>[],
+
     /// Original PDF bytes are deliberately transient: the ViewModel may keep
     /// them for the current session's page renderer, but persistence code must
     /// never serialize this field. Null for DOCX and demo documents.
@@ -27,15 +34,32 @@ class LoadedDocument {
 
   /// F7/F8/F9 results — computed once at load time, offline and free.
   final List<DeterministicFinding> findings;
+
+  /// M2 reference-check results — `reference_checks.dart`. Same offline,
+  /// zero-token contract as `findings`; carried separately so the syllabus
+  /// section stays visible on its own.
+  final List<DeterministicFinding> referenceFindings;
+
   final int sizeBytes;
   final String? path;
 
   /// In-memory source bytes retained only while an imported PDF is active.
   final Uint8List? pdfBytes;
 
+  /// All deterministic findings, syllabus + reference, with the M2 family
+  /// always sorted after F7/F8/F9 so dashboard grouping stays stable across
+  /// runs. `failedFindings` is preserved for the existing syllabus path;
+  /// `allFailedFindings` is what a global review view (the goal's ledger
+  /// dashboard) needs.
+  Iterable<DeterministicFinding> get allFindings =>
+      <DeterministicFinding>[...findings, ...referenceFindings];
+
   Iterable<DeterministicFinding> get failedFindings =>
       findings.where((f) => !f.passed);
 
+  Iterable<DeterministicFinding> get allFailedFindings =>
+      allFindings.where((f) => !f.passed);
+
   DeterministicFinding? findingFor(CheckId check) =>
-      findings.where((f) => f.check == check).firstOrNull;
+      allFindings.where((f) => f.check == check).firstOrNull;
 }
