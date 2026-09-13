@@ -76,6 +76,26 @@ void main() {
       expect(html, isNot(contains('href="http')));
       expect(html, isNot(contains("@import")));
     });
+
+    test('wide tables live in scroll containers, not the page', () {
+      // Measured on a real browser at 390px: the 5-column deterministic
+      // table is ~423px wide. Without a per-table scroll box the whole
+      // document gains a horizontal scrollbar (ui-audit regression).
+      final html = buildHtmlReport(
+        fileName: 'a.pdf',
+        offline: true,
+        result: null,
+        units: const [],
+        syllabusFindings: [check(CheckId.ucCount)],
+        referenceFindings: [check(CheckId.duplicateIds)],
+      );
+      expect(html, contains('<div class="tscroll">'));
+      // Every <table> in the document is wrapped.
+      final tableCount = '<table>'.allMatches(html).length;
+      final wrapperCount = '<div class="tscroll">'.allMatches(html).length;
+      expect(wrapperCount, tableCount);
+      expect(html, contains('.tscroll { overflow-x: auto;'));
+    });
   });
 
   group('buildHtmlReport — honesty parity with the markdown twin', () {

@@ -147,10 +147,10 @@ String buildHtmlReport({
     final c = imageCoverage;
     out.write(
       '<h3>PDF page-image coverage</h3>'
-      '<table><tr><th>Candidates</th><th>Extracted</th><th>Image-reviewed</th>'
+      '<div class="tscroll"><table><tr><th>Candidates</th><th>Extracted</th><th>Image-reviewed</th>'
       '<th>Text-only/skipped</th><th>Image failures</th></tr>'
       '<tr><td>${c.candidates}</td><td>${c.extracted}</td>'
-      '<td>${c.reviewed}</td><td>${c.skipped}</td><td>${c.failed}</td></tr></table>\n',
+      '<td>${c.reviewed}</td><td>${c.skipped}</td><td>${c.failed}</td></tr></table></div>\n',
     );
   }
 
@@ -248,7 +248,7 @@ String buildHtmlReport({
       'rows are the consistency checks (duplicate ids, missing '
       'postconditions, cross-artifact names). '
       '${failing == 0 ? 'All checks passed.' : '<b>$failing of ${allDeterministic.length} need attention.</b>'}</p>'
-      '<table><tr><th>Family</th><th>Check</th><th>Subject</th><th>Result</th><th>Detail</th></tr>',
+      '<div class="tscroll"><table><tr><th>Family</th><th>Check</th><th>Subject</th><th>Result</th><th>Detail</th></tr>',
     );
     for (final (family, finding) in allDeterministic) {
       final resultCell = finding.passed
@@ -261,13 +261,13 @@ String buildHtmlReport({
         '${finding.requiresVisionEvidence ? ' <span class="chip amber">needs vision evidence</span>' : ''}</td></tr>',
       );
     }
-    out.write('</table>\n');
+    out.write('</table></div>\n');
   }
 
   // ── Inventory (collapsed: it is long) ─────────────────────────────────
   out.write(
     '<details><summary>Inventory (${units.length} units)</summary>'
-    '<table><tr><th>ID</th><th>Requirement</th><th>Kind</th><th>Page</th>'
+    '<div class="tscroll"><table><tr><th>ID</th><th>Requirement</th><th>Kind</th><th>Page</th>'
     '<th>Status</th></tr>',
   );
   for (final unit in units) {
@@ -277,7 +277,7 @@ String buildHtmlReport({
       '<td>${_esc(unit.status.name)}${unit.malformed ? ' · MALFORMED' : ''}</td></tr>',
     );
   }
-  out.write('</table></details>\n');
+  out.write('</table></div></details>\n');
 
   // ── Limitations (shared source with both twins) ───────────────────────
   out.write(
@@ -324,6 +324,10 @@ h3.low { color: #15803d; }
 .chip.blue { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
 table { border-collapse: collapse; width: 100%; background: #fff;
   font-size: 13px; }
+/* Wide ledgers scroll inside their own box; the page never gains a
+   horizontal scrollbar (measured: the 5-column check table needs ~423px
+   at 390px viewport). */
+.tscroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 th, td { border: 1px solid #e2e8f0; padding: 6px 9px; text-align: left;
   vertical-align: top; }
 th { background: #f1f5f9; }
