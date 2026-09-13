@@ -18,6 +18,7 @@ import '../../../core/providers.dart';
 import '../../../data/checks/reference_checks.dart';
 import '../../../data/checks/rubric_config.dart';
 import '../../../data/checks/syllabus_checks.dart';
+import '../../../data/checks/verifier.dart';
 import '../../../data/models/deterministic_finding.dart';
 import '../../../data/models/review_progress.dart';
 import '../../../data/models/srs_document.dart';
@@ -416,6 +417,45 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     }
     state = state.copyWith(findingStatus: next);
     _saveSnapshot();
+  }
+
+  /// Round 9 — runs the [Verifier] against the current deterministic
+  /// findings and writes the resulting status map back to state.
+  ///
+  /// A future "Re-verify" button (or a re-import flow that re-parses
+  /// the same bytes) calls this. Right now the only caller is the
+  /// Verifier self-test; the API exists so the re-run UI in R10+ does
+  /// not have to reach into the data layer.
+  ///
+  /// No-op when the current parse and the previous statuses already
+  /// agree — every key stays in the same state, the snapshot save is
+  /// skipped, and the dashboard is not touched.
+  void verifyStatuses() {
+    const verifier = Verifier();
+    final next = verifier.verify(
+      previousStatuses: state.findingStatus,
+      syllabusFindings: state.syllabusFindings,
+      referenceFindings: state.referenceFindings,
+    );
+    if (_statusMapEquals(next, state.findingStatus)) {
+      return;
+    }
+    state = state.copyWith(findingStatus: next);
+    _saveSnapshot();
+  }
+
+  /// Identity test on a `Map<String, FindingStatus>` — true when both
+  // maps hold the same key→status pairs. Used by [verifyStatuses] to
+  // skip a no-op snapshot save.
+  static bool _statusMapEquals(
+    Map<String, FindingStatus> a,
+    Map<String, FindingStatus> b,
+  ) {
+    if (a.length != b.length) return false;
+    for (final entry in a.entries) {
+      if (b[entry.key] != entry.value) return false;
+    }
+    return true;
   }
 
   /// Replaces the unit with [key] by [mutate]'s result and publishes a new list.

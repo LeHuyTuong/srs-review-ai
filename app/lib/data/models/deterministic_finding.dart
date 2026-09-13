@@ -53,6 +53,21 @@ enum CheckId {
   };
 }
 
+/// True if [key] looks like a deterministic finding key
+/// (`<wire>:<subject>`), false otherwise.
+///
+/// Used by callers that share a status map between AI finding ids
+/// (which look like `SEQ-CLS-01`) and deterministic finding keys
+/// (which always start with a known [CheckId.wire] value). The
+/// Verifier only ever transitions the deterministic subset — AI
+/// findings carry a verdict the deterministic path cannot re-derive.
+bool isDeterministicFindingKey(String key) {
+  for (final check in CheckId.values) {
+    if (key.startsWith('${check.wire}:')) return true;
+  }
+  return false;
+}
+
 class DeterministicFinding {
   const DeterministicFinding({
     required this.check,
