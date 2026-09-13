@@ -314,6 +314,52 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
             runSpacing: AppSpacing.sm,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
+              // Round 10 — degraded-mode chip. Goal §0 demands the app
+              // declare what the run actually covers. The chip is a
+              // derived view of the same inputs the report uses, so the
+              // student never sees a green badge for a run that did not
+              // touch the diagrams.
+              WBadge(
+                label: state.currentMode.label,
+                tint: switch (state.currentMode) {
+                  ReviewMode.full => WBadgeTint.green,
+                  ReviewMode.textFirst => WBadgeTint.amber,
+                  ReviewMode.blind => WBadgeTint.neutral,
+                },
+                leading: Icon(
+                  switch (state.currentMode) {
+                    ReviewMode.full => Icons.verified_outlined,
+                    ReviewMode.textFirst => Icons.article_outlined,
+                    ReviewMode.blind => Icons.visibility_off_outlined,
+                  },
+                  size: 12,
+                ),
+              ),
+              // Round 10 — Re-verify. Re-runs the deterministic checker
+              // and lets the Verifier promote fixed → verified (or
+              // reopen a row that regressed). Diff summary lands in a
+              // snack bar so the student sees what actually moved.
+              if (state.hasDocument)
+                WButton.primary(
+                  label: 'Re-verify',
+                  icon: Icons.refresh,
+                  onPressed: () {
+                    final diff = viewModel.verifyStatuses();
+                    final messenger = ScaffoldMessenger.of(context);
+                    messenger.hideCurrentSnackBar();
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          diff.isEmpty
+                              ? 'Re-verify: nothing changed — every '
+                                    'finding is already in its current '
+                                    'state.'
+                              : 'Re-verify: ${diff.summary}',
+                        ),
+                      ),
+                    );
+                  },
+                ),
               if (result != null) ...[
                 WBadge(
                   label: '${result.findings.length} verified findings',
@@ -336,7 +382,7 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
               ],
               if (state.fixedCount > 0)
                 WBadge(
-                  label: '${state.fixedCount} accepted',
+                  label: '${state.fixedCount} fixed',
                   tint: WBadgeTint.purple,
                 ),
             ],

@@ -134,6 +134,24 @@ class WorkspaceState {
   /// page image. This is not persisted with snapshots or saved sessions.
   final int imageReviewedCount;
 
+  /// Round 10 — derived run mode (goal §0 degraded-mode-first).
+  ///
+  /// Decides which goal §2 stages the current run can exercise:
+  ///   - full:        text AND vision pass reachable AND diagrams exist
+  ///   - textFirst:   text extracted; vision not reachable OR no diagrams
+  ///   - blind:       parsed but no text — PDF scanned, OCR / vision only
+  ///
+  /// Pure derivation over [units] / [imageReviewAvailable] /
+  /// [diagramPageCount]; nothing is stored, so the badge never drifts
+  /// from the inputs. The decision rule itself lives in
+  /// [ReviewMode.decide] so it can be unit-tested without the full
+  /// state scaffolding.
+  ReviewMode get currentMode => ReviewMode.decide(
+        unitsEmpty: units.isEmpty,
+        visionReady: imageReviewAvailable,
+        hasDiagrams: diagramPageCount > 0,
+      );
+
   /// Full page-image selection, extraction, and request coverage for the latest
   /// run. This is transient UI/report context and is never serialized.
   final PageImageCoverage? imageCoverage;
@@ -427,21 +445,25 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   /// Verifier self-test; the API exists so the re-run UI in R10+ does
   /// not have to reach into the data layer.
   ///
-  /// No-op when the current parse and the previous statuses already
-  /// agree — every key stays in the same state, the snapshot save is
-  /// skipped, and the dashboard is not touched.
-  void verifyStatuses() {
+  /// Returns a [VerifyDiff] describing what changed, so the caller can
+  /// surface a meaningful toast ("X promoted to verified, Y
+  /// reopened"). No-op when the current parse and the previous
+  /// statuses already agree — the snapshot save is skipped, the state
+  /// is not touched, and the returned diff is empty.
+  VerifyDiff verifyStatuses() {
+    final previous = state.findingStatus;
     const verifier = Verifier();
     final next = verifier.verify(
-      previousStatuses: state.findingStatus,
+      previousStatuses: previous,
       syllabusFindings: state.syllabusFindings,
       referenceFindings: state.referenceFindings,
     );
-    if (_statusMapEquals(next, state.findingStatus)) {
-      return;
+    if (_statusMapEquals(next, previous)) {
+      return const VerifyDiff();
     }
     state = state.copyWith(findingStatus: next);
     _saveSnapshot();
+    return VerifyDiff.compute(before: previous, after: next);
   }
 
   /// Identity test on a `Map<String, FindingStatus>` — true when both

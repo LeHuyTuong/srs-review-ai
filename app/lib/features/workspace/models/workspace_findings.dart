@@ -6,10 +6,142 @@
 /// widgets.
 library;
 
+import '../../../data/models/deterministic_finding.dart';
 import '../../../data/models/review_models.dart';
 import '../../../data/models/review_progress.dart';
 import '../../../data/models/srs_document.dart';
 import 'workspace_unit.dart';
+
+/// The three review modes a parsed document can run under.
+///
+/// Goal §0 demands degraded-mode-first design: the app must surface
+/// what the run actually covers and never fake pass. The mode is a
+/// derived view of the current [WorkspaceState], not a stored flag —
+/// the underlying inputs ([units], [imageReviewAvailable],
+/// [diagramPageCount]) are the source of truth.
+///
+/// Mode assignment:
+///
+///   - [full]       text extracted AND vision pass is reachable AND
+///                  the document actually carries diagrams. Every
+///                  pipeline stage in goal §2 has work to do.
+///
+///   - [textFirst]  text extracted but no diagrams (typical DOCX), or
+///                  diagrams exist but the vision pass is not
+///                  reachable. Goal §2 stages 3 + 5 still run; stage 4
+///                  (vision) is skipped — findings keep an honest
+///                  coverage declaration.
+///
+///   - [blind]      the parser extracted no text — the source PDF is
+///                  scanned. Goal §2 stage 2 falls back to OCR; the
+///                  vision path is the only option, so the badge
+///                  declares it instead of pretending text exists.
+enum ReviewMode {
+  full,
+  textFirst,
+  blind;
+
+  String get label => switch (this) {
+    ReviewMode.full => 'Full review (text + vision)',
+    ReviewMode.textFirst => 'Text-first review (no vision)',
+    ReviewMode.blind => 'Blind review (vision only)',
+  };
+
+  /// Round 10 — pure mode decision, split out from [WorkspaceState]
+  /// so the rule is testable without the full state scaffolding.
+  ///
+  /// Inputs mirror the three state fields the chip actually depends on:
+  ///   - [unitsEmpty]    true when the parser produced no requirement
+  ///                     statements (scanned PDF or empty file)
+  ///   - [visionReady]   true only when fresh PDF bytes are in memory,
+  ///                     i.e. the vision pass is reachable
+  ///   - [hasDiagrams]   true when at least one diagram page was
+  ///                     detected in the source
+  static ReviewMode decide({
+    required bool unitsEmpty,
+    required bool visionReady,
+    required bool hasDiagrams,
+  }) {
+    if (unitsEmpty && visionReady) return ReviewMode.blind;
+    if (visionReady && hasDiagrams) return ReviewMode.full;
+    return ReviewMode.textFirst;
+  }
+}
+
+/// Round 10 — what changed when the [Verifier] ran against a fresh
+/// deterministic re-run. Used by the "Re-verify" button to surface a
+/// honest summary in a toast: "3 promoted to verified · 1 reopened ·
+//  12 unchanged".
+///
+/// Counts only the deterministic subset (keys prefixed with a known
+/// [CheckId.wire] value); AI finding ids are passed through unchanged
+/// and never appear in the diff.
+class VerifyDiff {
+  const VerifyDiff({
+    this.promotedToVerified = 0,
+    this.reopened = 0,
+    this.unchanged = 0,
+  });
+
+  /// Zero-diff sentinel returned when the re-run was a no-op.
+  const VerifyDiff.empty()
+      : promotedToVerified = 0,
+        reopened = 0,
+        unchanged = 0;
+
+  /// Compares [before] against [after] and counts transitions for the
+  /// deterministic subset only. AI ids never contribute to the diff
+  /// because the Verifier passes them through untouched.
+  factory VerifyDiff.compute({
+    required Map<String, FindingStatus> before,
+    required Map<String, FindingStatus> after,
+  }) {
+    var promoted = 0;
+    var reopened = 0;
+    var unchanged = 0;
+    for (final entry in after.entries) {
+      if (!isDeterministicFindingKey(entry.key)) continue;
+      final wasStatus = before[entry.key];
+      final isStatus = entry.value;
+      if (wasStatus == isStatus) {
+        unchanged += 1;
+        continue;
+      }
+      if (isStatus == FindingStatus.verified &&
+          wasStatus != FindingStatus.verified) {
+        promoted += 1;
+      } else if (isStatus == FindingStatus.open &&
+          wasStatus != null &&
+          wasStatus != FindingStatus.open) {
+        reopened += 1;
+      }
+    }
+    return VerifyDiff(
+      promotedToVerified: promoted,
+      reopened: reopened,
+      unchanged: unchanged,
+    );
+  }
+
+  final int promotedToVerified;
+  final int reopened;
+  final int unchanged;
+
+  bool get isEmpty =>
+      promotedToVerified == 0 && reopened == 0 && unchanged == 0;
+
+  String get summary {
+    final parts = <String>[];
+    if (promotedToVerified > 0) {
+      parts.add('$promotedToVerified promoted to verified');
+    }
+    if (reopened > 0) {
+      parts.add('$reopened reopened');
+    }
+    parts.add('$unchanged unchanged');
+    return parts.join(' · ');
+  }
+}
 
 /// Where a finding stands with the person who has to act on it.
 ///
