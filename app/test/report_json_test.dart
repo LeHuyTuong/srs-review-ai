@@ -152,6 +152,56 @@ void main() {
           .containsKey('page_images'), isFalse);
     });
 
+    test('honesty fields appear exactly when the markdown would print them', () {
+      // Round 32 audit: the markdown honesty notes are driven by these same
+      // inputs, so the JSON must reconstruct them — a consumer rendering only
+      // the JSON must not lose the "text-only review" callout.
+      final plain = buildJsonReport(
+        fileName: 'a.pdf',
+        offline: true,
+        result: null,
+        units: const [],
+      );
+      final rich = buildJsonReport(
+        fileName: 'a.pdf',
+        offline: true,
+        result: null,
+        units: const [],
+        diagramPageCount: 4,
+        imageReviewAvailable: true,
+        imageReviewedCount: 2,
+      );
+      final plainCoverage = plain['coverage'] as Map<String, dynamic>;
+      final richCoverage = rich['coverage'] as Map<String, dynamic>;
+      // Absent when the markdown would print nothing.
+      expect(plainCoverage.containsKey('diagram_pages'), isFalse);
+      expect(plainCoverage.containsKey('image_review'), isFalse);
+      // Present when the markdown would print the note.
+      expect(richCoverage['diagram_pages'], 4);
+      final imageReview = richCoverage['image_review'] as Map<String, dynamic>;
+      expect(imageReview['available'], isTrue);
+      expect(imageReview['reviewed_requirements'], 2);
+    });
+
+    test('limitations carry the full markdown honesty list', () {
+      final json = buildJsonReport(
+        fileName: 'a.pdf',
+        offline: true,
+        result: null,
+        units: const [],
+      );
+      final limitations = (json['limitations'] as List<dynamic>).cast<String>();
+      expect(
+        limitations.any((line) => line.contains('logical extraction pages')),
+        isTrue,
+        reason: 'the DOCX pagination caveat was dropped in the first JSON cut',
+      );
+      expect(
+        limitations.any((line) => line.contains('Demo content is synthetic')),
+        isTrue,
+      );
+    });
+
     test('findings carry the fields the markdown prints, structured', () {
       final json = buildJsonReport(
         fileName: 'a.pdf',

@@ -436,6 +436,17 @@ Map<String, dynamic> buildJsonReport({
           'skipped': imageCoverage.skipped,
           'failed': imageCoverage.failed,
         },
+      // Round 32 audit — these inputs drive the markdown honesty notes (the
+      // "text-only review" callout and the diagram-page count), so a JSON
+      // consumer must be able to reconstruct them instead of trusting a
+      // silent "no issues" section. Absent ≠ zero: keys appear only when
+      // the markdown would print the corresponding note.
+      if (diagramPageCount > 0) 'diagram_pages': diagramPageCount,
+      if (imageReviewAvailable || imageReviewedCount > 0)
+        'image_review': {
+          'available': imageReviewAvailable,
+          'reviewed_requirements': imageReviewedCount,
+        },
     },
     'scores': {
       'sections': [
@@ -493,13 +504,18 @@ Map<String, dynamic> buildJsonReport({
     ],
     'limitations': [
       // The same honesty contract the markdown carries, structured so a
-      // downstream tool can display it without scraping prose.
+      // downstream tool can display it without scraping prose. The DOCX
+      // pagination and demo-content caveats from the markdown list are
+      // included too — they were dropped in the first JSON cut, which broke
+      // the "same honesty contract" claim.
       offline
           ? 'Mock review, not official grading; syllabus thresholds are provisional.'
           : 'Online proxy review is not official grading; syllabus thresholds are provisional.',
       'No OCR. PDF page images are sent only for eligible pages in a newly imported PDF during an online run; DOCX, demo, and restored sessions are text-only.',
       'Page-image review is limited to detector-selected PDF pages and does not imply full visual understanding.',
       'No resume/checkpoint, and no precision/recall evaluation against a labelled gold set.',
+      'DOCX page references are logical extraction pages, not rendered pagination.',
+      'Demo content is synthetic, not measured OTES evidence.',
     ],
   };
 }
