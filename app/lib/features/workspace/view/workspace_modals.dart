@@ -15,6 +15,8 @@ import '../../../core/app_config.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
+import '../../../data/checks/rubric_config.dart';
+import '../../../data/models/deterministic_finding.dart';
 import '../../../data/models/review_models.dart' show Verification;
 import '../../../data/models/review_progress.dart';
 import '../models/ask_document.dart';
@@ -1258,6 +1260,155 @@ class _AskSheetState extends ConsumerState<_AskSheet> {
           const SizedBox(height: AppSpacing.sm),
           WErrorBanner(message: state.error!),
         ],
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// syllabus check detail
+// ---------------------------------------------------------------------------
+
+/// Expands one deterministic F7/F8/F9 check: the rule behind the tick or the
+/// warning (expected band vs what was actually found) and the concrete move
+/// that closes the gap. The check cards used to show a message and stop —
+/// tapping them did nothing, which is what "bấm vào để coi sửa gì" asks for.
+Future<void> showSyllabusCheckDetail(
+  BuildContext context,
+  DeterministicFinding finding,
+) => _show(
+  context: context,
+  builder: (_) =>
+      _SyllabusCheckDetail(finding: finding, rubric: RubricConfig.fallback),
+);
+
+class _SyllabusCheckDetail extends StatelessWidget {
+  const _SyllabusCheckDetail({required this.finding, required this.rubric});
+
+  final DeterministicFinding finding;
+  final RubricConfig rubric;
+
+  String get _rule => switch (finding.check) {
+    CheckId.ucCount =>
+      'Syllabus band: ${rubric.ucCountMin}–${rubric.ucCountMax} medium '
+          'use cases in the declared inventory.',
+    CheckId.language =>
+      'Submitted documents are written in English. This is a non-ASCII '
+          'heuristic, not a language classifier.',
+    CheckId.ucSize =>
+      'A medium use case holds ${rubric.ucMinTransactions}–'
+          '${rubric.ucMaxTransactions} numbered transactions.',
+    CheckId.duplicateIds =>
+      'The same explicit id labels two or more requirements. Reuse can be '
+          'intentional (a UC table repeated under one id) but it almost always '
+          'hides either an unfinished rename or two distinct requirements that '
+          'should have been split apart.',
+    CheckId.missingPostcondition =>
+      'A use case without a Postcondition leaves the tester without a '
+          'measurable end-state — there is no line a tester can read and say '
+          '"this is what the system looks like when the flow is done".',
+  };
+
+  String get _fix => switch (finding.check) {
+    CheckId.ucCount =>
+      'Merge use-case fragments that share one actor and one goal; split '
+          'mega use cases along their distinct goals; then update the '
+          'declared inventory so the count and the list agree.',
+    CheckId.language =>
+      'Rewrite the flagged passages in English — narrative, table cells '
+          'and figure captions included — or have your supervisor '
+          'confirm the exemption in writing.',
+    CheckId.ucSize =>
+      'For the named use case: merge trivial steps into their parent '
+          'transaction, move shared behaviour into a business rule, or '
+          'split the use case in two so each half stays in the band.',
+    CheckId.duplicateIds =>
+      'For each reported id, open every requirement that carries it and '
+          'decide whether the reuse is intentional. If it is not, mint a '
+          'distinct id (UC04a, UC04b) or merge the rows under one id so the '
+          'two views of the requirement stop drifting apart.',
+    CheckId.missingPostcondition =>
+      'Add a Postcondition section to every flagged use case. One sentence '
+          'is enough — name a state the tester can verify (a persisted '
+          'record, a confirmation toast, a changed role), so "done" stops '
+          'being a matter of judgement.',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.workspaceColors;
+    final theme = Theme.of(context);
+    final expected = switch ((finding.expectedMin, finding.expectedMax)) {
+      (final num min?, final num max?) => '$min–$max',
+      (final num min?, _) => '≥ $min',
+      (_, final num max?) => '≤ $max',
+      _ => null,
+    };
+
+    return _ModalScaffold(
+      icon: finding.passed ? Icons.check_circle_outline : Icons.rule_outlined,
+      title: finding.subject == null
+          ? finding.check.label
+          : '${finding.check.label} · ${finding.subject}',
+      description: finding.message,
+      children: [
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.xs,
+          children: [
+            WBadge(
+              label: finding.passed ? 'Passed' : 'Needs attention',
+              tint: finding.passed ? WBadgeTint.green : WBadgeTint.amber,
+            ),
+            if (finding.actual != null)
+              WBadge(label: 'found: ${finding.actual}'),
+            if (expected != null) WBadge(label: 'expected: $expected'),
+            if (finding.subject != null)
+              WBadge(label: finding.subject!, tint: WBadgeTint.purple),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Text(
+          'THE RULE',
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: colors.muted,
+            letterSpacing: 1.4,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          _rule,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colors.muted,
+            height: 1.7,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Text(
+          'HOW TO FIX IT',
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: colors.muted,
+            letterSpacing: 1.4,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          _fix,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colors.muted,
+            height: 1.7,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        WInfoNote(
+          icon: Icons.menu_book_outlined,
+          text:
+              'Deterministic syllabus checks run offline at import time and '
+              'cost zero tokens. They are provisional — confirm against '
+              'your supervisor\'s rubric.',
+        ),
       ],
     );
   }

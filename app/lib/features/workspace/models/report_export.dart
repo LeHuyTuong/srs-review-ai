@@ -13,6 +13,7 @@ library;
 import '../../../data/models/deterministic_finding.dart';
 import '../../../data/models/review_models.dart';
 import '../../../data/models/review_progress.dart';
+import 'section_scores.dart';
 import 'workspace_findings.dart';
 import 'workspace_unit.dart';
 
@@ -95,6 +96,30 @@ String buildMarkdownReport({
         '${units.length} | $dropped |',
     '',
   ];
+
+  // The supervisor-facing answer to "which part scores what": the same
+  // worst-first rollup the Findings tab shows. Sessions written before
+  // scores existed simply have none, and the section is left out rather
+  // than printed empty.
+  if (result != null && result.scores.isNotEmpty) {
+    final sections = summarizeSections(units: units, result: result);
+    if (sections.isNotEmpty) {
+      lines.addAll([
+        '## Scores by section',
+        '',
+        'Worst average first — start fixing at the top.',
+        '',
+        '| Section | Avg /10 | Scored units | To fix | High |',
+        '|---|---:|---:|---:|---:|',
+        for (final section in sections)
+          '| ${section.section} | '
+              '${section.averageScore == null ? '—' : section.averageScore!.toStringAsFixed(1)} | '
+              '${section.reviewedCount} | ${section.findingCount} | '
+              '${section.highSeverityCount} |',
+        '',
+      ]);
+    }
+  }
 
   final showImageReviewNote =
       diagramPageCount > 0 ||

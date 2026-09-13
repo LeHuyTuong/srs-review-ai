@@ -98,6 +98,7 @@ class WorkspaceReviewResult {
     required this.rubricVersion,
     required this.createdAt,
     this.outcome = 'done',
+    this.scores = const {},
   });
 
   factory WorkspaceReviewResult.fromJson(Map<String, dynamic> json) =>
@@ -115,6 +116,11 @@ class WorkspaceReviewResult {
         // Sessions saved before this field existed carry no outcome; they read
         // back as 'done', which is exactly how they always behaved.
         outcome: json['outcome'] as String? ?? 'done',
+        // Same rule for the per-unit scores: sessions written before scores
+        // were surfaced at all decode as "no scores", never as broken.
+        scores: (json['scores'] as Map<dynamic, dynamic>? ?? const {}).map(
+          (key, value) => MapEntry('$key', (value as num).toInt()),
+        ),
       );
 
   final List<FindingRow> findings;
@@ -130,6 +136,12 @@ class WorkspaceReviewResult {
   /// or 'failed'. The report needs it to say a run returned nothing instead of
   /// letting empty coverage and stale unit statuses disagree.
   final String outcome;
+
+  /// unitKey (occurrence key) -> the model's 0–10 quality score for that unit.
+  /// The contract always carried it; [fromRun] used to drop it on the floor,
+  /// which is why the app could list findings but never say how good any
+  /// section is. Units the run failed or skipped are absent, not zero.
+  final Map<String, int> scores;
 
   static WorkspaceReviewResult fromRun({
     required ReviewRun run,
@@ -195,6 +207,11 @@ class WorkspaceReviewResult {
       rubricVersion: rubricVersion,
       createdAt: DateTime.now(),
       outcome: run.stage.name,
+      // Keep what the model scored each reached unit — the contract carried it
+      // all along; fromRun was the only place it was thrown away.
+      scores: {
+        for (final entry in run.results.entries) entry.key: entry.value.score,
+      },
     );
   }
 
@@ -208,5 +225,6 @@ class WorkspaceReviewResult {
     'rubricVersion': rubricVersion,
     'createdAt': createdAt.toIso8601String(),
     'outcome': outcome,
+    'scores': scores,
   };
 }

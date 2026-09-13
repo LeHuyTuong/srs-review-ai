@@ -8,8 +8,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
+import '../../../core/widgets/app_ink_well.dart';
 import '../../../data/models/deterministic_finding.dart';
 import '../view_model/workspace_view_model.dart';
+import 'workspace_modals.dart';
 import 'workspace_widgets.dart';
 
 class SyllabusTab extends ConsumerWidget {
@@ -128,61 +130,67 @@ class _CheckCard extends StatelessWidget {
 
     return WPanel(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: finding.passed ? colors.sageBg : colors.amberBg,
-              borderRadius: AppRadius.boxMd,
+      child: AppInkWell(
+        onTap: () => showSyllabusCheckDetail(context, finding),
+        borderRadius: AppRadius.boxMd,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: finding.passed ? colors.sageBg : colors.amberBg,
+                borderRadius: AppRadius.boxMd,
+              ),
+              child: Icon(
+                finding.passed
+                    ? Icons.check_circle_outline
+                    : Icons.warning_amber_outlined,
+                size: 19,
+                color: finding.passed ? colors.sage : colors.amber,
+              ),
             ),
-            child: Icon(
-              finding.passed
-                  ? Icons.check_circle_outline
-                  : Icons.warning_amber_outlined,
-              size: 19,
-              color: finding.passed ? colors.sage : colors.amber,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        finding.check.label,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: colors.ink,
-                          fontWeight: FontWeight.w600,
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          finding.check.label,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: colors.ink,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                    ),
-                    if (finding.subject != null)
-                      WBadge(label: finding.subject!),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  finding.message,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colors.muted,
-                    height: 1.7,
+                      if (finding.subject != null)
+                        WBadge(label: finding.subject!),
+                    ],
                   ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  finding.passed ? 'Passed' : 'Check needed',
-                  style: theme.textTheme.labelSmall?.copyWith(color: fg),
-                ),
-              ],
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    finding.message,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.muted,
+                      height: 1.7,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    finding.passed ? 'Passed' : 'Check needed',
+                    style: theme.textTheme.labelSmall?.copyWith(color: fg),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: AppSpacing.sm),
+            Icon(Icons.chevron_right, size: 15, color: colors.muted),
+          ],
+        ),
       ),
     );
   }

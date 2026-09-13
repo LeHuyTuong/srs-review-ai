@@ -7,11 +7,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
 import '../../../core/widgets/app_ink_well.dart';
+import '../../../data/checks/rubric_config.dart';
 import '../../../data/models/review_models.dart';
+import '../models/section_scores.dart';
 import '../models/workspace_findings.dart';
 import '../view_model/workspace_view_model.dart';
 import 'desktop_context_menu.dart';
@@ -41,12 +44,195 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
   String _query = '';
   _StatusFilter _filter = _StatusFilter.all;
 
+  /// Sections expanded in the scores panel. Names, not indexes: the list is
+  /// re-sorted worst-first after every run and indexes would move rows the
+  /// user had just opened.
+  final Set<String> _openSections = {};
+
   bool _matches(FindingStatus status) => switch (_filter) {
     _StatusFilter.all => true,
     _StatusFilter.open => status == FindingStatus.open,
     _StatusFilter.accepted => status == FindingStatus.accepted,
     _StatusFilter.dismissed => status == FindingStatus.dismissed,
   };
+
+  /// The section scoreboard: every document section that the latest run had
+  /// anything to say about, worst average first, each one expandable to the
+  /// scored units inside. This is the "which part scores what and what needs
+  /// improving" answer the findings list alone never gave.
+  Widget _sectionScores(WorkspaceState state) {
+    final rubric = ref.watch(rubricProvider).value ?? RubricConfig.fallback;
+    final sections = summarizeSections(
+      units: state.units,
+      result: state.result,
+    );
+    final colors = context.workspaceColors;
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.md,
+      ),
+      child: WPanel(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Scores by section',
+              style: theme.textTheme.titleSmall?.copyWith(color: colors.ink),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Worst average first. Open a section to see which requirement '
+              'to fix — tap one for the full preview.',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: colors.muted,
+                height: 1.6,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            if (sections.isEmpty)
+              Text(
+                'Nothing scored yet — run a review over your selected units '
+                'and this table fills in.',
+                style: theme.textTheme.bodySmall?.copyWith(color: colors.muted),
+              )
+            else
+              for (final section in sections) ...[
+                AppInkWell(
+                  onTap: () => setState(() {
+                    if (!_openSections.remove(section.section)) {
+                      _openSections.add(section.section);
+                    }
+                  }),
+                  borderRadius: AppRadius.boxSm,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xs,
+                      vertical: AppSpacing.sm,
+                    ),
+                    child: Row(
+                      children: [
+                        WScoreChip(
+                          score: section.averageScore?.round(),
+                          label: section.averageScore == null
+                              ? null
+                              : '${section.averageScore!.toStringAsFixed(1)}/10',
+                          passMark: rubric.passMark,
+                          warnScore: rubric.warnScore,
+                          dense: true,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            section.section,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: colors.ink,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Text(
+                          section.findingCount == 0
+                              ? '${section.reviewedCount} scored'
+                              : '${section.findingCount} to fix'
+                                    '${section.highSeverityCount > 0 ? ' · ${section.highSeverityCount} high' : ''}',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: section.highSeverityCount > 0
+                                ? context.severityColors.forSeverity(
+                                    Severity.high,
+                                  )
+                                : colors.muted,
+                          ),
+                        ),
+                        Icon(
+                          _openSections.contains(section.section)
+                              ? Icons.expand_less
+                              : Icons.expand_more,
+                          size: 16,
+                          color: colors.muted,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (_openSections.contains(section.section))
+                  Padding(
+                    padding: const EdgeInsets.only(left: AppSpacing.md),
+                    child: Column(
+                      children: [
+                        if (section.units.isEmpty)
+                          WInfoNote(
+                            icon: Icons.hourglass_empty,
+                            text:
+                                'Findings in this section, but no scored '
+                                'unit yet — review it to get the numbers.',
+                          ),
+                        for (final scored in section.units)
+                          AppInkWell(
+                            onTap: () {
+                              final unit = state.units
+                                  .where((u) => u.key == scored.key)
+                                  .firstOrNull;
+                              if (unit != null) {
+                                showSourceSheet(context, ref, unit);
+                              }
+                            },
+                            borderRadius: AppRadius.boxSm,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.xs,
+                                vertical: 7,
+                              ),
+                              child: Row(
+                                children: [
+                                  WScoreChip(
+                                    score: scored.score,
+                                    passMark: rubric.passMark,
+                                    warnScore: rubric.warnScore,
+                                    dense: true,
+                                  ),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Expanded(
+                                    child: Text(
+                                      '${scored.id} · ${scored.title}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(color: colors.ink),
+                                    ),
+                                  ),
+                                  if (scored.findingCount > 0)
+                                    WBadge(
+                                      label: '${scored.findingCount} to fix',
+                                      tint: WBadgeTint.amber,
+                                    ),
+                                  const SizedBox(width: AppSpacing.xs),
+                                  Icon(
+                                    Icons.chevron_right,
+                                    size: 15,
+                                    color: colors.muted,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+              ],
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -137,6 +323,7 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
             ],
           ),
         ),
+        if (result != null) _sectionScores(state),
         if (syllabus.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(
@@ -169,47 +356,51 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                     padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                     child: WPanel(
                       padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.rule_outlined,
-                            size: 17,
-                            color: colors.amber,
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        finding.check.label,
-                                        style: theme.textTheme.labelLarge
-                                            ?.copyWith(
-                                              color: colors.ink,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                      ),
-                                    ),
-                                    if (finding.subject != null)
-                                      WBadge(label: finding.subject!),
-                                  ],
-                                ),
-                                const SizedBox(height: AppSpacing.xs),
-                                Text(
-                                  finding.message,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: colors.muted,
-                                    height: 1.7,
-                                  ),
-                                ),
-                              ],
+                      child: AppInkWell(
+                        onTap: () => showSyllabusCheckDetail(context, finding),
+                        borderRadius: AppRadius.boxSm,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.rule_outlined,
+                              size: 17,
+                              color: colors.amber,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          finding.check.label,
+                                          style: theme.textTheme.labelLarge
+                                              ?.copyWith(
+                                                color: colors.ink,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                      ),
+                                      if (finding.subject != null)
+                                        WBadge(label: finding.subject!),
+                                    ],
+                                  ),
+                                  const SizedBox(height: AppSpacing.xs),
+                                  Text(
+                                    finding.message,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colors.muted,
+                                      height: 1.7,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

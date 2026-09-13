@@ -7,9 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
 import '../../../core/widgets/app_ink_well.dart';
+import '../../../data/checks/rubric_config.dart';
 import '../models/workspace_unit.dart';
 import '../view_model/workspace_view_model.dart';
 import 'desktop_context_menu.dart';
@@ -36,6 +38,7 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
   Widget build(BuildContext context) {
     final state = ref.watch(workspaceViewModelProvider);
     final viewModel = ref.read(workspaceViewModelProvider.notifier);
+    final rubric = ref.watch(rubricProvider).value ?? RubricConfig.fallback;
     final colors = context.workspaceColors;
     final theme = Theme.of(context);
 
@@ -242,6 +245,10 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
               for (final unit in visible)
                 _UnitRow(
                   unit: unit,
+                  // A scored row shows its number instead of the "Reviewed"
+                  // word: the chip says the same thing and adds the grade.
+                  score: state.result?.scores[unit.key],
+                  rubric: rubric,
                   onOpen: () => showSourceSheet(context, ref, unit),
                   onToggle: (value) =>
                       viewModel.setUnitSelected(unit.key, value),
@@ -319,11 +326,17 @@ class _UnitRow extends StatelessWidget {
     required this.onOpen,
     required this.onToggle,
     required this.onClassify,
+    required this.rubric,
+    this.score,
   });
 
   final WorkspaceUnit unit;
   final VoidCallback onOpen;
   final ValueChanged<bool> onToggle;
+
+  /// The model's 0–10 score from the latest run, null before it is reviewed.
+  final int? score;
+  final RubricConfig rubric;
 
   /// Re-classifying is the one inventory action with no direct on-screen
   /// control outside the source sheet, which is exactly why it belongs in the
@@ -456,21 +469,28 @@ class _UnitRow extends StatelessWidget {
                 ],
                 SizedBox(
                   width: 72,
-                  child: Row(
-                    children: [
-                      Icon(Icons.circle, size: 4, color: statusColor),
-                      const SizedBox(width: AppSpacing.xs),
-                      Expanded(
-                        child: Text(
-                          statusLabel,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: statusColor,
-                            fontSize: 9.5,
-                          ),
+                  child: score != null && !unit.malformed
+                      ? WScoreChip(
+                          score: score,
+                          passMark: rubric.passMark,
+                          warnScore: rubric.warnScore,
+                          dense: true,
+                        )
+                      : Row(
+                          children: [
+                            Icon(Icons.circle, size: 4, color: statusColor),
+                            const SizedBox(width: AppSpacing.xs),
+                            Expanded(
+                              child: Text(
+                                statusLabel,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: statusColor,
+                                  fontSize: 9.5,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
                 ),
                 Icon(Icons.chevron_right, size: 15, color: colors.muted),
               ];

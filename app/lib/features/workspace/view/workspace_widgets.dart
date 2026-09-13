@@ -5,9 +5,11 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
 import '../../../core/widgets/app_ink_well.dart';
+import '../../../data/models/review_models.dart' show Severity;
 
 /// Small rounded label — the brief's `.badge` (neutral / green / amber).
 class WBadge extends StatelessWidget {
@@ -571,6 +573,79 @@ class WInfoNote extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A 0–10 quality score pill.
+///
+/// Tints come from the rubric thresholds rather than a hard-coded cut, so the
+/// pass line lives in one place ([RubricConfig]) and can move with the
+/// server's rubric endpoint without hunting view files. A null score renders
+/// as a neutral "—" chip: "not reviewed" is a state the UI has to be able to
+/// say without lying with a zero.
+class WScoreChip extends StatelessWidget {
+  const WScoreChip({
+    required this.score,
+    this.passMark = 5,
+    this.warnScore = 6,
+    this.label,
+    this.dense = false,
+    super.key,
+  });
+
+  final int? score;
+  final double passMark;
+  final double warnScore;
+
+  /// Overrides the score text — used by section rows to show a mean ("6.4/10")
+  /// while keeping this chip's colour rules.
+  final String? label;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.workspaceColors;
+    final theme = Theme.of(context);
+    final value = score;
+    final (Color bg, Color fg, Color border) = value == null
+        ? (colors.mint, colors.muted, colors.border)
+        : value >= warnScore
+        ? (colors.sageBg, colors.brand, colors.border)
+        : value >= passMark
+        ? (colors.amberBg, colors.amber, colors.amberBorder)
+        : (
+            Color.alphaBlend(
+              context.severityColors
+                  .forSeverity(Severity.high)
+                  .withValues(alpha: 0.12),
+              colors.surface,
+            ),
+            context.severityColors.forSeverity(Severity.high),
+            context.severityColors
+                .forSeverity(Severity.high)
+                .withValues(alpha: 0.35),
+          );
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: dense ? 7 : 10,
+        vertical: dense ? 2 : 4,
+      ),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: AppRadius.boxSm,
+        border: Border.all(color: border),
+      ),
+      child: Text(
+        label ?? (value == null ? '—/10' : '$value/10'),
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: fg,
+          fontWeight: FontWeight.w700,
+          fontSize: dense ? 10 : 11,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
       ),
     );
   }

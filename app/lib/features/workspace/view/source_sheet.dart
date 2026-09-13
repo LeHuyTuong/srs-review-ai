@@ -8,8 +8,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
+import '../../../data/checks/rubric_config.dart';
 import '../../../data/models/review_models.dart' show Severity;
 import '../models/workspace_findings.dart';
 import '../models/workspace_unit.dart';
@@ -59,13 +61,27 @@ class _SourceSheetBody extends ConsumerWidget {
     final theme = Theme.of(context);
     // The sheet may outlive the exact object if the units list is replaced
     // (opening a session); always read the live unit by key.
-    final live = ref
-        .watch(workspaceViewModelProvider)
-        .units
-        .where((u) => u.key == unit.key)
-        .firstOrNull;
-    final current = live ?? unit;
+    final state = ref.watch(workspaceViewModelProvider);
+    final current =
+        state.units.where((u) => u.key == unit.key).firstOrNull ?? unit;
     final activeFinding = finding;
+
+    // The preview the inventory row promised: this unit's score and every
+    // verified issue against it, quote (where) and suggestion (how) inline.
+    final rubric = ref.watch(rubricProvider).value ?? RubricConfig.fallback;
+    final result = state.result;
+    final unitScore = result?.scores[current.key];
+    final scored = <FindingRow>[];
+    if (result != null) {
+      if (activeFinding != null) {
+        scored.add(activeFinding);
+      }
+      for (final row in result.findings) {
+        if (row.unitKey == current.key && row.id != activeFinding?.id) {
+          scored.add(row);
+        }
+      }
+    }
 
     return WPanel(
       padding: EdgeInsets.zero,
@@ -186,56 +202,131 @@ class _SourceSheetBody extends ConsumerWidget {
                     activeColor: colors.brand,
                   ),
                 ),
-                if (activeFinding != null) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  WPanel(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            WBadge(
-                              label: activeFinding.severity.name,
-                              tint: activeFinding.severity == Severity.high
-                                  ? WBadgeTint.amber
-                                  : WBadgeTint.neutral,
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Icon(
-                              Icons.shield_outlined,
-                              size: 13,
-                              color: colors.sage,
-                            ),
-                            const SizedBox(width: AppSpacing.xs),
-                            Text(
-                              'Exact match',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: colors.sage,
-                                fontSize: 9,
-                              ),
-                            ),
-                          ],
+                const SizedBox(height: AppSpacing.lg),
+                // The per-unit review preview: score, then every verified
+                // issue with its quote (where to fix) and suggestion (how).
+                // The tapped finding leads; the rest keep the run's
+                // severity-first order.
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'REVIEW RESULT',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: colors.muted,
+                          letterSpacing: 1.4,
+                          fontWeight: FontWeight.w600,
                         ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Text(
-                          activeFinding.title,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: colors.ink,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          activeFinding.suggestion,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colors.muted,
-                            height: 1.7,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
+                    if (unitScore != null)
+                      WScoreChip(
+                        score: unitScore,
+                        passMark: rubric.passMark,
+                        warnScore: rubric.warnScore,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                if (unitScore == null)
+                  WInfoNote(
+                    icon: Icons.help_outline,
+                    text:
+                        'This unit has no score in the latest run yet — '
+                        'include it in a review to see what needs fixing, '
+                        'where and how.',
+                  )
+                else if (scored.isEmpty)
+                  WInfoNote(
+                    icon: Icons.verified_outlined,
+                    text:
+                        'No verified issue against this requirement. The '
+                        'score rates wording quality; it is not a '
+                        'completeness guarantee.',
+                  )
+                else
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        '${scored.length} thing${scored.length == 1 ? '' : 's'} '
+                        'to fix here',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: colors.ink,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      for (final row in scored)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                          child: WPanel(
+                            padding: const EdgeInsets.all(AppSpacing.md),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    WBadge(
+                                      label: row.severity.name,
+                                      tint: row.severity == Severity.high
+                                          ? WBadgeTint.amber
+                                          : WBadgeTint.neutral,
+                                    ),
+                                    const SizedBox(width: AppSpacing.sm),
+                                    WBadge(
+                                      label: row.typeLabel,
+                                      tint: WBadgeTint.neutral,
+                                    ),
+                                    const Spacer(),
+                                    if (state.statusOf(row.id) !=
+                                        FindingStatus.open)
+                                      WBadge(
+                                        label: state.statusOf(row.id).label,
+                                        tint:
+                                            state.statusOf(row.id) ==
+                                                FindingStatus.accepted
+                                            ? WBadgeTint.purple
+                                            : WBadgeTint.neutral,
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: AppSpacing.sm),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(AppSpacing.md),
+                                  decoration: BoxDecoration(
+                                    color: colors.quoteBg,
+                                    borderRadius: AppRadius.boxSm,
+                                    border: Border(
+                                      left: BorderSide(
+                                        color: colors.quoteBar,
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    '"${row.quote}"',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colors.muted,
+                                      height: 1.7,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.xs),
+                                Text(
+                                  row.suggestion,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colors.muted,
+                                    height: 1.7,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                ],
                 const SizedBox(height: AppSpacing.lg),
                 Row(
                   children: [
