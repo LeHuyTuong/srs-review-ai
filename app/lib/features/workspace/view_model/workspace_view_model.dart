@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/app_config.dart';
 import '../../../core/providers.dart';
+import '../../../data/checks/reference_checks.dart';
 import '../../../data/checks/rubric_config.dart';
 import '../../../data/checks/syllabus_checks.dart';
 import '../../../data/models/deterministic_finding.dart';
@@ -46,6 +47,7 @@ class WorkspaceState {
     this.isDemo = false,
     this.units = const [],
     this.syllabusFindings = const [],
+    this.referenceFindings = const [],
     this.result,
     this.progress,
     this.error,
@@ -73,6 +75,15 @@ class WorkspaceState {
   final bool isDemo;
   final List<WorkspaceUnit> units;
   final List<DeterministicFinding> syllabusFindings;
+
+  /// M2 reference-check results — `reference_checks.dart`. Same lifecycle
+  /// as [syllabusFindings] (computed once at load time) but visually rendered
+  /// under their own heading so the findings tab separates "syllabus
+  /// failures" from "consistency smells". A future round will move these
+  /// out into the per-tile dashboard; for now they travel next to the F7/F8/F9
+  /// data so the ViewModel is the only place that needs new wiring when that
+  /// happens.
+  final List<DeterministicFinding> referenceFindings;
   final WorkspaceReviewResult? result;
 
   /// Non-null while a review is running or has just finished.
@@ -178,6 +189,7 @@ class WorkspaceState {
     bool? isDemo,
     List<WorkspaceUnit>? units,
     List<DeterministicFinding>? syllabusFindings,
+    List<DeterministicFinding>? referenceFindings,
     WorkspaceReviewResult? result,
     bool clearResult = false,
     ReviewProgress? progress,
@@ -211,6 +223,7 @@ class WorkspaceState {
     isDemo: isDemo ?? this.isDemo,
     units: units ?? this.units,
     syllabusFindings: syllabusFindings ?? this.syllabusFindings,
+    referenceFindings: referenceFindings ?? this.referenceFindings,
     result: clearResult ? null : (result ?? this.result),
     progress: clearProgress ? null : (progress ?? this.progress),
     error: clearError ? null : (error ?? this.error),
@@ -301,6 +314,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       isDemo: true,
       units: units,
       syllabusFindings: SyllabusChecks(RubricConfig.fallback).runAll(document),
+      referenceFindings: const ReferenceChecks().runAll(document),
       diagramPageCount: document.imagePageIndexes.length,
       imageReviewAvailable: false,
       imageReviewedCount: 0,
@@ -341,6 +355,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         isDemo: false,
         units: unitsFromDocument(loaded.document),
         syllabusFindings: loaded.findings,
+        referenceFindings: loaded.referenceFindings,
         // How many pages look like diagrams. Recorded at import so the report
         // can distinguish diagram detection from actual image review.
         diagramPageCount: loaded.document.imagePageIndexes.length,
