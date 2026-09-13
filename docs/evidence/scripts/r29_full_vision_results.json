@@ -1,0 +1,1258 @@
+{
+  "model_used": "gemini-3.5-flash (3.1-flash-lite fallback)",
+  "results": [
+    {
+      "stem": "p155-155",
+      "score": 4,
+      "issues": [
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "ClassStudent Contain the student in clas",
+          "suggestion": "Complete the truncated text to 'Contain the student in class information.' and detail the key attributes of the entity.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "vagueness",
+          "severity": "medium",
+          "quote": "describe all content of all",
+          "suggestion": "The descriptions are circular tautologies (e.g., 'Contain the attendance information') and do not actually describe any of the attributes, keys, or data types of the entities as promised. Expand the dictionary to define the actual attributes/fields of each entity.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 0.02
+    },
+    {
+      "stem": "p156-156",
+      "score": 0,
+      "issues": [],
+      "is_class_related": false,
+      "elapsed_s": 0.0
+    },
+    {
+      "stem": "p157-157",
+      "score": 2,
+      "issues": [
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "Provide service for controller",
+          "suggestion": "Define specific functional responsibilities instead of using the vague phrase 'Provide service'.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "User\u2019s business processing",
+          "suggestion": "Define specific business logic operations (e.g., CRUD actions or authentication flows) rather than the vague term 'business processing'.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "Attendance\u2019s business processing",
+          "suggestion": "Specify the concrete business rules for attendance management.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "Schedule\u2019s business processing",
+          "suggestion": "Define exactly what business processing is performed on schedules.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "Subject class\u2019s business processing",
+          "suggestion": "Define the specific business rules or processes related to Subject Class management.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "medium",
+          "quote": "COMPONENT DICTIONARY: DESCRIBES COMPONENTS",
+          "suggestion": "The component dictionary is incomplete as it misses descriptions for the 'Controller', 'Course', 'Syllabus', and 'Repository' components shown in Figure 70.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 0.0
+    },
+    {
+      "stem": "p158-158",
+      "score": 2,
+      "issues": [
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "Handle request",
+          "suggestion": "Define the specific types of requests being handled and the expected response or system behavior.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Router Handle request",
+          "suggestion": "Include the trigger and specific system response criteria to make the requirement complete.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "high",
+          "quote": "Handle request",
+          "suggestion": "Define a verifiable outcome or performance threshold that allows a tester to confirm the requirement is met.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": false,
+      "elapsed_s": 0.0
+    },
+    {
+      "stem": "p159-159",
+      "score": 1,
+      "issues": [
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "Features for exam mode",
+          "suggestion": "Define specific functional requirements for the Exam Component rather than using the generic placeholder 'Features'.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "high",
+          "quote": "Features for exam mode",
+          "suggestion": "Provide concrete, observable behaviors or acceptance criteria for the Exam Component.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Features for exam mode",
+          "suggestion": "The requirement lacks an actor, trigger, and specific expected system behavior, making it a mere label rather than a requirement.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": false,
+      "elapsed_s": 0.0
+    },
+    {
+      "stem": "p160-160",
+      "score": 1,
+      "issues": [
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Features for Admin",
+          "suggestion": "The requirement lacks specific functional details. Specify exactly what features the Admin Component is required to implement (e.g., user management, configuration, reporting).",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "high",
+          "quote": "Features for Admin",
+          "suggestion": "Define the specific, measurable criteria that verify the Admin Component's functionality.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "ambiguity",
+          "severity": "medium",
+          "quote": "Features for Admin",
+          "suggestion": "The description is vague; define the scope of 'Features' to eliminate ambiguity.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": false,
+      "elapsed_s": 8.27
+    },
+    {
+      "stem": "p167-167",
+      "score": 3,
+      "issues": [
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Getter",
+          "suggestion": "Getter methods are generic placeholders. Specify the individual getter methods for each attribute (e.g., getId, getStudentid) to ensure the class definition is complete.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Setter",
+          "suggestion": "Setter methods are generic placeholders. Specify the individual setter methods for each attribute (e.g., setId, setStudentid) to ensure the class definition is complete.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "ambiguity",
+          "severity": "medium",
+          "quote": "Isdisable ulong Private The row is disable",
+          "suggestion": "The data type 'ulong' is generally inappropriate for a boolean flag. Rename the attribute to a more descriptive name (e.g., 'isDisabled') and use a boolean type if the purpose is to indicate active/inactive status.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 7.72
+    },
+    {
+      "stem": "p168-168",
+      "score": 3,
+      "issues": [
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Summary: this diagram show process of lecturer join teaching room",
+          "suggestion": "The requirement lacks a defined system boundary, specific triggers, error handling for connection failures, and explicit acceptance criteria for the user experience upon joining the room.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "medium",
+          "quote": "Summary: this diagram show process of lecturer join teaching room",
+          "suggestion": "A diagram summary is a descriptive artifact, not a requirement. Please provide functional requirements that define verifiable success conditions (e.g., latency, authentication, or redirection) for the join room process.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 8.14
+    },
+    {
+      "stem": "p169-169",
+      "score": 3,
+      "issues": [
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Mute/ unmute microphone of student",
+          "suggestion": "The requirement is missing an acceptance criterion defining the maximum allowable time from the button click to the audio state change.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "medium",
+          "quote": "Mute/ unmute microphone of student",
+          "suggestion": "The requirement is missing error handling, such as what occurs if the network connection to Jitsi is interrupted or the command fails to deliver.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "ambiguity",
+          "severity": "low",
+          "quote": "redirect command to chosen student",
+          "suggestion": "Specify the mechanism of identification for the 'chosen student' to ensure the command is sent to the correct individual.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": false,
+      "elapsed_s": 8.15
+    },
+    {
+      "stem": "p170-170",
+      "score": 3,
+      "issues": [
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "click button change exam mode",
+          "suggestion": "Define the scope or criteria for what 'change exam mode' actually does, as the diagram is a workflow illustration and lacks a textual requirement defining the system state transitions or error handling.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 0.0
+    },
+    {
+      "stem": "p171-171",
+      "score": 3,
+      "issues": [
+        {
+          "type": "incomplete",
+          "severity": "medium",
+          "quote": "To password screen",
+          "suggestion": "Define the behavior when the input is invalid or the system fails to connect to the authentication service; current specification lacks error handling.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": false,
+      "elapsed_s": 0.01
+    },
+    {
+      "stem": "p181-181",
+      "score": 1,
+      "issues": [
+        {
+          "type": "untestable",
+          "severity": "high",
+          "quote": "To start a exam",
+          "suggestion": "Define the measurable outcome (e.g., 'The system shall display the exam dashboard within 2 seconds of clicking the Start exam button.')",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "N/A",
+          "suggestion": "Specify the validation criteria or error handling requirements that must be met before the exam can be started.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "ambiguity",
+          "severity": "medium",
+          "quote": "Start exam",
+          "suggestion": "The description merely repeats the function name. Provide a detailed description of the system's behavior when this button is clicked.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": false,
+      "elapsed_s": 0.0
+    },
+    {
+      "stem": "p182-182",
+      "score": 0,
+      "issues": [],
+      "is_class_related": false,
+      "elapsed_s": 0.01
+    },
+    {
+      "stem": "p183-183",
+      "score": 0,
+      "issues": [],
+      "is_class_related": false,
+      "elapsed_s": 0.0
+    },
+    {
+      "stem": "p184-184",
+      "score": 1,
+      "issues": [
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "Table which stores attendance information with class schedules.",
+          "suggestion": "Define the specific data fields and storage constraints rather than providing a generic description.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "high",
+          "quote": "Table which contains the schedule of student or lecture information.",
+          "suggestion": "Replace the narrative description with a formal schema definition including column names, data types, and primary/foreign key relationships.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Table contains all syllabus of course.",
+          "suggestion": "The requirement fails to define what constitutes 'all syllabus' information; it must be mapped to specific attributes or a structured data model.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 0.0
+    },
+    {
+      "stem": "p185-185",
+      "score": 3,
+      "issues": [
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "Room status is online or offline",
+          "suggestion": "Define the specific integer mappings (e.g., 0 for offline, 1 for online) for the roomstatus field to ensure consistent interpretation.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "ambiguity",
+          "severity": "medium",
+          "quote": "Schedule is act",
+          "suggestion": "Correct the incomplete description for 'isdisable' to define what the boolean values represent (e.g., '0' for active, '1' for disabled).",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "medium",
+          "quote": "The owner of room is generated by Jitsi",
+          "suggestion": "Clarify if this field is intended to store the Jitsi-generated ID upon room creation or if the system is responsible for triggering this generation; as written, it describes a process rather than a field requirement.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 0.0
+    },
+    {
+      "stem": "dbg-160",
+      "score": 1,
+      "issues": [
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "Features for Admin",
+          "suggestion": "Replace vague phrase with a specific list of functional requirements the Admin Component is expected to perform.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "high",
+          "quote": "Features for Admin",
+          "suggestion": "Define specific behaviors or outputs that can be validated through testing.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "medium",
+          "quote": "Features for Admin",
+          "suggestion": "The requirement fails to specify what the features are; provide a clear description of the component's responsibilities.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": false,
+      "elapsed_s": 10.85
+    },
+    {
+      "stem": "h167-167",
+      "score": 3,
+      "issues": [
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Id int Private Unique identifier ofa attendance",
+          "suggestion": "The attribute description suggests this class is meant for student-subject associations, yet the description claims it is a unique identifier of an attendance record, which contradicts the naming convention 'ClassStudent'. Clarify the domain model entity.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "ambiguity",
+          "severity": "medium",
+          "quote": "Isdisable ulong Private The row is disable",
+          "suggestion": "The purpose of this attribute is unclear. Define the specific valid values (e.g., 0/1) and the functional effect on the system behavior when set.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 9.18
+    },
+    {
+      "stem": "h168-168",
+      "score": 0,
+      "issues": [
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Summary: this diagram show process of lecturer join teaching room",
+          "suggestion": "The requirement must provide functional specifications. Diagrams are models, not requirements. Define the trigger, system behavior, and expected outputs (e.g., successful room entry or error handling) for the 'Join room' feature.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "high",
+          "quote": "Summary: this diagram show process of lecturer join teaching room",
+          "suggestion": "Provide a measurable requirement statement that can be verified through black-box testing, rather than referencing a diagrammatic process.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 9.29
+    },
+    {
+      "stem": "h169-169",
+      "score": 3,
+      "issues": [
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Summary: this diagram show process of lecturer change exam mode",
+          "suggestion": "The summary text does not match the activity diagram, which depicts muting/unmuting a student. Ensure the descriptive summary accurately reflects the process shown in the diagram.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "ambiguity",
+          "severity": "medium",
+          "quote": "click button",
+          "suggestion": "Specify which button the lecturer interacts with (e.g., 'the mute/unmute button located in the student list').",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "medium",
+          "quote": "Change button mic image",
+          "suggestion": "Define the specific expected visual change (e.g., 'The microphone icon shall toggle between an active state and a slash-through state').",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 9.93
+    },
+    {
+      "stem": "h170-170",
+      "score": 0,
+      "issues": [
+        {
+          "type": "untestable",
+          "severity": "high",
+          "quote": "change exam mode",
+          "suggestion": "The requirement is presented only as a title for a diagram. Define the functional requirements, including preconditions, triggers, and expected system responses in a text-based format.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "change exam mode",
+          "suggestion": "The provided text contains only diagram titles and truncated summaries. It lacks the actual requirement statements necessary for implementation and testing.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 8.42
+    },
+    {
+      "stem": "h171-171",
+      "score": 3,
+      "issues": [
+        {
+          "type": "incomplete",
+          "severity": "medium",
+          "quote": "To password screen",
+          "suggestion": "Define the system behavior and error handling if the input is invalid or the email/phone does not exist in the system.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": false,
+      "elapsed_s": 11.89
+    },
+    {
+      "stem": "h175-175",
+      "score": 3,
+      "issues": [
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "Change grid view",
+          "suggestion": "Define the specific functionality or UI change expected when 'Change grid view' is triggered.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Change grid view",
+          "suggestion": "The requirement is missing the actor (e.g., student/user), the trigger (e.g., clicks the button), and the expected system outcome.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "high",
+          "quote": "Change grid view",
+          "suggestion": "Provide a concrete, observable state transition or UI change that a tester can verify.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": false,
+      "elapsed_s": 10.76
+    },
+    {
+      "stem": "h183-183",
+      "score": 0,
+      "issues": [],
+      "is_class_related": false,
+      "elapsed_s": 10.79
+    },
+    {
+      "stem": "h184-184",
+      "score": 3,
+      "issues": [
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "Table which stores attendance information with class schedules.",
+          "suggestion": "Define the specific data attributes and constraints for the 'Attendance' table rather than providing a vague description of its purpose.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Schedule Table which contains the schedule of student or lecture information.",
+          "suggestion": "Define the explicit schema (attributes, data types, and primary/foreign keys) for the 'Schedule' table. The provided text only offers a high-level description.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "medium",
+          "quote": "Syllabus Table contains all syllabus of course.",
+          "suggestion": "Provide a clear definition of what data must be stored to verify the 'Syllabus' table design.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 12.37
+    },
+    {
+      "stem": "h185-185",
+      "score": 3,
+      "issues": [
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "Room status is online or offline",
+          "suggestion": "Define the valid integer values for 'online' and 'offline' statuses to ensure unambiguous data representation.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "ambiguity",
+          "severity": "medium",
+          "quote": "Schedule is act",
+          "suggestion": "Correct the incomplete description to clearly define what the 'isdisable' bit represents (e.g., '1 for active, 0 for disabled').",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "ownerjitsiid",
+          "suggestion": "Define the constraints and data source for the ownerjitsiid; 'generated by Jitsi' is an implementation note, not a business requirement.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": false,
+      "elapsed_s": 10.49
+    },
+    {
+      "stem": "h188-188",
+      "score": 1,
+      "issues": [
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "Features not to be tested",
+          "suggestion": "SRS documents should define what is to be built and tested. A list of features 'not to be tested' is outside the scope of a standard requirements specification as per ISO/IEC/IEEE 29148, unless explicitly defined as an exclusion criterion in the scope section.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Import/Export/Delete student.",
+          "suggestion": "The requirement uses 'Import/Export/Delete' which bundles multiple independent actions into a single bullet point. Each action (Import, Export, Delete) should be defined as its own atomic requirement.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "high",
+          "quote": "Draw/ erase on the screen.",
+          "suggestion": "The requirement lacks an actor, an input, an expected outcome, or performance criteria. It does not state under what conditions the drawing occurs or what the result should be on the UI.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": false,
+      "elapsed_s": 11.87
+    },
+    {
+      "stem": "h189-189",
+      "score": 0,
+      "issues": [
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Take an exam",
+          "suggestion": "The requirement lacks a defined actor, trigger, and system behavior specification; it is currently just a label on a diagram. Define the specific functionality, expected outcomes, and error handling for taking an exam.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "high",
+          "quote": "Take an exam",
+          "suggestion": "This is a fragment of a diagram rather than a verifiable requirement. It lacks any measurable acceptance criteria (e.g., timing, input validation, or completion state).",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 8.76
+    },
+    {
+      "stem": "h190-190",
+      "score": 3,
+      "issues": [],
+      "is_class_related": false,
+      "elapsed_s": 20.05
+    },
+    {
+      "stem": "hi-155",
+      "score": 2,
+      "issues": [
+        {
+          "type": "vagueness",
+          "severity": "high",
+          "quote": "Contain the attendance information.",
+          "suggestion": "Replace vague descriptions with a list of specific attributes (e.g., ID, date, status) for each entity to ensure the data dictionary is meaningful.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Entity Data dictionary: describe all content of all entities",
+          "suggestion": "The requirement claims to describe all content of all entities but provides only circular definitions (e.g., 'Attendance' contains 'attendance information'), failing to define the structure or attributes of the entities.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "medium",
+          "quote": "Entity Data dictionary: describe all content of all entities",
+          "suggestion": "Since the descriptions do not list data fields, types, or constraints, there is no objective way to verify if the 'content' of the entities has been fully described.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 33.73
+    },
+    {
+      "stem": "hi-156",
+      "score": 0,
+      "issues": [],
+      "is_class_related": false,
+      "elapsed_s": 8.78
+    },
+    {
+      "stem": "hi-157",
+      "score": 3,
+      "issues": [
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "Provide service for controller",
+          "suggestion": "Define the specific services provided by the component using verifiable terminology rather than circular descriptions.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "User\u2019s business processing",
+          "suggestion": "Specify the exact business logic or functional operations performed by the component.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "high",
+          "quote": "Attendance\u2019s business processing",
+          "suggestion": "Replace vague functional descriptions with concrete inputs, outputs, and expected system behaviors.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "medium",
+          "quote": "Schedule\u2019s business processing",
+          "suggestion": "List the explicit requirements or use cases that this component is expected to fulfill.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": false,
+      "elapsed_s": 8.77
+    },
+    {
+      "stem": "hi-158",
+      "score": 3,
+      "issues": [
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "Handle request",
+          "suggestion": "Specify which requests are handled, the format of the requests, and the expected system response.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "medium",
+          "quote": "Student Application",
+          "suggestion": "The entry in the component dictionary for 'Student Application' is empty; provide a functional description of the component's purpose.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": false,
+      "elapsed_s": 9.22
+    },
+    {
+      "stem": "hi-159",
+      "score": 1,
+      "issues": [
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "Features for exam mode",
+          "suggestion": "Define specific functional requirements for the exam mode instead of using a vague placeholder phrase.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "high",
+          "quote": "Features for exam mode",
+          "suggestion": "Specify exactly what the Exam Component must do, providing verifiable criteria.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Features for exam mode",
+          "suggestion": "The requirement lacks an actor, trigger, and specific functional outcome, making it an incomplete description of a requirement.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": false,
+      "elapsed_s": 10.72
+    },
+    {
+      "stem": "hi-161",
+      "score": 3,
+      "issues": [
+        {
+          "type": "vagueness",
+          "severity": "high",
+          "quote": "Contain the role information.",
+          "suggestion": "Replace vague descriptions with a specific list of attributes or data points included in the class.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Contain the user in",
+          "suggestion": "Complete the sentence describing the User class, as it is cut off in the provided text.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 8.6
+    },
+    {
+      "stem": "hi-162",
+      "score": 3,
+      "issues": [],
+      "is_class_related": false,
+      "elapsed_s": 9.08
+    },
+    {
+      "stem": "hi-163",
+      "score": 3,
+      "issues": [
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "The status of the attendance",
+          "suggestion": "Define the possible values or range for the 'Status' attribute to remove ambiguity.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "ambiguity",
+          "severity": "medium",
+          "quote": "The row is disable",
+          "suggestion": "Specify the meaning of the 'Isdisable' attribute (e.g., boolean flag indicating logical deletion status).",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Getter Attribute type Public Get attribute value.",
+          "suggestion": "The requirement is design-level implementation detail rather than a functional requirement. If defining an API, specify which attributes require accessors.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "high",
+          "quote": "Setter Void Public Set value of attribute.",
+          "suggestion": "This is a structural definition, not a functional requirement. It lacks business logic context, making it impossible to perform black-box testing.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 13.12
+    },
+    {
+      "stem": "hi-164",
+      "score": 3,
+      "issues": [
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Getter Attribute type Public Get attribute value.",
+          "suggestion": "The requirement is a design specification, not a functional requirement. It fails to define the system actor, trigger, or business logic. Remove implementation details and define the functional requirement for accessing data.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Setter Void Public Set value of attribute.",
+          "suggestion": "The requirement lacks business logic, validation rules, or constraints on how attributes are updated. It describes low-level code structure rather than a software requirement.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "ambiguity",
+          "severity": "medium",
+          "quote": "Isdisable ulong Private The row is disable",
+          "suggestion": "The description 'The row is disable' is grammatically incorrect and ambiguous regarding the expected boolean states (e.g., true/false or 1/0) or the impact on system behavior.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 9.64
+    },
+    {
+      "stem": "hi-165",
+      "score": 3,
+      "issues": [
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Getter Attribute type Public Get attribute value. Setter Void Public Set value of attribute.",
+          "suggestion": "Define which specific attributes these methods apply to, as 'attribute value' is non-specific.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "vagueness",
+          "severity": "medium",
+          "quote": "The row is disable",
+          "suggestion": "Clarify the state definition of 'disable' (e.g., boolean or status flag) and specify if this implies soft deletion or state management.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 10.4
+    },
+    {
+      "stem": "hi-166",
+      "score": 3,
+      "issues": [
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "The row is disable",
+          "suggestion": "Clarify the boolean logic. Does 0 represent active and 1 represent disabled? Use standard terminology such as 'Boolean flag indicating if the record is logically deleted/disabled'.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "medium",
+          "quote": "Getter Attribute type Public Get attribute value.",
+          "suggestion": "Specify the actual return type for the getter methods instead of using the placeholder 'Attribute type', which is not a valid data type.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "medium",
+          "quote": "Setter Void Public Set value of attribute.",
+          "suggestion": "Define the parameters required for the Setter method (e.g., 'Setter(value: T): void').",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 10.59
+    },
+    {
+      "stem": "hi-172",
+      "score": 3,
+      "issues": [],
+      "is_class_related": false,
+      "elapsed_s": 8.7
+    },
+    {
+      "stem": "hi-173",
+      "score": 3,
+      "issues": [
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Join room To classroom screen",
+          "suggestion": "The requirement lacks the actor (e.g., student or teacher) and the trigger condition for the button to be available (e.g., must the class be in progress?).",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "medium",
+          "quote": "Join room",
+          "suggestion": "The requirement does not specify the business logic for the navigation; a testable requirement would define the specific conditions under which the 'Join room' link is enabled or disabled.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "ambiguity",
+          "severity": "low",
+          "quote": "Slot info",
+          "suggestion": "The field name 'Slot info' is ambiguous. Provide a clear definition of what data constitutes the slot information.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 9.5
+    },
+    {
+      "stem": "hi-174",
+      "score": 3,
+      "issues": [],
+      "is_class_related": false,
+      "elapsed_s": 10.3
+    },
+    {
+      "stem": "hi-176",
+      "score": 3,
+      "issues": [
+        {
+          "type": "incomplete",
+          "severity": "medium",
+          "quote": "N/A",
+          "suggestion": "The 'Validation' and 'Outcome' columns are marked 'N/A'. Define the business logic for validation (e.g., if any participant is available) and the specific outcome expected when a user attempts this action.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": false,
+      "elapsed_s": 9.51
+    },
+    {
+      "stem": "hi-177",
+      "score": 3,
+      "issues": [
+        {
+          "type": "ambiguity",
+          "severity": "high",
+          "quote": "To exam screen",
+          "suggestion": "The requirement lacks a clear verb defining the system's action. Use explicit phrasing such as 'The system shall navigate the lecturer to the exam screen upon selecting the Exam mode button'.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "medium",
+          "quote": "N/A",
+          "suggestion": "The validation column is set to N/A for all items. Every interactive element requires validation criteria, such as verifying user permissions or checking if the classroom session is active before performing the action.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Table 103. <Fields> Lecturer view classroom",
+          "suggestion": "The requirement lacks an actor. Define that the 'Lecturer' is the actor interacting with these specific controls.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 9.85
+    },
+    {
+      "stem": "hi-178",
+      "score": 2,
+      "issues": [
+        {
+          "type": "untestable",
+          "severity": "high",
+          "quote": "To group student",
+          "suggestion": "Define the specific functional outcome of the 'Group student' action (e.g., 'system shall assign selected students to a new group') and the criteria for success.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "To group student",
+          "suggestion": "Define the error handling for this action (e.g., what happens if no student is selected when clicking the button?).",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "ambiguity",
+          "severity": "medium",
+          "quote": "To group student",
+          "suggestion": "The description is tautological. Provide a clear functional description of what the button does to the system state.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": false,
+      "elapsed_s": 9.01
+    },
+    {
+      "stem": "hi-179",
+      "score": 4,
+      "issues": [
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "Lecturer view attendance",
+          "suggestion": "The requirement is missing the trigger, the actor, and the functional behavior. It should define what action the lecturer performs to view this information and what specific student attendance data the system must retrieve.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "high",
+          "quote": "Lecturer view attendance",
+          "suggestion": "There is no verifiable acceptance criterion. Define the expected system response, such as 'The system shall display a table of students and their attendance status when the lecturer selects the View Attendance option.'",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": false,
+      "elapsed_s": 11.71
+    },
+    {
+      "stem": "hi-180",
+      "score": 3,
+      "issues": [
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "6 | Duration( | Duration of No Ye",
+          "suggestion": "The requirement is truncated and incomplete; provide the full field name, description, and complete column attributes.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "ambiguity",
+          "severity": "medium",
+          "quote": "Control Data Length\no Name P only y Type Type",
+          "suggestion": "The table header alignment is corrupted/unclear, making it difficult to map column names to specific attributes.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "untestable",
+          "severity": "medium",
+          "quote": "5 Starttime | Time to start No Yes Time String N/A",
+          "suggestion": "The requirement lacks specification for the behavior of the 'Time picker' (e.g., input validation rules, allowed ranges, or error handling).",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": true,
+      "elapsed_s": 9.63
+    },
+    {
+      "stem": "hi-181",
+      "score": 1,
+      "issues": [
+        {
+          "type": "untestable",
+          "severity": "high",
+          "quote": "To start a exam",
+          "suggestion": "Define the observable behavior, pre-conditions, and expected system state changes when the 'Start exam' button is clicked.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "ambiguity",
+          "severity": "medium",
+          "quote": "Start exam",
+          "suggestion": "The requirement is just a label for a function; provide a functional requirement describing the system action initiated by the user.",
+          "verification": "exact",
+          "similarity": null
+        },
+        {
+          "type": "incomplete",
+          "severity": "high",
+          "quote": "N/A",
+          "suggestion": "Missing validation rules for starting an exam, such as checking if the scheduled time has arrived or if authorized users are present.",
+          "verification": "exact",
+          "similarity": null
+        }
+      ],
+      "is_class_related": false,
+      "elapsed_s": 10.15
+    },
+    {
+      "stem": "hi-186",
+      "score": 3,
+      "issues": [],
+      "is_class_related": false,
+      "elapsed_s": 24.05
+    }
+  ],
+  "sev_counts": {
+    "high": 73,
+    "medium": 32,
+    "low": 2
+  },
+  "class_related_pages": 22,
+  "total_pages_probed": 50
+}
