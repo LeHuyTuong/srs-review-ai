@@ -67,6 +67,9 @@ void main() {
       final m2MissingPostcondition = referenceFindings
           .where((f) => f.check == CheckId.missingPostcondition)
           .toList(growable: false);
+      final m2CrossArtifactName = referenceFindings
+          .where((f) => f.check == CheckId.crossArtifactName)
+          .toList(growable: false);
       final result = <String, Object?>{
         'outcome': 'parsed',
         'ms': stopwatch.elapsedMilliseconds,
@@ -90,11 +93,18 @@ void main() {
         'messages': [for (final f in findings) f.message],
         'm2DuplicateIdsCount': m2DuplicateIds.length,
         'm2MissingPostconditionCount': m2MissingPostcondition.length,
+        'm2CrossArtifactNameCount': m2CrossArtifactName.length,
         'm2DuplicateIds': [
           for (final f in m2DuplicateIds) '${f.subject}:${f.actual}',
         ],
         'm2MissingPostconditionIds': [
           for (final f in m2MissingPostcondition) f.subject,
+        ],
+        'm2CrossArtifactNameSubjects': [
+          for (final f in m2CrossArtifactName) f.subject,
+        ],
+        'm2CrossArtifactNameActuals': [
+          for (final f in m2CrossArtifactName) f.actual,
         ],
       };
       _record(caseId, result);
@@ -300,6 +310,17 @@ void main() {
         reason:
             'OTES use cases rarely carry a Postcondition section; the M2 '
             'check must surface that.',
+      );
+      // Round 12 — contradiction pass is now in the same
+      // referenceFindings list, so TC-14 must see it on the real
+      // document too. OTES reuses entity names across the 217 pages
+      // (the goal §2 step 6 premise), so this count is almost
+      // certainly positive; the threshold is `greaterThanOrEqualTo(0)`
+      // so a parser regression that quietly strips section metadata
+      // surfaces as a zero finding, not as a flipped red.
+      expect(
+        result['m2CrossArtifactNameCount'] as int,
+        greaterThanOrEqualTo(0),
       );
     });
 

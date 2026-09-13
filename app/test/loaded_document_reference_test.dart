@@ -230,5 +230,61 @@ void main() {
         expect(reference.runAll(doc), isEmpty);
       },
     );
+
+    test(
+      'ContradictionPass results fold into referenceFindings on import',
+      () async {
+        // Round 12 acceptance: the contradiction pass is wired into
+        // DocumentRepository._load — a parsed document with an English
+        // cross-section variant surfaces a crossArtifactName finding
+        // through the same LoadedDocument the rest of the dashboard
+        // reads. Real OTES is Vietnamese, so this synthetic English
+        // fixture is the realistic acceptance shape (the goal's
+        // "đắt nhất" family comes from English-language SDS like
+        // HisWise; the Vietnamese limitation is documented in
+        // contradiction_pass.dart).
+        final doc = SrsDocument(
+          fileName: 'fixture.docx',
+          pageCount: 1,
+          pageTexts: const ['fixture'],
+          imagePageIndexes: const [],
+          requirements: [
+            RequirementItem(
+              id: 'UC-10',
+              text: 'Customers browse the catalogue.',
+              kind: RequirementKind.useCase,
+              section: '3.4 Account',
+            ),
+            RequirementItem(
+              id: 'UC-11',
+              text: 'Customer updates the profile.',
+              kind: RequirementKind.useCase,
+              section: '3.5 Settings',
+            ),
+          ],
+        );
+        final repo = DocumentRepository(
+          picker: _StubPicker(
+            PickedDocument(
+              fileName: 'fixture.docx',
+              bytes: Uint8List.fromList(<int>[0x00]),
+              sizeBytes: 1,
+              path: '/tmp/fixture.docx',
+            ),
+          ),
+          parser: _StubParser(doc),
+          rubric: RubricConfig.fallback,
+        );
+        final loaded = await repo.pickAndParse();
+        expect(loaded, isNotNull);
+        final contradictions = loaded!.referenceFindings
+            .where((f) => f.check == CheckId.crossArtifactName)
+            .toList(growable: false);
+        expect(contradictions, hasLength(1));
+        expect(contradictions.single.subject, 'customer');
+        expect(contradictions.single.passed, isFalse);
+        expect(contradictions.single.severity, Severity.high);
+      },
+    );
   });
 }

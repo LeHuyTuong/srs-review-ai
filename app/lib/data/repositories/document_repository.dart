@@ -10,9 +10,11 @@ library;
 
 import 'dart:typed_data';
 
+import '../checks/contradiction_pass.dart';
 import '../checks/reference_checks.dart';
 import '../checks/rubric_config.dart';
 import '../checks/syllabus_checks.dart';
+import '../models/deterministic_finding.dart';
 import '../models/loaded_document.dart';
 import '../services/file_picker_service.dart';
 import '../services/parse_service.dart';
@@ -77,7 +79,16 @@ class DocumentRepository {
     // its findings land on a LoadedDocument that's already carrying the
     // rest of the offline evidence.
     final syllabus = SyllabusChecks(_rubric).runAll(document);
-    final reference = const ReferenceChecks().runAll(document);
+    final reference = <DeterministicFinding>[
+      ...const ReferenceChecks().runAll(document),
+      // Round 12 — fold the contradiction pass into the same
+      // referenceFindings list. The dashboard already renders this
+      // family under "Consistency smells" (R6) and the Verifier (R9)
+      // handles fixed → verified transitions for any deterministic
+      // key, so a ContradictionPass finding participates in the
+      // ledger without any new plumbing.
+      ...const ContradictionPass().detect(document),
+    ];
     return LoadedDocument(
       document: document,
       findings: syllabus,
