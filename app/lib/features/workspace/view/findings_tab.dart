@@ -249,8 +249,16 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
     final syllabus = state.syllabusFindings
         .where((finding) => !finding.passed)
         .toList(growable: false);
+    // The M2 reference checks (duplicateIds, missingPostcondition) live on the
+    // same data path but render under their own heading. A document can have
+    // a clean syllabus (F7/F8/F9 passing) and still carry consistency smells
+    // — the OTES pattern is exactly the opposite: 63/63 use cases without a
+    // Postcondition, which trips M2 even when F7 is happy.
+    final reference = state.referenceFindings
+        .where((finding) => !finding.passed)
+        .toList(growable: false);
 
-    if (result == null && syllabus.isEmpty) {
+    if (result == null && syllabus.isEmpty && reference.isEmpty) {
       return WEmptyState(
         icon: Icons.auto_awesome,
         title: 'A second look, backed by evidence.',
@@ -395,6 +403,93 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                                       color: colors.muted,
                                       height: 1.7,
                                     ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        if (reference.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              0,
+              AppSpacing.lg,
+              AppSpacing.md,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Consistency smells (M2)',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: colors.ink,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Reference checks — duplicate ids, missing postconditions. '
+                  'Independent of the syllabus: a passing F7/F8/F9 score '
+                  'does not save a use case that no tester can mark "done", '
+                  'and a perfectly clean report still flags a UC04 used 7 '
+                  'times.',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colors.muted,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                for (final finding in reference)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: WPanel(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      child: AppInkWell(
+                        onTap: () =>
+                            showSyllabusCheckDetail(context, finding),
+                        borderRadius: AppRadius.boxSm,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.bubble_chart_outlined,
+                              size: 17,
+                              color: colors.amber,
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          finding.check.label,
+                                          style: theme.textTheme.labelLarge
+                                              ?.copyWith(
+                                                color: colors.ink,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                      ),
+                                      if (finding.subject != null)
+                                        WBadge(label: finding.subject!),
+                                    ],
+                                  ),
+                                  const SizedBox(height: AppSpacing.xs),
+                                  Text(
+                                    finding.message,
+                                    style: theme.textTheme.bodySmall
+                                        ?.copyWith(
+                                          color: colors.muted,
+                                          height: 1.7,
+                                        ),
                                   ),
                                 ],
                               ),
