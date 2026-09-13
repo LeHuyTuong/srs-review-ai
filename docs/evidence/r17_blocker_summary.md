@@ -112,3 +112,13 @@ Goal stays ACTIVE per AGENTS.md policy: blocked status only after
 **3 consecutive rounds** of the same condition. This is round 17
 (3rd consecutive round of the blocker); the `update_goal blocked`
 action is invoked from the assistant turn after this commit.
+
+## Postscript (R18)
+
+Both conditions were probed and shown false the same day, by the
+user setting `server/.env` (GEMINI_API_KEY live, GEMINI_MODEL=
+gemini-3.5-flash) and pointing at the actual HisWise fixture path.
+See `docs/evidence/r18_real_llm_unblock.md` (commit `c2e043a`) for
+the per-condition probe results and the 5-UC + 1-quadrant text/vision
+sample. The goal `update_goal` was resumed in R18; the deterministic
+floor R1–R17 (448 tests, 285 red M2 on real OTES) is unchanged.
