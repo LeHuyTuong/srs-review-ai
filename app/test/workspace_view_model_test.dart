@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:srs_review_ai/core/app_config.dart';
 import 'package:srs_review_ai/core/providers.dart';
 import 'package:srs_review_ai/data/checks/rubric_config.dart';
+import 'package:srs_review_ai/data/models/deterministic_finding.dart';
 import 'package:srs_review_ai/data/models/loaded_document.dart';
 import 'package:srs_review_ai/data/models/review_models.dart';
 import 'package:srs_review_ai/data/models/review_progress.dart';
@@ -23,6 +24,7 @@ import 'package:srs_review_ai/data/services/mock_review_api.dart';
 import 'package:srs_review_ai/data/services/review_api.dart';
 import 'package:srs_review_ai/data/services/session_store.dart';
 import 'package:srs_review_ai/features/workspace/models/demo_units.dart';
+import 'package:srs_review_ai/features/workspace/models/workspace_findings.dart';
 import 'package:srs_review_ai/features/workspace/models/workspace_unit.dart';
 import 'package:srs_review_ai/features/workspace/view_model/workspace_view_model.dart';
 
@@ -828,6 +830,116 @@ void main() {
       reason: 'session payloads carry units verbatim, override included',
     );
   });
+
+  // ------------------------------------------- Round 16 — verifyStatuses seam
+
+  test(
+    'verifyStatuses returns an empty diff when nothing changed',
+    () async {
+      // No-op path: load a document, never patch a status, call
+      // verifyStatuses. The diff must be empty (the brief's
+      // "diff bằng grep -c OPEN" pattern), and the snapshot save
+      // must be skipped.
+      final store = InMemorySessionStore();
+      final container = _container(store);
+      addTearDown(container.dispose);
+      final vm = container.read(workspaceViewModelProvider.notifier);
+      await vm.loadDemo();
+
+      // The Verifier seeds fresh statuses on first run (every
+      // current finding gets opened), so the no-op diff is the
+      // signal we care about — the map going from {} to
+      // populated-with-opens is *not* a transition per the diff
+      // counters.
+      final diff = vm.verifyStatuses();
+      expect(diff.promotedToVerified, 0,
+          reason: 'No transitions on a no-op patch.');
+      expect(diff.reopened, 0,
+          reason: 'No transitions on a no-op patch.');
+      final stateAfter = container.read(workspaceViewModelProvider);
+      // After seed, every current finding carries an OPEN entry —
+      // the brief invariant is "ids don't churn", not "map stays
+      // empty".
+      expect(stateAfter.findingStatus.values,
+          everyElement(FindingStatus.open));
+    },
+  );
+
+  test(
+    'verifyStatuses reopens a fixed finding whose check still fails',
+    () async {
+      // Regression path: reviewer marked a finding fixed between
+      // rounds, but the document still misses whatever fix the
+      // reviewer applied. The Verifier (R9) must demote fixed → open
+      // and the WorkspaceViewModel must surface that as `reopened=1`
+      // so the dashboard tells the user "your fix didn't take".
+      final store = InMemorySessionStore();
+      final container = _container(store);
+      addTearDown(container.dispose);
+      final vm = container.read(workspaceViewModelProvider.notifier);
+      await vm.loadDemo();
+
+      // Pick a missingPostcondition finding from the demo's reference
+      // family — these always re-fire in the demo because the demo
+      // UCs are bullet-list format.
+      final state = container.read(workspaceViewModelProvider);
+      final missing = state.referenceFindings
+          .where((f) =>
+              f.check == CheckId.missingPostcondition && f.subject != null)
+          .toList();
+      expect(missing, isNotEmpty,
+          reason: 'Demo must surface at least one missingPostcondition '
+              'finding — otherwise this test does not exercise the '
+              'seam it claims to exercise.');
+      final target = missing.first;
+      // The production key format is `wire:id` — the Verifier's
+      // `isDeterministicFindingKey` filter requires the wire prefix
+      // so a bare `UC01` would silently be ignored.
+      final targetId = '${target.check.wire}:${target.subject!}';
+
+      // Reviewer marks it fixed.
+      vm.setFindingStatus(targetId, FindingStatus.fixed);
+      // Re-verify against the (unchanged) current findings — the
+      // check still fires, so the status must regress back to open.
+      final diff = vm.verifyStatuses();
+
+      expect(diff.reopened, 1,
+          reason: 'A fixed finding whose check still fails must '
+              'regress to open — the goal §3 invariant 2 "verified '
+              'needs evidence" rule applies to fixed items too, in '
+              'the reverse direction.');
+      expect(diff.promotedToVerified, 0);
+      // State is updated.
+      final after = container.read(workspaceViewModelProvider);
+      expect(after.findingStatus[targetId], FindingStatus.open,
+          reason: 'WorkspaceViewModel must persist the regression in '
+              'state — otherwise the UI shows fixed while the ledger '
+              'disagrees.');
+    },
+  );
+
+  test(
+    'verifyStatuses returns a VerifyDiff with a non-empty summary',
+    () async {
+      // The UI (R10 snack bar) reads `diff.summary`. Asserting the
+      // summary is non-empty on a real diff keeps the UI wiring from
+      // silently breaking if someone refactors VerifyDiff and drops
+      // the summary getter.
+      final store = InMemorySessionStore();
+      final container = _container(store);
+      addTearDown(container.dispose);
+      final vm = container.read(workspaceViewModelProvider.notifier);
+      await vm.loadDemo();
+      final state = container.read(workspaceViewModelProvider);
+      final target = state.referenceFindings.firstWhere(
+        (f) => f.subject != null,
+      );
+      final targetId = '${target.check.wire}:${target.subject!}';
+      vm.setFindingStatus(targetId, FindingStatus.fixed);
+      final diff = vm.verifyStatuses();
+      expect(diff.summary, isNotEmpty);
+    },
+  );
 }
 
 /// Stands in for a provider that just answered 429: the first review call
