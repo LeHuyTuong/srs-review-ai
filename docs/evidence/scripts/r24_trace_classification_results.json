@@ -1,0 +1,45 @@
+{
+  "source": "R22 saved results (no new LLM calls)",
+  "trace_pattern_count": 23,
+  "trace_matched": 0,
+  "examples": [],
+  "all_patterns": [
+    "\\btrace\\w*\\b",
+    "\\btruy\\s*v\u1ebft\\b",
+    "cross[\\s\\-]?reference",
+    "unique\\s+id",
+    "\\bid\\s+duy\\s+nh\u1ea5t\\b",
+    "\\bm\u00e3\\s*s\u1ed1\\b",
+    "\\b\u0111\u1ecbnh\\s*danh\\b",
+    "\\bli\u00ean\\s*k\u1ebft\\b",
+    "\\bduplicate\\s+id\\b",
+    "\\bconsistent\\s+id\\b",
+    "\\binconsistent\\s+id\\b",
+    "\\bid\\s+consistency\\b",
+    "\\bconsistent\\s+across\\b",
+    "\\b\\d+\\s*id.*\\bdifferent\\b",
+    "\\bunique\\s+identifier\\b",
+    "\\breference\\s+back\\b",
+    "\\btrace\\s+back\\b",
+    "\\bid\\s+uniqueness\\b",
+    "\\bcross[\\s\\-]?doc\\w*\\b",
+    "\\bli\u00ean\\s*k\u1ebft\\s*ch\u00e9o\\b",
+    "\\btham\\s*chi\u1ebfu\\b",
+    "\\btr\u00f9ng\\s*m\u00e3\\b",
+    "\\btr\u00f9ng\\s*id\\b"
+  ],
+  "issue_type_counts": {
+    "ambiguity": 31,
+    "untestable": 45,
+    "incomplete": 52,
+    "vagueness": 3
+  },
+  "updated_named_matches": {
+    "SRS-01": 13,
+    "API-01": 19,
+    "NAME-01": 5,
+    "CLS": 22,
+    "TEST-01": 10,
+    "TRACE-01": 0
+  }
+}
