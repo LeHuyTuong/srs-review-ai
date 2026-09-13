@@ -29,14 +29,23 @@ class FindingsTab extends ConsumerStatefulWidget {
   ConsumerState<FindingsTab> createState() => _FindingsTabState();
 }
 
-enum _StatusFilter { all, open, accepted, dismissed }
+enum _StatusFilter {
+  all,
+  open,
+  fixed,
+  verified,
+  pendingVision,
+  disputed,
+}
 
 extension on _StatusFilter {
   String get label => switch (this) {
     _StatusFilter.all => 'All',
     _StatusFilter.open => 'Open',
-    _StatusFilter.accepted => 'Accepted',
-    _StatusFilter.dismissed => 'Dismissed',
+    _StatusFilter.fixed => 'Fixed',
+    _StatusFilter.verified => 'Verified',
+    _StatusFilter.pendingVision => 'Pending vision',
+    _StatusFilter.disputed => 'Disputed',
   };
 }
 
@@ -52,8 +61,10 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
   bool _matches(FindingStatus status) => switch (_filter) {
     _StatusFilter.all => true,
     _StatusFilter.open => status == FindingStatus.open,
-    _StatusFilter.accepted => status == FindingStatus.accepted,
-    _StatusFilter.dismissed => status == FindingStatus.dismissed,
+    _StatusFilter.fixed => status == FindingStatus.fixed,
+    _StatusFilter.verified => status == FindingStatus.verified,
+    _StatusFilter.pendingVision => status == FindingStatus.pendingVision,
+    _StatusFilter.disputed => status == FindingStatus.disputed,
   };
 
   /// The section scoreboard: every document section that the latest run had
@@ -323,9 +334,9 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                   tint: result.mock ? WBadgeTint.amber : WBadgeTint.green,
                 ),
               ],
-              if (state.acceptedCount > 0)
+              if (state.fixedCount > 0)
                 WBadge(
-                  label: '${state.acceptedCount} accepted',
+                  label: '${state.fixedCount} accepted',
                   tint: WBadgeTint.purple,
                 ),
             ],
@@ -581,15 +592,15 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                     },
                     onAccept: () => viewModel.setFindingStatus(
                       finding.id,
-                      state.statusOf(finding.id) == FindingStatus.accepted
+                      state.statusOf(finding.id) == FindingStatus.fixed
                           ? FindingStatus.open
-                          : FindingStatus.accepted,
+                          : FindingStatus.fixed,
                     ),
                     onDismiss: () => viewModel.setFindingStatus(
                       finding.id,
-                      state.statusOf(finding.id) == FindingStatus.dismissed
+                      state.statusOf(finding.id) == FindingStatus.disputed
                           ? FindingStatus.open
-                          : FindingStatus.dismissed,
+                          : FindingStatus.disputed,
                     ),
                   ),
               ],
@@ -757,36 +768,36 @@ class _FindingCard extends StatelessWidget {
                   if (status != FindingStatus.open)
                     WBadge(
                       label: status.label,
-                      tint: status == FindingStatus.accepted
+                      tint: status == FindingStatus.fixed
                           ? WBadgeTint.purple
                           : WBadgeTint.neutral,
                     ),
                   IconButton(
-                    tooltip: status == FindingStatus.accepted
+                    tooltip: status == FindingStatus.fixed
                         ? 'Undo accept'
                         : 'Accept — worth fixing',
                     icon: Icon(
-                      status == FindingStatus.accepted
+                      status == FindingStatus.fixed
                           ? Icons.check_circle
                           : Icons.check_circle_outline,
                       size: 18,
                     ),
-                    color: status == FindingStatus.accepted
+                    color: status == FindingStatus.fixed
                         ? colors.purple
                         : colors.muted,
                     onPressed: onAccept,
                   ),
                   IconButton(
-                    tooltip: status == FindingStatus.dismissed
+                    tooltip: status == FindingStatus.disputed
                         ? 'Undo dismiss'
                         : 'Dismiss — not a real issue',
                     icon: Icon(
-                      status == FindingStatus.dismissed
+                      status == FindingStatus.disputed
                           ? Icons.remove_circle
                           : Icons.remove_circle_outline,
                       size: 18,
                     ),
-                    color: status == FindingStatus.dismissed
+                    color: status == FindingStatus.disputed
                         ? colors.amber
                         : colors.muted,
                     onPressed: onDismiss,

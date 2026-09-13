@@ -286,7 +286,7 @@ void main() {
                   onPressed: () => showFindingContextMenu(
                     context: context,
                     globalPosition: Offset.zero,
-                    status: FindingStatus.accepted,
+                    status: FindingStatus.fixed,
                     canOpenSource: true,
                   ),
                   child: const Text('menu'),

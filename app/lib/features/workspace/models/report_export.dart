@@ -271,10 +271,10 @@ String buildMarkdownReport({
     FindingStatus statusFor(String id) =>
         findingStatus[id] ?? FindingStatus.open;
     final accepted = findings
-        .where((finding) => statusFor(finding.id) == FindingStatus.accepted)
+        .where((finding) => statusFor(finding.id) == FindingStatus.fixed)
         .length;
     final dismissed = findings
-        .where((finding) => statusFor(finding.id) == FindingStatus.dismissed)
+        .where((finding) => statusFor(finding.id) == FindingStatus.disputed)
         .length;
 
     lines.add('## Findings (${findings.length})');

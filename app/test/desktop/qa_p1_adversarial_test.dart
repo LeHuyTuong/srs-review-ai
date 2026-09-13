@@ -652,7 +652,7 @@ void main() {
 
         expect(
           container.read(workspaceViewModelProvider).statusOf(finding.id),
-          FindingStatus.accepted,
+          FindingStatus.fixed,
           reason: 'the menu entry must actually change the finding status',
         );
 

@@ -43,7 +43,7 @@ class ReferenceChecks {
   /// legitimately labels several use-case tables in some templates — but the
   /// reader has to confirm it on purpose. We surface the count and let the
   /// user dismiss the finding if reuse was intended (the existing
-  /// `FindingStatus.dismissed` flow handles that — only the source data type
+  /// `FindingStatus.disputed` flow handles that — only the source data type
   /// differs).
   List<DeterministicFinding> duplicateIds(SrsDocument document) {
     final grouped = <String, int>{};

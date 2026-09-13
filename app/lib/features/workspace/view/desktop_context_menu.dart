@@ -142,7 +142,7 @@ Future<FindingMenuAction?> showFindingContextMenu({
       PopupMenuItem<FindingMenuAction>(
         value: FindingMenuAction.accept,
         child: Text(
-          status == FindingStatus.accepted
+          status == FindingStatus.fixed
               ? 'Undo accept'
               : 'Accept — worth fixing',
         ),
@@ -150,7 +150,7 @@ Future<FindingMenuAction?> showFindingContextMenu({
       PopupMenuItem<FindingMenuAction>(
         value: FindingMenuAction.dismiss,
         child: Text(
-          status == FindingStatus.dismissed
+          status == FindingStatus.disputed
               ? 'Undo dismiss'
               : 'Dismiss — not a real issue',
         ),

@@ -147,8 +147,8 @@ class WorkspaceState {
   final String parserVersion;
 
   /// Findings the student has marked as worth acting on.
-  int get acceptedCount =>
-      findingStatus.values.where((s) => s == FindingStatus.accepted).length;
+  int get fixedCount =>
+      findingStatus.values.where((s) => s == FindingStatus.fixed).length;
 
   FindingStatus statusOf(String findingId) =>
       findingStatus[findingId] ?? FindingStatus.open;

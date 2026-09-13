@@ -285,7 +285,7 @@ class _SourceSheetBody extends ConsumerWidget {
                                         label: state.statusOf(row.id).label,
                                         tint:
                                             state.statusOf(row.id) ==
-                                                FindingStatus.accepted
+                                                FindingStatus.fixed
                                             ? WBadgeTint.purple
                                             : WBadgeTint.neutral,
                                       ),

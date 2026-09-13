@@ -239,9 +239,9 @@ void main() {
         container.read(workspaceViewModelProvider).statusOf('f-0'),
         FindingStatus.open,
       );
-      vm.setFindingStatus('f-0', FindingStatus.accepted);
-      vm.setFindingStatus('f-1', FindingStatus.dismissed);
-      expect(container.read(workspaceViewModelProvider).acceptedCount, 1);
+      vm.setFindingStatus('f-0', FindingStatus.fixed);
+      vm.setFindingStatus('f-1', FindingStatus.disputed);
+      expect(container.read(workspaceViewModelProvider).fixedCount, 1);
 
       final second = _container(store);
       addTearDown(second.dispose);
@@ -250,8 +250,8 @@ void main() {
       );
 
       final restored = second.read(workspaceViewModelProvider);
-      expect(restored.statusOf('f-0'), FindingStatus.accepted);
-      expect(restored.statusOf('f-1'), FindingStatus.dismissed);
+      expect(restored.statusOf('f-0'), FindingStatus.fixed);
+      expect(restored.statusOf('f-1'), FindingStatus.disputed);
       expect(restored.statusOf('f-99'), FindingStatus.open);
     });
   });
