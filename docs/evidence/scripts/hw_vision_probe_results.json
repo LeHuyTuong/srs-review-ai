@@ -1,0 +1,28 @@
+{
+  "contract_version": "1.0.0",
+  "requirement_id": "HW-ERD-TL",
+  "score": 6,
+  "issues": [
+    {
+      "type": "untestable",
+      "severity": "medium",
+      "quote": "DocumentChunk stores text chunks extracted from documents for RAG indexing and Qdrant synchronization.",
+      "suggestion": "Specify the precise timing, triggers, and success criteria for Qdrant synchronization (e.g., 'The system shall synchronize the generated DocumentChunk records with Qdrant within 5 seconds of extraction') to make this behavior testable.",
+      "verification": "exact",
+      "similarity": null
+    },
+    {
+      "type": "vagueness",
+      "severity": "low",
+      "quote": "The Document table stores document metadata, file details, ownership, RAG status, AI review result, and sharing settings.",
+      "suggestion": "Avoid vague terms such as 'file details' or 'sharing settings'. Explicitly enumerate the database fields that store these settings (e.g., 'file_url', 'is_public', 'owner_id') or refer directly to the ERD.",
+      "verification": "exact",
+      "similarity": null
+    }
+  ],
+  "context_note": "The provided ERD diagram defines the fields for the Document and DocumentChunk tables. Document fields include file_url, format, size_in_bytes, status, is_public, review_reason, and reviewed_by_id, which map to the file details, ownership, RAG status, and AI review results mentioned in the text.",
+  "dropped_issue_count": 0,
+  "model": "gemini-3.5-flash",
+  "cached": false,
+  "mock": false
+}

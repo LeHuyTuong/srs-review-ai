@@ -1,0 +1,120 @@
+{
+  "model": "gemini-3.5-flash",
+  "sample_size": 5,
+  "scores": [
+    3,
+    6,
+    5,
+    4,
+    4
+  ],
+  "issue_types": {
+    "vagueness": 3,
+    "untestable": 3,
+    "incomplete": 6,
+    "ambiguity": 3,
+    "inconsistent": 1
+  },
+  "severities": {
+    "high": 8,
+    "medium": 8
+  },
+  "findings": [
+    {
+      "requirement_id": "HW-UC-01",
+      "type": "vagueness",
+      "severity": "high",
+      "suggestion": "Specify exactly what information constitutes 'general information' (e.g., system introduction, contact details, FAQs) so that the content can be verified."
+    },
+    {
+      "requirement_id": "HW-UC-01",
+      "type": "untestable",
+      "severity": "high",
+      "suggestion": "Provide measurable acceptance criteria or specific pages (e.g., Homepage, About Us page) that the guest can view to allow black-box testing."
+    },
+    {
+      "requirement_id": "HW-UC-01",
+      "type": "incomplete",
+      "severity": "medium",
+      "suggestion": "Rewrite the requirement to include a clear actor and standard modal verb, such as 'The system shall allow guest users to...'"
+    },
+    {
+      "requirement_id": "HW-UC-01",
+      "type": "vagueness",
+      "severity": "medium",
+      "suggestion": "Define which pages are considered 'public pages' in the system design or reference a specific list of public views."
+    },
+    {
+      "requirement_id": "HW-UC-02",
+      "type": "ambiguity",
+      "severity": "high",
+      "suggestion": "Replace the open-ended phrase 'such as' with an explicit, exhaustive list of the required registration fields (e.g., 'consisting of username, email address, and password')."
+    },
+    {
+      "requirement_id": "HW-UC-02",
+      "type": "incomplete",
+      "severity": "medium",
+      "suggestion": "Specify the expected outcome of the registration process, such as system validation rules, account activation steps, or the response message displayed to the guest."
+    },
+    {
+      "requirement_id": "HW-UC-03",
+      "type": "incomplete",
+      "severity": "high",
+      "suggestion": "Rephrase the requirement using active system wording (e.g., 'The system shall allow...') and specify the expected outcome when a user successfully logs in (such as redirecting them to their respective homepage or dashboard)."
+    },
+    {
+      "requirement_id": "HW-UC-03",
+      "type": "vagueness",
+      "severity": "medium",
+      "suggestion": "Define what constitutes 'valid credentials', such as a registered email address and a matching password."
+    },
+    {
+      "requirement_id": "HW-UC-03",
+      "type": "incomplete",
+      "severity": "medium",
+      "suggestion": "Add a requirement to specify the expected system behavior when invalid credentials are provided (e.g., displaying an authentication error message and preventing access)."
+    },
+    {
+      "requirement_id": "HW-UC-06",
+      "type": "ambiguity",
+      "severity": "high",
+      "suggestion": "Specify the exact criteria or similarity threshold (e.g., Cosine similarity >= 0.7) used to determine if a text chunk is considered \"relevant\"."
+    },
+    {
+      "requirement_id": "HW-UC-06",
+      "type": "untestable",
+      "severity": "medium",
+      "suggestion": "Define the expected structure and format of the citations (e.g., [Document Name, Page X]), and specify the target AI service API and acceptable response time limit."
+    },
+    {
+      "requirement_id": "HW-UC-06",
+      "type": "incomplete",
+      "severity": "high",
+      "suggestion": "Add error handling behavior detailing what the system should do if the AI service is unavailable, if the retrieved chunks do not contain the answer, or if the student's question is empty."
+    },
+    {
+      "requirement_id": "HW-UC-06",
+      "type": "inconsistent",
+      "severity": "medium",
+      "suggestion": "Deconstruct this requirement into atomic system statements (e.g., one for receiving the user's question, one for performing the vector retrieval, and one for generating and displaying the final response via the AI service)."
+    },
+    {
+      "requirement_id": "HW-UC-09",
+      "type": "ambiguity",
+      "severity": "high",
+      "suggestion": "Specify the precise criteria and rules that determine whether a document is soft deleted or permanently deleted from the collection."
+    },
+    {
+      "requirement_id": "HW-UC-09",
+      "type": "untestable",
+      "severity": "high",
+      "suggestion": "Replace the weak verb 'may' with 'shall' and define the exact, testable system outcomes for both soft delete and permanent delete scenarios."
+    },
+    {
+      "requirement_id": "HW-UC-09",
+      "type": "incomplete",
+      "severity": "medium",
+      "suggestion": "Rewrite the requirement using a formal system requirement structure with an explicit actor and action (e.g., 'The system shall allow students to remove documents from their collection...')."
+    }
+  ]
+}
