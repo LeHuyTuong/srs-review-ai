@@ -854,13 +854,23 @@ class _OfflineCard extends ConsumerWidget {
               borderRadius: AppRadius.boxSm,
               child: Row(
                 children: [
-                  Text(
-                    'Explore mock mode',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colors.brand,
-                      fontWeight: FontWeight.w600,
+                  // Expanded, not bare: a bare Text in a Row takes its
+                  // intrinsic width and overflows the row on narrow cards
+                  // (33px in the 390px phone test — caught by the widget
+                  // suite's debug stripes). Expanded lets the label
+                  // ellipsize instead, keeping the arrow pinned right.
+                  Expanded(
+                    child: Text(
+                      'Explore mock mode',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colors.brand,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
+                  const SizedBox(width: AppSpacing.xs),
                   Icon(Icons.arrow_forward, size: 14, color: colors.brand),
                 ],
               ),
