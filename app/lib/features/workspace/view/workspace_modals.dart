@@ -1307,6 +1307,11 @@ class _SyllabusCheckDetail extends StatelessWidget {
       'A use case without a Postcondition leaves the tester without a '
           'measurable end-state — there is no line a tester can read and say '
           '"this is what the system looks like when the flow is done".',
+    CheckId.crossArtifactName =>
+      'The same concept shows up under two or more different labels in two '
+          'or more sections of the document. One of the labels is right; the '
+          'others are spelling, casing, or plural drift that confuses a reader '
+          'who has to follow the entity across diagrams.',
   };
 
   String get _fix => switch (finding.check) {
@@ -1332,6 +1337,11 @@ class _SyllabusCheckDetail extends StatelessWidget {
           'is enough — name a state the tester can verify (a persisted '
           'record, a confirmation toast, a changed role), so "done" stops '
           'being a matter of judgement.',
+    CheckId.crossArtifactName =>
+      'For each variant in the report, pick the canonical form, then '
+          'replace every other occurrence across the document. A search '
+          'across the source for the variant string is usually enough — '
+          'these are short labels, not long phrases.',
   };
 
   @override

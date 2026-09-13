@@ -29,7 +29,7 @@
     "CheckId": {
       "description": "Deterministic (rule-based, offline, zero-token) checks derived from the SEP490 syllabus. M2 reference checks (duplicate_ids, missing_postcondition) extend the same enum — they share the on-wire shape but live in a separate UI section.",
       "type": "string",
-      "enum": ["uc_count", "language", "uc_size", "duplicate_ids", "missing_postcondition"]
+      "enum": ["uc_count", "language", "uc_size", "duplicate_ids", "missing_postcondition", "cross_artifact_name"]
     },
     "Issue": {
       "type": "object",

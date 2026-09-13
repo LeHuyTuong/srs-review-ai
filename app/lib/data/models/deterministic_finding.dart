@@ -25,7 +25,15 @@ enum CheckId {
   /// section. This is the OTES SRS-01 finding in deterministic form: 63/63
   /// UCs without a measurable end-state, so a tester cannot know when the
   /// use case is "done".
-  missingPostcondition;
+  missingPostcondition,
+
+  /// Round 11 — contradiction pass (goal §2 step 6, the "đắt nhất"
+  /// family). Same entity (case-insensitive, plural-stripped) appears
+  /// with two or more distinct original names across two or more
+  /// sections of the document. The original 8 cross-artifact
+  /// contradictions in the HisWise SDS review were all of this shape:
+  /// one concept labelled differently in different diagrams.
+  crossArtifactName;
 
   String get wire => switch (this) {
     CheckId.ucCount => 'uc_count',
@@ -33,6 +41,7 @@ enum CheckId {
     CheckId.ucSize => 'uc_size',
     CheckId.duplicateIds => 'duplicate_ids',
     CheckId.missingPostcondition => 'missing_postcondition',
+    CheckId.crossArtifactName => 'cross_artifact_name',
   };
 
   String get label => switch (this) {
@@ -41,6 +50,7 @@ enum CheckId {
     CheckId.ucSize => 'Use case size',
     CheckId.duplicateIds => 'Duplicate requirement ids',
     CheckId.missingPostcondition => 'Missing postcondition',
+    CheckId.crossArtifactName => 'Cross-artifact entity naming',
   };
 
   /// True for M2 reference checks; they live next to F7/F8/F9 in the
@@ -48,7 +58,9 @@ enum CheckId {
   /// dashboard can keep "syllabus failures" and "consistency smells"
   /// visually separate.
   bool get isReferenceCheck => switch (this) {
-    CheckId.duplicateIds || CheckId.missingPostcondition => true,
+    CheckId.duplicateIds ||
+    CheckId.missingPostcondition ||
+    CheckId.crossArtifactName => true,
     _ => false,
   };
 }
