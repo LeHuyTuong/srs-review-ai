@@ -360,3 +360,115 @@ String buildMarkdownReport({
 
 /// Severity ordering helper kept next to its only consumer.
 int severityWeight(Severity severity) => severity.weight;
+
+/// JSON twin of [buildMarkdownReport] — same inputs, same numbers.
+///
+/// The brief's Output row demands "ledger.md + JSON + share sheet": markdown
+/// is for the supervisor, JSON is for a server or web tool to read later
+/// against one shared schema. Because both builders receive identical
+/// arguments, every count in the prose (reviewed/skipped/failed, triage
+/// split, deterministic checks) can be recomputed from this payload and
+/// cross-checked against the markdown — goal §5 rule 3 enforced by code,
+/// not by eye.
+///
+/// Additive-only schema: consumers must treat unknown keys as ignorable, so
+/// adding fields later never breaks an older reader (same contract rule as
+/// contracts/review.schema.json v1.0.0).
+Map<String, dynamic> buildJsonReport({
+  required String fileName,
+  required bool offline,
+  required WorkspaceReviewResult? result,
+  required List<WorkspaceUnit> units,
+  List<DeterministicFinding> syllabusFindings = const [],
+  int diagramPageCount = 0,
+  bool imageReviewAvailable = false,
+  int imageReviewedCount = 0,
+  PageImageCoverage? imageCoverage,
+  Map<String, FindingStatus> findingStatus = const {},
+}) {
+  final findings = result?.findings ?? const <FindingRow>[];
+  FindingStatus statusFor(String id) =>
+      findingStatus[id] ?? FindingStatus.open;
+
+  return {
+    'schema': 'srs-review/report',
+    'x-schema-version': '1.0.0',
+    'generated_at': DateTime.now().toUtc().toIso8601String(),
+    'document': {
+      'file_name': fileName,
+      'rubric_version': result?.rubricVersion ?? kRubricLabel,
+      'mode': offline
+          ? 'offline_mock'
+          : 'online_proxy',
+    },
+    'coverage': {
+      // Markdown twin: the Coverage table row. Same arithmetic, same source.
+      'reviewed': result?.reviewed ?? 0,
+      'skipped': result?.skipped ?? units.where((u) => !u.selected).length,
+      'failed': result?.failed ?? 0,
+      'total_units': units.length,
+      'unverified_dropped': result?.droppedIssueCount ?? 0,
+      if (imageCoverage != null)
+        'page_images': {
+          'candidates': imageCoverage.candidates,
+          'extracted': imageCoverage.extracted,
+          'reviewed': imageCoverage.reviewed,
+          'skipped': imageCoverage.skipped,
+          'failed': imageCoverage.failed,
+        },
+    },
+    'scores': {
+      'sections': [
+        for (final entry in (result?.scores ?? const <String, int>{}).entries)
+          {'section': entry.key, 'worst_score': entry.value},
+      ],
+    },
+    'findings': [
+      for (final finding in findings)
+        {
+          'id': finding.id,
+          'requirement_id': finding.requirementId,
+          'page_index': finding.pageIndex,
+          'severity': finding.severity.name,
+          'title': finding.title,
+          'verification': finding.issue.verification.name,
+          'status': statusFor(finding.id).name,
+          'quote': finding.quote,
+          'suggestion': finding.suggestion,
+        },
+    ],
+    'deterministic_checks': [
+      for (final finding in syllabusFindings)
+        {
+          'check': finding.check.wire,
+          'subject': finding.subject,
+          'passed': finding.passed,
+          'severity': finding.severity.name,
+          'message': finding.message,
+          // Round 26's UNV upstream flag: a JSON consumer filters on this
+          // instead of re-parsing messages.
+          'requires_vision_evidence': finding.requiresVisionEvidence,
+        },
+    ],
+    'inventory': [
+      for (final unit in units)
+        {
+          'id': unit.id,
+          'kind': unit.kind.label,
+          'page_index': unit.pageIndex,
+          'status': unit.status.name,
+          'malformed': unit.malformed,
+        },
+    ],
+    'limitations': [
+      // The same honesty contract the markdown carries, structured so a
+      // downstream tool can display it without scraping prose.
+      offline
+          ? 'Mock review, not official grading; syllabus thresholds are provisional.'
+          : 'Online proxy review is not official grading; syllabus thresholds are provisional.',
+      'No OCR. PDF page images are sent only for eligible pages in a newly imported PDF during an online run; DOCX, demo, and restored sessions are text-only.',
+      'Page-image review is limited to detector-selected PDF pages and does not imply full visual understanding.',
+      'No resume/checkpoint, and no precision/recall evaluation against a labelled gold set.',
+    ],
+  };
+}

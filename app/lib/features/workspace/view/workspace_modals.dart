@@ -498,6 +498,35 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
             },
           ),
           const SizedBox(height: AppSpacing.sm),
+          // Goal §4 Output row: "ledger.md + JSON + share sheet". The JSON
+          // twin carries the same numbers under one stable schema so a
+          // server or web tool can read the report without scraping
+          // Markdown tables.
+          WButton.secondary(
+            label: 'Save as JSON file',
+            icon: Icons.data_object,
+            expanded: true,
+            onPressed: () async {
+              String? destination;
+              try {
+                destination = await viewModel.saveJsonReportToFile();
+              } on Object catch (error) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Could not save the JSON report: $error'),
+                    ),
+                  );
+                }
+                return;
+              }
+              if (!context.mounted || destination == null) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('JSON report saved to $destination')),
+              );
+            },
+          ),
+          const SizedBox(height: AppSpacing.sm),
           WButton.secondary(
             label: 'Copy Markdown report',
             icon: Icons.copy,

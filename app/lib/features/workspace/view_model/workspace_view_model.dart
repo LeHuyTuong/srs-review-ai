@@ -951,14 +951,41 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     return _exporter.save(fileName: _reportFileName(), contents: report);
   }
 
-  String _reportFileName() {
+  /// Structured twin of [exportMarkdown] — same inputs, same numbers, one
+  /// shared schema for a server or web tool (goal §4 Output row).
+  String exportJson() => const JsonEncoder.withIndent('  ').convert(
+    buildJsonReport(
+      fileName: state.fileName,
+      offline: ref.read(mockModeProvider),
+      result: state.result,
+      units: state.units,
+      syllabusFindings: state.syllabusFindings,
+      diagramPageCount: state.diagramPageCount,
+      imageReviewAvailable: state.imageReviewAvailable,
+      imageReviewedCount: state.imageReviewedCount,
+      imageCoverage: state.imageCoverage,
+      findingStatus: state.findingStatus,
+    ),
+  );
+
+  /// Writes the JSON report to a file the user chooses. Same dialog, same
+  /// contract, and the same error semantics as [saveReportToFile].
+  Future<String?> saveJsonReportToFile() async {
+    final report = exportJson();
+    return _exporter.save(
+      fileName: _reportFileName(extension: 'json'),
+      contents: report,
+    );
+  }
+
+  String _reportFileName({String extension = 'md'}) {
     final base = state.fileName.trim().isEmpty ? 'srs' : state.fileName;
     final stem = base.contains('.')
         ? base.substring(0, base.lastIndexOf('.'))
         : base;
     final safe = stem.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
     final stamp = DateTime.now().toIso8601String().substring(0, 10);
-    return 'srs-review-$safe-$stamp.md';
+    return 'srs-review-$safe-$stamp.$extension';
   }
 
   // ------------------------------------------------------------- toast
