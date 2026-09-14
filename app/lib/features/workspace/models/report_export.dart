@@ -11,6 +11,7 @@
 library;
 
 import '../../../data/models/deterministic_finding.dart';
+import 'document_verdict.dart';
 import '../../../data/models/review_models.dart';
 import '../../../data/models/review_progress.dart';
 import 'section_scores.dart';
@@ -114,6 +115,7 @@ String buildMarkdownReport({
       '${now.year}-${two(now.month)}-${two(now.day)} '
       '${two(now.hour)}:${two(now.minute)} UTC';
 
+  final verdict = computeVerdict([...syllabusFindings, ...referenceFindings]);
   final bySeverity = <Severity, List<FindingRow>>{};
   for (final finding in findings) {
     bySeverity.putIfAbsent(finding.severity, () => []).add(finding);
@@ -148,6 +150,21 @@ String buildMarkdownReport({
   // worst-first rollup the Findings tab shows. Sessions written before
   // scores existed simply have none, and the section is left out rather
   // than printed empty.
+  lines.addAll([
+    '## Verdict (rubric E, 10-point)',
+    '',
+    '**${verdict.display}**',
+    '',
+    '| Component | State |',
+    '|---|---|',
+    '| Floor (7 SRS criteria, 5 pts) | ${verdict.floor.name} |',
+    '| Diagrams clean (2 pts) | ${verdict.diagram.name} |',
+    '| Cross-artifact clean (2 pts) | ${verdict.crossArtifact.name} |',
+    '| Traceability UC→design→test (1 pt) | ${verdict.traceability.name} '
+    '(no test-artifact input in this tool) |',
+    '| Deductions −1 per 🔴 FLOW/ERD row | ${verdict.deductions} |',
+    '',
+  ]);
   if (result != null && result.scores.isNotEmpty) {
     final sections = summarizeSections(units: units, result: result);
     if (sections.isNotEmpty) {
@@ -522,6 +539,10 @@ Map<String, dynamic> buildJsonReport({
           'suggestion': finding.suggestion,
         },
     ],
+    'verdict': computeVerdict([
+      ...syllabusFindings,
+      ...referenceFindings,
+    ]).toJson(),
     'deterministic_checks': [
       for (final finding in syllabusFindings)
         {

@@ -16,6 +16,7 @@
 library;
 
 import '../../../data/models/deterministic_finding.dart';
+import 'document_verdict.dart';
 import '../../../data/models/review_models.dart';
 import '../../../data/models/review_progress.dart';
 import 'report_export.dart';
@@ -196,6 +197,24 @@ String buildHtmlReport({
       '<td>${c.reviewed}</td><td>${c.skipped}</td><td>${c.failed}</td></tr></table></div>\n',
     );
   }
+
+  // ── Verdict (rubric E, same compute as both other twins) ───────────────
+  final verdict = computeVerdict([...syllabusFindings, ...referenceFindings]);
+  out.write('<h2>Verdict (rubric E, 10-point)</h2>');
+  out.write('<p class="meta"><strong>${_esc(verdict.display)}</strong></p>');
+  out.write('<div class="tscroll"><table><tr><th>Component</th>'
+      '<th>State</th></tr>');
+  for (final entry in <String, String>{
+    'Floor (7 SRS criteria, 5 pts)': verdict.floor.name,
+    'Diagrams clean (2 pts)': verdict.diagram.name,
+    'Cross-artifact clean (2 pts)': verdict.crossArtifact.name,
+    'Traceability UC→design→test (1 pt)':
+        '${verdict.traceability.name} (no test-artifact input in this tool)',
+    'Deductions −1 per 🔴 FLOW/ERD row': '${verdict.deductions}',
+  }.entries) {
+    out.write('<tr><td>${_esc(entry.key)}</td><td>${_esc(entry.value)}</td></tr>');
+  }
+  out.write('</table></div>\n');
 
   // ── Scores by section (same rollup as the markdown twin) ──────────────
   if (result != null && result.scores.isNotEmpty) {

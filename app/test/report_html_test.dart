@@ -289,7 +289,13 @@ void main() {
       expect(html, contains('Full ledger (30 rows)'));
       expect(html, contains('UC-30 has no Postcondition section.'));
       // …and the summary table itself has exactly one body row.
-      final summary = html.split('Full ledger').first;
+      // Scope to the summary region itself: an earlier table (the rubric-E
+      // verdict lives above this heading) must not count here.
+      final summary = html
+          .split('<h2>Deterministic checks')
+          .last
+          .split('Full ledger')
+          .first;
       expect('<tr>'.allMatches(summary).length, 2); // header + one group
     });
 
@@ -320,7 +326,13 @@ void main() {
       );
       expect(html, contains('looks thin: ~0 transactions detected.'));
       expect(html, contains('looks oversized: ~8 transactions detected.'));
-      final summary = html.split('Full ledger').first;
+      // Scope to the summary region itself: an earlier table (the rubric-E
+      // verdict lives above this heading) must not count here.
+      final summary = html
+          .split('<h2>Deterministic checks')
+          .last
+          .split('Full ledger')
+          .first;
       expect('<tr>'.allMatches(summary).length, 3); // header + two groups
     });
   });
