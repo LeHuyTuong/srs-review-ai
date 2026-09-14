@@ -7,6 +7,7 @@ are cut from the real input text, which means they always verify as `exact`.
 
 from __future__ import annotations
 
+import json
 import re
 from typing import Any
 
@@ -49,8 +50,13 @@ class MockProvider:
         schema: dict[str, Any],
         image_b64: str | None = None,
     ) -> tuple[dict[str, Any], str]:
-        if "grounded" in schema.get("properties", {}):
+        props = schema.get("properties", {})
+        if "grounded" in props:
             return self._ask(user), self.model_id
+        if "elements" in props:
+            return self._describe(user), self.model_id
+        if "clean" in props:
+            return self._judge(user), self.model_id
         return self._review(user), self.model_id
 
     # ------------------------------------------------------------------
@@ -99,6 +105,57 @@ class MockProvider:
         if image_context := _field(user, "section"):
             result["context_note"] = f"Offline mode: no diagram analysis for section {image_context}."
         return result
+
+    def _describe(self, user: str) -> dict[str, Any]:
+        """Offline diagram "reading": deterministic inventory of names in the
+        page context, zero elements when there is nothing to read. Rule-driven
+        like _review, so the two-call pipeline still exercises real parsing."""
+        context = _quoted_block(user)
+        names: list[str] = []
+        for token in re.findall(r"[A-Z][A-Za-z0-9_]{3,}", context):
+            if token not in names:
+                names.append(token)
+        return {
+            "elements": names[:8],
+            "relations": [
+                {"from": a, "to": b, "label": "", "arrowhead_side": "unknown"}
+                for a, b in zip(names, names[1:])
+            ][:4],
+            "unreadable": ["toan bo trang"] if not names else [],
+        }
+
+    def _judge(self, user: str) -> dict[str, Any]:
+        """Deterministic judge over the describe JSON embedded in the prompt:
+        unknown arrowhead sides are the skill's cardinality red flag; an
+        inventory with nothing readable is an amber "cannot assess". Family
+        is left to "DOC" — the endpoint bind_family() rewrites it per page."""
+        start, end = user.find("{"), user.rfind("}")
+        try:
+            describe = json.loads(user[start : end + 1])
+        except ValueError:
+            describe = {}
+        findings: list[dict[str, Any]] = []
+        relations = describe.get("relations") or []
+        for rel in relations:
+            if rel.get("arrowhead_side", "unknown") == "unknown":
+                findings.append(
+                    {
+                        "family": "DOC",
+                        "entity": f'{rel.get("from", "?")}->{rel.get("to", "?")}',
+                        "evidence": "chieu quan he khong xac dinh duoc tu mo ta",
+                        "severity": "red",
+                    }
+                )
+        if describe.get("unreadable"):
+            findings.append(
+                {
+                    "family": "DOC",
+                    "entity": "page",
+                    "evidence": "mot phan chu khong doc duoc o do phan giai nay",
+                    "severity": "amber",
+                }
+            )
+        return {"clean": not findings, "findings": findings[:8]}
 
     def _ask(self, user: str) -> dict[str, Any]:
         question = _field(user, "question") or ""

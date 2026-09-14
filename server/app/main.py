@@ -16,7 +16,7 @@ from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from .cache import LruCache, cache_key
 from .config import Settings, get_settings
@@ -43,6 +43,21 @@ from .schemas import (
     ReviewResult,
 )
 from .verify import review_issues, verify_quote
+from .diagram import (
+    DESCRIBE_SYSTEM,
+    DIAGRAM_PROMPT_VERSION,
+    ID_FAMILY_BY_TYPE,
+    LLM_DIAGRAM_DESCRIBE_SCHEMA,
+    LLM_DIAGRAM_JUDGE_SCHEMA,
+    DiagramDescribe,
+    DiagramRequest,
+    DiagramResponse,
+    DiagramVerdict,
+    describe_user_prompt,
+    diagram_cache_key,
+    judge_system_prompt,
+    judge_user_prompt,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 log = logging.getLogger("srs-proxy")
@@ -62,6 +77,7 @@ app.add_middleware(
 )
 
 _review_cache: LruCache[ReviewResult] = LruCache()
+_diagram_cache: LruCache[DiagramResponse] = LruCache()
 _limiter = RateLimiter()
 
 _upload_store = UploadStore(
@@ -296,6 +312,88 @@ async def ask(
 # bytes to /uploads/{key}, then references the stored blob by upload://<key>
 # in later /review and /ask calls.  Only the presign + meta endpoints carry the
 # app token; the PUT endpoint is authenticated solely by the capability token.
+
+
+@app.post("/diagram", response_model=DiagramResponse, dependencies=[Depends(require_app_token)])
+async def diagram(
+    payload: DiagramRequest,
+    settings: Settings = Depends(get_settings),
+    user: str = Depends(caller_id),
+) -> DiagramResponse:
+    """Two-call vision audit of one diagram page (sds-reviewer steps 4-6).
+
+    Describe-then-judge is the skill's core discipline: one call makes the
+    model guess instead of look. The rate limiter charges ONE unit per
+    request, not two — the pair is one logical audit.
+    """
+    rubric_cfg = load_rubric()
+    provider = build_provider(settings)
+    models = [settings.gemini_model, settings.gemini_fallback_model]
+    key = diagram_cache_key(
+        payload=payload,
+        provider_name=provider.name,
+        mock_mode=str(settings.mock_mode),
+        model_selection="|".join(m for m in models if m),
+        prompt_version=f"{settings.prompt_version}-{DIAGRAM_PROMPT_VERSION}-{rubric_cfg['version']}",
+    )
+    if hit := _diagram_cache.get(key):
+        return hit.model_copy(update={"cached": True})
+
+    allowed, _, retry_after = _limiter.check(user, settings.rate_limit_per_day)
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                f"Daily review limit reached ({settings.rate_limit_per_day}). "
+                f"Retry after {retry_after}s."
+            ),
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    try:
+        raw_describe, model = await provider.generate_json(
+            system=DESCRIBE_SYSTEM,
+            user=describe_user_prompt(
+                page_index=payload.page_index,
+                diagram_type=payload.diagram_type,
+                context_text=payload.context_text,
+            ),
+            schema=LLM_DIAGRAM_DESCRIBE_SCHEMA,
+            image_b64=payload.image_b64,
+        )
+        describe = DiagramDescribe.model_validate(raw_describe)
+
+        raw_judge, model = await provider.generate_json(
+            system=judge_system_prompt(payload.diagram_type),
+            user=judge_user_prompt(describe),
+            schema=LLM_DIAGRAM_JUDGE_SCHEMA,
+            image_b64=payload.image_b64,
+        )
+        verdict = DiagramVerdict.model_validate(raw_judge).bind_family(
+            ID_FAMILY_BY_TYPE[payload.diagram_type]
+        )
+    except LlmError as exc:
+        log.warning("diagram audit failed for page %s: %s", payload.page_index, exc)
+        raise HTTPException(
+            status_code=502, detail="AI provider unavailable. Retry or use mock mode."
+        ) from exc
+    except ValidationError as exc:
+        log.warning("diagram provider returned invalid structure: %s", exc)
+        raise HTTPException(
+            status_code=502, detail="AI provider returned an unexpected structure."
+        ) from exc
+
+    result = DiagramResponse(
+        page_index=payload.page_index,
+        diagram_type=payload.diagram_type,
+        describe=describe,
+        verdict=verdict,
+        model=model,
+        cached=False,
+        mock=provider.name == "mock",
+    )
+    _diagram_cache.put(key, result)
+    return result
 
 
 @app.post("/uploads/presign", dependencies=[Depends(require_app_token)])
