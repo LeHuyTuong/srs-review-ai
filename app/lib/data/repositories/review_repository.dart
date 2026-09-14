@@ -17,6 +17,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 import '../../core/app_config.dart';
+import '../models/diagram_audit.dart';
 import '../models/review_models.dart';
 import '../models/review_progress.dart';
 import '../models/srs_document.dart';
@@ -53,6 +54,15 @@ class ReviewRepository {
   /// so a document-wide fan-out would be neither kind to the quota nor useful
   /// to someone reading a progress bar.
   ///
+  /// Vision-chain passthroughs: the ViewModel owns the audit flow, the
+  /// repository owns the two resources only it holds — the API client and
+  /// the PDF renderer. Kept one-liners so no review logic leaks in here.
+  Future<DiagramAuditResult> diagramAudit(DiagramAuditRequest request) =>
+      _api.diagramAudit(request);
+
+  Future<Uint8List> renderPageForAudit(Uint8List pdfBytes, int pageIndex) =>
+      _renderer.renderPage(pdfBytes: pdfBytes, pageIndex: pageIndex);
+
   /// [pdfBytes] are optional so mock/offline reviews remain text-only. Image
   /// planning and rasterization run only when [imageReviewEnabled] is true;
   /// live imported-PDF callers opt in explicitly. Selected page rasters are

@@ -80,6 +80,62 @@ class _StubDocumentRepository extends DocumentRepository {
   }
 }
 
+class _VisionReviewRepository extends ReviewRepository {
+  /// Real passthroughs onto the MockReviewApi rule branch; only the PDF
+  /// render is faked (test "bytes" are not parseable documents).
+  _VisionReviewRepository()
+    : super(const MockReviewApi(latency: Duration.zero));
+
+  @override
+  Future<Uint8List> renderPageForAudit(Uint8List pdfBytes, int pageIndex) async
+      => Uint8List.fromList([1, 2, 3]);
+}
+
+SrsDocument _diagramDocument() => SrsDocument(
+  fileName: 'vision.pdf',
+  pageCount: 2,
+  pageTexts: const [
+    'UC-01 The PaymentGateway AuthorizesOrder flow reviews diagrams.',
+    'plain page two',
+  ],
+  requirements: const [
+    RequirementItem(
+      id: 'UC-01',
+      text:
+          'UC-01 The PaymentGateway AuthorizesOrder flow reviews diagrams.',
+      kind: RequirementKind.useCase,
+      pageIndex: 0,
+    ),
+  ],
+  occurrenceKeys: const ['u0-UC-01'],
+  imagePageIndexes: const [0],
+);
+
+LoadedDocument _visionLoaded({Uint8List? pdfBytes}) => LoadedDocument(
+  document: _diagramDocument(),
+  findings: const [],
+  referenceFindings: const [
+    DeterministicFinding(
+      check: CheckId.duplicateIds,
+      passed: true,
+      severity: Severity.low,
+      subject: 'UC-01',
+      message: 'kept family must survive re-audit',
+    ),
+  ],
+  sizeBytes: 3,
+  pdfBytes: pdfBytes,
+);
+
+class _StubVisionDocRepository extends DocumentRepository {
+  _StubVisionDocRepository(this.loaded);
+  final LoadedDocument loaded;
+  @override
+  Future<LoadedDocument?> pickAndParse({
+    void Function(String status)? onStatus,
+  }) async => loaded;
+}
+
 class _ControlledReviewRepository extends ReviewRepository {
   _ControlledReviewRepository({required this.coverage})
     : super(const MockReviewApi(latency: Duration.zero));
@@ -941,6 +997,98 @@ void main() {
       expect(diff.summary, isNotEmpty);
     },
   );
+
+  group('vision audit wiring', () {
+    Future<(WorkspaceViewModel, ProviderContainer)> visionVm({
+      Uint8List? pdfBytes,
+    }) async {
+      final store = InMemorySessionStore();
+      final container = _container(
+        store,
+        documentRepository: _StubVisionDocRepository(
+          _visionLoaded(pdfBytes: pdfBytes),
+        ),
+        reviewRepository: _VisionReviewRepository(),
+      );
+      final vm = container.read(workspaceViewModelProvider.notifier);
+      await vm.importDocument();
+      return (vm, container);
+    }
+
+    test('audit writes stable diagram rows beside kept families', () async {
+      final (vm, container) = await visionVm(
+        pdfBytes: Uint8List.fromList([0, 1, 2]),
+      );
+      addTearDown(container.dispose);
+      expect(vm.canAuditDiagrams, isTrue);
+
+      await vm.auditDiagrams();
+      final state = container.read(workspaceViewModelProvider);
+      final diagram = state.referenceFindings
+          .where((f) => f.check == CheckId.diagramAudit)
+          .toList();
+      // Mock rule branch: two CamelCase names -> one red relation row.
+      expect(diagram, hasLength(1));
+      expect(diagram.single.subject, 'DOC-01');
+      expect(diagram.single.passed, isFalse);
+      // The kept family rode along untouched.
+      expect(
+        state.referenceFindings
+            .where((f) => f.check == CheckId.duplicateIds)
+            .single
+            .message,
+        'kept family must survive re-audit',
+      );
+      expect(state.toast, contains('Vision audit: 1 page(s)'));
+      expect(state.isAuditingDiagrams, isFalse);
+    });
+
+    test('re-audit replaces diagram rows instead of stacking duplicates', () async {
+      final (vm, container) = await visionVm(
+        pdfBytes: Uint8List.fromList([0, 1, 2]),
+      );
+      addTearDown(container.dispose);
+      await vm.auditDiagrams();
+      await vm.auditDiagrams();
+      final state = container.read(workspaceViewModelProvider);
+      final diagram = state.referenceFindings
+          .where((f) => f.check == CheckId.diagramAudit)
+          .toList();
+      expect(diagram, hasLength(1));
+      expect(diagram.single.subject, 'DOC-01');
+    });
+
+    test('no bytes (restored session): button hidden, audit explains', () async {
+      final (vm, container) = await visionVm(); // pdfBytes null
+      addTearDown(container.dispose);
+      expect(vm.canAuditDiagrams, isFalse);
+      await vm.auditDiagrams();
+      expect(
+        container.read(workspaceViewModelProvider).error,
+        contains('needs the original file in memory'),
+      );
+    });
+
+    test('audit rows persist into the saved snapshot', () async {
+      final (vm, container) = await visionVm(
+        pdfBytes: Uint8List.fromList([0, 1, 2]),
+      );
+      addTearDown(container.dispose);
+      await vm.auditDiagrams();
+      // The autosave snapshot (not the explicit-save list) is what a reopen
+      // restores from — that is the persistence the audit must reach.
+      final raw = await (container.read(sessionStoreProvider)
+              as InMemorySessionStore)
+          .loadSnapshot();
+      expect(raw, isNotNull);
+      final payload = jsonDecode(raw!) as Map<String, dynamic>;
+      final rows = (payload['referenceFindings'] as List<dynamic>? ??
+          const [])
+          .cast<Map<String, dynamic>>()
+          .where((r) => r['check'] == 'diagram_audit');
+      expect(rows, hasLength(1));
+    });
+  });
 }
 
 /// Stands in for a provider that just answered 429: the first review call
@@ -1001,6 +1149,14 @@ class _AlwaysFailingApi implements ReviewApi {
   const _AlwaysFailingApi();
 
   @override
+  Future<DiagramAuditResult> diagramAudit(
+    DiagramAuditRequest request, {
+    CancelToken? cancelToken,
+  }) async {
+    throw StateError('dead proxy');
+  }
+
+  @override
   Future<bool> isProxyUp() async => false;
 
   @override
@@ -1028,23 +1184,5 @@ class _AlwaysFailingApi implements ReviewApi {
     CancelToken? cancelToken,
   }) async => throw ApiException('Cannot reach the review proxy.');
 
-  @override
-  Future<DiagramAuditResult> diagramAudit(
-    DiagramAuditRequest request, {
-    CancelToken? cancelToken,
-  }) async {
-    return DiagramAuditResult(
-      pageIndex: request.pageIndex,
-      diagramType: request.diagramType,
-      elements: const [],
-      relations: const [],
-      unreadable: const [],
-      clean: true,
-      findings: const [],
-      model: 'fake',
-      cached: false,
-      mock: true,
-    );
-  }
-
 }
+

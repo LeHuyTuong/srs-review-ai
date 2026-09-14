@@ -73,6 +73,7 @@ class VisionAuditOutcome {
 }
 
 class VisionReviewService {
+
   const VisionReviewService({
     required this.auditor,
     required this.renderPage,
@@ -89,6 +90,13 @@ class VisionReviewService {
   /// Cap on pages per run: one page = one request (two model calls), so
   /// 10 keeps a 50/day quota intact for the ordinary review.
   final int maxPages;
+
+
+  /// An auditor that refuses to speak: wired in when only the offline
+  /// candidate decision is needed (button labels, counts). A call reaching
+  /// it is a bug, and it reports itself as one.
+  static Future<DiagramAuditResult> noOpAuditor(DiagramAuditRequest _) async =>
+      throw StateError('candidate counting never audits');
 
   /// Which pages to audit: the UNION of two evidence kinds, neither alone
   /// is sufficient and the v0 probe proved it.

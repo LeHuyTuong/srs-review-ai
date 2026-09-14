@@ -24,6 +24,7 @@ import '../../../data/models/review_progress.dart';
 import '../../../data/models/srs_document.dart';
 import '../../../data/services/report_exporter.dart';
 import '../../../data/services/session_store.dart';
+import '../../../data/services/vision_review_service.dart';
 
 import '../models/ask_document.dart';
 import '../models/demo_units.dart';
@@ -63,6 +64,7 @@ class WorkspaceState {
     this.runSkipped = 0,
     this.findingStatus = const {},
     this.diagramPageCount = 0,
+    this.isAuditingDiagrams = false,
     this.imageReviewAvailable = false,
     this.imageReviewedCount = 0,
     this.imageCoverage,
@@ -126,6 +128,12 @@ class WorkspaceState {
   /// Zero means "none detected", never "all checked". Image review is tracked
   /// separately because only a current imported PDF can supply page bytes.
   final int diagramPageCount;
+
+  /// True while the vision audit runs. Deliberately its own flag, not a
+  /// [ReviewProgress] stage: the audit's unit of work is a page-request,
+  /// not a requirement-unit, and pretending otherwise would draw a
+  /// progress bar that means something different mid-run.
+  final bool isAuditingDiagrams;
 
   /// True only while original bytes from a newly imported PDF are retained in
   /// memory. DOCX, demo, and restored sessions are always text-only here.
@@ -229,6 +237,7 @@ class WorkspaceState {
     int? runSkipped,
     Map<String, FindingStatus>? findingStatus,
     int? diagramPageCount,
+    bool? isAuditingDiagrams,
     bool? imageReviewAvailable,
     int? imageReviewedCount,
     PageImageCoverage? imageCoverage,
@@ -261,6 +270,7 @@ class WorkspaceState {
     runSkipped: runSkipped ?? this.runSkipped,
     findingStatus: findingStatus ?? this.findingStatus,
     diagramPageCount: diagramPageCount ?? this.diagramPageCount,
+    isAuditingDiagrams: isAuditingDiagrams ?? this.isAuditingDiagrams,
     imageReviewAvailable: imageReviewAvailable ?? this.imageReviewAvailable,
     imageReviewedCount: imageReviewedCount ?? this.imageReviewedCount,
     imageCoverage: clearImageCoverage
@@ -652,6 +662,84 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
             );
           },
         );
+  }
+
+  /// Pages a vision audit would look at, decided offline (visual evidence
+  /// or a NAMED diagram type — see [VisionReviewService.candidates]). Zero
+  /// when the file bytes are gone (a restored session), which is also what
+  /// hides the button: an audit without bytes would render nothing.
+  int get diagramAuditCount {
+    final document = _document;
+    if (document == null || _pdfBytes == null) return 0;
+    return _visionService(VisionReviewService.noOpAuditor).candidates(document).length;
+  }
+
+  bool get canAuditDiagrams => diagramAuditCount > 0;
+
+  VisionReviewService _visionService(DiagramAuditor auditor) => VisionReviewService(
+    auditor: auditor,
+    renderPage: (int pageIndex, String _) async {
+      final bytes = _pdfBytes;
+      if (bytes == null) {
+        throw StateError('no file bytes to render page $pageIndex');
+      }
+      final repository = ref.read(reviewRepositoryProvider);
+      final png = await repository.renderPageForAudit(bytes, pageIndex);
+      return base64Encode(png);
+    },
+  );
+
+  /// sds-reviewer steps 4-6 on-device: render each candidate page, two-call
+  /// audit through the proxy, ledger rows into [state.referenceFindings].
+  ///
+  /// Opt-in and explicit, never automatic: a full audit is up to [10]
+  /// proxy requests against a 50/day quota, and silently spending 20% of
+  /// the day's budget in the background of a review would break the
+  /// quota discipline the whole client is built on. Re-running REPLACES
+  /// the previous diagram rows (same stable subjects, fresher evidence)
+  /// and leaves every other family untouched.
+  Future<void> auditDiagrams() async {
+    if (state.isAuditingDiagrams) return;
+    final document = _document;
+    if (document == null || _pdfBytes == null) {
+      state = state.copyWith(
+        error:
+            'The vision audit needs the original file in memory — restored '
+            'sessions keep findings but not bytes. Re-import to audit.',
+      );
+      return;
+    }
+    final repository = ref.read(reviewRepositoryProvider);
+    final service = _visionService(repository.diagramAudit);
+    state = state.copyWith(isAuditingDiagrams: true, clearError: true);
+    try {
+      final outcome = await service.audit(document);
+      final kept = state.referenceFindings
+          .where((f) => f.check != CheckId.diagramAudit)
+          .toList(growable: false);
+      state = state.copyWith(
+        referenceFindings: [...kept, ...outcome.findings],
+        toast: outcome.everythingFailed
+            ? null
+            : 'Vision audit: ${outcome.auditedPageCount} page(s)'
+                  '${outcome.skippedPages.isEmpty ? '' : ', ${outcome.skippedPages.length} skipped (quota cap)'}'
+                  '${outcome.failures.isEmpty ? '' : ', ${outcome.failures.length} failed'}',
+        clearError: !outcome.everythingFailed,
+        error: outcome.everythingFailed
+            ? 'Every diagram audit failed (first: ${outcome.failures.first}) — '
+                  'the pages were not seen; no verdict was written.'
+            : null,
+      );
+      _scheduleToastClear();
+      await _saveSnapshot();
+    } on Object catch (error) {
+      state = state.copyWith(
+        error: 'Diagram audit stopped: $error',
+        isAuditingDiagrams: false,
+      );
+      return;
+    }
+    state = state.copyWith(isAuditingDiagrams: false);
   }
 
   Future<void> _onRunFinished(ReviewProgress progress) async {

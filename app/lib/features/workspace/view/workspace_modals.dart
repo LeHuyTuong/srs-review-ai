@@ -450,6 +450,25 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
                 'Markdown report',
           ),
           const SizedBox(height: AppSpacing.md),
+          // Vision audit lives HERE, beside the report it feeds: rows land
+          // in the same ledger the export renders, so the natural moment to
+          // add them is before the file leaves the phone. Opt-in only — a
+          // run costs up to 10 proxy requests of the 50/day quota, and a
+          // button that spends real budget must never appear by itself.
+          if (viewModel.canAuditDiagrams) ...[
+            WButton.secondary(
+              label: state.isAuditingDiagrams
+                  ? 'Auditing ${state.diagramPageCount > 0 ? 'pages…' : ''}'
+                  : 'Vision-audit ${viewModel.diagramAuditCount} diagram '
+                        'page(s)',
+              icon: Icons.image_search_outlined,
+              expanded: true,
+              onPressed: state.isAuditingDiagrams
+                  ? null
+                  : () => unawaited(viewModel.auditDiagrams()),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
           Container(
             constraints: const BoxConstraints(maxHeight: 260),
             width: double.infinity,
