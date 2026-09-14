@@ -44,7 +44,7 @@ tiếng Anh** (sửa trong `76f03bc`).
 | 4 RUBRIC PASS (7 mục SDS) | app chấm SRS (brief SEP490), không phải SDS | ➖ ngoài scope brief |
 | 5 DIAGRAM PASS (notation từng ảnh) | LLM vision pass một phần; không có ledger ERD-xx/SM-xx/SEQ-xx | ❌ gap lớn nhất |
 | 6 CROSS-ARTIFACT PASS | `crossArtifactName` ≈ naming-drift (nhánh 3/6); FK matrix, seq↔class, status-vocabulary, CRUD-coverage: chưa | 🟡 1/6 chain |
-| 7 LEDGER + VERDICT (ID phân vùng, OPEN→FIXED→VERIFIED, thang 5+2+2+1) | ledger ID ổn định ✅ (R9/R14/R16 + stability test); **status vòng lặp re-review ❌**; điểm theo thang skill ❌ (app dùng điểm rubric LLM) | 🟡 |
+| 7 LEDGER + VERDICT (ID phân vùng, OPEN→FIXED→VERIFIED, thang 5+2+2+1) | ledger ID ổn định ✅ (R9/R14/R16 + stability test); **status loop ✅ có từ R9** (Verifier + nút re-run ở Findings tab); **report ba twins giờ hiển thị status ✅** (`c83828a` — cột Status MD/JSON/HTML + tally "N open"); điểm theo thang skill ❌ (app dùng điểm rubric LLM) | 🟡 còn mỗi thang điểm |
 
 **Kỷ luật 1 ("mọi con số qua checker")** — ✅ đúng chất: mọi số trong report
 đến từ deterministic pass, showcase assert parity 3 twins + stability.
@@ -57,9 +57,15 @@ tiếng Anh** (sửa trong `76f03bc`).
   sửa detector), 502/502 test, số thật trên OTES đã đổi theo (110→72 syllabus).
 - Phần **sds-reviewer: mới chạm 3/7 bước pipeline**. Gap thật cần quota +
   vision model: CROP, DIAGRAM notation ledger, 5/6 cross-artifact chains,
-  re-review status loop. Không phải việc làm một buổi chiều xong — đề xuất
+  và thang điểm verdict. Không phải việc làm một buổi chiều xong — đề xuất
   đưa vào roadmap.md làm milestone tiếp theo khi chạy mô hình vision.
-- Nếu bạn muốn, thứ tự đáng làm nhất theo mình: (1) re-review status loop
-  (ledger cũ là hợp đồng — OPEN→FIXED→VERIFIED, app đã có ID ổn định nên
-  chỉ thiếu trạng thái), (2) crop pipeline cho ảnh lớn, (3) FK matrix +
-  seq↔class khi có vision model đọc được diagram.
+- ~~re-review status loop~~ — **hóa ra đã có từ R9** (Verifier + nút re-run
+  trong Findings tab). Bản ghi ❌ ở đầu vòng là sai loại "ghi chú audit cũ
+  không phải sự thật hiện tại" mà chính AGENTS.md cảnh báo — inspect code
+  trước khi tuyên bố. Cái còn thiếu thật (và đã sửa, commit `c83828a`):
+  report exported không hiển thị status → ledger giữa hai vòng re-review
+  trông như nhau. Nay cả ba twins có cột Status + tally "N open · N fixed
+  (awaiting re-verify) · N verified".
+- Còn lại, theo thứ tự đáng làm: (1) crop pipeline cho ảnh lớn (bước 3),
+  (2) FK matrix + seq↔class khi có vision model đọc được diagram (bước 5–6),
+  (3) thang điểm 5+2+2+1 của skill nếu bạn muốn verdict form thức.
