@@ -54,3 +54,32 @@ re-runs identically, and wastes zero quota on cache. Its failure mode
 is cosmetic (mangled names) and its uncertainty is honestly boxed:
 red = "a human should look", which is what the ledger workflow says
 anyway.
+
+## Correction, same day — the 40% waste was fixed and re-measured
+
+The batch's slot audit (plan `docs/plans/4-vision-slot-discipline-2026-09-14.md`)
+found pages 6/7/9 were danh-mục pages named by Syncfusion text whose
+captions arrive SPLIT ACROSS LINES ("table\n36.") — the naive per-line
+counter missed them; folding the whole page first (fold collapses
+whitespace runs) rejoins exactly a caption's own word-number pair.
+Gate: ≥4 caption-led lines OR ≥8 caption mentions folded (measured
+separation: index pages 34-45, every real diagram page ≤4).
+
+Second fix, same page pair: when describe finds NO drawn inventory,
+findings bind to DOC on server AND client (mirror rules) — table-naming
+issues no longer filed as ERD defects.
+
+Re-run of the same batch after the gate: candidates 25→22, first 10 =
+1,24,51,155,156,159,160,167,170,180 — the three freed slots went to
+sequence/ERD pages and produced the strongest findings of the whole
+exercise, including three reds that SubjectClass/StudentClass/Attendance
+carry FK columns with no connecting line in the ERD (text layer of the
+drawing pages is empty — poppler confirms; these are visual-only claims,
+which is exactly what the human-confirm ledger step is for). 10/10
+again, run2 fully cached again, byte-stable again. 3 units spent on the
+delta (167/170/180 new), 7 returned from cache.
+
+## Note for CI hygiene
+`ruff check .` already fails on HEAD with 18 pre-existing findings
+(verified via worktree, not inferred); none came from this change.
+Cleaning them is separate debt, worth one focused pass with --fix.

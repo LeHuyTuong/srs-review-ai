@@ -10,6 +10,8 @@
 /// wrong question.
 library;
 
+import 'dart:convert';
+
 import 'text_fold.dart';
 
 enum DiagramKind {
@@ -118,4 +120,53 @@ class DiagramTypeClassifier {
     if (best == null || ambiguous) return DiagramKind.unknown;
     return best;
   }
+
+  /// True when a page is a CAPTION INDEX — a list of figure/table
+  /// captions (danh mục hình vẽ, bảng biểu) rather than a page that
+  /// draws anything. Named-type evidence must not spend an audit slot
+  /// here: the live batch of 2026-09-14 burned 3 of 10 slots on pages
+  /// whose diagrams were only REFERENCED (index 9 alone leads 45 caption
+  /// lines), crowding out real figure pages left unsent.
+  ///
+  /// Counted on the RAW page text line by line, folding each line
+  /// separately: [foldVietnamese] collapses every whitespace run (that is
+  /// its job for keyword matching) and would destroy the line structure
+  /// the whole heuristic depends on. Threshold 4 is measured, not
+  /// guessed — on the real OTES the three index pages lead 21, 27 and 45
+  /// caption lines while all 214 other pages lead at most 2.
+  bool isCaptionIndex(String pageText) {
+    var captionLines = 0;
+    for (final rawLine in const LineSplitter().convert(pageText)) {
+      if (_captionLead.hasMatch(foldVietnamese(rawLine).trim())) {
+        captionLines++;
+      }
+    }
+    // The whole page folded as ONE string: Syncfusion emits every table
+    // cell on its own line, so real captions arrive split across lines
+    // ("table\n36."). foldVietnamese collapses whitespace runs, which
+    // rejoins exactly that pair — and only pairs inside one caption:
+    // prose between captions survives as words that break the \s*\d+
+    // bridge, so counting matches never fuses "quiz. 83 table".
+    final folded = foldVietnamese(pageText);
+    final captionTotal = _captionAny.allMatches(folded).length;
+    // Either shape of index: real line-per-caption source (pdfium kept
+    // the newlines) or a parser that flattened the whole list into one
+    // blob (Syncfusion did exactly that on OTES). Measured 2026-09-14:
+    // index pages carry 34-45 caption mentions, every content page at
+    // most 4 — the thresholds sit far inside that gap.
+    return captionLines >= 4 || captionTotal >= 8;
+  }
+
+  /// Folded-form caption openers: "figure 12", "hinh 3", "bang 40",
+  /// "table 7", "so do 2", "don vi chuc nang" style headers are NOT
+  /// matched here (no leading number) — only real numbered captions.
+  static final RegExp _captionLead = RegExp(
+    caseSensitive: false, 
+    r'^(?:figure|image|hinh|bang|table|so do|sdo|erd)\s*[-: ]?\s*\d',
+  );
+
+  static final RegExp _captionAny = RegExp(
+    r'(?:figure|image|hinh|bang|table|so do)\s*\d+',
+    caseSensitive: false,
+  );
 }

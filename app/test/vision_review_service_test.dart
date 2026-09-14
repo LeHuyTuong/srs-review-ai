@@ -258,6 +258,113 @@ void main() {
       expect(outcome.findings.length, 2);
       expect(outcome.skippedPages.length, 4);
     });
+
+    test('caption index pages do not earn named-type slots (batch evidence)', () {
+      // The 2026-09-14 live batch burned 3 of 10 audit slots on pages
+      // that list diagram captions but draw none. OTES page index 9 is
+      // exactly this: 45 "Figure N." lines and no picture.
+      final indexPage = [
+        'Figure 28. Login screen mockup',
+        'Figure 29. Register flow',
+        'Figure 30. Manage quiz view',
+        'Figure 31. Grade export component',
+        'Figure 32. Student dashboard',
+        'Figure 33. Lecturer sequence for quiz creation',
+      ].join('\n');
+      const realPage =
+          'So do lop. Class diagram: Student 1..* Enrollment Enrollment *..* Course '
+          'Figure 12. Class diagram of enrollment';
+      final doc = _doc(const [], pageTexts: [indexPage, realPage]);
+      final svc = VisionReviewService(
+        auditor: (_) async => throw StateError('no audit here'),
+        renderPage: (_, _) async => 'AA==',
+      );
+      final pages = svc.candidates(doc).map((c) => c.pageIndex).toList();
+      expect(pages, isNot(contains(0)),
+          reason: 'a pure caption index must not be audited');
+      expect(pages, contains(1),
+          reason: 'a page that draws the diagram still earns its slot');
+    });
+
+    test('a caption index carrying a real image is still audited', () {
+      final indexPage = [
+        'Figure 28. Login screen mockup',
+        'Figure 29. Register flow',
+        'Figure 30. Manage quiz view',
+        'Figure 31. Grade export component',
+      ].join('\n');
+      final doc = _doc(const [], pageTexts: [indexPage], imagePages: const [0]);
+      final svc = VisionReviewService(
+        auditor: (_) async => throw StateError('no audit here'),
+        renderPage: (_, _) async => 'AA==',
+      );
+      expect(svc.candidates(doc).map((c) => c.pageIndex), contains(0),
+          reason: 'image evidence outranks the index heuristic');
+    });
+
+    test('empty-inventory audit files findings under DOC, not the requested kind', () async {
+      // Family honesty, client mirror of the server rule: the batch's p7
+      // row filed table-naming findings under ERD because ERD was the
+      // REQUESTED type — the ledger blamed a diagram never drawn.
+      final doc = _doc(
+        const [],
+        pageTexts: const [
+          'So do lop. Class diagram: Student 1..* Enrollment Enrollment *..* Course'
+        ],
+      );
+      final svc = VisionReviewService(
+        auditor: (r) async => DiagramAuditResult(
+          pageIndex: r.pageIndex,
+          diagramType: r.diagramType,
+          elements: const [],
+          relations: const [],
+          unreadable: const [],
+          clean: false,
+          findings: const [
+            DiagramFindingData(
+              family: 'SEQ-CLS',
+              entity: 'Table 40',
+              evidence: 'ten bang trung lap',
+              severity: 'amber',
+            ),
+          ],
+          model: 'm',
+          cached: false,
+          mock: true,
+        ),
+        renderPage: (_, _) async => 'AA==',
+      );
+      final outcome = await svc.audit(doc);
+      expect(outcome.findings.single.subject, startsWith('DOC-'));
+      expect(outcome.findings.single.message, contains('ten bang trung lap'));
+    });
+
+    test('empty-inventory pass-row says nothing was drawn', () async {
+      final doc = _doc(
+        const [],
+        pageTexts: const [
+          'So do lop. Class diagram: Student 1..* Enrollment Enrollment *..* Course'
+        ],
+      );
+      final svc = VisionReviewService(
+        auditor: (r) async => DiagramAuditResult(
+          pageIndex: r.pageIndex,
+          diagramType: r.diagramType,
+          elements: const [],
+          relations: const [],
+          unreadable: const [],
+          clean: true,
+          findings: const [],
+          model: 'm',
+          cached: false,
+          mock: true,
+        ),
+        renderPage: (_, _) async => 'AA==',
+      );
+      final outcome = await svc.audit(doc);
+      expect(outcome.findings.single.message,
+          contains('no drawn diagram found on this page'));
+    });
   });
 }
 

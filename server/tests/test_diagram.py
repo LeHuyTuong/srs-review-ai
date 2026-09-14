@@ -102,6 +102,45 @@ class RecordingProvider:
         )
 
 
+class EmptyInventoryProvider(RecordingProvider):
+    """The measured 2026-09-14 failure mode: a page whose text NAMES
+    diagrams but DRAWS none — describe comes back with no inventory,
+    yet the judge still finds (document-level) problems."""
+
+    async def generate_json(self, *, system, user, schema, image_b64=None):
+        if "elements" in schema.get("properties", {}):
+            return {"elements": [], "relations": [], "unreadable": []}, self.model_id
+        return (
+            {
+                "clean": False,
+                "findings": [
+                    {"family": "ERD", "entity": "Table 105",
+                     "evidence": "ten bang thieu tien to <Fields>", "severity": "amber"}
+                ],
+            },
+            self.model_id,
+        )
+
+
+def test_empty_inventory_findings_are_bound_to_doc_not_requested_type(client, monkeypatch):
+    """Family honesty: findings from a page with no drawn inventory must
+    land under DOC even when the request asked for 'erd' — filing a table
+    naming issue as an ERD defect misattributes the artifact at fault."""
+    _patch_provider(monkeypatch, EmptyInventoryProvider())
+    r = client.post("/diagram", json=_req(diagram_type="erd"))
+    assert r.status_code == 200
+    assert all(f["family"] == "DOC" for f in r.json()["verdict"]["findings"])
+
+
+def test_nonempty_inventory_still_binds_to_requested_type(client, monkeypatch):
+    """The override is narrow: a page that DID draw inventory keeps the
+    requested-type family, where the judge's whims are still corrected."""
+    _patch_provider(monkeypatch, RecordingProvider())
+    r = client.post("/diagram", json=_req(diagram_type="erd"))
+    assert r.status_code == 200
+    assert all(f["family"] == "ERD" for f in r.json()["verdict"]["findings"])
+
+
 def _patch_provider(monkeypatch, provider):
     import app.main as main
 

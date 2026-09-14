@@ -139,7 +139,11 @@ class VisionReviewService {
       final text = textByPage[page]?.toString() ?? '';
       if (text.isEmpty && !visual.contains(page)) continue;
       final kind = classifier.classify(text);
-      if (visual.contains(page) || kind != DiagramKind.unknown) {
+      final namedHere = kind != DiagramKind.unknown &&
+          // A caption index NAMES many diagrams and DRAWS none — it
+          // audits only if it also carries real image evidence.
+          !classifier.isCaptionIndex(text);
+      if (visual.contains(page) || namedHere) {
         selected.add(page);
       }
     }
@@ -177,11 +181,7 @@ class VisionReviewService {
     final failures = <String>[];
 
     for (final candidate in withinBudget) {
-      final label = candidate.kind.family;
-      final next = (familyOrdinal[label] ?? 0) + 1;
-      familyOrdinal[label] = next;
-      final subject =
-          "$label-${next.toString().padLeft(2, '0')}";
+      final tentativeLabel = candidate.kind.family;
       try {
         final imageB64 = await renderPage(
           candidate.pageIndex,
@@ -195,12 +195,25 @@ class VisionReviewService {
             imageB64: imageB64,
           ),
         );
+        // Subject family follows what the audit OBSERVED, not what was
+        // requested (family honesty, mirrors server bind_family): a page
+        // that drew no inventory can only yield DOC findings. Ordinals
+        // are consumed per EFFECTIVE family, in page order, so re-runs
+        // name the same page the same way.
+        final label = result.elements.isEmpty && result.relations.isEmpty
+            ? 'DOC'
+            : tentativeLabel;
+        final next = (familyOrdinal[label] ?? 0) + 1;
+        familyOrdinal[label] = next;
+        final subject =
+            "$label-${next.toString().padLeft(2, '0')}";
         findings.add(_row(subject: subject, candidate: candidate, result: result));
       } on Object catch (error) {
         // A failed audit is a gap in our evidence, not a defect in the
         // document: it must not push the ledger toward red or green.
         failures.add(
-          '$subject (page ${candidate.pageIndex + 1}): ${_describeError(error)}',
+          '$tentativeLabel (page ${candidate.pageIndex + 1}): '
+          '${_describeError(error)}',
         );
       }
     }
@@ -222,6 +235,14 @@ class VisionReviewService {
     final redCount = result.findings
         .where((f) => f.severity == 'red')
         .length;
+    // Family honesty (measured 2026-09-14): when the audit found NO
+    // drawn inventory, every real finding is about document structure —
+    // filing it under ERD-/SEQ-CLS-/PKG- would tell the reader the
+    // diagram is wrong when the diagram was never there. Server-side
+    // bind_family mirrors this rule; both sides must agree or ledger
+    // keys drift apart across client and report.
+    final sawDiagram =
+        result.elements.isNotEmpty || result.relations.isNotEmpty;
     final suffix = result.unreadable.isEmpty
         ? ''
         : ' ${result.unreadable.length} item(s) unreadable at render '
@@ -232,10 +253,13 @@ class VisionReviewService {
         passed: true,
         severity: Severity.low,
         subject: subject,
-        message:
-            'Vision audit of page $page (${candidate.kind.wire}): no '
-            'notation issues found in ${result.elements.length} element(s), '
-            '${result.relations.length} relation(s).$suffix',
+        message: sawDiagram
+            ? 'Vision audit of page $page (${candidate.kind.wire}): no '
+              'notation issues found in ${result.elements.length} element(s), '
+              '${result.relations.length} relation(s).$suffix'
+            : 'Vision audit of page $page (${candidate.kind.wire}): no '
+              'drawn diagram found on this page (0 elements, 0 relations) — '
+              'nothing to grade.$suffix',
       );
     }
     final evidence = result.findings

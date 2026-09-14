@@ -369,8 +369,17 @@ async def diagram(
             schema=LLM_DIAGRAM_JUDGE_SCHEMA,
             image_b64=payload.image_b64,
         )
+        # Family honesty (mirrored in the client's _row, same rule): when
+        # describe found NO drawn inventory, the page holds no diagram of
+        # the requested kind — findings can only be about document
+        # structure, so they belong under DOC, not ERD/SEQ-CLS/PKG.
+        effective_family = (
+            "DOC"
+            if not describe.elements and not describe.relations
+            else ID_FAMILY_BY_TYPE[payload.diagram_type]
+        )
         verdict = DiagramVerdict.model_validate(raw_judge).bind_family(
-            ID_FAMILY_BY_TYPE[payload.diagram_type]
+            effective_family
         )
     except LlmError as exc:
         log.warning("diagram audit failed for page %s: %s", payload.page_index, exc)
