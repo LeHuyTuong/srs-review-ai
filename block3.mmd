@@ -1,0 +1,26 @@
+flowchart TB
+    subgraph SERVER["FastAPI (main.py, ~300 dòng proxy)"]
+        MW["CORSMiddleware"]
+        AUTH["require_app_token<br/>(header app token) + caller_id (X-User-Id)"]
+        E1["GET /health"]
+        E2["GET /rubric"]
+        E3["POST /review → ReviewResult"]
+        E4["POST /ask → AskResponse"]
+        CACHE["cache.py — LruCache SHA256, 512 entries"]
+        RL["ratelimit.py — giới hạn theo user/ngày"]
+        BND["_ensure_bounded — chặn payload quá lớn"]
+        PRM["prompt.py — prompt builder (review + ask)"]
+        VER["verify.py — review: drop issue sai quote ·<br/>ask: lọc citation sai quote"]
+        SCHEMAS["schemas.py — pydantic<br/>(khớp contracts/review.schema.json)"]
+        subgraph LLM["llm/"]
+            BASE["base.py (interface)"]
+            GEMI["gemini.py — retry backoff ·<br/>model fallback 3.5 → 3.1"]
+            MOCK["mock.py (mock mode server)"]
+            ROUTER["router.py build_provider —<br/>chọn provider lúc khởi tạo"]
+        end
+    end
+
+    APP["Flutter app"] --> MW --> AUTH --> E1 & E2 & E3 & E4
+    E3 --> BND --> CACHE --> RL --> PRM --> ROUTER --> GEMI --> VER -->|"ReviewResult"| APP
+    E4 --> BND --> RL --> PRM --> ROUTER --> GEMI --> VER -->|"AskResponse"| APP
+    ROUTER -.->|"MOCK_MODE=true hoặc thiếu API key<br/>(chọn lúc build, không phải fallback runtime)"| MOCK

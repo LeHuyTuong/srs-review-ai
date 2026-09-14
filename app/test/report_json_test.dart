@@ -27,6 +27,66 @@ void main() {
     requiresVisionEvidence: requiresVisionEvidence,
   );
 
+  group('deterministic ledger status (re-review loop)', () {
+    test('failing rows carry the Verifier status; passing rows carry none', () {
+      final json = buildJsonReport(
+        fileName: 'a.pdf',
+        offline: true,
+        result: null,
+        units: const [],
+        syllabusFindings: [
+          check(CheckId.ucCount),
+          check(CheckId.ucSize, passed: true),
+        ],
+        referenceFindings: [
+          DeterministicFinding(
+            check: CheckId.missingPostcondition,
+            passed: false,
+            severity: Severity.high,
+            message: 'msg',
+            subject: 'UC-01',
+          ),
+        ],
+        findingStatus: const {
+          'missing_postcondition:UC-01': FindingStatus.fixed,
+        },
+      );
+      final rows =
+          (json['deterministic_checks'] as List).cast<Map<String, Object?>>();
+      final byWire = {
+        for (final r in rows) r['check']! as String: r,
+      };
+      // A failing row with no recorded status reads Open — the default,
+      // never hidden.
+      expect(byWire['uc_count']!['status'], 'open');
+      // A passing row is not ledger state: null, not 'open'.
+      expect(byWire['uc_size']!['status'], isNull);
+      // The Verifier transition survives the export boundary.
+      expect(byWire['missing_postcondition']!['status'], 'fixed');
+    });
+
+    test('ledgerKey matches the Verifier storage key exactly', () {
+      final f = DeterministicFinding(
+        check: CheckId.duplicateIds,
+        passed: false,
+        severity: Severity.high,
+        message: 'UC-04 used 16 times',
+        subject: 'UC-04',
+      );
+      expect(f.ledgerKey, 'duplicate_ids:UC-04');
+      final json = buildJsonReport(
+        fileName: 'a.pdf',
+        offline: true,
+        result: null,
+        units: const [],
+        referenceFindings: [f],
+        findingStatus: const {'duplicate_ids:UC-04': FindingStatus.verified},
+      );
+      final row = (json['deterministic_checks'] as List).first as Map;
+      expect(row['status'], 'verified');
+    });
+  });
+
   group('buildJsonReport — schema shape', () {
     test('carries schema id + additive version marker', () {
       final json = buildJsonReport(

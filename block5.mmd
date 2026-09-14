@@ -1,0 +1,35 @@
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant VM as WorkspaceViewModel
+    participant RR as ReviewRepository
+    participant API as ApiService (Dio)
+    participant PX as FastAPI /ask
+    participant LLM as Gemini 3.5→3.1
+    participant VF as verify_quote()
+    participant SS as SessionStore
+
+    U->>VM: Nhập câu hỏi + ngữ cảnh tài liệu
+    VM->>RR: ask(question, context, page)
+    RR->>API: ask(...)
+    API->>PX: POST /ask + X-App-Token + X-User-Id
+    PX->>PX: _ensure_bounded + RateLimiter (giống /review)
+    PX->>LLM: ask_system_prompt + question + context
+    LLM-->>PX: {answer, quotes[], grounded} (responseSchema)
+    loop mỗi quote trả về
+        PX->>VF: verify_quote(quote, context)
+        alt khớp (exact/fuzzy ≥92%)
+            VF-->>PX: giữ citation (kèm verification status)
+        else không khớp
+            VF-->>PX: loại citation
+        end
+    end
+    alt còn ít nhất 1 citation verified
+        PX-->>API: AskResponse{answer, grounded=true, citations, model}
+    else không còn citation nào
+        PX-->>API: AskResponse{answer="Not found in the document.", grounded=false}
+    end
+    API-->>RR: AskResponse
+    RR-->>VM: response
+    VM->>SS: Lưu vào session/history
+    VM-->>U: Hiện answer + citations (F4: nhảy tới trang)

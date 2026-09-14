@@ -97,8 +97,9 @@ class Verifier {
   /// Stable key across runs. Two findings with the same `check.wire`
   /// and `subject` are the same finding — even if the message wording
   /// changed between runs (the parser may have re-worded a sentence).
-  static String _keyOf(DeterministicFinding f) =>
-      '${f.check.wire}:${f.subject ?? '_'}';
+  /// Delegates to [DeterministicFinding.ledgerKey] so the Verifier and
+  /// the report twins can never disagree on the format.
+  static String _keyOf(DeterministicFinding f) => f.ledgerKey;
 
   /// One-step transition per goal §3 rule 2 and rule 3.
   ///

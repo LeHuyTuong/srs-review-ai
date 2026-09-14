@@ -1,0 +1,45 @@
+flowchart TB
+    subgraph CORE["core/"]
+        CFG["app_config.dart<br/>apiBaseUrl theo platform<br/>forceMockMode (MOCK_MODE)"]
+        PRV["providers.dart (Riverpod)"]
+        RTR["router/app_router.dart (go_router)"]
+        THM["theme/ app_theme · tokens ·<br/>glass_tokens · workspace_colors"]
+        WDG["widgets/ glass_surface ·<br/>content_shell · chrome_insets"]
+    end
+
+    subgraph FEATURES["features/workspace/ — MVVM"]
+        VM["view_model/<br/>workspace_view_model.dart"]
+        V["view/<br/>workspace_shell · document_review_view ·<br/>findings_tab · inventory_tab · syllabus_tab ·<br/>source_sheet · review_history_view ·<br/>syllabus_rubric_view · workspace_modals"]
+        FM["models/<br/>workspace_unit · workspace_findings ·<br/>ask_document · report_export · demo_units"]
+    end
+
+    subgraph DATALAYER["data/"]
+        direction TB
+        subgraph REPO["repositories/"]
+            DR["document_repository"]
+            RR["review_repository"]
+        end
+        subgraph SVC["services/"]
+            PS["parse_service<br/>(PDF: syncfusion · DOCX: archive+xml)"]
+            AS["api_service (Dio → proxy)<br/>retry idempotent GET"]
+            MK["mock_review_api (F6 offline)"]
+            FP["file_picker_service"]
+            EXP["report_exporter"]
+            SS["session_store (shared_preferences)"]
+        end
+        subgraph CHK["checks/"]
+            RUB["rubric_config"]
+            SYL["syllabus_checks (F7–F9, thuần rule)"]
+        end
+        MOD["models/ srs_document · loaded_document ·<br/>review_models · review_progress · deterministic_finding"]
+        PARS["parsing/requirement_splitter"]
+    end
+
+    V --> VM --> RR
+    V --> DR
+    DR --> PS --> PARS --> MOD
+    RR --> AS
+    RR -.->|"MOCK_MODE / proxy down"| MK
+    RR --> RUB --> SYL
+    RR --> SS
+    FM --> EXP

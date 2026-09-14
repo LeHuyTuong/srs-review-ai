@@ -140,6 +140,13 @@ class DeterministicFinding {
       );
 
   final CheckId check;
+
+  /// The finding's stable identity in the re-review ledger — the exact
+  /// key the Verifier stores statuses under and the key the report
+  /// twins look up to render OPEN/FIXED/VERIFIED per row. Lives here
+  /// (not only inside Verifier._keyOf) so exporter and verifier can
+  /// never drift apart on formatting.
+  String get ledgerKey => '${check.wire}:${subject ?? '_'}';
   final bool passed;
   final Severity severity;
   final String message;

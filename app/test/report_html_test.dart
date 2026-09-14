@@ -381,4 +381,63 @@ void main() {
       expect(html, contains('<li>'));
     });
   });
+
+  group('re-review ledger status in the dashboard', () {
+    test('ledger column carries Verifier statuses and the tally appears', () {
+      final html = buildHtmlReport(
+        fileName: 'a.pdf',
+        offline: true,
+        result: null,
+        units: const [],
+        referenceFindings: [
+          DeterministicFinding(
+            check: CheckId.missingPostcondition,
+            passed: false,
+            severity: Severity.high,
+            message: 'UC-01 has no Postcondition',
+            subject: 'UC-01',
+          ),
+          DeterministicFinding(
+            check: CheckId.missingPostcondition,
+            passed: false,
+            severity: Severity.high,
+            message: 'UC-02 has no Postcondition',
+            subject: 'UC-02',
+          ),
+        ],
+        findingStatus: const {
+          'missing_postcondition:UC-01': FindingStatus.verified,
+          'missing_postcondition:UC-02': FindingStatus.fixed,
+        },
+      );
+      expect(html, contains('<th>Status</th>'));
+      expect(html, contains('Verified'));
+      expect(html, contains('Fixed'));
+      expect(html, contains('Ledger:'));
+      // Zero open rows here — both were transitioned.
+      expect(html, contains('0 open'));
+    });
+
+    test('no status map still renders honest Open rows, no tally noise', () {
+      final html = buildHtmlReport(
+        fileName: 'a.pdf',
+        offline: true,
+        result: null,
+        units: const [],
+        referenceFindings: [
+          DeterministicFinding(
+            check: CheckId.missingPostcondition,
+            passed: false,
+            severity: Severity.high,
+            message: 'UC-01 has no Postcondition',
+            subject: 'UC-01',
+          ),
+        ],
+      );
+      expect(html, contains('Open'));
+      // The tally line only appears when a re-run produced ledger state
+      // — a first review must not print "0 fixed" as if it meant work.
+      expect(html, isNot(contains('Ledger:')));
+    });
+  });
 }

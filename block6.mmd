@@ -1,0 +1,19 @@
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant VM as WorkspaceViewModel
+    participant MP as mockModeProvider
+    participant RAP as reviewApiProvider
+    participant MK as MockReviewApi
+    participant SC as SyllabusChecks
+
+    U->>VM: Bật Mock Mode
+    VM->>MP: toggle → true (runtime, không cần rebuild)
+    VM->>RAP: đọc ReviewApi
+    RAP-->>VM: MockReviewApi (thay vì ApiService)
+    U->>VM: runReview()
+    VM->>MK: run(filtered)
+    MK->>SC: Rule-based: từ mơ hồ, thiếu shall/must,<br/>use case count, EN, transactions
+    MK-->>VM: ReviewResult (mock=true, 0 token, tức thì)
+    VM-->>U: Findings như flow thật — toàn luồng import→review→export chạy offline
+    Note over MK: Server-side cũng có llm/mock.py:<br/>build_provider() chọn MockProvider khi<br/>MOCK_MODE=true hoặc thiếu API key

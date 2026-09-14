@@ -23,6 +23,14 @@ import 'section_scores.dart';
 import 'workspace_findings.dart';
 import 'workspace_unit.dart';
 
+String _statusClass(FindingStatus s) => switch (s) {
+  FindingStatus.open => 'bad',
+  FindingStatus.fixed => 'amber',
+  FindingStatus.verified => 'ok',
+  FindingStatus.pendingVision => 'amber',
+  FindingStatus.disputed => '',
+};
+
 String _esc(String text) => text
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -281,6 +289,23 @@ String buildHtmlReport({
   ];
   if (allDeterministic.isNotEmpty) {
     final failing = allDeterministic.where((e) => !e.$2.passed).length;
+    // The re-review tally — sds-reviewer's "grep -c OPEN" rendered for
+    // humans. Only meaningful once a Verifier re-run has populated
+    // statuses; a first export says plain "need attention" instead.
+    final openCount = allDeterministic
+        .where((e) =>
+            !e.$2.passed && statusFor(e.$2.ledgerKey) == FindingStatus.open)
+        .length;
+    final fixedCount = allDeterministic
+        .where((e) => !e.$2.passed &&
+            statusFor(e.$2.ledgerKey) == FindingStatus.fixed)
+        .length;
+    final verifiedCount = allDeterministic
+        .where((e) => !e.$2.passed &&
+            (statusFor(e.$2.ledgerKey) == FindingStatus.verified ||
+                statusFor(e.$2.ledgerKey) == FindingStatus.disputed))
+        .length;
+    final hasLedgerState = fixedCount + verifiedCount > 0;
     out.write(
       '<h2>Deterministic checks (${allDeterministic.length})</h2>'
       '<p class="meta">Offline rule checks — no model, zero tokens. '
@@ -288,7 +313,8 @@ String buildHtmlReport({
       'srs-writer quality scan; reference (M2) '
       'rows are the consistency checks (duplicate ids, missing '
       'postconditions, cross-artifact names). '
-      '${failing == 0 ? 'All checks passed.' : '<b>$failing of ${allDeterministic.length} need attention.</b>'}</p>',
+      '${failing == 0 ? 'All checks passed.' : '<b>$failing of ${allDeterministic.length} need attention.</b>'}'
+      '${hasLedgerState ? ' Ledger: <b>$openCount open</b> · $fixedCount fixed (awaiting re-verify) · $verifiedCount verified/disputed.' : ''}</p>',
     );
 
     // Group key: same family, check, pass-state, severity, and message
@@ -346,15 +372,19 @@ String buildHtmlReport({
     out.write(
       '<details><summary>Full ledger (${allDeterministic.length} rows)</summary>'
       '<div class="tscroll"><table><tr><th>Family</th><th>Check</th>'
-      '<th>Subject</th><th>Result</th><th>Detail</th></tr>',
+      '<th>Subject</th><th>Result</th><th>Status</th><th>Detail</th></tr>',
     );
     for (final (family, finding) in allDeterministic) {
       final resultCell = finding.passed
           ? '<td class="ok">passed</td>'
           : '<td class="bad">${_esc(finding.severity.name)}</td>';
+      final status = finding.passed
+          ? '<td>—</td>'
+          : '<td><span class="chip ${_statusClass(statusFor(finding.ledgerKey))}">'
+              '${_esc(statusFor(finding.ledgerKey).label)}</span></td>';
       out.write(
         '<tr><td>${_esc(family)}</td><td>${_esc(finding.check.label)}</td>'
-        '<td>${_esc(finding.subject ?? 'whole document')}</td>$resultCell'
+        '<td>${_esc(finding.subject ?? 'whole document')}</td>$resultCell$status'
         '<td>${_esc(finding.message)}'
         '${finding.requiresVisionEvidence ? ' <span class="chip amber">needs vision evidence</span>' : ''}</td></tr>',
       );

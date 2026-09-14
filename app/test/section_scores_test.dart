@@ -3,6 +3,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:srs_review_ai/data/models/deterministic_finding.dart';
 import 'package:srs_review_ai/data/models/review_models.dart';
 import 'package:srs_review_ai/data/models/review_progress.dart';
 import 'package:srs_review_ai/data/models/srs_document.dart';
@@ -283,6 +284,42 @@ void main() {
         units: [_unit('u0', section: '1. Introduction')],
       );
       expect(report, isNot(contains('## Scores by section')));
+    });
+  });
+
+  group('deterministic ledger status column', () {
+    test('failing rows show the Verifier status, passing rows an em dash', () {
+      final report = buildMarkdownReport(
+        fileName: 'a.pdf',
+        offline: true,
+        result: null,
+        units: const [],
+        syllabusFindings: [
+          DeterministicFinding(
+            check: CheckId.ucCount,
+            passed: false,
+            severity: Severity.high,
+            message: 'found 3 use cases, expected >= 5',
+          ),
+        ],
+        referenceFindings: [
+          DeterministicFinding(
+            check: CheckId.missingPostcondition,
+            passed: false,
+            severity: Severity.high,
+            message: 'UC-01 has no Postcondition',
+            subject: 'UC-01',
+          ),
+        ],
+        findingStatus: const {
+          'missing_postcondition:UC-01': FindingStatus.verified,
+        },
+      );
+      expect(report, contains('| Family | Check | Subject | Result | Status |'));
+      // A promoted row reads Verified; an untouched failing row reads
+      // Open — the honest default, never hidden.
+      expect(report, contains('Verified'));
+      expect(report, contains('Open'));
     });
   });
 }

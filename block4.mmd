@@ -1,0 +1,60 @@
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant V as WorkspaceView
+    participant VM as WorkspaceViewModel
+    participant DR as DocumentRepository
+    participant FP as FilePickerService
+    participant PS as ParseService<br/>(background isolate)
+    participant SC as SyllabusChecks (F7–F9)
+    participant RR as ReviewRepository
+    participant API as ApiService (Dio)
+    participant PX as FastAPI /review
+    participant LLM as Gemini 3.5→3.1
+    participant VF as verify.py
+    participant SS as SessionStore
+
+    U->>V: Chọn file SRS (PDF/DOCX, ≤30MB)
+    V->>VM: importDocument()
+    VM->>DR: pickAndParse()
+    DR->>FP: pickSrsFile()
+    FP-->>DR: bytes + tên file
+    DR->>PS: parse() → compute() isolate
+    PS->>PS: PdfParser/DocxParser + RequirementSplitter
+    PS-->>DR: SrsDocument (sections, requirements, trang sơ đồ)
+    DR->>SC: runAll(SrsDocument)
+    SC-->>DR: DeterministicFindings (use case 20–25, EN, 3–7 txn)
+    DR-->>VM: LoadedDocument
+
+    U->>V: Bấm "Review"
+    V->>VM: runReview()
+    VM->>VM: Kẹp cap 40 unit (maxRequirementsPerRun),<br/>ghi shortfall, lọc theo unit.key
+    VM->>RR: run(filtered, concurrency=4)
+    loop mỗi requirement, tối đa 4 chạy song song (clamp 1..8)
+        RR->>API: review(requirement)
+        API->>PX: POST /review + X-App-Token + X-User-Id
+        PX->>PX: _ensure_bounded (text ≤200KB, image ≤4MB)
+        PX->>PX: cache lookup SHA256 (11 thành phần)
+        alt cache hit
+            PX-->>API: ReviewResult (cached=true, không tốn quota)
+        else cache miss
+            PX->>PX: RateLimiter (50 req/ngày/user) — 429 + Retry-After nếu vượt
+            PX->>LLM: prompt rubric (retry backoff 1s/2s/4s)
+            LLM-->>PX: issues dạng JSON (responseSchema)
+            PX->>VF: verify_quote từng issue
+            alt quote exact
+                VF-->>PX: verification=exact
+            else fuzzy ≥92%
+                VF-->>PX: verification=fuzzy + hiện bản gốc
+            else không khớp
+                VF-->>PX: DROP issue → dropped_issue_count++
+            end
+            PX-->>API: ReviewResult (score, issues, dropped_issue_count)
+        end
+        API-->>RR: kết quả
+        RR-->>VM: ReviewProgress (stage, reviewed/total)
+        VM-->>V: cập nhật progress bar theo stage
+    end
+    RR-->>VM: done / cancelled / failed
+    VM->>SS: Lưu history + snapshot (kể cả run bị 429/cancel)
+    VM-->>V: Findings + summary + ghi chú cap

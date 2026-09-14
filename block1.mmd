@@ -1,0 +1,22 @@
+flowchart LR
+    subgraph CLIENT["📱 Flutter app (Android · Windows · macOS · Web)"]
+        direction TB
+        UI["UI layer — MVVM<br/>View + ViewModel (Riverpod)"]
+        DATA["Data layer<br/>Repository + Service"]
+        UI <--> DATA
+    end
+
+    subgraph PROXY["⚡ FastAPI proxy (server/) — giữ API key"]
+        direction TB
+        API["REST API<br/>/health · /rubric · /review · /ask"]
+        VERIFY["verify.py — lọc quote<br/>(anti-hallucination)"]
+        LLMR["llm/router.py<br/>model routing"]
+        API --> VERIFY --> LLMR
+    end
+
+    GEM["🤖 Google Gemini<br/>3.5 Flash-Lite<br/>fallback 3.1 Flash-Lite"]
+    RULES["📐 Rule-based checks (offline, trong app)<br/>syllabus_checks: use case 20–25 ·<br/>tiếng Anh · transaction 3–7"]
+
+    DATA -- "HTTPS (Dio) + app token + X-User-Id" --> API
+    LLMR -- "HTTPS" --> GEM
+    DATA -.->|"offline, 0 token"| RULES

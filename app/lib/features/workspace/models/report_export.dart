@@ -96,6 +96,9 @@ String buildMarkdownReport({
   final skipped = result?.skipped ?? units.where((u) => !u.selected).length;
   final findings = result?.findings ?? const <FindingRow>[];
   final dropped = result?.droppedIssueCount ?? 0;
+
+  FindingStatus statusFor(String id) =>
+      findingStatus[id] ?? FindingStatus.open;
   final reportOffline = result?.mock ?? offline;
   final effectiveImageReviewedCount =
       imageCoverage?.reviewed ?? imageReviewedCount;
@@ -294,12 +297,17 @@ String buildMarkdownReport({
         '${failing.isEmpty ? 'All checks passed.' : '${failing.length} of ${allDeterministic.length} need attention.'}',
       )
       ..add('')
-      ..add('| Family | Check | Subject | Result | Detail |')
-      ..add('|---|---|---|---|---|');
+      ..add('| Family | Check | Subject | Result | Status | Detail |')
+      ..add('|---|---|---|---|---|---|');
     for (final (family, finding) in allDeterministic) {
+      // Status is ledger state, not re-derivable from the document: it
+      // comes from the Verifier's re-run map (sds-reviewer discipline
+      // "the old ledger is a contract"). Passing rows never had a
+      // status — only failing rows live in the ledger.
+      final status = finding.passed ? '—' : statusFor(finding.ledgerKey).label;
       lines.add(
         '| $family | ${finding.check.label} | ${finding.subject ?? 'whole document'} | '
-        '${finding.passed ? 'passed' : '**${finding.severity.name}**'} | '
+        '${finding.passed ? 'passed' : '**${finding.severity.name}**'} | $status | '
         '${finding.message.replaceAll('|', '\\|')} |',
       );
     }
@@ -323,8 +331,6 @@ String buildMarkdownReport({
       ..add(message)
       ..add('');
   } else {
-    FindingStatus statusFor(String id) =>
-        findingStatus[id] ?? FindingStatus.open;
     final accepted = findings
         .where((finding) => statusFor(finding.id) == FindingStatus.fixed)
         .length;
@@ -518,6 +524,11 @@ Map<String, dynamic> buildJsonReport({
           // Round 26's UNV upstream flag: a JSON consumer filters on this
           // instead of re-parsing messages.
           'requires_vision_evidence': finding.requiresVisionEvidence,
+          // Ledger status per the Verifier's re-run map; passing rows
+          // carry none (null), only failing rows live in the ledger.
+          'status': finding.passed
+              ? null
+              : statusFor(finding.ledgerKey).name,
         },
       for (final finding in referenceFindings)
         {
@@ -528,6 +539,9 @@ Map<String, dynamic> buildJsonReport({
           'severity': finding.severity.name,
           'message': finding.message,
           'requires_vision_evidence': finding.requiresVisionEvidence,
+          'status': finding.passed
+              ? null
+              : statusFor(finding.ledgerKey).name,
         },
     ],
     'inventory': [
