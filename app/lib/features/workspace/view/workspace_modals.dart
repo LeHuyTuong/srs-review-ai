@@ -458,7 +458,7 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
           if (viewModel.canAuditDiagrams) ...[
             WButton.secondary(
               label: state.isAuditingDiagrams
-                  ? 'Auditing ${state.diagramPageCount > 0 ? 'pages…' : ''}'
+                  ? 'Auditing diagram pages…'
                   : 'Vision-audit ${viewModel.diagramAuditCount} diagram '
                         'page(s)',
               icon: Icons.image_search_outlined,
