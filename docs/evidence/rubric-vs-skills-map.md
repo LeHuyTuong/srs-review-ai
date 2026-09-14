@@ -17,7 +17,7 @@ port phần deterministic; mỗi dòng ghi rõ *đạt khi nào*, *bằng chứn
 | 4 | Complete | `placeholderTbd` (TBD / to be defined / chưa xác định / đang cập nhật / ???) | ✅ mới port |
 | 5 | Consistent | `duplicateIds`, `crossArtifactName` (naming drift), contradiction pass | ✅ có trước |
 | 6 | Traceable | `duplicateIds` (ID duy nhất); format ID FR-EPIC-NN/UC-NNN — **chưa check** | 🟡 một phần |
-| 7 | Prioritized | — | ❌ gap: parser không tách priority field ổn định; check sẽ nhiễu |
+| 7 | Prioritized | `missingPriority` — document-level verdict (commit `da57df5`): OTES thật 63/129 hàng có Priority → pass; doc nào không có dòng priority nào → fail | ✅ port xong, đúng mức chứng minh được của deterministic check |
 | 8 | Necessary | — | **LLM/human** |
 | 9 | Feasible | — | **LLM/human** |
 | 10 | Correct | — | **LLM/human** |
