@@ -16,9 +16,9 @@
 library;
 
 import '../../../data/models/deterministic_finding.dart';
-import 'document_verdict.dart';
 import '../../../data/models/review_models.dart';
 import '../../../data/models/review_progress.dart';
+import 'document_verdict.dart';
 import 'report_export.dart';
 import 'section_scores.dart';
 import 'workspace_findings.dart';

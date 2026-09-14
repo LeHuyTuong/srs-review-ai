@@ -93,9 +93,7 @@ class DocumentVerdict {
   final int unassessedCount;
 
   /// Clamped 0..10, or null when unassessable.
-  int? get total => earnedPoints == null
-      ? null
-      : earnedPoints!.clamp(0, 10);
+  int? get total => earnedPoints?.clamp(0, 10);
 
   /// "9/10 (partial — 1 component unassessed)" / "7/10" / "unassessed".
   String get display {
