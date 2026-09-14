@@ -57,8 +57,9 @@ tiếng Anh** (sửa trong `76f03bc`).
   sửa detector), 502/502 test, số thật trên OTES đã đổi theo (110→72 syllabus).
 - Phần **sds-reviewer: mới chạm 3/7 bước pipeline**. Gap thật cần quota +
   vision model: CROP, DIAGRAM notation ledger, 5/6 cross-artifact chains,
-  và thang điểm verdict. Không phải việc làm một buổi chiều xong — đề xuất
-  đưa vào roadmap.md làm milestone tiếp theo khi chạy mô hình vision.
+  và thang điểm verdict (đã kiểm — xem mục D). Không phải việc làm một
+  buổi chiều xong — đề xuất đưa vào roadmap.md làm milestone tiếp theo
+  khi chạy mô hình vision.
 - ~~re-review status loop~~ — **hóa ra đã có từ R9** (Verifier + nút re-run
   trong Findings tab). Bản ghi ❌ ở đầu vòng là sai loại "ghi chú audit cũ
   không phải sự thật hiện tại" mà chính AGENTS.md cảnh báo — inspect code
@@ -66,6 +67,28 @@ tiếng Anh** (sửa trong `76f03bc`).
   report exported không hiển thị status → ledger giữa hai vòng re-review
   trông như nhau. Nay cả ba twins có cột Status + tally "N open · N fixed
   (awaiting re-verify) · N verified".
-- Còn lại, theo thứ tự đáng làm: (1) crop pipeline cho ảnh lớn (bước 3),
-  (2) FK matrix + seq↔class khi có vision model đọc được diagram (bước 5–6),
-  (3) thang điểm 5+2+2+1 của skill nếu bạn muốn verdict form thức.
+## D. Thang điểm 5+2+2+1 của skill vs điểm 0–10 của app — so xong, không gộp
+
+Skill chấm **cả tài liệu** (sàn 5 cho rubric A, +2 diagram pass, +2
+cross-artifact pass, +1 traceability, −1 mỗi 🔴 FLOW/ERD) — tối đa 10,
+đơn vị là *artifact*. App chấm **từng requirement** 0–10 (schema
+`review.schema.json`), đơn vị là *dòng* — hai thang khác đơn vị, cộng
+chúng vào nhau sẽ tạo con số không ai giải thích được. Kết quả kiểm:
+
+- 3 thành phần thang skill (rubric A, diagram pass, cross-artifact)
+  app **chưa có dữ liệu** để tính (vision gap ở trên) — chưa map được
+  là đúng trạng thái, không phải thiếu code.
+- Floor +2 cross-artifact: app có thể tính một phần khi vision xong
+  (`crossArtifactName` đã có; FK matrix chưa) — ghi vào roadmap vision.
+- Điều thật sự rủi ro: cache key của server băm `rubric["version"]` —
+  đổi weights mà quên bump version thì **mọi verdict cache dưới weights
+  cũ được phục như của rubric mới**. Tripwire:
+  `server/tests/test_rubric_pins.py` pin version `v2` + đúng 4 weights +
+  chữ "starting proposal" trong provenance (weights hiện là đề xuất theo
+  ISO 29148, không phải bảng chấm công bố của hội đồng — khi nào có bảng
+  thật, test bắt bạn bump).
+
+Còn lại theo thứ tự: (1) FK matrix + seq↔class khi có vision model đọc
+được diagram (bước 5–6), (2) verdict form thức 10-point artifact-level
+**khi và chỉ khi** supervisor đòi — mọi dữ liệu thành phần chưa tồn tại
+trước (1).
