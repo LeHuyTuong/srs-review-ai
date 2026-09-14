@@ -40,7 +40,7 @@ tiếng Anh** (sửa trong `76f03bc`).
 |---|---|---|
 | 1 EXTRACT | Syncfusion PDF + docx text, per-row units | ✅ |
 | 2 INVENTORY (chế độ ảnh) | `imageReviewAvailable`/`imageReviewedCount` + honesty banner 3 twins | ✅ |
-| 3 CROP ảnh >1200px trước khi đọc | không crop — page image gửi nguyên | ❌ gap — HisWise lesson (rớt 2 lỗi ERD + đọc nhầm crow's foot) chưa áp dụng |
+| 3 CROP ảnh >1200px trước khi đọc | **đã điều tra — premise sai trên app này** (`cdeb879`): OTES là A4 596×842pt, cap 1600px/2.56MP cho ra 1.9 dots/pt bất kể crop; pdfx Android crop SAU scale nên crop không tăng density trên mọi page. Lesson HisWise thuộc pipeline agent-đọc-PNG-gốc, khác pipeline này. defer có số đo, không phải checkbox | ➖ investigated-deferred |
 | 4 RUBRIC PASS (7 mục SDS) | app chấm SRS (brief SEP490), không phải SDS | ➖ ngoài scope brief |
 | 5 DIAGRAM PASS (notation từng ảnh) | LLM vision pass một phần; không có ledger ERD-xx/SM-xx/SEQ-xx | ❌ gap lớn nhất |
 | 6 CROSS-ARTIFACT PASS | `crossArtifactName` ≈ naming-drift (nhánh 3/6); FK matrix, seq↔class, status-vocabulary, CRUD-coverage: chưa | 🟡 1/6 chain |
