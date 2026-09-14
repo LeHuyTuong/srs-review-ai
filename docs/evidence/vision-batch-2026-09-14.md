@@ -83,3 +83,12 @@ delta (167/170/180 new), 7 returned from cache.
 `ruff check .` already fails on HEAD with 18 pre-existing findings
 (verified via worktree, not inferred); none came from this change.
 Cleaning them is separate debt, worth one focused pass with --fix.
+
+## Small retractions, same evening (measure twice)
+- "~40/50 quota left": wrong. `.env` sets RATE_LIMIT_PER_DAY=10000 — the
+  default 50 in config.py never applied to this process. The real daily
+  ceiling here is effectively provider-billing, not the limiter.
+- run1 model field shows BOTH gemini-3.5-flash AND gemini-3.1-flash-lite:
+  the fallback fired on some calls. Verdict numbers stand (they were read
+  from the responses, which record the actual model), but "gemini-3.5-flash"
+  alone was an overstatement — it is primary + fallback.
