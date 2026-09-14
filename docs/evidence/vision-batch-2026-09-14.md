@@ -92,3 +92,31 @@ Cleaning them is separate debt, worth one focused pass with --fix.
   the fallback fired on some calls. Verdict numbers stand (they were read
   from the responses, which record the actual model), but "gemini-3.5-flash"
   alone was an overstatement — it is primary + fallback.
+
+## Third run today: widened keywords + named-first budget
+
+Classifier table extended (use_case/activity/architecture-on-COMPONENT/
+state phrasings, sourced from a pdftotext survey of the real OTES — see
+the diff comments for every rejection) and candidates() now audits NAMED
+pages before visual-only pages (a TOC page was pushing the two real
+activity figures out of the 10-cap in page order). OTES candidates
+22→29; the audited ten became 4,153,155,156,159,160,166,167,168,169.
+
+Result (10/10 again, run2 byte-identical, all cached):
+- 168/169: FIRST activity diagrams ever audited (vector, no embedded
+  image — invisible to the old selection). 13/7 and 15/12 inventories;
+  findings: figure title vs caption mismatch, unexplained X symbol.
+- 153: real ERD found where poppler-page-mapping had suggested prose —
+  red for a relation junction that merges 'teach' and 'Teach by' edges.
+- 166: model correctly reported the MISSING diagram ("section 4.3.1
+  lists an interaction diagram that the page does not contain").
+- 167 re-reported 'excuteQuery()' — same OCR of the same shape in a
+  second, independent audit; the typo is corroborated across runs.
+- Family honesty verified live: the TOC page (4) and missing-diagram
+  page (166) filed under DOC with empty inventory; the real ERD red
+  landed as ERD-01 — the exact row Feature 2's deduction rule reads.
+
+Trade-off recorded: visual-only pages 24/51 (the arrowhead-less UC
+diagrams from run one) now fall outside the 10-cap. The alternative was
+worse — OTES's 14-page UI-mockup appendix sits in the same visual tier.
+A "continue audit from page N" affordance would recover them; not built.

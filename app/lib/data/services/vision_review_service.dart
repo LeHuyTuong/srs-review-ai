@@ -6,11 +6,13 @@
 /// steps 4–6). One row per audited page — deliberately not one row per model
 /// finding: model wording drifts run-to-run, so per-finding ledger keys would
 /// break the re-review status workflow (fixed/verified marks vanishing). A
-/// page-level key (`ERD-01` = the first ERD page, in page order) is stable
+/// page-level key (`ERD-01` = the first ERD page the audit reaches, in audit
+/// order) is stable
 /// across re-runs while the row message refreshes with fresh evidence.
 ///
 /// Quota discipline (AGENTS.md: 50 requests/day, and the limiter charges
-/// one unit per two-call audit): candidates are audited in page order up to
+/// one unit per two-call audit): named pages are audited first (visual-only
+  /// pages last, each tier in page order) up to
 /// [maxPages]; the rest are reported as skipped, never silently dropped.
 library;
 
@@ -148,7 +150,7 @@ class VisionReviewService {
       }
     }
     final pages = selected.toList()..sort();
-    return [
+    final candidates = [
       for (final page in pages)
         DiagramPageCandidate(
           pageIndex: page,
@@ -156,6 +158,18 @@ class VisionReviewService {
           contextText: textByPage[page]?.toString() ?? '',
         ),
     ];
+    // Budget discipline (measured 2026-09-14): with the keyword table
+    // widened, OTES produced 29 candidates for a 10-page cap, and pure
+    // page order let a table-of-contents page outrank the two REAL
+    // activity diagrams. A page that NAMES a diagram type is stronger
+    // evidence that an audit will find notation there than a page whose
+    // only signal is an embedded image (which in OTES's appendix are
+    // UI mockups). Named first, visual-only last, each tier in page
+    // order; the order is deterministic in the document, so re-runs
+    // number the same pages the same way.
+    final named = candidates.where((c) => c.kind != DiagramKind.unknown).toList();
+    final visualOnly = candidates.where((c) => c.kind == DiagramKind.unknown).toList();
+    return [...named, ...visualOnly];
   }
 
   Future<VisionAuditOutcome> audit(SrsDocument document) async {
@@ -174,7 +188,8 @@ class VisionReviewService {
         .map((c) => c.pageIndex)
         .toList(growable: false);
 
-    // Family ordinals assigned in page order — the ID a supervisor quotes
+    // Family ordinals assigned in audit order (named tier first, page order
+    // within a tier) — the ID a supervisor quotes
     // ("ERD-02 is fixed") must name the same page next run.
     final familyOrdinal = <String, int>{};
     final findings = <DeterministicFinding>[];
@@ -198,7 +213,7 @@ class VisionReviewService {
         // Subject family follows what the audit OBSERVED, not what was
         // requested (family honesty, mirrors server bind_family): a page
         // that drew no inventory can only yield DOC findings. Ordinals
-        // are consumed per EFFECTIVE family, in page order, so re-runs
+        // are consumed per EFFECTIVE family, in audit order, so re-runs
         // name the same page the same way.
         final label = result.elements.isEmpty && result.relations.isEmpty
             ? 'DOC'

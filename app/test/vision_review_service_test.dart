@@ -65,6 +65,165 @@ void main() {
     test('no evidence means unknown', () {
       expect(c.classify('The system shall store the login timestamp.'), DiagramKind.unknown);
     });
+
+    test('use case evidence needs the picture noun, not the write-up', () {
+      expect(
+        c.classify('See the use case diagram in figure 4.'),
+        DiagramKind.useCase,
+      );
+      expect(
+        c.classify('Sơ đồ các trường hợp sử dụng của hệ thống.'),
+        DiagramKind.useCase,
+      );
+      expect(c.classify('So do use case tong quat.'), DiagramKind.useCase);
+      expect(c.classify('UCD cho module quan ly ca hoc.'), DiagramKind.useCase);
+      // A use-case SPECIFICATION page says "Use Case No." and names an
+      // actor without drawing the picture. OTES prints that header on
+      // dozens of pages; treating it as a named type would spend a paid
+      // audit slot on prose (the trap candidates() exists to avoid).
+      expect(
+        c.classify(
+          'Use Case No. UC40. Use Case Name: Import students. '
+          'Actor: Administrator. Basic flow: 1. User clicks Import.',
+        ),
+        DiagramKind.unknown,
+      );
+    });
+
+    test('activity diagrams are named, and travel as unknown', () {
+      // Figure 78/79 of the real OTES, verbatim caption wording.
+      expect(
+        c.classify(
+          'Figure 78. Activity diagram - Lecturer mute/unmute chosen student',
+        ),
+        DiagramKind.activity,
+      );
+      expect(
+        c.classify('So do hoat dong xu ly don hang.'),
+        DiagramKind.activity,
+      );
+      expect(
+        c.classify('Luu do quy trinh tiep nhan hoc vien.'),
+        DiagramKind.activity,
+      );
+      // server/app/diagram.py has no ACTIVITY DiagramType and no ACT ID
+      // family: the pair below is the describe-only path, not a 422.
+      expect(DiagramKind.activity.wire, 'unknown');
+      expect(DiagramKind.activity.family, 'DOC');
+    });
+
+    test('architecture / C4 views land on the component judge', () {
+      expect(
+        c.classify('Hinh 5: so do kien truc C4 cua he thong.'),
+        DiagramKind.component,
+      );
+      expect(
+        c.classify('Figure 68. System architectural design'),
+        DiagramKind.component,
+      );
+      expect(
+        c.classify('The C4 model splits the backend into containers.'),
+        DiagramKind.component,
+      );
+      // Substring matching is the table's only matcher, so a bare "c4"
+      // would fire inside OTES's use-case numbers (UC4, UC40 …): every C4
+      // entry carries a second word, and a use-case header stays unnamed.
+      expect(c.classify('Use Case No. UC40 Export students'), DiagramKind.unknown);
+    });
+
+    test('state machine phrasings beyond the original table', () {
+      expect(
+        c.classify('So do state cua hoc vien.'),
+        DiagramKind.stateMachine,
+      );
+      expect(
+        c.classify('The exam statechart never leaves IN_PROGRESS.'),
+        DiagramKind.stateMachine,
+      );
+      expect(
+        c.classify('Sơ đồ máy trạng thái đơn hàng.'),
+        DiagramKind.stateMachine,
+      );
+    });
+
+    test('new Vietnamese phrases fold identically in decomposed form', () {
+      const precomposed = 'Sơ đồ hoạt động của hệ thống.';
+      // Same string with the combining marks left uncomposed: o+U+0302,
+      // a+U+0323+U+0309, o+U+0302+U+0323+U+0301.
+      const decomposed =
+          'S\u006F\u0302 \u0111\u006F\u0302\u0300 '
+          'h\u006F\u0061\u0323\u0309t \u0111\u006F\u0302\u0323\u0301ng '
+          'cua he thong.';
+      expect(c.classify(precomposed), DiagramKind.activity);
+      expect(c.classify(decomposed), DiagramKind.activity);
+    });
+
+    test('a section heading is weaker evidence than a named figure', () {
+      // OTES §4.3 "Interaction Diagram" holds its sequence figures AND its
+      // activity figures, so the heading alone names sequence (tier 2) and
+      // loses to any real type name sitting on the same page.
+      expect(
+        c.classify('4.3 Interaction Diagram. Summary: this diagram show process.'),
+        DiagramKind.sequence,
+      );
+      expect(
+        c.classify(
+          'Interaction Diagram. Figure 78. Activity diagram - mute student',
+        ),
+        DiagramKind.activity,
+      );
+    });
+
+    test('the new kinds tie like the old ones', () {
+      expect(
+        c.classify('So do hoat dong va so do trang thai o hinh 9.'),
+        DiagramKind.unknown,
+      );
+      expect(
+        c.classify(
+          'The activity diagram and the component diagram are merged here.',
+        ),
+        DiagramKind.unknown,
+      );
+    });
+
+    test('OTES names its data model without ever saying ERD', () {
+      expect(
+        c.classify('2. Database Relationship Diagram. 2.1 Physical Diagram'),
+        DiagramKind.erd,
+      );
+      expect(c.classify('Figure 32: Conceptual diagram'), DiagramKind.erd);
+      expect(
+        c.classify('Sơ đồ CSDL của hệ thống quản lý đào tạo.'),
+        DiagramKind.erd,
+      );
+    });
+
+    test('every kind sends a wire and family the server accepts', () {
+      // Verbatim from server/app/diagram.py: the DiagramType values and the
+      // ID_FAMILY_BY_TYPE / LLM_DIAGRAM_JUDGE_SCHEMA family whitelist.
+      // Literal here on purpose — this test is the guard against a
+      // client-only kind whose wire would 422 at /diagram, or whose family
+      // would mint ledger IDs the rubric does not have.
+      const diagramTypes = {
+        'erd',
+        'state_machine',
+        'sequence',
+        'class',
+        'use_case',
+        'component',
+        'unknown',
+      };
+      const idFamilies = {'ERD', 'SM', 'SEQ-CLS', 'UC', 'PKG', 'DOC'};
+      expect(
+        DiagramKind.values.map((k) => k.wire).toSet(),
+        equals(diagramTypes),
+      );
+      expect(
+        DiagramKind.values.map((k) => k.family).toSet(),
+        equals(idFamilies),
+      );
+    });
   });
 
   group('VisionReviewService', () {
@@ -134,6 +293,42 @@ void main() {
       final candidates = svc.candidates(doc);
       expect(candidates.map((c) => c.pageIndex).toList(), [7]);
       expect(candidates.single.kind, DiagramKind.erd);
+    });
+
+    test('an activity page earns a slot and audits via the generic judge', () async {
+      // OTES's activity figures are vector drawings with no embedded image
+      // object, so the classifier's name is the only thing that finds them.
+      // The page must be selected AND must not send a wire the server lacks.
+      final doc = _doc([
+        _req(
+          'UC-01',
+          'Figure 78. Activity diagram - Lecturer mute/unmute chosen student.',
+          page: 5,
+        ),
+      ]);
+      final sentTypes = <String>[];
+      final svc = VisionReviewService(
+        auditor: (r) async {
+          sentTypes.add(r.diagramType);
+          return DiagramAuditResult(
+            pageIndex: r.pageIndex,
+            diagramType: r.diagramType,
+            elements: const ['Lecturer', 'mute action', 'decision node'],
+            relations: const [],
+            unreadable: const [],
+            clean: true,
+            findings: const [],
+            model: 'fake',
+            cached: false,
+            mock: true,
+          );
+        },
+        renderPage: (_, _) async => 'AA==',
+      );
+      expect(svc.candidates(doc).single.kind, DiagramKind.activity);
+      final outcome = await svc.audit(doc);
+      expect(sentTypes, ['unknown']);
+      expect(outcome.findings.single.subject, 'DOC-01');
     });
 
     test('empty candidates produce an empty outcome, not a zero-passing row', () async {
@@ -257,6 +452,26 @@ void main() {
       expect(outcome.auditedPageCount, 2);
       expect(outcome.findings.length, 2);
       expect(outcome.skippedPages.length, 4);
+    });
+
+    test('named pages outrank visual-only pages for the budget', () {
+      // Page 2 carries an embedded image and nothing else (an appendix
+      // mockup); page 30 names an ERD. Pure page order would audit the
+      // mockup first; the measurement that flipped this rule is in
+      // docs/evidence/vision-batch-2026-09-14.md.
+      final doc = _doc(
+        [
+          _req('UC-01', 'See the ERD for the data model.', page: 30),
+        ],
+        pageTexts: List.filled(40, ''),
+        imagePages: const [2],
+      );
+      final svc = VisionReviewService(
+        auditor: (_) async => throw StateError('no audit here'),
+        renderPage: (_, _) async => 'AA==',
+      );
+      final pages = svc.candidates(doc).map((c) => c.pageIndex).toList();
+      expect(pages, [30, 2]);
     });
 
     test('caption index pages do not earn named-type slots (batch evidence)', () {

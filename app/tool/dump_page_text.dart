@@ -17,14 +17,11 @@ void main() {
           await File(Platform.environment['SRS_TEST_PDF']!).readAsBytes()),
       fileName: 'o.pdf');
     const c = DiagramTypeClassifier();
-    for (final p in [6, 7, 9, 155, 156, 159, 160, 167, 170, 180, 181]) {
+    for (final p in [4, 153, 168, 182, 183]) {
       final t = doc.pageTexts[p];
-      final lines = const LineSplitter().convert(t);
-      final firstFolded =
-          lines.take(2).map((l) => foldVietnamese(l).trim()).toList();
-      print('GATE|$p|index=${c.isCaptionIndex(t)}|nlines=${lines.length}');
-      print('FOLD|$p|'
-          '${firstFolded.map((e) => e.substring(0, e.length.clamp(0, 70))).join(" // ")}');
+      final squished = t.replaceAll(RegExp(r'\s+'), ' ');
+      print('CTX|$p|kind=${c.classify(t).name}|'
+          '${squished.substring(0, squished.length.clamp(0, 160))}');
     }
   });
 }
