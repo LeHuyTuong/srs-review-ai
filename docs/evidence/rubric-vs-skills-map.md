@@ -42,7 +42,7 @@ tiếng Anh** (sửa trong `76f03bc`).
 | 2 INVENTORY (chế độ ảnh) | `imageReviewAvailable`/`imageReviewedCount` + honesty banner 3 twins | ✅ |
 | 3 CROP ảnh >1200px trước khi đọc | **đã điều tra — premise sai trên app này** (`cdeb879`): OTES là A4 596×842pt, cap 1600px/2.56MP cho ra 1.9 dots/pt bất kể crop; pdfx Android crop SAU scale nên crop không tăng density trên mọi page. Lesson HisWise thuộc pipeline agent-đọc-PNG-gốc, khác pipeline này. defer có số đo, không phải checkbox | ➖ investigated-deferred |
 | 4 RUBRIC PASS (7 mục SDS) | app chấm SRS (brief SEP490), không phải SDS | ➖ ngoài scope brief |
-| 5 DIAGRAM PASS (notation từng ảnh) | LLM vision pass một phần; không có ledger ERD-xx/SM-xx/SEQ-xx | ❌ gap lớn nhất |
+| 5 DIAGRAM PASS (notation từng ảnh) | vision chain LIVE — batch 2026-09-14: ledger ERD-/SEQ-CLS-/PKG-/DOC-xx có thật, slot discipline chặn trang danh mục, family honesty bind DOC khi inventory rỗng (`ed45b79`) | 🟡 thiếu keyword UC/ACT/ARCH/SM thuần — trang có ảnh vẫn vào được qua cửa visual |
 | 6 CROSS-ARTIFACT PASS | `crossArtifactName` ≈ naming-drift (nhánh 3/6); FK matrix, seq↔class, status-vocabulary, CRUD-coverage: chưa | 🟡 1/6 chain |
 | 7 LEDGER + VERDICT (ID phân vùng, OPEN→FIXED→VERIFIED, thang 5+2+2+1) | ledger ID ổn định ✅ (R9/R14/R16 + stability test); **status loop ✅ có từ R9** (Verifier + nút re-run ở Findings tab); **report ba twins giờ hiển thị status ✅** (`c83828a` — cột Status MD/JSON/HTML + tally "N open"); điểm theo thang skill ❌ (app dùng điểm rubric LLM) | 🟡 còn mỗi thang điểm |
 
