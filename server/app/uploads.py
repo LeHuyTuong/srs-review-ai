@@ -40,6 +40,12 @@ backend; swap the class for an S3 adapter and drop it behind the same methods
 (``generate_key``, ``create_token``, ``validate_token``, ``persist``, ``resolve``,
 ``meta``) — the routes in ``main.py`` depend on this interface, not on disk.
 """
+# STATUS (self-review 2026-09-14, docs/evidence/self-review-2026-09-14.md
+# F1): /uploads/presign + the upload:// store are live and security-tested,
+# but NO endpoint consumes upload:// refs yet — parsing is client-side.
+# Groundwork for server-side parse / share-by-link; see F1 for the
+# keep-vs-build-vs-remove decision left to the product owner.
+
 
 from __future__ import annotations
 

@@ -1,3 +1,9 @@
+// STATUS (self-review 2026-09-14, docs/evidence/self-review-2026-09-14.md
+// F1): no production caller yet — parsing is client-side today, so nothing
+// needs the whole document on the server. This client + the server's
+// upload:// store are tested groundwork for a future server-side parse or
+// share-by-link feature. Do not assume a flow uses them; do not delete
+// without the product decision recorded in F1.
 /// Client for the server's presigned-upload pipeline (`uploads.py` server-side).
 ///
 /// Why this exists: the deployment proxy (Vercel Functions) caps request
