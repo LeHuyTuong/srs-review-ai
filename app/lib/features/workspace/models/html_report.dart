@@ -30,6 +30,41 @@ String _esc(String text) => text
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 
+/// One row of the grouped deterministic summary: everything that shares a
+/// family, check, pass-state, severity, and message shape collapses into
+/// it, carrying the list of affected subjects.
+class _CheckGroup {
+  const _CheckGroup({
+    required this.family,
+    required this.label,
+    required this.passed,
+    required this.severity,
+    required this.template,
+    required this.vision,
+  });
+
+  final String family;
+  final String label;
+  final bool passed;
+  final String severity;
+  final String template;
+  final bool vision;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _CheckGroup &&
+      other.family == family &&
+      other.label == label &&
+      other.passed == passed &&
+      other.severity == severity &&
+      other.template == template &&
+      other.vision == vision;
+
+  @override
+  int get hashCode =>
+      Object.hash(family, label, passed, severity, template, vision);
+}
+
 String buildHtmlReport({
   required String fileName,
   required bool offline,
@@ -235,6 +270,11 @@ String buildHtmlReport({
   }
 
   // ── Deterministic checks (syllabus + reference M2, family-labelled) ───
+  // Grouped view first: 126 rows of "UC-xx has no Postcondition" is a
+  // ledger, not a dashboard. A human should read "one check, 126 use
+  // cases" in one line and expand only if they want the names. The full
+  // per-row ledger stays below, collapsed — nothing is hidden, the
+  // default reading order just stops punishing repetition.
   final allDeterministic = [
     for (final f in syllabusFindings) ('syllabus', f),
     for (final f in referenceFindings) ('reference (M2)', f),
@@ -247,8 +287,65 @@ String buildHtmlReport({
       'syllabus rows come from the SEP490 rubric (F7/F8/F9); reference (M2) '
       'rows are the consistency checks (duplicate ids, missing '
       'postconditions, cross-artifact names). '
-      '${failing == 0 ? 'All checks passed.' : '<b>$failing of ${allDeterministic.length} need attention.</b>'}</p>'
-      '<div class="tscroll"><table><tr><th>Family</th><th>Check</th><th>Subject</th><th>Result</th><th>Detail</th></tr>',
+      '${failing == 0 ? 'All checks passed.' : '<b>$failing of ${allDeterministic.length} need attention.</b>'}</p>',
+    );
+
+    // Group key: same family, check, pass-state, severity, and message
+    // SHAPE (the subject id swapped for a placeholder, so per-UC wording
+    // variants of one defect collapse together while genuinely different
+    // messages — thin vs oversized — stay apart).
+    final groups = <_CheckGroup, List<String>>{};
+    final order = <_CheckGroup>[];
+    for (final (family, finding) in allDeterministic) {
+      final template = finding.subject != null &&
+              finding.message.contains(finding.subject!)
+          ? finding.message.replaceAll(finding.subject!, '⟨id⟩')
+          : finding.message;
+      final group = _CheckGroup(
+        family: family,
+        label: finding.check.label,
+        passed: finding.passed,
+        severity: finding.severity.name,
+        template: template,
+        vision: finding.requiresVisionEvidence,
+      );
+      if (!groups.containsKey(group)) {
+        groups[group] = <String>[];
+        order.add(group);
+      }
+      groups[group]!.add(finding.subject ?? 'whole document');
+    }
+
+    out.write(
+      '<div class="tscroll"><table><tr><th>Family</th><th>Check</th>'
+      '<th>Result</th><th>Count</th><th>Affected</th><th>Detail</th></tr>',
+    );
+    for (final group in order) {
+      final subjects = groups[group]!;
+      const inline = 6;
+      final subjectCell = subjects.length <= inline
+          ? subjects.map(_esc).join(', ')
+          : '${subjects.take(inline).map(_esc).join(', ')} '
+                '<details class="more"><summary>+${subjects.length - inline} '
+                'more</summary>${subjects.map(_esc).join(', ')}</details>';
+      final resultCell = group.passed
+          ? '<td class="ok">passed</td>'
+          : '<td class="bad">${_esc(group.severity)}</td>';
+      out.write(
+        '<tr><td>${_esc(group.family)}</td><td>${_esc(group.label)}</td>'
+        '$resultCell<td><b>${subjects.length}</b></td>'
+        '<td>$subjectCell</td><td>${_esc(group.template)}'
+        '${group.vision ? ' <span class="chip amber">needs vision evidence</span>' : ''}</td></tr>',
+      );
+    }
+    out.write('</table></div>\n');
+
+    // Full ledger, collapsed — the JSON twin and the markdown carry it
+    // row-by-row; this keeps the same artefact readable AND complete.
+    out.write(
+      '<details><summary>Full ledger (${allDeterministic.length} rows)</summary>'
+      '<div class="tscroll"><table><tr><th>Family</th><th>Check</th>'
+      '<th>Subject</th><th>Result</th><th>Detail</th></tr>',
     );
     for (final (family, finding) in allDeterministic) {
       final resultCell = finding.passed
@@ -261,7 +358,7 @@ String buildHtmlReport({
         '${finding.requiresVisionEvidence ? ' <span class="chip amber">needs vision evidence</span>' : ''}</td></tr>',
       );
     }
-    out.write('</table></div>\n');
+    out.write('</table></div></details>\n');
   }
 
   // ── Inventory (collapsed: it is long) ─────────────────────────────────
@@ -353,5 +450,7 @@ blockquote { margin: 8px 0; padding: 6px 12px; border-left: 3px solid #cbd5e1;
 .sugg { font-size: 14px; margin: 6px 0 0; }
 .triage { font-weight: 400; font-size: 13px; color: #64748b; }
 details { margin: 14px 0; } summary { cursor: pointer; font-weight: 600; }
+details.more { display: inline; margin: 0; font-weight: 400; }
+details.more summary { display: inline; color: #1d4ed8; font-weight: 400; }
 footer { margin-top: 34px; color: #94a3b8; font-size: 12px; }
 ''';

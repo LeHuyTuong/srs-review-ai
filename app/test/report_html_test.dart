@@ -259,6 +259,72 @@ void main() {
     });
   });
 
+  group('buildHtmlReport — grouped deterministic summary', () {
+    test('repeated per-subject rows collapse into one grouped line', () {
+      // The user-facing point of the dashboard over the ledger: 126 rows
+      // of the same defect must read as ONE line saying "126 use cases",
+      // with the names one expand away — never 126 scrolls.
+      final html = buildHtmlReport(
+        fileName: 'a.pdf',
+        offline: true,
+        result: null,
+        units: const [],
+        referenceFindings: [
+          for (var i = 1; i <= 30; i++)
+            DeterministicFinding(
+              check: CheckId.missingPostcondition,
+              passed: false,
+              subject: 'UC-$i',
+              severity: Severity.high,
+              message: 'UC-$i has no Postcondition section.',
+            ),
+        ],
+      );
+      // One summary row, count 30, "+24 more" expander (6 shown inline).
+      expect(html, contains('<b>30</b>'));
+      expect(html, contains('+24 more'));
+      // The grouped detail cell carries the shape, not one arbitrary copy.
+      expect(html, contains('⟨id⟩ has no Postcondition section.'));
+      // Nothing is hidden: the full ledger still holds every raw row…
+      expect(html, contains('Full ledger (30 rows)'));
+      expect(html, contains('UC-30 has no Postcondition section.'));
+      // …and the summary table itself has exactly one body row.
+      final summary = html.split('Full ledger').first;
+      expect('<tr>'.allMatches(summary).length, 2); // header + one group
+    });
+
+    test('genuinely different messages under one check stay separate', () {
+      // thin vs oversized are different advice — collapsing them would
+      // lie about what to fix.
+      final html = buildHtmlReport(
+        fileName: 'a.pdf',
+        offline: true,
+        result: null,
+        units: const [],
+        syllabusFindings: [
+          DeterministicFinding(
+            check: CheckId.ucSize,
+            passed: false,
+            subject: 'UC-1',
+            severity: Severity.medium,
+            message: 'UC-1 looks thin: ~0 transactions detected.',
+          ),
+          DeterministicFinding(
+            check: CheckId.ucSize,
+            passed: false,
+            subject: 'UC-2',
+            severity: Severity.medium,
+            message: 'UC-2 looks oversized: ~8 transactions detected.',
+          ),
+        ],
+      );
+      expect(html, contains('looks thin: ~0 transactions detected.'));
+      expect(html, contains('looks oversized: ~8 transactions detected.'));
+      final summary = html.split('Full ledger').first;
+      expect('<tr>'.allMatches(summary).length, 3); // header + two groups
+    });
+  });
+
   group('buildHtmlReport — untrusted document text is escaped', () {
     test('markup in finding titles and quotes cannot execute', () {
       final html = buildHtmlReport(
