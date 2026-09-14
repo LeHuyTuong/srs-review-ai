@@ -44,7 +44,7 @@ tiếng Anh** (sửa trong `76f03bc`).
 | 4 RUBRIC PASS (7 mục SDS) | app chấm SRS (brief SEP490), không phải SDS | ➖ ngoài scope brief |
 | 5 DIAGRAM PASS (notation từng ảnh) | vision chain LIVE — batch 2026-09-14: ledger ERD-/SEQ-CLS-/PKG-/DOC-xx có thật, slot discipline chặn trang danh mục, family honesty bind DOC khi inventory rỗng (`ed45b79`) | ✅ keyword UC/ACT/ARCH/SM mở rộng theo khảo sát OTES thật + named-first budget (batch 3: audit được 2 trang activity vector không ảnh nhúng, `f8acb47`) |
 | 6 CROSS-ARTIFACT PASS | `crossArtifactName` ≈ naming-drift (nhánh 3/6); FK matrix, seq↔class, status-vocabulary, CRUD-coverage: chưa | 🟡 1/6 chain |
-| 7 LEDGER + VERDICT (ID phân vùng, OPEN→FIXED→VERIFIED, thang 5+2+2+1) | ledger ID ổn định ✅ (R9/R14/R16 + stability test); **status loop ✅ có từ R9** (Verifier + nút re-run ở Findings tab); **report ba twins giờ hiển thị status ✅** (`c83828a` — cột Status MD/JSON/HTML + tally "N open"); điểm theo thang skill ❌ (app dùng điểm rubric LLM) | ✅ thang 5+2+2+1 render ở cả ba twins + card Findings tab, null khi chưa đo (`7dfb66d`) |
+| 7 LEDGER + VERDICT (ID phân vùng, OPEN→FIXED→VERIFIED, thang 5+2+2+1) | ledger ID ổn định ✅ (R9/R14/R16 + stability test); **status loop ✅ có từ R9** (Verifier + nút re-run ở Findings tab); **report ba twins giờ hiển thị status ✅** (`c83828a` — cột Status MD/JSON/HTML + tally "N open"); điểm theo thang skill ✅ tách khỏi điểm rubric LLM cấp-dòng (mục D giữ nguyên lập luận không gộp hai thang) | ✅ thang 5+2+2+1 render ở cả ba twins + card Findings tab, null khi chưa đo (`7dfb66d`) |
 
 **Kỷ luật 1 ("mọi con số qua checker")** — ✅ đúng chất: mọi số trong report
 đến từ deterministic pass, showcase assert parity 3 twins + stability.
