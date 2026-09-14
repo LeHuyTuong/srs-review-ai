@@ -90,41 +90,58 @@ class VisionReviewService {
   /// 10 keeps a 50/day quota intact for the ordinary review.
   final int maxPages;
 
-  /// Which pages to audit, decided offline. A page earns a slot when a
-  /// diagram-bearing requirement sits on it; its kind comes from the
-  /// classifier over everything the page has to say. Pages classified
-  /// `unknown` still audit (the describe pass is type-agnostic) — they
-  /// just get the generic judge question.
+  /// Which pages to audit: the UNION of two evidence kinds, neither alone
+  /// is sufficient and the v0 probe proved it.
+  ///
+  /// * Visual — [SrsDocument.imagePageIndexes] (embedded raster images).
+  ///   Necessary (a page with a real figure must be seen) but not
+  ///   sufficient: OTES's actual ERD/class diagrams are VECTOR graphics
+  ///   from a Word export — path operators, no image object — so the
+  ///   raster detector misses every one of them (measured: only 14/217
+  ///   pages have embedded images, none of them the captioned diagrams).
+  /// * Named — the classifier hit a SPECIFIC diagram phrase ("so do thuc
+  ///   the ket hop", "sequence diagram"). A prose "xem hinh 2" (see
+  ///   figure 2) without a named type is a POINTER to a diagram on
+  ///   another page; auditing the mentioning page would spend quota on
+  ///   prose. So a text mention earns a slot only when the classifier
+  ///   can also NAME the kind — that is what keeps the 73-mention pages
+  ///   from becoming 73 audits.
+  ///
+  /// An image-bearing page nobody captioned still audits (as `unknown`) —
+  /// the orphan figures sds-reviewer step 5 exists to catch.
   List<DiagramPageCandidate> candidates(SrsDocument document) {
-    final byPage = <int, StringBuffer>{};
+    final textByPage = <int, StringBuffer>{};
+    void append(int page, String text) {
+      textByPage.putIfAbsent(page, () => StringBuffer()).write('$text\n');
+    }
+
     for (final item in document.requirements) {
       final page = item.pageIndex;
       if (page == null || page < 0) continue;
-      if (!detector.detect(item.text).hasIntent) continue;
-      byPage
-          .putIfAbsent(page, () => StringBuffer())
-          .write('${item.text}\n');
+      append(page, item.text);
     }
-    // Page text is second-class evidence: requirements may be absent (a
-    // diagram page nobody referenced in text) but pageTexts covers them.
     for (var page = 0; page < document.pageTexts.length; page++) {
       final text = document.pageTexts[page];
-      if (text.isEmpty) continue;
-      final hasSignal =
-          detector.detect(text).hasIntent &&
-          classifier.classify(text) != DiagramKind.unknown;
-      if (!hasSignal) continue;
-      byPage
-          .putIfAbsent(page, () => StringBuffer())
-          .write('$text\n');
+      if (text.isNotEmpty) append(page, text);
     }
-    final pages = byPage.keys.toList()..sort();
+
+    final visual = document.imagePageIndexes.toSet();
+    final selected = <int>{};
+    for (var page = 0; page <= (document.pageCount + 1); page++) {
+      final text = textByPage[page]?.toString() ?? '';
+      if (text.isEmpty && !visual.contains(page)) continue;
+      final kind = classifier.classify(text);
+      if (visual.contains(page) || kind != DiagramKind.unknown) {
+        selected.add(page);
+      }
+    }
+    final pages = selected.toList()..sort();
     return [
       for (final page in pages)
         DiagramPageCandidate(
           pageIndex: page,
-          kind: classifier.classify(byPage[page]!.toString()),
-          contextText: byPage[page]!.toString(),
+          kind: classifier.classify(textByPage[page]?.toString() ?? ''),
+          contextText: textByPage[page]?.toString() ?? '',
         ),
     ];
   }

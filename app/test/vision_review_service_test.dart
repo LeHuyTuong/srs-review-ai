@@ -12,12 +12,17 @@ RequirementItem _req(String id, String text, {int? page}) => RequirementItem(
   pageIndex: page,
 );
 
-SrsDocument _doc(List<RequirementItem> items, {List<String> pageTexts = const []}) =>
+SrsDocument _doc(
+  List<RequirementItem> items, {
+  List<String> pageTexts = const [],
+  List<int> imagePages = const [],
+}) =>
     SrsDocument(
       fileName: 'a.pdf',
       pageCount: pageTexts.isEmpty ? 10 : pageTexts.length,
       pageTexts: pageTexts,
       requirements: items,
+      imagePageIndexes: imagePages,
     );
 
 void main() {
@@ -65,29 +70,70 @@ void main() {
   group('VisionReviewService', () {
     // Auditor that records requests and replays canned verdicts.
     test('candidates come from diagram-bearing requirement pages, in page order', () {
-      final doc = _doc([
-        _req('UC-01', 'See the ERD for the data model.', page: 4),
-        _req('UC-02', 'The system shall hash passwords.', page: 2),
-        _req('UC-03', 'The class diagram lists attributes.', page: 1),
-      ]);
+      final doc = _doc(
+        [
+          _req('UC-01', 'See the ERD for the data model.', page: 4),
+          _req('UC-02', 'The system shall hash passwords.', page: 2),
+          _req('UC-03', 'The class diagram lists attributes.', page: 1),
+        ],
+      );
       final svc = VisionReviewService(
         auditor: (_) async => throw StateError('no audit here'),
         renderPage: (_, _) async => 'AA==',
       );
       final pages = svc.candidates(doc).map((p) => p.pageIndex).toList();
-      expect(pages, [1, 4]);
+      expect(pages, [1, 4]); // class + ERD named types
     });
 
     test('pageTexts evidence adds pages no requirement pointed at', () {
+      // Selection is VISUAL evidence; text only names the kind. Page 3 has
+      // an image nobody mentioned in prose — it audits as unknown anyway.
       final doc = _doc(
         [_req('UC-01', 'plain text only.', page: 0)],
-        pageTexts: ['nothing', 'nothing', 'Figure 9: state machine diagram for orders.'],
+        pageTexts: [
+          'nothing',
+          'nothing',
+          'Figure 9: state machine diagram for orders.',
+          'no caption here at all',
+        ],
+        imagePages: [2, 3],
       );
       final svc = VisionReviewService(
         auditor: (_) async => throw StateError('no audit here'),
         renderPage: (_, _) async => 'AA==',
       );
-      expect(svc.candidates(doc).map((p) => p.pageIndex).toList(), [2]);
+      final pages = svc.candidates(doc);
+      expect(pages.map((p) => p.pageIndex).toList(), [2, 3]);
+      expect(pages.first.kind, DiagramKind.stateMachine);
+      expect(pages.last.kind, DiagramKind.unknown);
+    });
+
+    test('a bare pointer ("see figure", no image) is not a candidate', () {
+      // "xem hinh 2" names no kind: the figure lives elsewhere, auditing
+      // this prose page would waste a slot.
+      final doc = _doc([
+        _req('UC-01', 'Xem hinh 2 de ro hon.', page: 3),
+      ]);
+      final svc = VisionReviewService(
+        auditor: (_) async => throw StateError('must not run'),
+        renderPage: (_, _) async => 'AA==',
+      );
+      expect(svc.candidates(doc), isEmpty);
+    });
+
+    test('a NAMED diagram type on a page with no image still audits', () {
+      // OTES's real diagrams are vector — no embedded image object — so
+      // the classifier's named-type is the only thing that finds them.
+      final doc = _doc([
+        _req('UC-01', 'So do thuc the ket hop o hinh 3.', page: 7),
+      ]); // imagePages intentionally empty
+      final svc = VisionReviewService(
+        auditor: (_) async => throw StateError('must not run'),
+        renderPage: (_, _) async => 'AA==',
+      );
+      final candidates = svc.candidates(doc);
+      expect(candidates.map((c) => c.pageIndex).toList(), [7]);
+      expect(candidates.single.kind, DiagramKind.erd);
     });
 
     test('empty candidates produce an empty outcome, not a zero-passing row', () async {
@@ -101,10 +147,13 @@ void main() {
     });
 
     test('one stable row per page: ERD-01 numbers in page order and survives reruns', () async {
-      final doc = _doc([
-        _req('UC-01', 'See the ERD in figure 2.', page: 3),
-        _req('UC-02', 'See the ERD in figure 7.', page: 9),
-      ]);
+      final doc = _doc(
+        [
+          _req('UC-01', 'See the ERD in figure 2.', page: 3),
+          _req('UC-02', 'See the ERD in figure 7.', page: 9),
+        ],
+        imagePages: [3, 9],
+      );
       DiagramAuditResult fake(DiagramAuditRequest r) => DiagramAuditResult(
         pageIndex: r.pageIndex,
         diagramType: r.diagramType,
@@ -136,7 +185,7 @@ void main() {
     });
 
     test('a clean page passes with the element counts in the message', () async {
-      final doc = _doc([_req('UC-01', 'See the ERD in figure 2.', page: 3)]);
+      final doc = _doc([_req('UC-01', 'See the ERD in figure 2.', page: 3)], imagePages: [3]);
       final svc = VisionReviewService(
         auditor: (_) async => const DiagramAuditResult(
           pageIndex: 3,
@@ -159,7 +208,7 @@ void main() {
     });
 
     test('a failed audit is a recorded failure, never a ledger row', () async {
-      final doc = _doc([_req('UC-01', 'See the ERD in figure 2.', page: 3)]);
+      final doc = _doc([_req('UC-01', 'See the ERD in figure 2.', page: 3)], imagePages: [3]);
       final svc = VisionReviewService(
         auditor: (_) async => throw StateError('provider unavailable'),
         renderPage: (_, _) async => 'AA==',
@@ -171,10 +220,13 @@ void main() {
     });
 
     test('budget: pages beyond maxPages are skipped and reported, and the first N run', () async {
-      final doc = _doc([
-        for (var p = 0; p < 6; p++)
-          _req('UC-0$p', 'See the ERD in figure $p.', page: p),
-      ]);
+      final doc = _doc(
+        [
+          for (var p = 0; p < 6; p++)
+            _req('UC-0$p', 'See the ERD in figure $p.', page: p),
+        ],
+        imagePages: [for (var p = 0; p < 6; p++) p],
+      );
       final svc = VisionReviewService(
         auditor: (_) async => const DiagramAuditResult(
           pageIndex: 0,
