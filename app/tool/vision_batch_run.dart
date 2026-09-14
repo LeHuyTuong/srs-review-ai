@@ -1,9 +1,9 @@
 /// One-off live batch: vision-audit the first 10 OTES diagram pages
 /// through the running proxy, twice — run 2 proves cache economics and
-/// ledger stability. Writes raw evidence to /tmp/vision_batch_<n>.json.
+/// ledger stability. Writes raw evidence to `/tmp/vision_batch_run1.json` (and run2).
 ///
 ///   SRS_TEST_PDF=… flutter test tool/vision_batch_run.dart
-/// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print
 @Timeout(Duration(minutes: 30))
 library;
 
@@ -13,8 +13,6 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:srs_review_ai/core/app_config.dart';
-import 'package:srs_review_ai/data/services/review_api.dart';
-import 'package:srs_review_ai/data/models/diagram_audit.dart';
 import 'package:srs_review_ai/data/services/api_service.dart';
 import 'package:srs_review_ai/data/services/parse_service.dart';
 import 'package:srs_review_ai/data/services/vision_review_service.dart';
