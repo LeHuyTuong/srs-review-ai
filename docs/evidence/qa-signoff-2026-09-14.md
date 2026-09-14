@@ -123,3 +123,26 @@ end).
 - `missingPostcondition = 126/126` counts parser rows, including the
   duplicate-id rows (UC-04 ×16) — by id, not by row, every distinct use
   case is affected.
+
+## Addendum — re-verified 2026-09-14 (R14–R16), supersedes the counts above
+
+Numbers re-measured fresh against HEAD (`0185e74`), showcase + QA run in
+the same session as this addendum:
+
+- Syllabus findings **72 → 73**: new pass row `missingPriority`
+  (srs-writer criterion 7, document-level; OTES has 63/129 rows naming
+  a priority, so the doc passes — see `da57df5` for why per-row would
+  overclaim). Ledger total **357 → 358**, verified by counting
+  `^| (syllabus|reference)` rows in the regenerated `/tmp/otes-showcase/ledger.md`.
+- Pages 217 / units 129 / reference 285 / missingPostcondition 126 /
+  duplicateIds 33 subjects: **unchanged** — no extractor or matcher
+  semantics moved.
+- HTML twin 128,938 → **129,969 bytes** (new limitation line 9 + ledger
+  row), MD 81,117; twin parity assertion still green.
+- App suite **502 → 514** (+3 `pageSize` lifecycle, +4 priority, +1
+  limitation line); server **64 → 65** (rubric version/weights pin,
+  `4b98342`). A real mutation (fold → identity) was used to prove the
+  suite fails when the code is wrong; see
+  `docs/evidence/self-review-2026-09-14.md` for the full DoD sweep,
+  including finding F1 (upload pipeline built-but-unconsumed, marked
+  in-file on both sides).
