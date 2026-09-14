@@ -14,6 +14,7 @@ import '../../../core/theme/workspace_colors.dart';
 import '../../../core/widgets/app_ink_well.dart';
 import '../../../data/checks/rubric_config.dart';
 import '../../../data/models/review_models.dart';
+import '../models/document_verdict.dart';
 import '../models/section_scores.dart';
 import '../models/workspace_findings.dart';
 import '../view_model/workspace_view_model.dart';
@@ -66,6 +67,105 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
     _StatusFilter.pendingVision => status == FindingStatus.pendingVision,
     _StatusFilter.disputed => status == FindingStatus.disputed,
   };
+
+  /// Feature 2: the rubric-E 10-point verdict, computed from the ledger
+  /// rows already in state — no extra run, no tokens. Nulls stay visible:
+  /// an unassessed component must never render as a zero.
+  Widget _verdictPanel(WorkspaceState state) {
+    final verdict = computeVerdict([
+      ...state.syllabusFindings,
+      ...state.referenceFindings,
+    ]);
+    final colors = context.workspaceColors;
+    final theme = Theme.of(context);
+    final total = verdict.total;
+    String glyph(ComponentState c) => switch (c) {
+      ComponentState.passed => '✓',
+      ComponentState.failed => '✗',
+      ComponentState.unassessed => '·',
+    };
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.md,
+      ),
+      child: WPanel(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Verdict (rubric E)',
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall
+                        ?.copyWith(color: colors.ink),
+                  ),
+                ),
+                Text(
+                  total == null ? '—/10' : '$total/10',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colors.ink,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              verdict.display,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: colors.muted,
+                height: 1.6,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            for (final (label, comp) in [
+              ('Floor: 7 quality criteria (5 pts)', verdict.floor),
+              ('Diagrams, no severe notation errors (2 pts)', verdict.diagram),
+              ('Cross-artifact chains clean (2 pts)', verdict.crossArtifact),
+              ('Traceability to tests (1 pt)', verdict.traceability),
+            ])
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 18,
+                      child: Text(
+                        glyph(comp),
+                        style: theme.textTheme.labelMedium
+                            ?.copyWith(color: colors.ink),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        label,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: colors.muted,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (verdict.deductions > 0)
+              Text(
+                '−${verdict.deductions} for serious FLOW/ERD errors '
+                'affecting real data',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colors.amber,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 
   /// The section scoreboard: every document section that the latest run had
   /// anything to say about, worst average first, each one expandable to the
@@ -388,6 +488,7 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
             ],
           ),
         ),
+        _verdictPanel(state),
         if (result != null) _sectionScores(state),
         if (syllabus.isNotEmpty)
           Padding(
