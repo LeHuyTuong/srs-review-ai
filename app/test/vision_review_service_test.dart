@@ -219,6 +219,16 @@ void main() {
       expect(outcome.everythingFailed, isTrue);
     });
 
+    test('the live server response shape parses into a clean pass row', () {
+      final parsed = DiagramAuditResult.fromJson(_liveResponse);
+      expect(parsed.pageIndex, 7);
+      expect(parsed.diagramType, 'erd');
+      expect(parsed.clean, isTrue);
+      expect(parsed.findings, isEmpty);
+      expect(parsed.mock, isFalse);
+      expect(parsed.cached, isFalse);
+    });
+
     test('budget: pages beyond maxPages are skipped and reported, and the first N run', () async {
       final doc = _doc(
         [
@@ -250,3 +260,21 @@ void main() {
     });
   });
 }
+
+
+// Pinned from the first LIVE /diagram response (gemini-3.5-flash, blank
+// 200x200 page, 2026-09-14) — the wire contract the client must parse.
+// Kept verbatim so a server shape change breaks a test, not the phone.
+const _liveResponse = <String, dynamic>{
+  'page_index': 7,
+  'diagram_type': 'erd',
+  'describe': {
+    'elements': <String>[],
+    'relations': <String>[],
+    'unreadable': <String>[],
+  },
+  'verdict': {'clean': true, 'findings': <String>[]},
+  'model': 'gemini-3.5-flash',
+  'cached': false,
+  'mock': false,
+};
