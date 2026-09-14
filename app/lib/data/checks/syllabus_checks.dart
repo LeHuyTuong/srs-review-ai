@@ -1,6 +1,11 @@
 /// F7 / F8 / F9 — the deterministic checks taken verbatim from the SEP490
 /// syllabus (research 12, §4). No AI, no network, no tokens.
 ///
+/// Also runs [QualityChecks] — the deterministic subset of the srs-writer
+/// skill's quality checklist. Both share the "syllabus" family in reports
+/// because both are per-document rubric rules rather than M2 consistency
+/// checks; the report text names both sources.
+///
 /// Why they matter more than they look: the syllabus pushes a whole team to the
 /// second defense round if fewer than 20 average use cases are completed
 /// "as submitted in Report 3". These checks measure the contract itself.
@@ -9,7 +14,9 @@ library;
 import '../models/deterministic_finding.dart';
 import '../models/review_models.dart' show Severity;
 import '../models/srs_document.dart';
+import 'quality_checks.dart';
 import 'rubric_config.dart';
+import 'text_fold.dart';
 
 class SyllabusChecks {
   const SyllabusChecks(this.rubric);
@@ -20,6 +27,7 @@ class SyllabusChecks {
     useCaseCount(document),
     ...language(document),
     ...useCaseSizes(document),
+    ...const QualityChecks().run(document),
   ];
 
   // ---------------------------------------------------------------- F7
@@ -237,11 +245,32 @@ class LanguageDetector {
   static bool looksEnglish(String text) {
     final trimmed = text.trim();
     if (trimmed.length < 12) return true;
-    if (_vietnameseDiacritics.hasMatch(trimmed)) return false;
+    if (_vietnameseDiacritics.hasMatch(trimmed)) {
+      // Vietnamese letters are present — but the real OTES proved a bare
+      // "any diacritic fails the row" rule is wrong: every flagged row
+      // was an English use-case table whose Author cell held a Vietnamese
+      // name ("Nguyễn Minh Hiểu", "Cao Văn Phú"). And PDF extraction
+      // detaches diacritics into standalone glyphs mid-syllable
+      // ("V ăn"), so capitalisation cannot separate names from prose
+      // either. What still separates them is COUNT: a Vietnamese name is
+      // 2–4 syllables; Vietnamese prose in a cell this long never stays
+      // under that. One or two stray syllables = a name inside
+      // otherwise-English text; four or more = the row is Vietnamese.
+      final normalized = trimmed.replaceAll(
+        RegExp(r'[\u00A0\u2000-\u200B\u2028\u2029\r\n\t]'),
+        ' ',
+      );
+      final tokens = normalized.split(RegExp(r'[^\p{L}\p{M}]+', unicode: true));
+      final vietnameseTokens = tokens
+          .where((t) => _vietnameseDiacritics.hasMatch(t))
+          .length;
+      if (vietnameseTokens >= 4) return false;
+    }
 
-    final words = trimmed
-        .toLowerCase()
-        .split(RegExp(r"[^a-zà-ỹ']+"))
+    // Fold first: NFD Vietnamese ("e"+U+0323+U+0302) would otherwise split
+    // into letter fragments and sail through the stopword test below.
+    final words = foldVietnamese(trimmed)
+        .split(RegExp(r"[^a-z']+"))
         .where((w) => w.isNotEmpty)
         .toList();
     if (words.isEmpty) return true;
@@ -273,9 +302,13 @@ class TransactionCounter {
     // database transactions
     'create', 'insert', 'add', 'update', 'edit', 'modify', 'delete', 'remove',
     'save', 'store', 'retrieve', 'query', 'validate', 'verify', 'send',
-    // Vietnamese equivalents (documents in transition still contain them)
-    'nhấn', 'chọn', 'nhập', 'lưu', 'tìm kiếm', 'cập nhật', 'xóa', 'xem',
-    'gửi', 'đăng nhập', 'đăng ký', 'tải lên', 'tải về', 'kiểm tra',
+    // Vietnamese equivalents, in FOLDED form (text_fold.dart): the counter
+    // folds the text before matching, so NFC and NFD Vietnamese both land
+    // here as ASCII. Substring noise exists ('gui' inside "guide") exactly
+    // as it does for the English cues ('add' inside "address") — accepted,
+    // the counter is an estimate, not a parser.
+    'nhan', 'chon', 'nhap', 'luu', 'tim kiem', 'cap nhat', 'xoa', 'xem',
+    'gui', 'dang nhap', 'dang ky', 'tai len', 'tai ve', 'kiem tra',
   ];
 
   // Two shapes for a numbered step, both verified against a real capstone
@@ -299,7 +332,7 @@ class TransactionCounter {
         .toSet();
     if (steps.length >= 2) return steps.length;
 
-    final lowered = text.toLowerCase();
+    final lowered = foldVietnamese(text);
     var hits = 0;
     for (final cue in _cues) {
       if (cue.contains(' ')) {

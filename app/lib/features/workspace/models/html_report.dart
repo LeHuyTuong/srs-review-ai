@@ -284,7 +284,8 @@ String buildHtmlReport({
     out.write(
       '<h2>Deterministic checks (${allDeterministic.length})</h2>'
       '<p class="meta">Offline rule checks — no model, zero tokens. '
-      'syllabus rows come from the SEP490 rubric (F7/F8/F9); reference (M2) '
+      'syllabus rows come from the SEP490 rubric (F7/F8/F9) and the '
+      'srs-writer quality scan; reference (M2) '
       'rows are the consistency checks (duplicate ids, missing '
       'postconditions, cross-artifact names). '
       '${failing == 0 ? 'All checks passed.' : '<b>$failing of ${allDeterministic.length} need attention.</b>'}</p>',

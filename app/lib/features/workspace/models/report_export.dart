@@ -48,6 +48,10 @@ List<String> reportLimitations({required bool offline}) => [
             'text to the proxy; source bytes are never saved in snapshots or '
             'sessions. DOCX, demo, and restored sessions are text-only.',
   'Demo content is synthetic, not measured OTES evidence.',
+  'The vague-wording scan is a conservative bilingual phrase list '
+      '(srs-writer skill), not judgment: "all"/"some" are deliberately '
+      'unscanned, and criteria needing meaning (atomic, feasible, '
+      'correct) stay with the model pass and the human reviewer.',
 ];
 
 String buildMarkdownReport({
@@ -284,7 +288,8 @@ String buildMarkdownReport({
       ..add(
         'Offline rule checks — no model, zero tokens, run the moment the '
         'document is imported. "syllabus" rows come from the SEP490 rubric '
-        '(F7/F8/F9); "reference (M2)" rows are the consistency checks '
+        '(F7/F8/F9) plus the srs-writer quality scan; "reference (M2)" rows '
+        'are the consistency checks '
         '(duplicate ids, missing postconditions, cross-artifact names). '
         '${failing.isEmpty ? 'All checks passed.' : '${failing.length} of ${allDeterministic.length} need attention.'}',
       )

@@ -366,7 +366,7 @@ void main() {
   });
 
   group('buildHtmlReport — limitations share one source', () {
-    test('all seven markdown limitation lines are present', () {
+    test('all eight markdown limitation lines are present', () {
       final html = buildHtmlReport(
         fileName: 'a.pdf',
         offline: true,
@@ -377,6 +377,7 @@ void main() {
       expect(html, contains('logical extraction pages'));
       expect(html, contains('Demo content is synthetic'));
       expect(html, contains('Offline mock review sends no model requests'));
+      expect(html, contains('conservative bilingual phrase list'));
       expect(html, contains('<li>'));
     });
   });

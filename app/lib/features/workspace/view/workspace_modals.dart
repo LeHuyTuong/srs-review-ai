@@ -1409,6 +1409,17 @@ class _SyllabusCheckDetail extends StatelessWidget {
           'undefined. The flow has no "who" — was it a human, another '
           'system, or time? A reader cannot tell, and a test designer '
           'cannot pick the right tool to drive the scenario.',
+    CheckId.ambiguousWording =>
+      'From the srs-writer quality checklist (IEEE 830 criteria 2 and 3): '
+          'the sentence uses wording with no measurable threshold. This is '
+          'a conservative bilingual phrase scan, not judgment — "all" and '
+          '"some" are deliberately not scanned because they fire on almost '
+          'every document.',
+    CheckId.placeholderTbd =>
+      'Quality criterion 4 (Complete): the document still carries TBD-style '
+          'placeholders. A submitted document must stand alone — every '
+          'open question is either answered or moved to an explicit '
+          'assumptions list.',
   };
 
   String get _fix => switch (finding.check) {
@@ -1444,6 +1455,17 @@ class _SyllabusCheckDetail extends StatelessWidget {
           'enough (Customer, Admin, Scheduler, External System) — name '
           'the role, not the person, so the test designer can pick the '
           'right tool to drive it.',
+    CheckId.ambiguousWording =>
+      'Replace each flagged phrase with a number, threshold, or test '
+          'step: "fast" → "within 2 s at the 95th percentile", '
+          '"user-friendly" → "a new user completes registration in '
+          '≤ 3 clicks". If the sentence genuinely has no measurable '
+          'claim, that is the finding — delete or rewrite it.',
+    CheckId.placeholderTbd =>
+      'Resolve the placeholder before submission, or move it into an '
+          'explicit "Open questions / assumptions" section with an '
+          'owner — a TBD buried in a requirement reads as a promise '
+          'nobody made.',
   };
 
   @override

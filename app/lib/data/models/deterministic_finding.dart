@@ -42,7 +42,19 @@ enum CheckId {
   /// Structurally the same as [missingPostcondition] — a required
   /// sub-section is absent — so it lives in the same M2 family and
   /// renders under "Consistency smells" on the dashboard.
-  missingActor;
+  missingActor,
+
+  /// srs-writer skill, Ambiguity Detection auto-scan — a requirement
+  /// sentence uses wording with no measurable threshold ("nhanh chóng",
+  /// "user-friendly", "as needed"). IEEE 830 criterion 2 (Unambiguous) /
+  /// 3 (Testable). Deliberately a conservative bilingual phrase list,
+  /// not judgment — see quality_checks.dart for what was skipped and why.
+  ambiguousWording,
+
+  /// srs-writer skill, quality criterion 4 (Complete) — the document
+  /// still carries "TBD" / "chưa xác định" / placeholder text that a
+  /// submitted document must not have.
+  placeholderTbd;
 
   String get wire => switch (this) {
     CheckId.ucCount => 'uc_count',
@@ -52,6 +64,8 @@ enum CheckId {
     CheckId.missingPostcondition => 'missing_postcondition',
     CheckId.crossArtifactName => 'cross_artifact_name',
     CheckId.missingActor => 'missing_actor',
+    CheckId.ambiguousWording => 'ambiguous_wording',
+    CheckId.placeholderTbd => 'placeholder_tbd',
   };
 
   String get label => switch (this) {
@@ -62,6 +76,8 @@ enum CheckId {
     CheckId.missingPostcondition => 'Missing postcondition',
     CheckId.crossArtifactName => 'Cross-artifact entity naming',
     CheckId.missingActor => 'Missing actor',
+    CheckId.ambiguousWording => 'Vague wording',
+    CheckId.placeholderTbd => 'TBD / placeholder',
   };
 
   /// True for M2 reference checks; they live next to F7/F8/F9 in the

@@ -116,6 +116,31 @@ void main() {
       );
     });
 
+    test('detects NFD-decomposed Vietnamese (the OTES normalization trap)', () {
+      // Same sentence with combining marks instead of precomposed
+      // letters: before the fold, the splitter shredded these words
+      // into letter fragments and the text passed as English.
+      expect(
+        LanguageDetector.looksEnglish(
+          'H\u1EC7 th\u006F\u0301ng phai cho phep ngu\u006F\u0303i dung tai len tai li\u1EC7u',
+        ),
+        isFalse,
+      );
+    });
+
+    test('English metadata with a Vietnamese author name still passes', () {
+      // Proven shape from the real OTES: every failing row before the
+      // proper-noun rule was an English use-case table whose Author cell
+      // held a Vietnamese name. Names must not fail the row.
+      expect(
+        LanguageDetector.looksEnglish(
+          'Use case name Login. Author: Nguyễn Minh Hiểu. '
+          'Actor: Student. Summary: this use case allows a user to sign in.',
+        ),
+        isTrue,
+      );
+    });
+
     test('does not flag very short strings', () {
       expect(LanguageDetector.looksEnglish('UC-01'), isTrue);
     });
