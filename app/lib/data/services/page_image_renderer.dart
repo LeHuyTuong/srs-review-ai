@@ -270,6 +270,46 @@ class PageImageRenderer {
     }
   }
 
+  /// The MediaBox size of one page in PDF points, without rasterizing
+  /// anything. The diagram-split planner needs the source geometry to
+  /// decide legibility before it spends a render.
+  Future<Size> pageSize({
+    required Uint8List pdfBytes,
+    required int pageIndex,
+  }) async {
+    if (pdfBytes.isEmpty) {
+      throw ArgumentError.value(pdfBytes, 'pdfBytes', 'must not be empty');
+    }
+    if (pageIndex < 0) {
+      throw RangeError.value(pageIndex, 'pageIndex', 'must be zero-based');
+    }
+    final document = await _openDocument(pdfBytes);
+    PdfPage? page;
+    Object? sizeError;
+    try {
+      if (pageIndex >= document.pagesCount) {
+        throw RangeError.range(
+          pageIndex,
+          0,
+          document.pagesCount - 1,
+          'pageIndex',
+          'page does not exist',
+        );
+      }
+      page = await document.getPage(pageIndex + 1);
+      return Size(page.width, page.height);
+    } catch (error) {
+      sizeError = error;
+      rethrow;
+    } finally {
+      try {
+        await _dispose(page: page, document: document);
+      } catch (_) {
+        if (sizeError == null) rethrow;
+      }
+    }
+  }
+
   Future<void> _dispose({
     required PdfPage? page,
     required PdfDocument document,
