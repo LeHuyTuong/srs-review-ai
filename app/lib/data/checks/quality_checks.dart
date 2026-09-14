@@ -69,6 +69,15 @@ class QualityChecks {
     ('linh hoạt', RegExp('linh hoat')),
   ];
 
+  /// Matches the PRIORITY LABEL, not a value: "priority: normal",
+  /// "Priority Level", the Vietnamese "độ ưu tiên" / "mức độ ưu tiên"
+  /// (folded forms). Prose like "this feature has high priority" is a
+  /// rare overcount on the passing side — the honest failure direction
+  /// for a rubric row that fires once per document.
+  static final RegExp _priorityMention = RegExp(
+    r'\b(priority|do uu tien|muc do uu tien)\b',
+  );
+
   static final List<(String, RegExp)> _placeholders = [
     ('TBD', RegExp(r'\btbd\b')),
     ('to be defined/determined', RegExp(r'to be (defined|determined|decided)', caseSensitive: false)),
@@ -104,7 +113,34 @@ class QualityChecks {
           '(srs-writer quality criterion 4, Complete).',
       pass: 'No TBD/placeholder text found.',
     ),
+    ..._priority(document),
   ];
+
+  /// Criterion 7, document-level: requirement rows are table fragments,
+  /// so "no priority anywhere" is the only honest deterministic claim —
+  /// a row that contains other cells' priority values is not proof the
+  /// row itself was prioritised, and the reverse is unprovable offline.
+  /// Folded matching: a Vietnamese template says "Do uu tien".
+  List<DeterministicFinding> _priority(SrsDocument document) {
+    if (document.requirements.isEmpty) return const [];
+    final anyMentioned = document.requirements.any(
+      (item) => _priorityMention.hasMatch(foldVietnamese(item.text)),
+    );
+    return [
+      DeterministicFinding(
+        check: CheckId.missingPriority,
+        passed: anyMentioned,
+        severity: anyMentioned ? Severity.low : Severity.medium,
+        message: anyMentioned
+            ? 'At least one requirement names a priority field '
+                  '(srs-writer quality criterion 7, Prioritized).'
+            : 'No requirement in this document names a priority '
+                  '(priority / do uu tien / muc do uu tien). A reviewer '
+                  'cannot sequence fixes without it '
+                  '(srs-writer quality criterion 7, Prioritized).',
+      ),
+    ];
+  }
 
   List<DeterministicFinding> _scan(
     SrsDocument document,

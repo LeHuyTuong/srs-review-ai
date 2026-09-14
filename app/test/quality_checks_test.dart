@@ -117,4 +117,74 @@ void main() {
   test('empty document yields no rows at all (nothing to claim)', () {
     expect(checks.run(_doc(const [])), isEmpty);
   });
+
+  group('missingPriority (criterion 7, document-level)', () {
+    test('fires once when no requirement mentions a priority', () {
+      final findings = checks.run(
+        _doc([
+          _item('UC-01', 'The system shall allow students to log in.'),
+          _item('UC-02', 'The system shall store exam results.'),
+        ]),
+      );
+      final rows = findings
+          .where((f) => f.check == CheckId.missingPriority)
+          .toList();
+      expect(rows, hasLength(1));
+      expect(rows.single.passed, isFalse);
+      expect(rows.single.message, contains('criterion 7'));
+    });
+
+    test('passes when any row names a priority field', () {
+      final findings = checks.run(
+        _doc([
+          _item('UC-01', 'plain text here with no metadata.'),
+          _item(
+            'UC-02',
+            'Author: someone. Priority: normal. Actor: admin.',
+          ),
+        ]),
+      );
+      final row = findings
+          .where((f) => f.check == CheckId.missingPriority)
+          .single;
+      expect(row.passed, isTrue);
+    });
+
+    test('the Vietnamese template form passes on folded text (NFD too)', () {
+      // "Độ ưu tiên" is the field name in Vietnamese SRS templates;
+      // NFD vs NFC must not change the verdict (text_fold contract).
+      final nfc = checks.run(
+        _doc([
+          _item(
+            'UC-01',
+            'Độ ưu tiên: Cao. The system allows login as well.',
+          ),
+        ]),
+      );
+      final nfd = checks.run(
+        _doc([
+          _item(
+            'UC-01',
+            'Do\u0323\u0303 u\u031Bu tie\u0302n: Cao. An ASCII tail for length.',
+          ),
+        ]),
+      );
+      expect(
+        nfc.where((f) => f.check == CheckId.missingPriority).single.passed,
+        isTrue,
+      );
+      expect(
+        nfd.where((f) => f.check == CheckId.missingPriority).single.passed,
+        isTrue,
+      );
+    });
+
+    test('empty document emits no priority row', () {
+      final findings = checks.run(_doc(const []));
+      expect(
+        findings.where((f) => f.check == CheckId.missingPriority),
+        isEmpty,
+      );
+    });
+  });
 }

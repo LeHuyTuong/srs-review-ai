@@ -1420,6 +1420,11 @@ class _SyllabusCheckDetail extends StatelessWidget {
           'placeholders. A submitted document must stand alone — every '
           'open question is either answered or moved to an explicit '
           'assumptions list.',
+    CheckId.missingPriority =>
+      'Quality criterion 7 (Prioritized): no requirement in the document '
+          'names a priority. Without one, a team under a deadline cannot '
+          'decide what to cut, and the reviewer cannot tell which '
+          'findings matter first.',
   };
 
   String get _fix => switch (finding.check) {
@@ -1466,6 +1471,12 @@ class _SyllabusCheckDetail extends StatelessWidget {
           'explicit "Open questions / assumptions" section with an '
           'owner — a TBD buried in a requirement reads as a promise '
           'nobody made.',
+    CheckId.missingPriority =>
+      'Add a Priority field (High / Medium / Low, or MoSCoW) to the use '
+          'case tables and requirement list — the OTES-style template '
+          'already has the row, it just needs a value. A document that '
+          'cannot sequence its own requirements hands that call to '
+          'whoever shouts loudest.',
   };
 
   @override

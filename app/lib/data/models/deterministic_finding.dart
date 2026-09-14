@@ -54,7 +54,13 @@ enum CheckId {
   /// srs-writer skill, quality criterion 4 (Complete) — the document
   /// still carries "TBD" / "chưa xác định" / placeholder text that a
   /// submitted document must not have.
-  placeholderTbd;
+  placeholderTbd,
+
+  /// srs-writer skill, quality criterion 7 (Prioritized) — no
+  /// requirement in the whole document names a priority. Priority lives
+  /// in use-case table metadata, so this is a document-level verdict:
+  /// firing means the field is absent everywhere, never a per-row flag.
+  missingPriority;
 
   String get wire => switch (this) {
     CheckId.ucCount => 'uc_count',
@@ -66,6 +72,7 @@ enum CheckId {
     CheckId.missingActor => 'missing_actor',
     CheckId.ambiguousWording => 'ambiguous_wording',
     CheckId.placeholderTbd => 'placeholder_tbd',
+    CheckId.missingPriority => 'missing_priority',
   };
 
   String get label => switch (this) {
@@ -78,6 +85,7 @@ enum CheckId {
     CheckId.missingActor => 'Missing actor',
     CheckId.ambiguousWording => 'Vague wording',
     CheckId.placeholderTbd => 'TBD / placeholder',
+    CheckId.missingPriority => 'Priority field',
   };
 
   /// True for M2 reference checks; they live next to F7/F8/F9 in the

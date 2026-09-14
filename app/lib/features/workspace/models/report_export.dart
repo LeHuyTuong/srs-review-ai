@@ -48,7 +48,9 @@ List<String> reportLimitations({required bool offline}) => [
             'text to the proxy; source bytes are never saved in snapshots or '
             'sessions. DOCX, demo, and restored sessions are text-only.',
   'Demo content is synthetic, not measured OTES evidence.',
-  'The vague-wording scan is a conservative bilingual phrase list '
+  'Priority coverage is one document-level verdict (srs-writer criterion '
+      '7): it proves the field exists somewhere, never that every '
+      'requirement carries one. The vague-wording scan is a conservative bilingual phrase list '
       '(srs-writer skill), not judgment: "all"/"some" are deliberately '
       'unscanned, and criteria needing meaning (atomic, feasible, '
       'correct) stay with the model pass and the human reviewer.',

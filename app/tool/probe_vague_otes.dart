@@ -82,6 +82,16 @@ void main() {
     for (final r in document.requirements) {
       if (!LanguageDetector.looksEnglish(r.text)) langFail.add(r.id);
     }
+    var withPriority = 0, without = 0;
+    final prioRe = RegExp(r'\bpriority\b', caseSensitive: false);
+    for (final r in document.requirements) {
+      if (prioRe.hasMatch(foldVietnamese(r.text))) {
+        withPriority++;
+      } else {
+        without++;
+      }
+    }
+    print('PRIORITY|with=$withPriority|without=$without|total=${document.requirements.length}');
     var shown = 0;
     for (final r in document.requirements) {
       if (!LanguageDetector.looksEnglish(r.text) && shown < 3) {
