@@ -3,14 +3,17 @@
 //    contain (real Vietnamese letters vs typographic punctuation)?
 // 2. Does page text carry Vietnamese diacritics at all (case-insensitive)?
 // 3. What do the new QualityChecks report on the real document?
+// Kept in-tree as the regression harness for the normalization story —
+// rerun it whenever the language detector or the fold changes.
+// ignore_for_file: avoid_print
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:srs_review_ai/data/checks/quality_checks.dart';
-import 'package:srs_review_ai/data/models/deterministic_finding.dart';
 import 'package:srs_review_ai/data/checks/syllabus_checks.dart';
 import 'package:srs_review_ai/data/checks/text_fold.dart';
+import 'package:srs_review_ai/data/models/deterministic_finding.dart';
 import 'package:srs_review_ai/data/services/parse_service.dart';
 
 String _hex(String s) =>
@@ -44,7 +47,6 @@ void main() {
         }
       }
     }
-    // ignore: avoid_print
     print(
       'CENSUS|letters=${letterChars.map(_hex).join(' ')}'
       '|punct=${punctChars.map(_hex).join(' ')}',
@@ -65,7 +67,6 @@ void main() {
         counts[e.key] = counts[e.key]! + e.value.allMatches(folded).length;
       }
     }
-    // ignore: avoid_print
     print('CONTROLS|$counts');
 
     // 3. New quality checks on the real document.
@@ -76,7 +77,6 @@ void main() {
     final tbd = findings
         .where((f) => f.check == CheckId.placeholderTbd && !f.passed)
         .toList();
-    // ignore: avoid_print
     print('QUALITY|vague=${vague.length}|tbd=${tbd.length}');
     final langFail = <String>[];
     for (final r in document.requirements) {
@@ -87,11 +87,9 @@ void main() {
       if (!LanguageDetector.looksEnglish(r.text) && shown < 3) {
         shown++;
         final f = foldVietnamese(r.text).replaceAll('\n', ' ');
-        // ignore: avoid_print
         print('FAILTEXT[${r.id}] = ${Uri.encodeComponent(f.length > 160 ? f.substring(0, 160) : f)}');
       }
     }
-    // ignore: avoid_print
     print('LANGFAIL|count=${langFail.length}|first=${langFail.take(3).join(',')}');
     for (final r in document.requirements) {
       if (r.id == 'UC-01') {
@@ -105,13 +103,11 @@ void main() {
       if (idx >= 0) {
         final around = r.text.substring((idx - 30).clamp(0, r.text.length),
             (idx + 30).clamp(0, r.text.length));
-        // ignore: avoid_print
         print('COMBINING[${r.id}] = ${Uri.encodeComponent(around)}');
         break;
       }
     }
     for (final f in vague.take(5)) {
-      // ignore: avoid_print
       print('VAGUE|${f.subject}|${f.message}');
     }
   });
