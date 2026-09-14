@@ -74,7 +74,7 @@ void main() {
       expect(html, isNot(contains('src="http')));
       expect(html, isNot(contains("src='http")));
       expect(html, isNot(contains('href="http')));
-      expect(html, isNot(contains("@import")));
+      expect(html, isNot(contains('@import')));
     });
 
     test('wide tables live in scroll containers, not the page', () {

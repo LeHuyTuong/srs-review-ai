@@ -48,3 +48,6 @@ Thumbs.db
 /samples/private/
 *.log
 coverage/
+
+# presigned-upload landing zone (dev default; never commit uploaded documents)
+server/.uploads/

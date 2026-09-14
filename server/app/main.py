@@ -11,8 +11,12 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from datetime import datetime, timezone
+from typing import Any
+
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 
 from .cache import LruCache, cache_key
 from .config import Settings, get_settings
@@ -21,6 +25,13 @@ from .llm.router import build_provider
 from .prompt import ask_system_prompt, ask_user_prompt, review_system_prompt, review_user_prompt
 from .ratelimit import RateLimiter
 from .rubric import load_rubric
+from .uploads import (
+    TOKEN_TTL_SECONDS,
+    InvalidTokenError,
+    UploadNotFoundError,
+    UploadStore,
+    UploadTooLargeError,
+)
 from .schemas import (
     CONTRACT_VERSION,
     LLM_ASK_SCHEMA,
@@ -46,12 +57,22 @@ _settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in _settings.cors_origins.split(",") if o.strip()],
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PUT"],
     allow_headers=["*"],
 )
 
 _review_cache: LruCache[ReviewResult] = LruCache()
 _limiter = RateLimiter()
+
+_upload_store = UploadStore(
+    _settings.upload_dir, _settings.max_upload_bytes, _settings.app_token,
+)
+
+
+class PresignRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+    file_name: str = Field(min_length=1)
+    size_bytes: int = Field(gt=0)
 
 
 def require_app_token(
@@ -265,6 +286,75 @@ async def ask(
         model=model,
         mock=provider.name == "mock",
     )
+
+
+# --------------------------------------------------------------------------- #
+# Presigned-upload pipeline
+# --------------------------------------------------------------------------- #
+# Large SRS documents (~28 MiB) exceed the 4.5 MB Vercel request-body ceiling,
+# so the client splits the work: it asks for a capability token, PUTs the raw
+# bytes to /uploads/{key}, then references the stored blob by upload://<key>
+# in later /review and /ask calls.  Only the presign + meta endpoints carry the
+# app token; the PUT endpoint is authenticated solely by the capability token.
+
+
+@app.post("/uploads/presign", dependencies=[Depends(require_app_token)])
+def presign_upload(payload: PresignRequest) -> dict[str, Any]:
+    """Issue a one-shot, HMAC-signed capability token for a PUT upload."""
+    if payload.size_bytes > _upload_store.max_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"File is {payload.size_bytes} bytes; the upload ceiling is "
+                f"{_upload_store.max_bytes} bytes."
+            ),
+        )
+    key = _upload_store.generate_key(payload.file_name)
+    token, exp = _upload_store.create_token(key=key, size=payload.size_bytes)
+    expires_at = datetime.fromtimestamp(exp, tz=timezone.utc).isoformat()
+    return {
+        "upload_uri": f"/uploads/{key}",
+        "put_url": f"/uploads/{key}?token={token}",
+        "method": "PUT",
+        "expires_at": expires_at,
+        "upload_token": token,
+    }
+
+
+@app.put("/uploads/{key}", status_code=201)
+async def put_upload(
+    key: str,
+    request: Request,
+    token: str | None = Query(default=None),
+) -> dict[str, Any]:
+    """Stream raw bytes to disk under *key*.
+
+    Auth is the presigned capability token in ``?token=`` — **not** the app
+    token.  The token proves the caller was authorised at presign time and
+    has not expired or been tampered with.
+    """
+    if not token:
+        raise HTTPException(status_code=403, detail="missing upload token")
+    try:
+        payload = _upload_store.validate_token(token)
+    except InvalidTokenError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    if payload["key"] != key:
+        raise HTTPException(status_code=403, detail="token does not match upload key")
+    try:
+        result = await _upload_store.persist(key, request)
+    except UploadTooLargeError as exc:
+        raise HTTPException(status_code=413, detail=str(exc)) from exc
+    return result
+
+
+@app.get("/uploads/{key}/meta", dependencies=[Depends(require_app_token)])
+def upload_meta(key: str) -> dict[str, Any]:
+    """Return stored metadata for a previously uploaded file."""
+    try:
+        return _upload_store.meta(key)
+    except UploadNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=f"Upload not found: {key}") from exc
 
 
 def _clamp_score(value: object) -> int:

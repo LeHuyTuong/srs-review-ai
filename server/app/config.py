@@ -10,6 +10,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 SERVER_ROOT = Path(__file__).resolve().parent.parent
@@ -21,6 +22,7 @@ class Settings(BaseSettings):
         env_file=SERVER_ROOT / ".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        populate_by_name=True,
     )
 
     # --- LLM ---
@@ -67,9 +69,28 @@ class Settings(BaseSettings):
 
     # --- App auth (shared token between Flutter app and proxy) ---
     app_token: str = ""
-    """Empty => auth disabled (localhost demo). Set it before exposing the proxy."""
+    """Empty => auth disabled (localhost demo). Set it before exposing the proxy.
+
+    Reused as the HMAC signing key for presigned-upload capability tokens: only a
+    client that holds this secret can mint valid (unforgeable, expiry-bound)
+    upload tokens."""
 
     cors_origins: str = "*"
+
+    # --- Presigned uploads ---
+    upload_dir: Path = Field(
+        default=SERVER_ROOT / ".uploads",
+        validation_alias=AliasChoices("SRS_UPLOAD_DIR"),
+    )
+    """Directory where PUT bytes are materialised on disk. Overridable per
+    environment so prod can point at a network mount / cloud bucket."""
+
+    max_upload_bytes: int = Field(
+        default=40 * 1024 * 1024,
+        validation_alias=AliasChoices("SRS_MAX_UPLOAD_BYTES"),
+    )
+    """Hard ceiling on a single PUT body (40 MiB default). Enforced mid-stream
+    so a runaway upload never fills the volume — the partial file is deleted."""
 
     @property
     def has_llm_credentials(self) -> bool:
