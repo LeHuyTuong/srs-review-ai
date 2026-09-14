@@ -8,6 +8,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:srs_review_ai/data/checks/rubric_config.dart';
+import 'package:srs_review_ai/data/models/diagram_audit.dart';
 import 'package:srs_review_ai/data/models/review_models.dart';
 import 'package:srs_review_ai/data/models/review_progress.dart';
 import 'package:srs_review_ai/data/models/srs_document.dart';
@@ -710,6 +711,26 @@ class RecordingReviewApi implements ReviewApi {
     citations: const [],
     model: 'fake',
   );
+
+  @override
+  Future<DiagramAuditResult> diagramAudit(
+    DiagramAuditRequest request, {
+    CancelToken? cancelToken,
+  }) async {
+    return DiagramAuditResult(
+      pageIndex: request.pageIndex,
+      diagramType: request.diagramType,
+      elements: const [],
+      relations: const [],
+      unreadable: const [],
+      clean: true,
+      findings: const [],
+      model: 'fake',
+      cached: false,
+      mock: true,
+    );
+  }
+
 }
 
 class ReviewCall {

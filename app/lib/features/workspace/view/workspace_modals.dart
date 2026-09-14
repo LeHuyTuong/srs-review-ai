@@ -1425,6 +1425,12 @@ class _SyllabusCheckDetail extends StatelessWidget {
           'names a priority. Without one, a team under a deadline cannot '
           'decide what to cut, and the reviewer cannot tell which '
           'findings matter first.',
+    CheckId.diagramAudit =>
+      'Vision audit (sds-reviewer steps 4-6): the model looked at this '
+          'diagram page and reported notation findings — cardinality '
+          'directions, missing FK labels, orphan elements. At A4 render '
+          'resolution tiny text may be unreadable, so evidence lists what '
+          'was seen, not a verdict on what was not.',
   };
 
   String get _fix => switch (finding.check) {
@@ -1477,6 +1483,13 @@ class _SyllabusCheckDetail extends StatelessWidget {
           'already has the row, it just needs a value. A document that '
           'cannot sequence its own requirements hands that call to '
           'whoever shouts loudest.',
+    CheckId.diagramAudit =>
+      'Open the page and read the finding against the drawing: red '
+          'severity means the notation asserts something wrong (reversed '
+          'cardinality, absent relation line), amber means it is '
+          'incomplete or ambiguous. Confirm before fixing — the audit is '
+          'evidence from one render, not a substitute for your eyes on '
+          'the original figure.',
   };
 
   @override

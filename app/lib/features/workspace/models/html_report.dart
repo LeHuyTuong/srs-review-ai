@@ -285,7 +285,13 @@ String buildHtmlReport({
   // default reading order just stops punishing repetition.
   final allDeterministic = [
     for (final f in syllabusFindings) ('syllabus', f),
-    for (final f in referenceFindings) ('reference (M2)', f),
+    for (final f in referenceFindings)
+      (
+        f.check == CheckId.diagramAudit
+            ? 'diagram audit (vision)'
+            : 'reference (M2)',
+        f,
+      ),
   ];
   if (allDeterministic.isNotEmpty) {
     final failing = allDeterministic.where((e) => !e.$2.passed).length;

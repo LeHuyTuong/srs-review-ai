@@ -8,6 +8,7 @@ library;
 import 'package:dio/dio.dart';
 
 import '../checks/rubric_config.dart';
+import '../models/diagram_audit.dart';
 import '../models/review_models.dart';
 import 'review_api.dart';
 
@@ -91,6 +92,51 @@ class MockReviewApi implements ReviewApi {
       score: kept.isEmpty ? 9 : (9 - 2 * kept.length).clamp(3, 9),
       issues: kept,
       model: modelId,
+      mock: true,
+    );
+  }
+
+  @override
+  Future<DiagramAuditResult> diagramAudit(
+    DiagramAuditRequest request, {
+    CancelToken? cancelToken,
+  }) async {
+    await Future<void>.delayed(latency);
+    // Rule-driven, mirroring the server mock: names read from the context
+    // become elements, adjacent pairs become relations, and every relation
+    // is honestly marked direction-unknown — the offline demo must never
+    // pretend the page passed.
+    final names = RegExp(r'[A-Z][A-Za-z0-9_]{3,}')
+        .allMatches(request.contextText)
+        .map((m) => m.group(0)!)
+        .toSet()
+        .take(8)
+        .toList();
+    return DiagramAuditResult(
+      pageIndex: request.pageIndex,
+      diagramType: request.diagramType,
+      elements: names,
+      relations: [
+        for (var i = 0; i + 1 < names.length; i++)
+          DiagramRelationData(
+            source: names[i],
+            target: names[i + 1],
+            arrowheadSide: 'unknown',
+          ),
+      ],
+      unreadable: const [],
+      clean: false,
+      findings: [
+        for (var i = 0; i + 1 < names.length && i < 4; i++)
+          DiagramFindingData(
+            family: 'DOC',
+            entity: '${names[i]}->${names[i + 1]}',
+            evidence: 'chieu quan he khong xac dinh duoc tu mo ta',
+            severity: 'red',
+          ),
+      ],
+      model: 'mock-rules-v1',
+      cached: false,
       mock: true,
     );
   }

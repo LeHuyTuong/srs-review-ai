@@ -13,6 +13,7 @@ import 'package:srs_review_ai/core/app_config.dart';
 import 'package:srs_review_ai/core/providers.dart';
 import 'package:srs_review_ai/data/checks/rubric_config.dart';
 import 'package:srs_review_ai/data/models/deterministic_finding.dart';
+import 'package:srs_review_ai/data/models/diagram_audit.dart';
 import 'package:srs_review_ai/data/models/loaded_document.dart';
 import 'package:srs_review_ai/data/models/review_models.dart';
 import 'package:srs_review_ai/data/models/review_progress.dart';
@@ -972,6 +973,26 @@ class _QuotaKillingApi implements ReviewApi {
     int? pageIndex,
     CancelToken? cancelToken,
   }) async => throw ApiException('Provider quota exhausted.', statusCode: 429);
+
+  @override
+  Future<DiagramAuditResult> diagramAudit(
+    DiagramAuditRequest request, {
+    CancelToken? cancelToken,
+  }) async {
+    return DiagramAuditResult(
+      pageIndex: request.pageIndex,
+      diagramType: request.diagramType,
+      elements: const [],
+      relations: const [],
+      unreadable: const [],
+      clean: true,
+      findings: const [],
+      model: 'fake',
+      cached: false,
+      mock: true,
+    );
+  }
+
 }
 
 /// Stands in for a dead proxy: every review call fails the way
@@ -1006,4 +1027,24 @@ class _AlwaysFailingApi implements ReviewApi {
     int? pageIndex,
     CancelToken? cancelToken,
   }) async => throw ApiException('Cannot reach the review proxy.');
+
+  @override
+  Future<DiagramAuditResult> diagramAudit(
+    DiagramAuditRequest request, {
+    CancelToken? cancelToken,
+  }) async {
+    return DiagramAuditResult(
+      pageIndex: request.pageIndex,
+      diagramType: request.diagramType,
+      elements: const [],
+      relations: const [],
+      unreadable: const [],
+      clean: true,
+      findings: const [],
+      model: 'fake',
+      cached: false,
+      mock: true,
+    );
+  }
+
 }

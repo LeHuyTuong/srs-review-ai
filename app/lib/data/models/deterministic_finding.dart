@@ -56,6 +56,11 @@ enum CheckId {
   /// submitted document must not have.
   placeholderTbd,
 
+  /// sds-reviewer vision chains (steps 4-6): one row per audited page,
+  /// family-numbered in page order (ERD-01, UC-02, …). The only
+  /// model-evidence rows in the ledger — everything else is rule-based.
+  diagramAudit,
+
   /// srs-writer skill, quality criterion 7 (Prioritized) — no
   /// requirement in the whole document names a priority. Priority lives
   /// in use-case table metadata, so this is a document-level verdict:
@@ -73,6 +78,7 @@ enum CheckId {
     CheckId.ambiguousWording => 'ambiguous_wording',
     CheckId.placeholderTbd => 'placeholder_tbd',
     CheckId.missingPriority => 'missing_priority',
+    CheckId.diagramAudit => 'diagram_audit',
   };
 
   String get label => switch (this) {
@@ -86,6 +92,7 @@ enum CheckId {
     CheckId.ambiguousWording => 'Vague wording',
     CheckId.placeholderTbd => 'TBD / placeholder',
     CheckId.missingPriority => 'Priority field',
+    CheckId.diagramAudit => 'Diagram audit',
   };
 
   /// True for M2 reference checks; they live next to F7/F8/F9 in the

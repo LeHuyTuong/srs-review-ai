@@ -7,6 +7,7 @@ library;
 import 'package:dio/dio.dart';
 
 import '../checks/rubric_config.dart';
+import '../models/diagram_audit.dart';
 import '../models/review_models.dart';
 
 abstract interface class ReviewApi {
@@ -20,6 +21,12 @@ abstract interface class ReviewApi {
     String? section,
     int? pageIndex,
     String? imageB64,
+    CancelToken? cancelToken,
+  });
+
+  /// Two-call vision audit of one diagram page (`/diagram`).
+  Future<DiagramAuditResult> diagramAudit(
+    DiagramAuditRequest request, {
     CancelToken? cancelToken,
   });
 

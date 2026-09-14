@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 
 import '../../core/app_config.dart';
 import '../checks/rubric_config.dart';
+import '../models/diagram_audit.dart';
 import '../models/review_models.dart';
 import 'review_api.dart';
 
@@ -89,6 +90,19 @@ class ApiService implements ReviewApi {
     }
     final data = await _post('/review', body, cancelToken: cancelToken);
     return ReviewResult.fromJson(data);
+  }
+
+  @override
+  Future<DiagramAuditResult> diagramAudit(
+    DiagramAuditRequest request, {
+    CancelToken? cancelToken,
+  }) async {
+    final data = await _post(
+      '/diagram',
+      request.toJson(),
+      cancelToken: cancelToken,
+    );
+    return DiagramAuditResult.fromJson(data);
   }
 
   @override

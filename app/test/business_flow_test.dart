@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:srs_review_ai/core/providers.dart';
 import 'package:srs_review_ai/data/checks/rubric_config.dart';
 import 'package:srs_review_ai/data/models/deterministic_finding.dart';
+import 'package:srs_review_ai/data/models/diagram_audit.dart';
 import 'package:srs_review_ai/data/models/review_models.dart';
 import 'package:srs_review_ai/data/services/api_service.dart';
 import 'package:srs_review_ai/data/services/mock_review_api.dart';
@@ -94,6 +95,26 @@ class _AnsweringApi implements ReviewApi {
       model: 'fake-ask',
     );
   }
+
+  @override
+  Future<DiagramAuditResult> diagramAudit(
+    DiagramAuditRequest request, {
+    CancelToken? cancelToken,
+  }) async {
+    return DiagramAuditResult(
+      pageIndex: request.pageIndex,
+      diagramType: request.diagramType,
+      elements: const [],
+      relations: const [],
+      unreadable: const [],
+      clean: true,
+      findings: const [],
+      model: 'fake',
+      cached: false,
+      mock: true,
+    );
+  }
+
 }
 
 /// Succeeds a few times, then behaves like an exhausted quota.
@@ -136,6 +157,26 @@ class _FailsAfterNApi implements ReviewApi {
     int? pageIndex,
     CancelToken? cancelToken,
   }) async => throw ApiException('Provider quota exhausted.', statusCode: 429);
+
+  @override
+  Future<DiagramAuditResult> diagramAudit(
+    DiagramAuditRequest request, {
+    CancelToken? cancelToken,
+  }) async {
+    return DiagramAuditResult(
+      pageIndex: request.pageIndex,
+      diagramType: request.diagramType,
+      elements: const [],
+      relations: const [],
+      unreadable: const [],
+      clean: true,
+      findings: const [],
+      model: 'fake',
+      cached: false,
+      mock: true,
+    );
+  }
+
 }
 
 void main() {

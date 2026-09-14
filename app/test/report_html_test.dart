@@ -441,4 +441,25 @@ void main() {
       expect(html, isNot(contains('Ledger:')));
     });
   });
+
+    test('vision rows split into their own ledger family', () {
+      final html = buildHtmlReport(
+        fileName: 'a.pdf',
+        offline: false,
+        result: null,
+        units: const [],
+        referenceFindings: [
+          DeterministicFinding(
+            check: CheckId.diagramAudit,
+            passed: false,
+            severity: Severity.high,
+            subject: 'ERD-01',
+            message: 'Page 14 (erd): 1 issue(s) — [red] Order.id: FK khong nhan',
+          ),
+        ],
+      );
+      expect(html, contains('diagram audit (vision)'));
+      expect(html, isNot(contains('<td>reference (M2)</td>')));
+      expect(html, contains('ERD-01'));
+    });
 }

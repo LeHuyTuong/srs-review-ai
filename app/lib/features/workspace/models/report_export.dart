@@ -281,7 +281,12 @@ String buildMarkdownReport({
     for (final finding in syllabusFindings)
       ('syllabus', finding),
     for (final finding in referenceFindings)
-      ('reference (M2)', finding),
+      (
+        finding.check == CheckId.diagramAudit
+            ? 'diagram audit (vision)'
+            : 'reference (M2)',
+        finding,
+      ),
   ];
   if (allDeterministic.isNotEmpty) {
     final failing = allDeterministic
@@ -296,6 +301,9 @@ String buildMarkdownReport({
         '(F7/F8/F9) plus the srs-writer quality scan; "reference (M2)" rows '
         'are the consistency checks '
         '(duplicate ids, missing postconditions, cross-artifact names). '
+        'The "diagram audit (vision)" family is the exception to the '
+        'offline claim above: those rows come from the two-call vision '
+        'audit of detector-selected pages (sds-reviewer steps 4-6). '
         '${failing.isEmpty ? 'All checks passed.' : '${failing.length} of ${allDeterministic.length} need attention.'}',
       )
       ..add('')
