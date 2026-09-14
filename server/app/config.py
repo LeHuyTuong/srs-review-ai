@@ -92,6 +92,21 @@ class Settings(BaseSettings):
     """Hard ceiling on a single PUT body (40 MiB default). Enforced mid-stream
     so a runaway upload never fills the volume — the partial file is deleted."""
 
+    # --- Share-by-link reports (plan 6) ---
+    share_dir: Path = Field(
+        default=SERVER_ROOT / ".shares",
+        validation_alias=AliasChoices("SRS_SHARE_DIR"),
+    )
+    """Where shared HTML reports live on disk."""
+
+    share_max_bytes: int = Field(
+        default=4 * 1024 * 1024,
+        validation_alias=AliasChoices("SRS_SHARE_MAX_BYTES"),
+    )
+    """A self-contained report is a few hundred KB; 4 MiB is order-of-
+    magnitude headroom, not an upload ceiling — this is rendered markup,
+    not a document."""
+
     @property
     def has_llm_credentials(self) -> bool:
         return bool(self.gemini_api_key)

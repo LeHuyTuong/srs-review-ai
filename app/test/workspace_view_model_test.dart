@@ -1141,6 +1141,12 @@ class _QuotaKillingApi implements ReviewApi {
     );
   }
 
+
+  @override
+  Future<String> shareReport({
+    required String html,
+    required String fileName,
+  }) async => throw UnimplementedError('share links are not part of this test');
 }
 
 /// Stands in for a dead proxy: every review call fails the way
@@ -1184,5 +1190,11 @@ class _AlwaysFailingApi implements ReviewApi {
     CancelToken? cancelToken,
   }) async => throw ApiException('Cannot reach the review proxy.');
 
+
+  @override
+  Future<String> shareReport({
+    required String html,
+    required String fileName,
+  }) async => throw UnimplementedError('share links are not part of this test');
 }
 

@@ -444,6 +444,10 @@ void main() {
     expect(leg('Save as JSON file'), findsOneWidget);
     expect(leg('Save as HTML dashboard'), findsOneWidget);
     expect(leg('Share report'), findsOneWidget);
+    // Plan 6: the share-BY-LINK button must be absent in mock mode — a
+    // link to nothing is the one thing offline mode never fakes. (The
+    // legacy 'Share report' above uses the OS sheet, not a URL.)
+    expect(leg('Share link — open in any browser'), findsNothing);
     expect(leg('Copy Markdown report'), findsOneWidget);
     // The modal previews the markdown report it is about to save — pinned
     // so the JSON button can never silently replace the markdown preview.

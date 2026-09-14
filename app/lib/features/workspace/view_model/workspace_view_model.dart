@@ -65,6 +65,7 @@ class WorkspaceState {
     this.findingStatus = const {},
     this.diagramPageCount = 0,
     this.isAuditingDiagrams = false,
+    this.isSharingReport = false,
     this.imageReviewAvailable = false,
     this.imageReviewedCount = 0,
     this.imageCoverage,
@@ -134,6 +135,9 @@ class WorkspaceState {
   /// not a requirement-unit, and pretending otherwise would draw a
   /// progress bar that means something different mid-run.
   final bool isAuditingDiagrams;
+
+  /// In-flight flag for the share-by-link POST (plan 6).
+  final bool isSharingReport;
 
   /// True only while original bytes from a newly imported PDF are retained in
   /// memory. DOCX, demo, and restored sessions are always text-only here.
@@ -238,6 +242,7 @@ class WorkspaceState {
     Map<String, FindingStatus>? findingStatus,
     int? diagramPageCount,
     bool? isAuditingDiagrams,
+    bool? isSharingReport,
     bool? imageReviewAvailable,
     int? imageReviewedCount,
     PageImageCoverage? imageCoverage,
@@ -271,6 +276,7 @@ class WorkspaceState {
     findingStatus: findingStatus ?? this.findingStatus,
     diagramPageCount: diagramPageCount ?? this.diagramPageCount,
     isAuditingDiagrams: isAuditingDiagrams ?? this.isAuditingDiagrams,
+    isSharingReport: isSharingReport ?? this.isSharingReport,
     imageReviewAvailable: imageReviewAvailable ?? this.imageReviewAvailable,
     imageReviewedCount: imageReviewedCount ?? this.imageReviewedCount,
     imageCoverage: clearImageCoverage
@@ -740,6 +746,36 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       return;
     }
     state = state.copyWith(isAuditingDiagrams: false);
+  }
+
+  /// Share-by-link (plan 6): publish THIS dashboard's HTML twin to the
+  /// proxy and return its URL. The report content and the link are built
+  /// from the exact same state the export sheet previews — no separate
+  /// "server-side truth" to drift. Null while offline (the button hides
+  /// there); error state set on failure, like every other paid action.
+  bool get canShareReport => !ref.read(mockModeProvider);
+
+  Future<String?> mintShareLink() async {
+    if (state.isSharingReport) return null;
+    if (!canShareReport) return null;
+    final repository = ref.read(reviewRepositoryProvider);
+    state = state.copyWith(isSharingReport: true, clearError: true);
+    String? link;
+    try {
+      link = await repository.shareReport(
+        html: exportHtml(),
+        fileName: state.fileName,
+      );
+      state = state.copyWith(
+        toast: 'Share link created — anyone with the URL can read it.',
+        clearError: true,
+      );
+      _scheduleToastClear();
+    } on Object catch (error) {
+      state = state.copyWith(error: 'Could not create the share link: $error');
+    }
+    state = state.copyWith(isSharingReport: false);
+    return link;
   }
 
   Future<void> _onRunFinished(ReviewProgress progress) async {

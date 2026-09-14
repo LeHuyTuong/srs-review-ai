@@ -30,6 +30,12 @@ abstract interface class ReviewApi {
     CancelToken? cancelToken,
   });
 
+  /// Upload a finished HTML report to the proxy's share store and return
+  /// the absolute, unguessable URL (`/share/<id>`). The link IS the read
+  /// credential — plan 6. Throws on transport/HTTP failure; callers decide
+  /// how honestly to report it.
+  Future<String> shareReport({required String html, required String fileName});
+
   Future<AskResponse> ask({
     required String question,
     required String context,

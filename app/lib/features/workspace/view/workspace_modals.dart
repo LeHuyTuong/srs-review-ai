@@ -468,6 +468,65 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
                   : () => unawaited(viewModel.auditDiagrams()),
             ),
             const SizedBox(height: AppSpacing.sm),
+          // Plan 6: share-by-link. Online only — mock mode has no share
+          // store, and a fake link would be the one lie this offline mode
+          // has never told.
+          if (viewModel.canShareReport) ...[
+            WButton.secondary(
+              label: state.isSharingReport
+                  ? 'Creating share link…'
+                  : 'Share link — open in any browser',
+              icon: Icons.link,
+              expanded: true,
+              onPressed: state.isSharingReport
+                  ? null
+                  : () async {
+                      final link = await viewModel.mintShareLink();
+                      if (link == null || !context.mounted) return;
+                      await showDialog<void>(
+                        context: context,
+                        builder: (dialogContext) => AlertDialog(
+                          title: const Text('Share link created'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Anyone with this link can read the report. '
+                                'Keep it where it belongs.',
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              SelectableText(
+                                link,
+                                style: Theme.of(
+                                  dialogContext,
+                                ).textTheme.bodyMedium,
+                              ),
+                            ],
+                          ),
+                          actions: [
+                            TextButton.icon(
+                              icon: const Icon(Icons.copy, size: 18),
+                              label: const Text('Copy'),
+                              onPressed: () {
+                                unawaited(
+                                  Clipboard.setData(ClipboardData(text: link)),
+                                );
+                                Navigator.of(dialogContext).pop();
+                              },
+                            ),
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(),
+                              child: const Text('Close'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
           ],
           Container(
             constraints: const BoxConstraints(maxHeight: 260),

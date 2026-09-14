@@ -115,6 +115,12 @@ class _AnsweringApi implements ReviewApi {
     );
   }
 
+
+  @override
+  Future<String> shareReport({
+    required String html,
+    required String fileName,
+  }) async => throw UnimplementedError('share links are not part of this test');
 }
 
 /// Succeeds a few times, then behaves like an exhausted quota.
@@ -177,6 +183,12 @@ class _FailsAfterNApi implements ReviewApi {
     );
   }
 
+
+  @override
+  Future<String> shareReport({
+    required String html,
+    required String fileName,
+  }) async => throw UnimplementedError('share links are not part of this test');
 }
 
 void main() {

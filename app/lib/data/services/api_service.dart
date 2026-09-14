@@ -106,6 +106,26 @@ class ApiService implements ReviewApi {
   }
 
   @override
+  @override
+  Future<String> shareReport({
+    required String html,
+    required String fileName,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/share',
+      data: {'html': html, 'file_name': fileName},
+    );
+    final url = response.data?['url'] as String?;
+    if (url == null || response.statusCode != 200) {
+      throw StateError('share response carried no url');
+    }
+    // The server answers with a path; the user gets a link. resolve()
+    // against the configured proxy base so the result is absolute on any
+    // deployment (localhost demo or https://proxy).
+    return Uri.parse(_dio.options.baseUrl).resolve(url).toString();
+  }
+
+  @override
   Future<AskResponse> ask({
     required String question,
     required String context,

@@ -14,7 +14,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, ValidationError
 
@@ -24,6 +24,7 @@ from .llm.base import LlmError
 from .llm.router import build_provider
 from .prompt import ask_system_prompt, ask_user_prompt, review_system_prompt, review_user_prompt
 from .ratelimit import RateLimiter
+from .share import ShareStore
 from .rubric import load_rubric
 from .uploads import (
     TOKEN_TTL_SECONDS,
@@ -83,6 +84,8 @@ _limiter = RateLimiter()
 _upload_store = UploadStore(
     _settings.upload_dir, _settings.max_upload_bytes, _settings.app_token,
 )
+
+_share_store = ShareStore(_settings.share_dir)
 
 
 class PresignRequest(BaseModel):
@@ -469,3 +472,64 @@ def _clamp_score(value: object) -> int:
         return max(0, min(10, int(value)))  # type: ignore[arg-type]
     except (TypeError, ValueError):
         return 0
+
+
+# --------------------------------------------------------------------------- #
+# Share-by-link (plan 6)
+# --------------------------------------------------------------------------- #
+
+
+class ShareRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+    html: str = Field(min_length=1)
+    file_name: str = Field(default="report", max_length=128)
+    """Cosmetic only — the id drives the path; the name never touches disk.
+    Stored for future listing/debug; kept out of the filesystem entirely."""
+
+
+@app.post("/share", dependencies=[Depends(require_app_token)])
+def share_report(
+    payload: ShareRequest,
+    settings: Settings = Depends(get_settings),
+) -> dict[str, str]:
+    """Store a finished HTML report, return its capability URL.
+
+    The whole app-token story for this endpoint: posting is done by the
+    student's own app (token header, same as /review); reading is done by
+    whoever holds the link. Deleting is deliberately absent this round —
+    plan 6 flags it rather than pretending otherwise.
+    """
+    body = payload.html.encode("utf-8")
+    if len(body) > settings.share_max_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"report is {len(body)} bytes; the share limit is "
+                f"{settings.share_max_bytes} bytes"
+            ),
+        )
+    share_id = _share_store.put(body)
+    return {"id": share_id, "url": f"/share/{share_id}"}
+
+
+@app.get("/share/{share_id}")
+def get_shared_report(share_id: str) -> Response:
+    """Serve one stored report.  No token: the unguessable id is the
+    credential.  The body is *untrusted user content*, so the response is
+    fenced: `sandbox` CSP means no scripts, no forms, no same-origin
+    requests from inside it — our own HTML twin is fully static and renders
+    unchanged, anything else a caller injected stays inert."""
+    data = _share_store.read(share_id)
+    if data is None:
+        raise HTTPException(status_code=404, detail="share not found")
+    return Response(
+        content=data,
+        media_type="text/html; charset=utf-8",
+        headers={
+            "Content-Security-Policy": "sandbox",
+            "X-Content-Type-Options": "nosniff",
+            # A share's content never changes for its id; caching is safe
+            # and spares the proxy repeat reads while the supervisor reads.
+            "Cache-Control": "private, max-age=3600",
+        },
+    )

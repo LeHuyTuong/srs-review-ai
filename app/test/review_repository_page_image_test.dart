@@ -731,6 +731,12 @@ class RecordingReviewApi implements ReviewApi {
     );
   }
 
+
+  @override
+  Future<String> shareReport({
+    required String html,
+    required String fileName,
+  }) async => throw UnimplementedError('share links are not part of this test');
 }
 
 class ReviewCall {

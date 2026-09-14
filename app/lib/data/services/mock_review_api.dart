@@ -142,6 +142,17 @@ class MockReviewApi implements ReviewApi {
   }
 
   @override
+  Future<String> shareReport({
+    required String html,
+    required String fileName,
+  }) async {
+    // There is no share store behind a mock — minting a fake link would be
+    // the one lie this offline mode has never told. The UI hides the button
+    // when offline; reaching this method means that gate broke.
+    throw StateError('mock mode cannot create real share links');
+  }
+
+  @override
   Future<AskResponse> ask({
     required String question,
     required String context,

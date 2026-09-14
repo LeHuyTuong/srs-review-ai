@@ -60,6 +60,11 @@ class ReviewRepository {
   Future<DiagramAuditResult> diagramAudit(DiagramAuditRequest request) =>
       _api.diagramAudit(request);
 
+  Future<String> shareReport({
+    required String html,
+    required String fileName,
+  }) => _api.shareReport(html: html, fileName: fileName);
+
   Future<Uint8List> renderPageForAudit(Uint8List pdfBytes, int pageIndex) =>
       _renderer.renderPage(pdfBytes: pdfBytes, pageIndex: pageIndex);
 
