@@ -51,3 +51,6 @@ coverage/
 
 # presigned-upload landing zone (dev default; never commit uploaded documents)
 server/.uploads/
+
+# ---------- Runtime artifacts (share-link bodies written by the server) ----------
+server/.shares/

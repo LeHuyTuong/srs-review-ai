@@ -2,6 +2,7 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:srs_review_ai/core/layout/app_breakpoint.dart';
 import 'package:srs_review_ai/core/theme/app_theme.dart';
 import 'package:srs_review_ai/core/theme/glass_tokens.dart';
 import 'package:srs_review_ai/core/widgets/glass_surface.dart';
@@ -108,8 +109,53 @@ void main() {
       // Perf budget from the spec: no more than a few simultaneous blurs.
       expect(t.blurCompact, lessThanOrEqualTo(12));
       expect(t.blurPanel, lessThanOrEqualTo(24));
+      // The phone ceiling: the shell stacks up to three simultaneous
+      // filters, so the compact-viewport sigma must stay cheap.
+      expect(t.blurPhone, lessThanOrEqualTo(8));
       expect(t.saturation, greaterThan(1.0));
     }
+  });
+
+  testWidgets('phone-sized viewports get the blur budget cap', (tester) async {
+    // resolveSigma is pure precisely because the engine never hands back a
+    // built ImageFilter's sigma — a widget test cannot read what was applied,
+    // so the decision itself carries the unit test.
+    final t = GlassTokens.light();
+    expect(
+      GlassSurface.resolveSigma(
+        tokens: t,
+        compact: false,
+        screenWidth: 390,
+      ),
+      t.blurPhone,
+      reason: 'a sigma-20 panel blur on a phone-sized viewport is the defect '
+          'the audit measured as scroll jank (2026-09-14 review §5.6)',
+    );
+    expect(
+      GlassSurface.resolveSigma(
+        tokens: t,
+        compact: true,
+        screenWidth: AppBreakpoints.compactMaxWidth - 1,
+      ),
+      t.blurPhone,
+    );
+    expect(
+      GlassSurface.resolveSigma(
+        tokens: t,
+        compact: false,
+        screenWidth: AppBreakpoints.compactMaxWidth,
+      ),
+      t.blurPanel,
+      reason: 'wide windows must keep the exact sigma they had before',
+    );
+    expect(
+      GlassSurface.resolveSigma(
+        tokens: t,
+        compact: true,
+        screenWidth: 1200,
+      ),
+      t.blurCompact,
+    );
   });
 
   testWidgets('a saturation matrix is only applied when > 1.0', (tester) async {

@@ -21,6 +21,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
 import '../models/workspace_tab.dart';
@@ -216,7 +217,7 @@ class ReadinessPanel extends ConsumerWidget {
                                   unit.id,
                                   style: theme.textTheme.labelSmall?.copyWith(
                                     color: colors.amber,
-                                    fontSize: 9,
+                                    fontSize: AppType.micro,
                                   ),
                                 ),
                               ),

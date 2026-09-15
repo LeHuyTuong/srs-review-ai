@@ -6,7 +6,9 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/layout/app_breakpoint.dart';
 import '../../../core/layout/app_viewport.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
 import '../models/workspace_tab.dart';
@@ -174,7 +176,9 @@ class DocumentReviewView extends ConsumerWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               const gap = AppSpacing.lg;
-              final columns = constraints.maxWidth >= 700 ? 4 : 2;
+              final columns = constraints.maxWidth >= AppBreakpoints.compactMaxWidth
+                  ? 4
+                  : 2;
               final metricWidth =
                   (constraints.maxWidth - gap * (columns - 1)) / columns;
               Widget metric(
@@ -322,11 +326,18 @@ class _DocumentCard extends StatelessWidget {
                 Icon(Icons.description_outlined, color: colors.amber, size: 24),
                 Text(
                   extension,
+                  maxLines: 1,
+                  // 0.9 left ~0.4px of slack per character at the old 8px; at
+                  // the AppType.micro floor the trailing letter-space pushed a
+                  // 4-glyph extension past the 43px tile and it wrapped.
+                  // maxLines + the tighter tracking keep the tile one line at
+                  // any font the platform resolves.
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: colors.amber,
-                    fontSize: 8,
+                    fontSize: AppType.micro,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 0.9,
+                    letterSpacing: 0.4,
                   ),
                 ),
               ],
@@ -367,7 +378,7 @@ class _DocumentCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: colors.muted,
-                  fontSize: 9.5,
+                  fontSize: AppType.micro,
                 ),
               ),
             ],
@@ -535,7 +546,7 @@ class _TabbedPanel extends ConsumerWidget {
                                         style: theme.textTheme.labelSmall
                                             ?.copyWith(
                                               color: colors.muted,
-                                              fontSize: 8,
+                                              fontSize: AppType.micro,
                                             ),
                                       ),
                                     ),

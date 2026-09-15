@@ -22,6 +22,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import '../layout/app_breakpoint.dart';
 import '../theme/app_tokens.dart';
 import '../theme/glass_tokens.dart';
 
@@ -52,6 +53,25 @@ class GlassSurface extends StatelessWidget {
   /// 0..1 multiplier on the fill/tint. Useful over bright media.
   final double intensity;
 
+  /// Blur sigma for one surface, pure so the phone budget cap is testable
+  /// without pumping a tree (the engine never exposes a built
+  /// `ImageFilter`'s sigma back out, so a widget test could not read it).
+  ///
+  /// On a viewport below [AppBreakpoints.compactMaxWidth] the sigma is
+  /// clamped to [GlassTokens.blurPhone]: the shell stacks up to three
+  /// simultaneous backdrop filters (top bar, progress surface, tab bar), and
+  /// sigma-20 at that count is measured jank territory on mid-range phone
+  /// GPUs. Wide windows keep today's sigmas untouched.
+  static double resolveSigma({
+    required GlassTokens tokens,
+    required bool compact,
+    required double screenWidth,
+  }) {
+    final base = compact ? tokens.blurCompact : tokens.blurPanel;
+    if (screenWidth >= AppBreakpoints.compactMaxWidth) return base;
+    return base > tokens.blurPhone ? tokens.blurPhone : base;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -76,7 +96,11 @@ class GlassSurface extends StatelessWidget {
     final reduceMotion = media.disableAnimations;
 
     final r = radius ?? tokens.panelRadius;
-    final sigma = compact ? tokens.blurCompact : tokens.blurPanel;
+    final sigma = resolveSigma(
+      tokens: tokens,
+      compact: compact,
+      screenWidth: media.size.width,
+    );
     final tint = isDark ? tokens.darkTint : tokens.lightTint;
     final fillBase = (isDark ? tokens.fillDark : tokens.fillLight) * intensity;
     final fill = reduceTransparency

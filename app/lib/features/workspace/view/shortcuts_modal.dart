@@ -14,6 +14,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/layout/app_breakpoint.dart';
+import '../../../core/platform/app_platform.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
 import 'workspace_shortcuts.dart';
@@ -24,7 +26,10 @@ import 'workspace_widgets.dart';
 /// itself reads nothing from the container today.
 Future<void> showShortcutsModal(BuildContext context, WidgetRef ref) {
   final width = MediaQuery.sizeOf(context).width;
-  if (width >= 700) {
+  if (AppBreakpoints.showsCenteredDialog(
+    width: width,
+    form: AppPlatform.formFactor,
+  )) {
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => Dialog(

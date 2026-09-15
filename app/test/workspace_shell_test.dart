@@ -536,6 +536,67 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
   });
 
+  /// Android back, phone: leaving a non-primary destination must return to
+  /// Document review, not quit the app. The shell is the router's only route,
+  /// so without the PopScope guard the hardware/gesture back button exits the
+  /// app from History or Syllabus — every Android user reads that as a crash.
+  /// (2026-09-14, audit-2026-09-14-m3-flutter-arch.md §8 P0-3.)
+  testWidgets('phone back: history destination returns to branch 0, not exit', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final container = ProviderContainer(
+      overrides: [
+        sessionStoreProvider.overrideWithValue(InMemorySessionStore()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          theme: AppTheme.light(),
+          routerConfig: buildRouter(),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Branch 0: nothing to intercept — back still exits, as any single-page
+    // root does on Android.
+    PopScope guard() =>
+        tester.widget<PopScope>(find.byKey(const ValueKey('shell-back-guard')));
+    expect(
+      guard().canPop,
+      isTrue,
+      reason: 'on the primary destination back must remain an exit',
+    );
+
+    await tester.tap(find.text('Review history'));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(
+      guard().canPop,
+      isFalse,
+      reason: 'away from branch 0, back must be intercepted first',
+    );
+
+    // Fire the intercepted pop exactly as the framework would (didPop=false
+    // means "you own what happens now"), and expect the home destination.
+    guard().onPopInvokedWithResult!(false, null);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('A second look, backed by evidence.'), findsOneWidget);
+
+    // Back on branch 0 the guard must lift immediately.
+    expect(guard().canPop, isTrue);
+
+    await tester.pump(const Duration(seconds: 5));
+  });
+
   /// Each tab must clear the 44px platform tap-target floor.
   ///
   /// This asserts the OBSERVED height (a real 48px: 22px icon + 2 + label),

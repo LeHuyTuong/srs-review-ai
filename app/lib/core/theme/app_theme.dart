@@ -41,6 +41,29 @@ abstract final class AppInsets {
   );
 }
 
+/// Layer 2 — SEMANTIC type sizes: the only font-size overrides a widget may
+/// apply on top of the theme's `textTheme`.
+///
+/// These three numbers used to live at ~10 call sites as literals — `8`, `9`,
+/// `9.5`, `10.5` — which produced two defects at once: text below any
+/// legibility floor (8px is unreadable for the Vietnamese diacritics this app
+/// paints), and a scale nobody could re-tune in one place. Material 3's own
+/// smallest role, `labelSmall`, is 11sp; nothing in the app renders smaller
+/// than [AppType.micro] now, and the 9-class labels all share one alias so a
+/// future re-scale is a one-line change.
+abstract final class AppType {
+  /// Smallest permitted text: dense chips, unit-status dots' labels, the
+  /// file-extension tile. Replaces the old 8/9/9.5 literals.
+  static const double micro = 10;
+
+  /// Tight-but-body copy inside chips and meta rows. Replaces 10/10.5/11
+  /// literals; matches M3 `labelSmall`.
+  static const double dense = 11;
+
+  /// Button labels — the brief's CTA size, one step under M3 `labelLarge`.
+  static const double button = 13;
+}
+
 class AppTheme {
   const AppTheme._();
 

@@ -23,6 +23,7 @@ class GlassTokens extends ThemeExtension<GlassTokens> {
   const GlassTokens({
     required this.blurCompact,
     required this.blurPanel,
+    required this.blurPhone,
     required this.saturation,
     required this.fillLight,
     required this.fillDark,
@@ -38,6 +39,7 @@ class GlassTokens extends ThemeExtension<GlassTokens> {
   factory GlassTokens.light() => const GlassTokens(
     blurCompact: 10,
     blurPanel: 20,
+    blurPhone: 5,
     saturation: 1.8,
     fillLight: 0.78,
     fillDark: 0.78,
@@ -55,6 +57,7 @@ class GlassTokens extends ThemeExtension<GlassTokens> {
   factory GlassTokens.dark() => const GlassTokens(
     blurCompact: 10,
     blurPanel: 20,
+    blurPhone: 5,
     saturation: 1.8,
     fillLight: 0.78,
     fillDark: 0.78,
@@ -74,6 +77,18 @@ class GlassTokens extends ThemeExtension<GlassTokens> {
 
   /// Blur sigma for panels (nav bars, toolbars, sheets).
   final double blurPanel;
+
+  /// Blur sigma ceiling for phone-sized viewports.
+  ///
+  /// A backdrop blur is an offscreen capture plus a two-pass Gaussian whose
+  /// cost grows with sigma and with the blurred area — on a mid-range phone
+  /// GPU, three simultaneous sigma-20 filters (top bar, progress surface,
+  /// tab bar) is the difference between 60 fps and visible jank during scroll.
+  /// The glass identity survives at 5: the see-through behaviour the
+  /// `glass_contrast_test` pins comes from `fill`, not from sigma — blur only
+  /// softens what shows through. [GlassSurface] applies this as a ceiling in
+  /// [GlassSurface.resolveSigma].
+  final double blurPhone;
 
   /// Backdrop saturation boost. Applied via a colour-filtered layer on top of
   /// the blur, since Flutter has no single `saturate()` backdrop filter.
@@ -133,6 +148,7 @@ class GlassTokens extends ThemeExtension<GlassTokens> {
   GlassTokens copyWith({
     double? blurCompact,
     double? blurPanel,
+    double? blurPhone,
     double? saturation,
     double? fillLight,
     double? fillDark,
@@ -146,6 +162,7 @@ class GlassTokens extends ThemeExtension<GlassTokens> {
   }) => GlassTokens(
     blurCompact: blurCompact ?? this.blurCompact,
     blurPanel: blurPanel ?? this.blurPanel,
+    blurPhone: blurPhone ?? this.blurPhone,
     saturation: saturation ?? this.saturation,
     fillLight: fillLight ?? this.fillLight,
     fillDark: fillDark ?? this.fillDark,
@@ -164,6 +181,7 @@ class GlassTokens extends ThemeExtension<GlassTokens> {
     return GlassTokens(
       blurCompact: lerpDouble(blurCompact, other.blurCompact, t),
       blurPanel: lerpDouble(blurPanel, other.blurPanel, t),
+      blurPhone: lerpDouble(blurPhone, other.blurPhone, t),
       saturation: lerpDouble(saturation, other.saturation, t),
       fillLight: lerpDouble(fillLight, other.fillLight, t),
       fillDark: lerpDouble(fillDark, other.fillDark, t),

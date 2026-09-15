@@ -155,7 +155,7 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
               ),
             if (verdict.deductions > 0)
               Text(
-                '−${verdict.deductions} for serious FLOW/ERD errors '
+                '−${verdict.deductions} for serious ERD/SM/SEQ-CLS errors'
                 'affecting real data',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: colors.amber,
@@ -868,7 +868,7 @@ class _FindingCard extends StatelessWidget {
                       finding.severity.name,
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: severityFg,
-                        fontSize: 9,
+                        fontSize: AppType.micro,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -892,7 +892,7 @@ class _FindingCard extends StatelessWidget {
                         : 'Close match',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: colors.sage,
-                      fontSize: 9,
+                      fontSize: AppType.micro,
                     ),
                   ),
                 ],

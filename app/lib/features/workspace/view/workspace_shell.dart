@@ -227,11 +227,36 @@ class WorkspaceShell extends ConsumerWidget {
       ],
     );
 
-    return Scaffold(
-      drawer: viewport.showRail
-          ? null
-          : _AppDrawer(navigationShell: navigationShell),
-      body: AppViewport(data: viewport, child: body),
+    // Android back, mobile-only rule: from History or Syllabus, one press
+    // returns to Document review instead of leaving the app. Without this the
+    // shell is the only route, so the back button quit the app from any tab —
+    // the behaviour every Android user reads as a crash. Scoped to the phone
+    // bucket on purpose: on desktop the Esc layer owns dismissal, and on web
+    // the browser's own history stack IS the back gesture — intercepting there
+    // would desync the URL from the visible branch. A modal or sheet is its
+    // own route on top of this one, so back still pops the open dialog first;
+    // this only fires when nothing is layered over the shell.
+    final backReturnsHome =
+        AppPlatform.formFactor == AppFormFactor.phone &&
+        navigationShell.currentIndex != 0;
+
+    return PopScope(
+      // Keyed: the framework owns PopScopes of its own around routes, and a
+      // test that grabbed `find.byType(PopScope).first` read one of those.
+      key: const ValueKey('shell-back-guard'),
+      canPop: !backReturnsHome,
+      onPopInvokedWithResult: (didPop, _) {
+        // `goBranch(0)` rather than `context.go('/')`: switching branch
+        // preserves each destination's state, exactly like tapping the rail
+        // or the floating tab bar does.
+        if (!didPop) navigationShell.goBranch(0);
+      },
+      child: Scaffold(
+        drawer: viewport.showRail
+            ? null
+            : _AppDrawer(navigationShell: navigationShell),
+        body: AppViewport(data: viewport, child: body),
+      ),
     );
   }
 
@@ -645,11 +670,19 @@ class _Sidebar extends ConsumerWidget {
                     size: 24,
                   ),
                   const SizedBox(width: AppSpacing.sm),
-                  Text(
-                    'SRS Review',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: colors.ink,
-                      fontWeight: FontWeight.w800,
+                  Flexible(
+                    // The rail is 187px of content at any platform; the word
+                    // must ellipsize before the fixed badge can be crowded
+                    // out — the 840+ non-desktop rail band exposed exactly
+                    // that when a wide-window native build grew a rail.
+                    child: Text(
+                      'SRS Review',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: colors.ink,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.xs),

@@ -9,12 +9,21 @@
 /// `grep -rn "1100" app/lib` should find no layout literals outside this file.
 library;
 
+import '../platform/app_platform.dart';
+
 /// Window-width tiers. Measured on the WHOLE window in logical dp, not on the
 /// content column: the right rail's 360px is part of the decision, so the
 /// decision cannot be made from the column's own width.
 enum AppBreakpoint { compact, medium, expanded, ultra, cinema }
 
 abstract final class AppBreakpoints {
+  /// Where the compact window class ends. One constant serves the three
+  /// decisions that all mean "phone-sized viewport": the tier table in
+  /// [forWidth], the dialog-vs-sheet threshold in [showsCenteredDialog], and
+  /// the glass blur budget cap in `GlassSurface` — so no scattered `700`
+  /// literals survive to be re-derived differently by the next edit.
+  static const double compactMaxWidth = 700;
+
   /// Width of the navigation rail. Deliberately one value: collapsing to an
   /// icon-only 72px rail is recorded as P1 because a second `_NavItem` variant
   /// would endanger the two semantics tests that assert exact node names.
@@ -27,9 +36,18 @@ abstract final class AppBreakpoints {
   /// instead of throwing.
   static const double desktopRailMinWidth = 640;
 
-  /// Today's non-desktop threshold. Kept as a named constant so the
-  /// "non-desktop is byte-identical" invariant is a single line to audit.
-  static const double nonDesktopRailMinWidth = 1100;
+  /// Rail floor for every non-desktop build. Raised 1100 → 840 on 2026-09-14
+  /// to follow the Material 3 window size classes: 840dp is the
+  /// medium→expanded boundary, and M3 prescribes a navigation rail from the
+  /// expanded class up — a 900dp tablet landscape showing hamburger chrome is
+  /// the defect that raised this line. Below it (phones, portrait tablets) the
+  /// floating tab bar and drawer remain.
+  ///
+  /// This partially supersedes ADR 0006 decision 3: `contentMaxWidth` for
+  /// non-desktop and the desktop-only right rail are STILL byte-identical to
+  /// before, and `test/desktop/app_breakpoint_test.dart` still pins that. See
+  /// `docs/adr/0007-m3-adaptive-thresholds.md`.
+  static const double nonDesktopRailMinWidth = 840;
 
   /// Where the shell-level right rail (and the wider content column) appear.
   static const double rightRailMinWidth = 1440;
@@ -46,8 +64,25 @@ abstract final class AppBreakpoints {
   static const double contentWidthUltra = 1440;
   static const double contentWidthCinema = 1680;
 
+  /// Whether a modal at this width renders as a centred dialog rather than a
+  /// bottom sheet. Pure, so the rule is unit-testable without pumping a tree.
+  ///
+  /// A native phone NEVER gets a centred dialog — strictly, the whole
+  /// [AppFormFactor.phone] bucket, which on this three-value enum covers
+  /// native tablets too (a sheet is equally valid M3 chrome there). When the
+  /// decision was width alone, a landscape phone (~900dp) received a dialog
+  /// anchored at the vertical centre of the screen — the one spot a thumb
+  /// cannot reach. Desktop and web keep their existing behaviour exactly:
+  /// sheet below [compactMaxWidth], dialog at or above it.
+  static bool showsCenteredDialog({
+    required double width,
+    required AppFormFactor form,
+  }) => form == AppFormFactor.phone
+      ? false
+      : width >= compactMaxWidth;
+
   static AppBreakpoint forWidth(double width) => switch (width) {
-    < 700 => AppBreakpoint.compact,
+    < compactMaxWidth => AppBreakpoint.compact,
     < 1100 => AppBreakpoint.medium,
     < 1440 => AppBreakpoint.expanded,
     < cinemaMinWidth => AppBreakpoint.ultra,

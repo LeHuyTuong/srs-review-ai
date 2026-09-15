@@ -119,7 +119,7 @@ class WButton extends StatelessWidget {
           // default Roboto (the gstatic boot fetch). Derive from the theme so
           // labels use DM Sans/Manrope and never depend on that fetch.
           textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-            fontSize: 13,
+            fontSize: AppType.button,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -136,7 +136,7 @@ class WButton extends StatelessWidget {
         side: BorderSide(color: colors.border),
         shape: RoundedRectangleBorder(borderRadius: AppRadius.boxSm),
         textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-          fontSize: 13,
+          fontSize: AppType.button,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -643,7 +643,7 @@ class WScoreChip extends StatelessWidget {
         style: theme.textTheme.labelSmall?.copyWith(
           color: fg,
           fontWeight: FontWeight.w700,
-          fontSize: dense ? 10 : 11,
+          fontSize: dense ? AppType.micro : AppType.dense,
           fontFeatures: const [FontFeature.tabularFigures()],
         ),
       ),

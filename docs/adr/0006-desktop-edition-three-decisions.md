@@ -1,6 +1,9 @@
 # ADR 0006 — Desktop edition: native-only window sizing, a command-registry shortcut layer, and desktop-gated large-screen uplift
 
-Status: accepted · 2026-09-12
+Status: accepted · 2026-09-12 · decision 3 PARTIALLY superseded 2026-09-14 by
+[ADR 0007](0007-m3-adaptive-thresholds.md) — the non-desktop rail floor moved
+1100 → 840 to follow M3 window classes; `contentMaxWidth` and the desktop-only
+right rail from that decision still stand.
 
 Upstream: `docs/desktop/ARCHITECTURE-desktop-2026-09-12.md` (D1, D2, D4, D5, D8),
 `docs/desktop/PRD-desktop-2026-09-12.md`.

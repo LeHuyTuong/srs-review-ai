@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:srs_review_ai/core/layout/app_breakpoint.dart';
 import 'package:srs_review_ai/core/layout/app_viewport.dart';
+import 'package:srs_review_ai/core/platform/app_platform.dart';
 
 void main() {
   group('AppBreakpoints.forWidth', () {
@@ -116,10 +117,78 @@ void main() {
     });
   });
 
+  group('AppBreakpoints.showsCenteredDialog', () {
+    // The old rule was width alone: a landscape phone (~900dp of logical
+    // width) received a centred dialog — a thumb-unreachable modal on the
+    // one device class held in the hand. 2026-09-14, audit
+    // docs/uiux/audit-2026-09-14-m3-flutter-arch.md §5.2.
+    test('a native phone never gets a centred dialog, at any width', () {
+      for (final width in [390, 699, 700, 932, 1440]) {
+        expect(
+          AppBreakpoints.showsCenteredDialog(
+            width: width.toDouble(),
+            form: AppFormFactor.phone,
+          ),
+          isFalse,
+          reason: 'at $width a phone must get a bottom sheet',
+        );
+      }
+    });
+
+    test('web and desktop keep the compactMaxWidth split unchanged', () {
+      for (final form in [AppFormFactor.web, AppFormFactor.desktop]) {
+        expect(
+          AppBreakpoints.showsCenteredDialog(
+            width: AppBreakpoints.compactMaxWidth - 1,
+            form: form,
+          ),
+          isFalse,
+          reason: '$form below the line stays a sheet',
+        );
+        expect(
+          AppBreakpoints.showsCenteredDialog(
+            width: AppBreakpoints.compactMaxWidth,
+            form: form,
+          ),
+          isTrue,
+          reason: '$form at the line is a dialog, as before',
+        );
+      }
+    });
+  });
+
+  group('non-desktop rail follows the M3 expanded class', () {
+    // ADR 0007 moved nonDesktopRailMinWidth 1100 → 840. The rest of the
+    // non-desktop numbers did NOT move — pinned by the sibling group below.
+    test('840 shows the rail, 839 keeps the floating tab bar', () {
+      final at = AppViewportData.resolve(width: 840, isDesktop: false);
+      final below = AppViewportData.resolve(width: 839, isDesktop: false);
+      expect(at.showRail, isTrue);
+      expect(below.showRail, isFalse);
+      // Exactly one navigation affordance, never both, never neither.
+      expect(at.showFloatingTabBar, isFalse);
+      expect(below.showFloatingTabBar, isTrue);
+    });
+
+    test('the wider rail band still refuses the desktop-only right rail', () {
+      final v = AppViewportData.resolve(
+        width: 900,
+        isDesktop: false,
+        hasRightRailContent: true,
+      );
+      expect(v.contentMaxWidth, AppBreakpoints.contentWidthExpanded);
+      expect(v.showRightRail, isFalse);
+      expect(v.showInnerSplit, isFalse, reason: '900 is under innerSplitMinWidth');
+    });
+  });
+
   group('AppViewportData.resolve — non-desktop is today, at every width', () {
-    // This is the invariant that keeps AC-4.6 true by construction: if web and
-    // mobile resolve to exactly the numbers the old single-breakpoint code
-    // produced, no large-screen change can regress them.
+    // This is the invariant that keeps AC-4.6 true for everything ADR 0007
+    // did NOT touch: contentMaxWidth, the desktop-only right rail, and the
+    // inner split. The RAIL threshold deliberately moved to 840 (M3 window
+    // classes) — and this group still holds because it asserts the rail
+    // against the constant, not against a frozen literal: renaming a tier
+    // boundary is allowed, silently disagreeing with itself is not.
     for (final width in [320, 390, 700, 1077, 1100, 1439, 1440, 2560, 3840]) {
       test('at $width nothing changes', () {
         final viewport = AppViewportData.resolve(

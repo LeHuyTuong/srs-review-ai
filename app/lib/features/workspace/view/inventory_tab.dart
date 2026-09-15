@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
 import '../../../core/widgets/app_ink_well.dart';
@@ -485,7 +486,7 @@ class _UnitRow extends StatelessWidget {
                                 statusLabel,
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: statusColor,
-                                  fontSize: 9.5,
+                                  fontSize: AppType.micro,
                                 ),
                               ),
                             ),
