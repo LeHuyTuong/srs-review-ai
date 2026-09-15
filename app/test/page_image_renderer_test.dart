@@ -241,22 +241,27 @@ void main() {
       expect(size.height, 842);
     });
 
-    test('closes the document even when the page index is out of range', () async {
-      final document = FakePdfDocument(pagesCount: 1);
-      final renderer = PageImageRenderer(openDocument: (_) async => document);
-      await expectLater(
-        renderer.pageSize(pdfBytes: Uint8List.fromList([1]), pageIndex: 4),
-        throwsRangeError,
-      );
-      expect(document.isClosed, isTrue);
-    });
+    test(
+      'closes the document even when the page index is out of range',
+      () async {
+        final document = FakePdfDocument(pagesCount: 1);
+        final renderer = PageImageRenderer(openDocument: (_) async => document);
+        await expectLater(
+          renderer.pageSize(pdfBytes: Uint8List.fromList([1]), pageIndex: 4),
+          throwsRangeError,
+        );
+        expect(document.isClosed, isTrue);
+      },
+    );
 
     test('rejects an empty byte array before opening anything', () async {
       var opened = false;
-      final renderer = PageImageRenderer(openDocument: (_) async {
-        opened = true;
-        throw StateError('unreachable');
-      });
+      final renderer = PageImageRenderer(
+        openDocument: (_) async {
+          opened = true;
+          throw StateError('unreachable');
+        },
+      );
       await expectLater(
         renderer.pageSize(pdfBytes: Uint8List(0), pageIndex: 0),
         throwsArgumentError,
@@ -265,7 +270,6 @@ void main() {
     });
   });
 }
-
 
 class FakePdfDocument implements PdfDocument {
   FakePdfDocument({required this.pagesCount, this.page});
@@ -309,7 +313,6 @@ class FakePdfDocument implements PdfDocument {
   @override
   int get hashCode => id.hashCode;
 }
-
 
 class FakePdfPage implements PdfPage {
   FakePdfPage({
@@ -435,5 +438,4 @@ class FakePdfPageImage implements PdfPageImage {
 
   @override
   int get hashCode => bytes.lengthInBytes;
-
 }

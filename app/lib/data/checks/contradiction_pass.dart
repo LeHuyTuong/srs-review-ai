@@ -105,9 +105,7 @@ class ContradictionPass {
   /// disambiguate. "Customer Profile" returns "Customer Profile";
   /// "the quick brown fox" returns null.
   static String? _extractEntityName(String title) {
-    final match = RegExp(
-      r'[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*',
-    ).firstMatch(title);
+    final match = RegExp(r'[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*').firstMatch(title);
     return match?.group(0);
   }
 
@@ -121,8 +119,9 @@ class ContradictionPass {
     final words = name.toLowerCase().split(RegExp(r'\s+'));
     return words
         .map(
-          (w) =>
-              (w.length > 1 && w.endsWith('s')) ? w.substring(0, w.length - 1) : w,
+          (w) => (w.length > 1 && w.endsWith('s'))
+              ? w.substring(0, w.length - 1)
+              : w,
         )
         .join(' ');
   }

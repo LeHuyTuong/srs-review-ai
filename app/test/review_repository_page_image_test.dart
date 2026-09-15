@@ -731,7 +731,6 @@ class RecordingReviewApi implements ReviewApi {
     );
   }
 
-
   @override
   Future<String> shareReport({
     required String html,

@@ -122,13 +122,10 @@ void main() {
     // so the decision itself carries the unit test.
     final t = GlassTokens.light();
     expect(
-      GlassSurface.resolveSigma(
-        tokens: t,
-        compact: false,
-        screenWidth: 390,
-      ),
+      GlassSurface.resolveSigma(tokens: t, compact: false, screenWidth: 390),
       t.blurPhone,
-      reason: 'a sigma-20 panel blur on a phone-sized viewport is the defect '
+      reason:
+          'a sigma-20 panel blur on a phone-sized viewport is the defect '
           'the audit measured as scroll jank (2026-09-14 review §5.6)',
     );
     expect(
@@ -149,11 +146,7 @@ void main() {
       reason: 'wide windows must keep the exact sigma they had before',
     );
     expect(
-      GlassSurface.resolveSigma(
-        tokens: t,
-        compact: true,
-        screenWidth: 1200,
-      ),
+      GlassSurface.resolveSigma(tokens: t, compact: true, screenWidth: 1200),
       t.blurCompact,
     );
   });

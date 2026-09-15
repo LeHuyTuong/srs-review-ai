@@ -32,8 +32,7 @@ Future<void> showSourceSheet(
     useSafeArea: true,
     showDragHandle: false,
     builder: (_) => DraggableScrollableSheet(
-      initialChildSize:
-          width >= AppBreakpoints.compactMaxWidth ? 0.9 : 0.82,
+      initialChildSize: width >= AppBreakpoints.compactMaxWidth ? 0.9 : 0.82,
       maxChildSize: 0.95,
       minChildSize: 0.5,
       builder: (sheetContext, scrollController) => _SourceSheetBody(

@@ -30,12 +30,14 @@ void main() {
 
   group('ambiguousWording', () {
     test('flags English vague phrases with word boundaries', () {
-      final findings = checks.run(
-        _doc([
-          _item('FR-01', 'The system shall be user-friendly and fast.'),
-          _item('FR-02', 'The connector shall be secured with a latch.'),
-        ]),
-      ).where((f) => f.check == CheckId.ambiguousWording);
+      final findings = checks
+          .run(
+            _doc([
+              _item('FR-01', 'The system shall be user-friendly and fast.'),
+              _item('FR-02', 'The connector shall be secured with a latch.'),
+            ]),
+          )
+          .where((f) => f.check == CheckId.ambiguousWording);
       // "user-friendly" and "fast" hit; "secured" must NOT match "secure"
       // because of the word boundary.
       expect(findings, hasLength(1));
@@ -46,51 +48,62 @@ void main() {
     });
 
     test('flags Vietnamese phrases — the OTES language', () {
-      final findings = checks.run(
-        _doc([
-          _item(
-            'UC01',
-            'Hệ thống phản hồi nhanh chóng và hiển thị thông báo '
-                'phù hợp với từng vai trò.',
-          ),
-        ]),
-      ).where((f) => f.check == CheckId.ambiguousWording);
+      final findings = checks
+          .run(
+            _doc([
+              _item(
+                'UC01',
+                'Hệ thống phản hồi nhanh chóng và hiển thị thông báo '
+                    'phù hợp với từng vai trò.',
+              ),
+            ]),
+          )
+          .where((f) => f.check == CheckId.ambiguousWording);
       expect(findings, hasLength(1));
       expect(findings.single.message, contains('"nhanh chóng"'));
       expect(findings.single.message, contains('"phù hợp"'));
     });
 
     test('"v.v." is caught, "vv" without dots is not (conservative)', () {
-      final findings = checks.run(
-        _doc([
-          _item('FR-03', 'Mô tả các trường: tên, mã, ngày bắt đầu, v.v.'),
-        ]),
-      ).where((f) => f.check == CheckId.ambiguousWording);
+      final findings = checks
+          .run(
+            _doc([
+              _item('FR-03', 'Mô tả các trường: tên, mã, ngày bắt đầu, v.v.'),
+            ]),
+          )
+          .where((f) => f.check == CheckId.ambiguousWording);
       expect(findings.single.message, contains('"v.v."'));
     });
 
     test('NFD-decomposed Vietnamese is caught too (the real OTES form)', () {
       // "chong" written with a raw combining acute — the mixed-
       // normalization shape the probe found in the real document.
-      final findings = checks.run(
-        _doc([
-          _item('FR-08', 'H\u1EC7 th\u1ED1ng ph\u1EA3n h\u1ED3i nhanh ch\u006F\u0301ng.'),
-        ]),
-      ).where((f) => f.check == CheckId.ambiguousWording);
+      final findings = checks
+          .run(
+            _doc([
+              _item(
+                'FR-08',
+                'H\u1EC7 th\u1ED1ng ph\u1EA3n h\u1ED3i nhanh ch\u006F\u0301ng.',
+              ),
+            ]),
+          )
+          .where((f) => f.check == CheckId.ambiguousWording);
       expect(findings, hasLength(1));
       expect(findings.single.message, contains('"nhanh ch\u00F3ng"'));
     });
 
     test('clean document yields one passing row, not silence', () {
-      final findings = checks.run(
-        _doc([
-          _item(
-            'FR-04',
-            'The system shall return search results within 2 seconds '
-                'for the 95th percentile under 10000-record load.',
-          ),
-        ]),
-      ).where((f) => f.check == CheckId.ambiguousWording);
+      final findings = checks
+          .run(
+            _doc([
+              _item(
+                'FR-04',
+                'The system shall return search results within 2 seconds '
+                    'for the 95th percentile under 10000-record load.',
+              ),
+            ]),
+          )
+          .where((f) => f.check == CheckId.ambiguousWording);
       expect(findings, hasLength(1));
       expect(findings.single.passed, isTrue);
     });
@@ -98,21 +111,23 @@ void main() {
 
   group('placeholderTbd', () {
     test('flags English and Vietnamese placeholders at medium severity', () {
-      final findings = checks.run(
-        _doc([
-          _item('FR-05', 'Retention period: TBD.'),
-          _item('FR-06', 'Thời gian xử lý: chưa xác định.'),
-        ]),
-      ).where((f) => f.check == CheckId.placeholderTbd);
+      final findings = checks
+          .run(
+            _doc([
+              _item('FR-05', 'Retention period: TBD.'),
+              _item('FR-06', 'Thời gian xử lý: chưa xác định.'),
+            ]),
+          )
+          .where((f) => f.check == CheckId.placeholderTbd);
       expect(findings, hasLength(2));
       expect(findings.map((f) => f.subject), containsAll(['FR-05', 'FR-06']));
       expect(findings.first.severity, Severity.medium);
     });
 
     test('no placeholder yields one passing row', () {
-      final findings = checks.run(
-        _doc([_item('FR-07', 'Retention period: 90 days.')]),
-      ).where((f) => f.check == CheckId.placeholderTbd);
+      final findings = checks
+          .run(_doc([_item('FR-07', 'Retention period: 90 days.')]))
+          .where((f) => f.check == CheckId.placeholderTbd);
       expect(findings.single.passed, isTrue);
     });
   });
@@ -141,10 +156,7 @@ void main() {
       final findings = checks.run(
         _doc([
           _item('UC-01', 'plain text here with no metadata.'),
-          _item(
-            'UC-02',
-            'Author: someone. Priority: normal. Actor: admin.',
-          ),
+          _item('UC-02', 'Author: someone. Priority: normal. Actor: admin.'),
         ]),
       );
       final row = findings
@@ -158,10 +170,7 @@ void main() {
       // NFD vs NFC must not change the verdict (text_fold contract).
       final nfc = checks.run(
         _doc([
-          _item(
-            'UC-01',
-            'Độ ưu tiên: Cao. The system allows login as well.',
-          ),
+          _item('UC-01', 'Độ ưu tiên: Cao. The system allows login as well.'),
         ]),
       );
       final nfd = checks.run(
@@ -194,8 +203,9 @@ void main() {
   // Rulebook 1.5 hard rule 6. Both halves are required — that is the whole
   // point of the check, and each test below isolates one half.
   group('nfrUnquantified (rulebook hard rule 6)', () {
-    Iterable<DeterministicFinding> nfr(List<RequirementItem> items) =>
-        checks.run(_doc(items)).where((f) => f.check == CheckId.nfrUnquantified);
+    Iterable<DeterministicFinding> nfr(List<RequirementItem> items) => checks
+        .run(_doc(items))
+        .where((f) => f.check == CheckId.nfrUnquantified);
 
     test('passes an NFR with both a figure and a measurement condition', () {
       final finding = nfr([
@@ -240,14 +250,17 @@ void main() {
       expect(finding.passed, isFalse);
     });
 
-    test('recognises an NFR by section wording when the id does not say so', () {
-      final findings = nfr([
-        _item('R-09', 'Performance: the report builds in under 5 min.'),
-      ]);
+    test(
+      'recognises an NFR by section wording when the id does not say so',
+      () {
+        final findings = nfr([
+          _item('R-09', 'Performance: the report builds in under 5 min.'),
+        ]);
 
-      expect(findings, hasLength(1));
-      expect(findings.single.passed, isTrue);
-    });
+        expect(findings, hasLength(1));
+        expect(findings.single.passed, isTrue);
+      },
+    );
 
     test('functional requirements are not measured here', () {
       expect(
@@ -262,7 +275,8 @@ void main() {
     test('a use case mentioning a quality word is not an NFR', () {
       final useCase = RequirementItem(
         id: 'UC-004',
-        text: 'Security: the actor enters a password and the system verifies '
+        text:
+            'Security: the actor enters a password and the system verifies '
             'it against the stored hash.',
         kind: RequirementKind.useCase,
         pageIndex: 1,

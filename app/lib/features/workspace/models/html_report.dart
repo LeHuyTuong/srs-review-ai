@@ -92,8 +92,7 @@ String buildHtmlReport({
   final reportOffline = result?.mock ?? offline;
   final findings = result?.findings ?? const <FindingRow>[];
   final skipped = result?.skipped ?? units.where((u) => !u.selected).length;
-  FindingStatus statusFor(String id) =>
-      findingStatus[id] ?? FindingStatus.open;
+  FindingStatus statusFor(String id) => findingStatus[id] ?? FindingStatus.open;
   final now = DateTime.now().toUtc();
   final generated = now.toIso8601String();
   final effectiveImageReviewedCount =
@@ -130,7 +129,11 @@ String buildHtmlReport({
   }
 
   card('Reviewed', '${result?.reviewed ?? 0}');
-  card('Failed', '${result?.failed ?? 0}', (result?.failed ?? 0) > 0 ? 'red' : '');
+  card(
+    'Failed',
+    '${result?.failed ?? 0}',
+    (result?.failed ?? 0) > 0 ? 'red' : '',
+  );
   card('Skipped', '$skipped');
   card('Total units', '${units.length}');
   card(
@@ -202,8 +205,10 @@ String buildHtmlReport({
   final verdict = computeVerdict([...syllabusFindings, ...referenceFindings]);
   out.write('<h2>Verdict (rubric E, 10-point)</h2>');
   out.write('<p class="meta"><strong>${_esc(verdict.display)}</strong></p>');
-  out.write('<div class="tscroll"><table><tr><th>Component</th>'
-      '<th>State</th></tr>');
+  out.write(
+    '<div class="tscroll"><table><tr><th>Component</th>'
+    '<th>State</th></tr>',
+  );
   for (final entry in <String, String>{
     'Floor (7 SRS criteria, 5 pts)': verdict.floor.name,
     'Diagrams clean (2 pts)': verdict.diagram.name,
@@ -212,7 +217,9 @@ String buildHtmlReport({
         '${verdict.traceability.name} (no test-artifact input in this tool)',
     'Deductions −1 per 🔴 ERD/SM/SEQ-CLS row': '${verdict.deductions}',
   }.entries) {
-    out.write('<tr><td>${_esc(entry.key)}</td><td>${_esc(entry.value)}</td></tr>');
+    out.write(
+      '<tr><td>${_esc(entry.key)}</td><td>${_esc(entry.value)}</td></tr>',
+    );
   }
   out.write('</table></div>\n');
 
@@ -269,7 +276,11 @@ String buildHtmlReport({
               'dismissed · ${findings.length - accepted - dismissed} still open.</span>'
         : '';
     out.write('<h2>Findings (${findings.length})$triage</h2>\n');
-    for (final severity in const [Severity.high, Severity.medium, Severity.low]) {
+    for (final severity in const [
+      Severity.high,
+      Severity.medium,
+      Severity.low,
+    ]) {
       final group = findings
           .where((f) => f.severity == severity)
           .toList(growable: false);
@@ -318,17 +329,24 @@ String buildHtmlReport({
     // humans. Only meaningful once a Verifier re-run has populated
     // statuses; a first export says plain "need attention" instead.
     final openCount = allDeterministic
-        .where((e) =>
-            !e.$2.passed && statusFor(e.$2.ledgerKey) == FindingStatus.open)
+        .where(
+          (e) =>
+              !e.$2.passed && statusFor(e.$2.ledgerKey) == FindingStatus.open,
+        )
         .length;
     final fixedCount = allDeterministic
-        .where((e) => !e.$2.passed &&
-            statusFor(e.$2.ledgerKey) == FindingStatus.fixed)
+        .where(
+          (e) =>
+              !e.$2.passed && statusFor(e.$2.ledgerKey) == FindingStatus.fixed,
+        )
         .length;
     final verifiedCount = allDeterministic
-        .where((e) => !e.$2.passed &&
-            (statusFor(e.$2.ledgerKey) == FindingStatus.verified ||
-                statusFor(e.$2.ledgerKey) == FindingStatus.disputed))
+        .where(
+          (e) =>
+              !e.$2.passed &&
+              (statusFor(e.$2.ledgerKey) == FindingStatus.verified ||
+                  statusFor(e.$2.ledgerKey) == FindingStatus.disputed),
+        )
         .length;
     final hasLedgerState = fixedCount + verifiedCount > 0;
     out.write(
@@ -349,8 +367,8 @@ String buildHtmlReport({
     final groups = <_CheckGroup, List<String>>{};
     final order = <_CheckGroup>[];
     for (final (family, finding) in allDeterministic) {
-      final template = finding.subject != null &&
-              finding.message.contains(finding.subject!)
+      final template =
+          finding.subject != null && finding.message.contains(finding.subject!)
           ? finding.message.replaceAll(finding.subject!, '⟨id⟩')
           : finding.message;
       final group = _CheckGroup(
@@ -406,7 +424,7 @@ String buildHtmlReport({
       final status = finding.passed
           ? '<td>—</td>'
           : '<td><span class="chip ${_statusClass(statusFor(finding.ledgerKey))}">'
-              '${_esc(statusFor(finding.ledgerKey).label)}</span></td>';
+                '${_esc(statusFor(finding.ledgerKey).label)}</span></td>';
       out.write(
         '<tr><td>${_esc(family)}</td><td>${_esc(finding.check.label)}</td>'
         '<td>${_esc(finding.subject ?? 'whole document')}</td>$resultCell$status'
@@ -433,15 +451,15 @@ String buildHtmlReport({
   out.write('</table></div></details>\n');
 
   // ── Limitations (shared source with both twins) ───────────────────────
-  out.write(
-    '<h2>Limitations &amp; future work</h2><ul>',
-  );
+  out.write('<h2>Limitations &amp; future work</h2><ul>');
   for (final limitation in reportLimitations(offline: reportOffline)) {
     out.write('<li>${_esc(limitation)}</li>');
   }
-  out.write('</ul>\n<footer>Generated by SRS Review AI · schema '
-      'srs-review/report · self-contained document, no external resources</footer>\n'
-      '</body>\n</html>');
+  out.write(
+    '</ul>\n<footer>Generated by SRS Review AI · schema '
+    'srs-review/report · self-contained document, no external resources</footer>\n'
+    '</body>\n</html>',
+  );
   return out.toString();
 }
 

@@ -298,7 +298,7 @@ class DiagramTypeClassifier {
   /// "table 7", "so do 2", "don vi chuc nang" style headers are NOT
   /// matched here (no leading number) — only real numbered captions.
   static final RegExp _captionLead = RegExp(
-    caseSensitive: false, 
+    caseSensitive: false,
     r'^(?:figure|image|hinh|bang|table|so do|sdo|erd)\s*[-: ]?\s*\d',
   );
 

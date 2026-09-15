@@ -160,10 +160,10 @@ class WorkspaceState {
   /// [ReviewMode.decide] so it can be unit-tested without the full
   /// state scaffolding.
   ReviewMode get currentMode => ReviewMode.decide(
-        unitsEmpty: units.isEmpty,
-        visionReady: imageReviewAvailable,
-        hasDiagrams: diagramPageCount > 0,
-      );
+    unitsEmpty: units.isEmpty,
+    visionReady: imageReviewAvailable,
+    hasDiagrams: diagramPageCount > 0,
+  );
 
   /// Full page-image selection, extraction, and request coverage for the latest
   /// run. This is transient UI/report context and is never serialized.
@@ -677,23 +677,26 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   int get diagramAuditCount {
     final document = _document;
     if (document == null || _pdfBytes == null) return 0;
-    return _visionService(VisionReviewService.noOpAuditor).candidates(document).length;
+    return _visionService(
+      VisionReviewService.noOpAuditor,
+    ).candidates(document).length;
   }
 
   bool get canAuditDiagrams => diagramAuditCount > 0;
 
-  VisionReviewService _visionService(DiagramAuditor auditor) => VisionReviewService(
-    auditor: auditor,
-    renderPage: (int pageIndex, String _) async {
-      final bytes = _pdfBytes;
-      if (bytes == null) {
-        throw StateError('no file bytes to render page $pageIndex');
-      }
-      final repository = ref.read(reviewRepositoryProvider);
-      final png = await repository.renderPageForAudit(bytes, pageIndex);
-      return base64Encode(png);
-    },
-  );
+  VisionReviewService _visionService(DiagramAuditor auditor) =>
+      VisionReviewService(
+        auditor: auditor,
+        renderPage: (int pageIndex, String _) async {
+          final bytes = _pdfBytes;
+          if (bytes == null) {
+            throw StateError('no file bytes to render page $pageIndex');
+          }
+          final repository = ref.read(reviewRepositoryProvider);
+          final png = await repository.renderPageForAudit(bytes, pageIndex);
+          return base64Encode(png);
+        },
+      );
 
   /// sds-reviewer steps 4-6 on-device: render each candidate page, two-call
   /// audit through the proxy, ledger rows into [state.referenceFindings].
@@ -1140,10 +1143,8 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   /// native AirDrop/Drive/Mail flow is how a report actually reaches a
   /// supervisor on mobile. Shares the markdown, not the JSON: the share
   /// target is a human reader.
-  Future<String> shareReport() => _exporter.share(
-    fileName: _reportFileName(),
-    contents: exportMarkdown(),
-  );
+  Future<String> shareReport() =>
+      _exporter.share(fileName: _reportFileName(), contents: exportMarkdown());
 
   String _reportFileName({String extension = 'md'}) {
     final base = state.fileName.trim().isEmpty ? 'srs' : state.fileName;

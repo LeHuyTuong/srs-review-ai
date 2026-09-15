@@ -21,21 +21,20 @@ RequirementItem _req({
   required String id,
   required String text,
   String? section,
-}) =>
-    RequirementItem(
-      id: id,
-      text: text,
-      kind: RequirementKind.useCase,
-      section: section,
-    );
+}) => RequirementItem(
+  id: id,
+  text: text,
+  kind: RequirementKind.useCase,
+  section: section,
+);
 
 SrsDocument _doc(List<RequirementItem> reqs) => SrsDocument(
-      fileName: 'fixture.srs',
-      pageCount: 1,
-      pageTexts: const ['fixture'],
-      requirements: reqs,
-      imagePageIndexes: const [],
-    );
+  fileName: 'fixture.srs',
+  pageCount: 1,
+  pageTexts: const ['fixture'],
+  requirements: reqs,
+  imagePageIndexes: const [],
+);
 
 void main() {
   group('ContradictionPass — goal §2 step 6', () {
@@ -142,16 +141,8 @@ void main() {
       // No shared stem — these are different concepts.
       final findings = _pass.detect(
         _doc([
-          _req(
-            id: 'UC-40',
-            text: 'Customer logs in.',
-            section: '6.1 Auth',
-          ),
-          _req(
-            id: 'UC-41',
-            text: 'Admin assigns roles.',
-            section: '6.2 Roles',
-          ),
+          _req(id: 'UC-40', text: 'Customer logs in.', section: '6.1 Auth'),
+          _req(id: 'UC-41', text: 'Admin assigns roles.', section: '6.2 Roles'),
         ]),
       );
       expect(findings, isEmpty);
@@ -247,10 +238,14 @@ void main() {
         );
         expect(findings, hasLength(1));
         expect(findings.first.check, CheckId.crossArtifactName);
-        expect(findings.first.requiresVisionEvidence, isTrue,
-            reason: 'cross-artifact name variation is a text signal but '
-                'verifying the variants really refer to one entity needs '
-                'the class diagram — Verifier must seed it pendingVision.');
+        expect(
+          findings.first.requiresVisionEvidence,
+          isTrue,
+          reason:
+              'cross-artifact name variation is a text signal but '
+              'verifying the variants really refer to one entity needs '
+              'the class diagram — Verifier must seed it pendingVision.',
+        );
       },
     );
   });

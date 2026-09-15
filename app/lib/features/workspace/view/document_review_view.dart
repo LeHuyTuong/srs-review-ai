@@ -176,7 +176,8 @@ class DocumentReviewView extends ConsumerWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               const gap = AppSpacing.lg;
-              final columns = constraints.maxWidth >= AppBreakpoints.compactMaxWidth
+              final columns =
+                  constraints.maxWidth >= AppBreakpoints.compactMaxWidth
                   ? 4
                   : 2;
               final metricWidth =

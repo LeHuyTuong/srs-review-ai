@@ -274,10 +274,9 @@ class LanguageDetector {
 
     // Fold first: NFD Vietnamese ("e"+U+0323+U+0302) would otherwise split
     // into letter fragments and sail through the stopword test below.
-    final words = foldVietnamese(trimmed)
-        .split(RegExp(r"[^a-z']+"))
-        .where((w) => w.isNotEmpty)
-        .toList();
+    final words = foldVietnamese(
+      trimmed,
+    ).split(RegExp(r"[^a-z']+")).where((w) => w.isNotEmpty).toList();
     if (words.isEmpty) return true;
 
     final vietnamese = words

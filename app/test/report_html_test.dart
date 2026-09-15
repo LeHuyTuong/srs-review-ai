@@ -132,26 +132,29 @@ void main() {
       expect(html, isNot(contains('banner red')));
     });
 
-    test('a failed run gets the red outcome banner, same condition as markdown', () {
-      final html = buildHtmlReport(
-        fileName: 'a.pdf',
-        offline: false,
-        result: WorkspaceReviewResult(
-          findings: const [],
-          reviewed: 2,
-          skipped: 1,
-          failed: 3,
-          droppedIssueCount: 0,
-          mock: false,
-          rubricVersion: 'test',
-          createdAt: DateTime(2026, 9, 1),
-          outcome: 'cancelled',
-        ),
-        units: const [],
-      );
-      expect(html, contains('The last review run was cancelled'));
-      expect(html, contains('3 selected unit(s) errored'));
-    });
+    test(
+      'a failed run gets the red outcome banner, same condition as markdown',
+      () {
+        final html = buildHtmlReport(
+          fileName: 'a.pdf',
+          offline: false,
+          result: WorkspaceReviewResult(
+            findings: const [],
+            reviewed: 2,
+            skipped: 1,
+            failed: 3,
+            droppedIssueCount: 0,
+            mock: false,
+            rubricVersion: 'test',
+            createdAt: DateTime(2026, 9, 1),
+            outcome: 'cancelled',
+          ),
+          units: const [],
+        );
+        expect(html, contains('The last review run was cancelled'));
+        expect(html, contains('3 selected unit(s) errored'));
+      },
+    );
 
     test('the run mock flag outranks the export-time toggle', () {
       // A markdown-twin behavior: the report describes the run that happened.
@@ -465,7 +468,8 @@ void main() {
             passed: false,
             severity: Severity.high,
             subject: 'ERD-01',
-            message: 'Page 14 (erd): 1 issue(s) — [red] Order.id: FK khong nhan',
+            message:
+                'Page 14 (erd): 1 issue(s) — [red] Order.id: FK khong nhan',
           ),
         ],
       );

@@ -75,18 +75,21 @@ class DiagramAuditResult {
           .map((e) => '$e')
           .toList(growable: false),
       relations: (describe['relations'] as List? ?? const [])
-          .map((e) => DiagramRelationData.fromJson(
-                (e as Map).cast<String, dynamic>(),
-          ))
+          .map(
+            (e) => DiagramRelationData.fromJson(
+              (e as Map).cast<String, dynamic>(),
+            ),
+          )
           .toList(growable: false),
       unreadable: (describe['unreadable'] as List? ?? const [])
           .map((e) => '$e')
           .toList(growable: false),
       clean: verdict['clean'] as bool? ?? true,
       findings: (verdict['findings'] as List? ?? const [])
-          .map((e) => DiagramFindingData.fromJson(
-                (e as Map).cast<String, dynamic>(),
-          ))
+          .map(
+            (e) =>
+                DiagramFindingData.fromJson((e as Map).cast<String, dynamic>()),
+          )
           .toList(growable: false),
       model: json['model'] as String? ?? '?',
       cached: json['cached'] as bool? ?? false,

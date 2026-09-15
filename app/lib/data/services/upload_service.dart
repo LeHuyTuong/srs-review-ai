@@ -77,6 +77,7 @@ class UploadService {
     );
   }
 
-  String _basePath(Uri base) =>
-      base.path.endsWith('/') ? base.path.substring(0, base.path.length - 1) : base.path;
+  String _basePath(Uri base) => base.path.endsWith('/')
+      ? base.path.substring(0, base.path.length - 1)
+      : base.path;
 }

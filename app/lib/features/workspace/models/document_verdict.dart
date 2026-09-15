@@ -140,16 +140,14 @@ class DocumentVerdict {
 /// (including empty) yields a verdict, never throws.
 DocumentVerdict computeVerdict(List<DeterministicFinding> rows) {
   bool ran(CheckId c) => rows.any((r) => r.check == c);
-  bool anyFail(CheckId c) =>
-      rows.any((r) => r.check == c && !r.passed);
+  bool anyFail(CheckId c) => rows.any((r) => r.check == c && !r.passed);
 
   // Floor: every criterion must be assessable (all its checks ran) and
   // none failed. One failed criterion → floor lost (the "5" is all-or-
   // nothing, exactly like the rubric's wording "đủ 7 mục").
-  final floorAssessable = floorCriteria.every(
-    (crit) => crit.checks.every(ran),
-  );
-  final floorEarned = floorAssessable &&
+  final floorAssessable = floorCriteria.every((crit) => crit.checks.every(ran));
+  final floorEarned =
+      floorAssessable &&
       floorCriteria.every((crit) => !crit.checks.any(anyFail));
   final floor = !floorAssessable
       ? ComponentState.unassessed
@@ -194,9 +192,12 @@ DocumentVerdict computeVerdict(List<DeterministicFinding> rows) {
   );
   final deductions = deductionRows.length;
 
-  final unassessed = [floor, diagram, crossArtifact, traceability]
-      .where((c) => c == ComponentState.unassessed)
-      .length;
+  final unassessed = [
+    floor,
+    diagram,
+    crossArtifact,
+    traceability,
+  ].where((c) => c == ComponentState.unassessed).length;
 
   final int? earned;
   if (floor == ComponentState.unassessed) {

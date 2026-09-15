@@ -51,8 +51,10 @@ class LoadedDocument {
   /// runs. `failedFindings` is preserved for the existing syllabus path;
   /// `allFailedFindings` is what a global review view (the goal's ledger
   /// dashboard) needs.
-  Iterable<DeterministicFinding> get allFindings =>
-      <DeterministicFinding>[...findings, ...referenceFindings];
+  Iterable<DeterministicFinding> get allFindings => <DeterministicFinding>[
+    ...findings,
+    ...referenceFindings,
+  ];
 
   Iterable<DeterministicFinding> get failedFindings =>
       findings.where((f) => !f.passed);

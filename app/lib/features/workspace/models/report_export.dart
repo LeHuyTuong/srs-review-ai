@@ -104,8 +104,7 @@ String buildMarkdownReport({
   final findings = result?.findings ?? const <FindingRow>[];
   final dropped = result?.droppedIssueCount ?? 0;
 
-  FindingStatus statusFor(String id) =>
-      findingStatus[id] ?? FindingStatus.open;
+  FindingStatus statusFor(String id) => findingStatus[id] ?? FindingStatus.open;
   final reportOffline = result?.mock ?? offline;
   final effectiveImageReviewedCount =
       imageCoverage?.reviewed ?? imageReviewedCount;
@@ -165,7 +164,7 @@ String buildMarkdownReport({
     '| Diagrams clean (2 pts) | ${verdict.diagram.name} |',
     '| Cross-artifact clean (2 pts) | ${verdict.crossArtifact.name} |',
     '| Traceability UC→design→test (1 pt) | ${verdict.traceability.name} '
-    '(no test-artifact input in this tool) |',
+        '(no test-artifact input in this tool) |',
     '| Deductions −1 per 🔴 ERD/SM/SEQ-CLS row | ${verdict.deductions} |',
     '',
   ]);
@@ -299,8 +298,7 @@ String buildMarkdownReport({
   // renders them under different headings — the report must not merge them
   // silently, so each row carries its family label.
   final allDeterministic = [
-    for (final finding in syllabusFindings)
-      ('syllabus', finding),
+    for (final finding in syllabusFindings) ('syllabus', finding),
     for (final finding in referenceFindings)
       (
         finding.check == CheckId.diagramAudit
@@ -459,8 +457,7 @@ Map<String, dynamic> buildJsonReport({
   Map<String, FindingStatus> findingStatus = const {},
 }) {
   final findings = result?.findings ?? const <FindingRow>[];
-  FindingStatus statusFor(String id) =>
-      findingStatus[id] ?? FindingStatus.open;
+  FindingStatus statusFor(String id) => findingStatus[id] ?? FindingStatus.open;
   // The run's own mock flag outranks the current toggle, exactly as the
   // markdown twin does — a report describes the run that happened, not the
   // setting at the moment of export.
@@ -561,9 +558,7 @@ Map<String, dynamic> buildJsonReport({
           'requires_vision_evidence': finding.requiresVisionEvidence,
           // Ledger status per the Verifier's re-run map; passing rows
           // carry none (null), only failing rows live in the ledger.
-          'status': finding.passed
-              ? null
-              : statusFor(finding.ledgerKey).name,
+          'status': finding.passed ? null : statusFor(finding.ledgerKey).name,
         },
       for (final finding in referenceFindings)
         {
@@ -574,9 +569,7 @@ Map<String, dynamic> buildJsonReport({
           'severity': finding.severity.name,
           'message': finding.message,
           'requires_vision_evidence': finding.requiresVisionEvidence,
-          'status': finding.passed
-              ? null
-              : statusFor(finding.ledgerKey).name,
+          'status': finding.passed ? null : statusFor(finding.ledgerKey).name,
         },
     ],
     'inventory': [

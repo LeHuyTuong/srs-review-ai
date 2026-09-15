@@ -178,7 +178,11 @@ void main() {
       );
       expect(v.contentMaxWidth, AppBreakpoints.contentWidthExpanded);
       expect(v.showRightRail, isFalse);
-      expect(v.showInnerSplit, isFalse, reason: '900 is under innerSplitMinWidth');
+      expect(
+        v.showInnerSplit,
+        isFalse,
+        reason: '900 is under innerSplitMinWidth',
+      );
     });
   });
 

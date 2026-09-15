@@ -339,9 +339,7 @@ void main() {
   /// with an explanatory line. The model rows rendered as a bare list, so
   /// a reader could not see where a finding came from. This pins all
   /// three headings plus the honest "these need the API" note.
-  testWidgets('findings tab labels all three finding families', (
-    tester,
-  ) async {
+  testWidgets('findings tab labels all three finding families', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);

@@ -72,42 +72,47 @@ void main() {
       expect(loaded.referenceFindings, isEmpty);
     });
 
-    test('reference findings surface through allFindings and allFailedFindings',
-        () {
-      final doc = _doc(const <RequirementItem>[]);
-      const reference = <DeterministicFinding>[
-        DeterministicFinding(
-          check: CheckId.duplicateIds,
-          passed: false,
-          severity: Severity.high,
-          message: 'UC04 reused',
-          subject: 'UC04',
-        ),
-        DeterministicFinding(
-          check: CheckId.missingPostcondition,
-          passed: false,
-          severity: Severity.high,
-          message: 'UC-09 no Postcondition',
-          subject: 'UC-09',
-        ),
-      ];
-      final loaded = LoadedDocument(
-        document: doc,
-        findings: const <DeterministicFinding>[],
-        referenceFindings: reference,
-        sizeBytes: 1,
-      );
-      expect(loaded.allFindings, hasLength(2));
-      expect(loaded.allFailedFindings, hasLength(2));
-      // findingFor must search across both families — the ledger dashboard
-      // looks up a finding by CheckId and should not have to know which
-      // bucket the id lives in.
-      expect(loaded.findingFor(CheckId.duplicateIds)?.subject, 'UC04');
-      expect(loaded.findingFor(CheckId.missingPostcondition)?.subject, 'UC-09');
-      // failedFindings is deliberately NOT widened — the existing syllabus
-      // path must keep receiving the same list it always did.
-      expect(loaded.failedFindings, isEmpty);
-    });
+    test(
+      'reference findings surface through allFindings and allFailedFindings',
+      () {
+        final doc = _doc(const <RequirementItem>[]);
+        const reference = <DeterministicFinding>[
+          DeterministicFinding(
+            check: CheckId.duplicateIds,
+            passed: false,
+            severity: Severity.high,
+            message: 'UC04 reused',
+            subject: 'UC04',
+          ),
+          DeterministicFinding(
+            check: CheckId.missingPostcondition,
+            passed: false,
+            severity: Severity.high,
+            message: 'UC-09 no Postcondition',
+            subject: 'UC-09',
+          ),
+        ];
+        final loaded = LoadedDocument(
+          document: doc,
+          findings: const <DeterministicFinding>[],
+          referenceFindings: reference,
+          sizeBytes: 1,
+        );
+        expect(loaded.allFindings, hasLength(2));
+        expect(loaded.allFailedFindings, hasLength(2));
+        // findingFor must search across both families — the ledger dashboard
+        // looks up a finding by CheckId and should not have to know which
+        // bucket the id lives in.
+        expect(loaded.findingFor(CheckId.duplicateIds)?.subject, 'UC04');
+        expect(
+          loaded.findingFor(CheckId.missingPostcondition)?.subject,
+          'UC-09',
+        );
+        // failedFindings is deliberately NOT widened — the existing syllabus
+        // path must keep receiving the same list it always did.
+        expect(loaded.failedFindings, isEmpty);
+      },
+    );
 
     test('allFindings preserves syllabus-before-reference order', () {
       final doc = _doc(const <RequirementItem>[]);
@@ -133,10 +138,10 @@ void main() {
         referenceFindings: reference,
         sizeBytes: 1,
       );
-      expect(
-        loaded.allFindings.map((f) => f.check).toList(),
-        [CheckId.ucCount, CheckId.duplicateIds],
-      );
+      expect(loaded.allFindings.map((f) => f.check).toList(), [
+        CheckId.ucCount,
+        CheckId.duplicateIds,
+      ]);
     });
   });
 
@@ -175,10 +180,7 @@ void main() {
         // M2 family now travels on the same LoadedDocument.
         expect(
           loaded.referenceFindings.map((f) => f.check),
-          containsAll([
-            CheckId.duplicateIds,
-            CheckId.missingPostcondition,
-          ]),
+          containsAll([CheckId.duplicateIds, CheckId.missingPostcondition]),
         );
 
         // The duplicate-id finding names UC-04 and the count.

@@ -156,10 +156,7 @@ void main() {
       expect(diff.promotedToVerified, 2);
       expect(diff.reopened, 1);
       expect(diff.unchanged, 3);
-      expect(
-        diff.summary,
-        '2 promoted to verified · 1 reopened · 3 unchanged',
-      );
+      expect(diff.summary, '2 promoted to verified · 1 reopened · 3 unchanged');
     });
 
     test('AI finding ids do not contribute to the diff', () {

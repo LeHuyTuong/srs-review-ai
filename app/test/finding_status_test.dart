@@ -22,17 +22,24 @@ void main() {
       // Order is a contract too: the filter dropdown renders values in
       // declaration order, and the dashboard "fixed vs pending vs
       // disputed" columns count on a stable sequence.
-      expect(
-        FindingStatus.values.map((s) => s.name).toList(growable: false),
-        ['open', 'fixed', 'verified', 'pendingVision', 'disputed'],
-      );
+      expect(FindingStatus.values.map((s) => s.name).toList(growable: false), [
+        'open',
+        'fixed',
+        'verified',
+        'pendingVision',
+        'disputed',
+      ]);
     });
 
     test('every value has a non-empty, human-facing label', () {
       // Goal §3 calls the values by their full word; the label is what
       // users actually see. None may be empty or share a label.
       final labels = FindingStatus.values.map((s) => s.label).toList();
-      expect(labels.toSet().length, labels.length, reason: 'labels must be unique');
+      expect(
+        labels.toSet().length,
+        labels.length,
+        reason: 'labels must be unique',
+      );
       expect(labels.every((l) => l.isNotEmpty), isTrue);
     });
 
@@ -43,7 +50,10 @@ void main() {
       expect(FindingStatus.fromName('open'), FindingStatus.open);
       expect(FindingStatus.fromName('fixed'), FindingStatus.fixed);
       expect(FindingStatus.fromName('verified'), FindingStatus.verified);
-      expect(FindingStatus.fromName('pendingVision'), FindingStatus.pendingVision);
+      expect(
+        FindingStatus.fromName('pendingVision'),
+        FindingStatus.pendingVision,
+      );
       expect(FindingStatus.fromName('disputed'), FindingStatus.disputed);
     });
 

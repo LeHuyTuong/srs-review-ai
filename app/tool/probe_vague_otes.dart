@@ -91,28 +91,38 @@ void main() {
         without++;
       }
     }
-    print('PRIORITY|with=$withPriority|without=$without|total=${document.requirements.length}');
+    print(
+      'PRIORITY|with=$withPriority|without=$without|total=${document.requirements.length}',
+    );
     var shown = 0;
     for (final r in document.requirements) {
       if (!LanguageDetector.looksEnglish(r.text) && shown < 3) {
         shown++;
         final f = foldVietnamese(r.text).replaceAll('\n', ' ');
-        print('FAILTEXT[${r.id}] = ${Uri.encodeComponent(f.length > 160 ? f.substring(0, 160) : f)}');
+        print(
+          'FAILTEXT[${r.id}] = ${Uri.encodeComponent(f.length > 160 ? f.substring(0, 160) : f)}',
+        );
       }
     }
-    print('LANGFAIL|count=${langFail.length}|first=${langFail.take(3).join(',')}');
+    print(
+      'LANGFAIL|count=${langFail.length}|first=${langFail.take(3).join(',')}',
+    );
     for (final r in document.requirements) {
       if (r.id == 'UC-01') {
         final f = foldVietnamese(r.text);
-        print('UC01FOLDED|${Uri.encodeComponent(f.length > 300 ? f.substring(0, 300) : f)}');
+        print(
+          'UC01FOLDED|${Uri.encodeComponent(f.length > 300 ? f.substring(0, 300) : f)}',
+        );
         break;
       }
     }
     for (final r in document.requirements) {
       final idx = r.text.indexOf('\u0300');
       if (idx >= 0) {
-        final around = r.text.substring((idx - 30).clamp(0, r.text.length),
-            (idx + 30).clamp(0, r.text.length));
+        final around = r.text.substring(
+          (idx - 30).clamp(0, r.text.length),
+          (idx + 30).clamp(0, r.text.length),
+        );
         print('COMBINING[${r.id}] = ${Uri.encodeComponent(around)}');
         break;
       }

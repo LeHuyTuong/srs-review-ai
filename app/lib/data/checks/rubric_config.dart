@@ -49,6 +49,7 @@ class RubricConfig {
 
   final String version;
   final int ucCountMin;
+
   /// Null means "no upper bound" (rubric v3 / rulebook 1.5 Q1). A high use-case
   /// count is not a defect; use-case SIZE is the criterion that matters.
   final int? ucCountMax;

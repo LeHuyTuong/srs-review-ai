@@ -115,7 +115,6 @@ class _AnsweringApi implements ReviewApi {
     );
   }
 
-
   @override
   Future<String> shareReport({
     required String html,
@@ -182,7 +181,6 @@ class _FailsAfterNApi implements ReviewApi {
       mock: true,
     );
   }
-
 
   @override
   Future<String> shareReport({

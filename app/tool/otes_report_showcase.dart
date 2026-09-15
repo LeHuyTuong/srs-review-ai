@@ -95,9 +95,8 @@ void main() {
       // ── Parity: the numbers every twin prints come from one source ────
       final total = syllabusFindings.length + referenceFindings.length;
       final payload = jsonDecode(json) as Map<String, dynamic>;
-      final checks = (payload['deterministic_checks'] as List<dynamic>).cast<
-        Map<String, dynamic>
-      >();
+      final checks = (payload['deterministic_checks'] as List<dynamic>)
+          .cast<Map<String, dynamic>>();
       expect(checks, hasLength(total));
       expect(md, contains('Deterministic checks ($total)'));
       expect(html, contains('Deterministic checks ($total)'));
@@ -133,7 +132,11 @@ void main() {
         'reference': referenceFindings.length,
         'missingPostcondition': missingPostRows.length,
       });
-      expect(md, contains(mdAnchor), reason: 'M2 headline invisible in markdown');
+      expect(
+        md,
+        contains(mdAnchor),
+        reason: 'M2 headline invisible in markdown',
+      );
       expect(
         html,
         contains(htmlAnchor),

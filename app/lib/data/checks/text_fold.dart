@@ -57,7 +57,8 @@ String foldVietnamese(String input) {
     // the thin/en/em space block (0x2000–0x200B, incl. zero-width),
     // and the LINE/PARAGRAPH separators (2028/2029) — the real OTES
     // uses 2028 inside table cells, which silently broke phrase matches.
-    final isSpace = code == 0x20 ||
+    final isSpace =
+        code == 0x20 ||
         (code >= 0x09 && code <= 0x0D) ||
         code == 0xA0 ||
         (code >= 0x2000 && code <= 0x200B) ||

@@ -51,11 +51,9 @@ void main() {
           'missing_postcondition:UC-01': FindingStatus.fixed,
         },
       );
-      final rows =
-          (json['deterministic_checks'] as List).cast<Map<String, Object?>>();
-      final byWire = {
-        for (final r in rows) r['check']! as String: r,
-      };
+      final rows = (json['deterministic_checks'] as List)
+          .cast<Map<String, Object?>>();
+      final byWire = {for (final r in rows) r['check']! as String: r};
       // A failing row with no recorded status reads Open — the default,
       // never hidden.
       expect(byWire['uc_count']!['status'], 'open');
@@ -140,12 +138,14 @@ void main() {
           check(CheckId.ucCount, passed: true),
         ],
       );
-      final checks = (json['deterministic_checks'] as List<dynamic>).cast<Map<String, dynamic>>();
+      final checks = (json['deterministic_checks'] as List<dynamic>)
+          .cast<Map<String, dynamic>>();
       expect(checks, hasLength(3));
       expect(
         checks[0]['requires_vision_evidence'],
         isTrue,
-        reason: 'cross-artifact rows are UNV — a JSON consumer must be able '
+        reason:
+            'cross-artifact rows are UNV — a JSON consumer must be able '
             'to filter pending-vision rows without re-parsing messages.',
       );
       expect(checks[1]['requires_vision_evidence'], isFalse);
@@ -182,23 +182,23 @@ void main() {
   });
 
   group('buildJsonReport — numbers agree with the markdown inputs', () {
-    test('empty run: coverage falls back to unselected count, zero findings', () {
-      final json = buildJsonReport(
-        fileName: 'a.pdf',
-        offline: true,
-        result: null,
-        units: const [],
-      );
-      final coverage = json['coverage'] as Map<String, dynamic>;
-      expect(coverage['reviewed'], 0);
-      expect(coverage['failed'], 0);
-      expect(coverage['total_units'], 0);
-      expect(json['findings'], isEmpty);
-      expect(
-        (json['scores'] as Map<String, dynamic>)['sections'],
-        isEmpty,
-      );
-    });
+    test(
+      'empty run: coverage falls back to unselected count, zero findings',
+      () {
+        final json = buildJsonReport(
+          fileName: 'a.pdf',
+          offline: true,
+          result: null,
+          units: const [],
+        );
+        final coverage = json['coverage'] as Map<String, dynamic>;
+        expect(coverage['reviewed'], 0);
+        expect(coverage['failed'], 0);
+        expect(coverage['total_units'], 0);
+        expect(json['findings'], isEmpty);
+        expect((json['scores'] as Map<String, dynamic>)['sections'], isEmpty);
+      },
+    );
 
     test('no page-image coverage key when coverage object is absent', () {
       final json = buildJsonReport(
@@ -209,40 +209,46 @@ void main() {
       );
       // Absent, not null: a consumer must not need a null-check branch for
       // "this session never carried page images".
-      expect((json['coverage'] as Map<String, dynamic>)
-          .containsKey('page_images'), isFalse);
+      expect(
+        (json['coverage'] as Map<String, dynamic>).containsKey('page_images'),
+        isFalse,
+      );
     });
 
-    test('honesty fields appear exactly when the markdown would print them', () {
-      // Round 32 audit: the markdown honesty notes are driven by these same
-      // inputs, so the JSON must reconstruct them — a consumer rendering only
-      // the JSON must not lose the "text-only review" callout.
-      final plain = buildJsonReport(
-        fileName: 'a.pdf',
-        offline: true,
-        result: null,
-        units: const [],
-      );
-      final rich = buildJsonReport(
-        fileName: 'a.pdf',
-        offline: true,
-        result: null,
-        units: const [],
-        diagramPageCount: 4,
-        imageReviewAvailable: true,
-        imageReviewedCount: 2,
-      );
-      final plainCoverage = plain['coverage'] as Map<String, dynamic>;
-      final richCoverage = rich['coverage'] as Map<String, dynamic>;
-      // Absent when the markdown would print nothing.
-      expect(plainCoverage.containsKey('diagram_pages'), isFalse);
-      expect(plainCoverage.containsKey('image_review'), isFalse);
-      // Present when the markdown would print the note.
-      expect(richCoverage['diagram_pages'], 4);
-      final imageReview = richCoverage['image_review'] as Map<String, dynamic>;
-      expect(imageReview['available'], isTrue);
-      expect(imageReview['reviewed_requirements'], 2);
-    });
+    test(
+      'honesty fields appear exactly when the markdown would print them',
+      () {
+        // Round 32 audit: the markdown honesty notes are driven by these same
+        // inputs, so the JSON must reconstruct them — a consumer rendering only
+        // the JSON must not lose the "text-only review" callout.
+        final plain = buildJsonReport(
+          fileName: 'a.pdf',
+          offline: true,
+          result: null,
+          units: const [],
+        );
+        final rich = buildJsonReport(
+          fileName: 'a.pdf',
+          offline: true,
+          result: null,
+          units: const [],
+          diagramPageCount: 4,
+          imageReviewAvailable: true,
+          imageReviewedCount: 2,
+        );
+        final plainCoverage = plain['coverage'] as Map<String, dynamic>;
+        final richCoverage = rich['coverage'] as Map<String, dynamic>;
+        // Absent when the markdown would print nothing.
+        expect(plainCoverage.containsKey('diagram_pages'), isFalse);
+        expect(plainCoverage.containsKey('image_review'), isFalse);
+        // Present when the markdown would print the note.
+        expect(richCoverage['diagram_pages'], 4);
+        final imageReview =
+            richCoverage['image_review'] as Map<String, dynamic>;
+        expect(imageReview['available'], isTrue);
+        expect(imageReview['reviewed_requirements'], 2);
+      },
+    );
 
     test('scores sections mirror the markdown rollup, not raw unit scores', () {
       // Round 32 audit: the first JSON cut labeled result.scores (keyed by
@@ -274,15 +280,17 @@ void main() {
         // absent (not null) when there is no run to describe.
       );
       expect(
-        (withoutRun['coverage'] as Map<String, dynamic>)
-            .containsKey('run_outcome'),
+        (withoutRun['coverage'] as Map<String, dynamic>).containsKey(
+          'run_outcome',
+        ),
         isFalse,
       );
       // With result: null in both, outcome stays absent — pinned so a
       // consumer never sees a null outcome key.
       expect(
-        (withRun['coverage'] as Map<String, dynamic>)
-            .containsKey('run_outcome'),
+        (withRun['coverage'] as Map<String, dynamic>).containsKey(
+          'run_outcome',
+        ),
         isFalse,
       );
     });
@@ -381,8 +389,8 @@ void main() {
         result: result,
         units: units,
       );
-      final sections = (json['scores'] as Map<String, dynamic>)['sections']
-          as List<dynamic>;
+      final sections =
+          (json['scores'] as Map<String, dynamic>)['sections'] as List<dynamic>;
       final typed = sections.cast<Map<String, dynamic>>();
       expect(typed, hasLength(2));
       expect(typed[0]['section'], '1. Introduction');
@@ -397,7 +405,8 @@ void main() {
       expect(
         typed.every((s) => !(s['section'] as String).startsWith('u')),
         isTrue,
-        reason: 'section names must come from summarizeSections, not the '
+        reason:
+            'section names must come from summarizeSections, not the '
             'unit-keyed scores map',
       );
     });

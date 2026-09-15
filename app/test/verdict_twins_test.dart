@@ -85,7 +85,10 @@ void main() {
         units: const [],
       );
       expect(md, contains('unassessed (no deterministic checks have run yet)'));
-      expect(html, contains('unassessed (no deterministic checks have run yet)'));
+      expect(
+        html,
+        contains('unassessed (no deterministic checks have run yet)'),
+      );
       expect((json['verdict']! as Map<String, Object?>)['total'], isNull);
     });
   });

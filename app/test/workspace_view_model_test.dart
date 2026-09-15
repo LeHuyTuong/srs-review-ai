@@ -87,8 +87,10 @@ class _VisionReviewRepository extends ReviewRepository {
     : super(const MockReviewApi(latency: Duration.zero));
 
   @override
-  Future<Uint8List> renderPageForAudit(Uint8List pdfBytes, int pageIndex) async
-      => Uint8List.fromList([1, 2, 3]);
+  Future<Uint8List> renderPageForAudit(
+    Uint8List pdfBytes,
+    int pageIndex,
+  ) async => Uint8List.fromList([1, 2, 3]);
 }
 
 SrsDocument _diagramDocument() => SrsDocument(
@@ -101,8 +103,7 @@ SrsDocument _diagramDocument() => SrsDocument(
   requirements: const [
     RequirementItem(
       id: 'UC-01',
-      text:
-          'UC-01 The PaymentGateway AuthorizesOrder flow reviews diagrams.',
+      text: 'UC-01 The PaymentGateway AuthorizesOrder flow reviews diagrams.',
       kind: RequirementKind.useCase,
       pageIndex: 0,
     ),
@@ -890,37 +891,35 @@ void main() {
 
   // ------------------------------------------- Round 16 — verifyStatuses seam
 
-  test(
-    'verifyStatuses returns an empty diff when nothing changed',
-    () async {
-      // No-op path: load a document, never patch a status, call
-      // verifyStatuses. The diff must be empty (the brief's
-      // "diff bằng grep -c OPEN" pattern), and the snapshot save
-      // must be skipped.
-      final store = InMemorySessionStore();
-      final container = _container(store);
-      addTearDown(container.dispose);
-      final vm = container.read(workspaceViewModelProvider.notifier);
-      await vm.loadDemo();
+  test('verifyStatuses returns an empty diff when nothing changed', () async {
+    // No-op path: load a document, never patch a status, call
+    // verifyStatuses. The diff must be empty (the brief's
+    // "diff bằng grep -c OPEN" pattern), and the snapshot save
+    // must be skipped.
+    final store = InMemorySessionStore();
+    final container = _container(store);
+    addTearDown(container.dispose);
+    final vm = container.read(workspaceViewModelProvider.notifier);
+    await vm.loadDemo();
 
-      // The Verifier seeds fresh statuses on first run (every
-      // current finding gets opened), so the no-op diff is the
-      // signal we care about — the map going from {} to
-      // populated-with-opens is *not* a transition per the diff
-      // counters.
-      final diff = vm.verifyStatuses();
-      expect(diff.promotedToVerified, 0,
-          reason: 'No transitions on a no-op patch.');
-      expect(diff.reopened, 0,
-          reason: 'No transitions on a no-op patch.');
-      final stateAfter = container.read(workspaceViewModelProvider);
-      // After seed, every current finding carries an OPEN entry —
-      // the brief invariant is "ids don't churn", not "map stays
-      // empty".
-      expect(stateAfter.findingStatus.values,
-          everyElement(FindingStatus.open));
-    },
-  );
+    // The Verifier seeds fresh statuses on first run (every
+    // current finding gets opened), so the no-op diff is the
+    // signal we care about — the map going from {} to
+    // populated-with-opens is *not* a transition per the diff
+    // counters.
+    final diff = vm.verifyStatuses();
+    expect(
+      diff.promotedToVerified,
+      0,
+      reason: 'No transitions on a no-op patch.',
+    );
+    expect(diff.reopened, 0, reason: 'No transitions on a no-op patch.');
+    final stateAfter = container.read(workspaceViewModelProvider);
+    // After seed, every current finding carries an OPEN entry —
+    // the brief invariant is "ids don't churn", not "map stays
+    // empty".
+    expect(stateAfter.findingStatus.values, everyElement(FindingStatus.open));
+  });
 
   test(
     'verifyStatuses reopens a fixed finding whose check still fails',
@@ -941,13 +940,18 @@ void main() {
       // UCs are bullet-list format.
       final state = container.read(workspaceViewModelProvider);
       final missing = state.referenceFindings
-          .where((f) =>
-              f.check == CheckId.missingPostcondition && f.subject != null)
+          .where(
+            (f) => f.check == CheckId.missingPostcondition && f.subject != null,
+          )
           .toList();
-      expect(missing, isNotEmpty,
-          reason: 'Demo must surface at least one missingPostcondition '
-              'finding — otherwise this test does not exercise the '
-              'seam it claims to exercise.');
+      expect(
+        missing,
+        isNotEmpty,
+        reason:
+            'Demo must surface at least one missingPostcondition '
+            'finding — otherwise this test does not exercise the '
+            'seam it claims to exercise.',
+      );
       final target = missing.first;
       // The production key format is `wire:id` — the Verifier's
       // `isDeterministicFindingKey` filter requires the wire prefix
@@ -960,18 +964,26 @@ void main() {
       // check still fires, so the status must regress back to open.
       final diff = vm.verifyStatuses();
 
-      expect(diff.reopened, 1,
-          reason: 'A fixed finding whose check still fails must '
-              'regress to open — the goal §3 invariant 2 "verified '
-              'needs evidence" rule applies to fixed items too, in '
-              'the reverse direction.');
+      expect(
+        diff.reopened,
+        1,
+        reason:
+            'A fixed finding whose check still fails must '
+            'regress to open — the goal §3 invariant 2 "verified '
+            'needs evidence" rule applies to fixed items too, in '
+            'the reverse direction.',
+      );
       expect(diff.promotedToVerified, 0);
       // State is updated.
       final after = container.read(workspaceViewModelProvider);
-      expect(after.findingStatus[targetId], FindingStatus.open,
-          reason: 'WorkspaceViewModel must persist the regression in '
-              'state — otherwise the UI shows fixed while the ledger '
-              'disagrees.');
+      expect(
+        after.findingStatus[targetId],
+        FindingStatus.open,
+        reason:
+            'WorkspaceViewModel must persist the regression in '
+            'state — otherwise the UI shows fixed while the ledger '
+            'disagrees.',
+      );
     },
   );
 
@@ -1043,31 +1055,37 @@ void main() {
       expect(state.isAuditingDiagrams, isFalse);
     });
 
-    test('re-audit replaces diagram rows instead of stacking duplicates', () async {
-      final (vm, container) = await visionVm(
-        pdfBytes: Uint8List.fromList([0, 1, 2]),
-      );
-      addTearDown(container.dispose);
-      await vm.auditDiagrams();
-      await vm.auditDiagrams();
-      final state = container.read(workspaceViewModelProvider);
-      final diagram = state.referenceFindings
-          .where((f) => f.check == CheckId.diagramAudit)
-          .toList();
-      expect(diagram, hasLength(1));
-      expect(diagram.single.subject, 'DOC-01');
-    });
+    test(
+      're-audit replaces diagram rows instead of stacking duplicates',
+      () async {
+        final (vm, container) = await visionVm(
+          pdfBytes: Uint8List.fromList([0, 1, 2]),
+        );
+        addTearDown(container.dispose);
+        await vm.auditDiagrams();
+        await vm.auditDiagrams();
+        final state = container.read(workspaceViewModelProvider);
+        final diagram = state.referenceFindings
+            .where((f) => f.check == CheckId.diagramAudit)
+            .toList();
+        expect(diagram, hasLength(1));
+        expect(diagram.single.subject, 'DOC-01');
+      },
+    );
 
-    test('no bytes (restored session): button hidden, audit explains', () async {
-      final (vm, container) = await visionVm(); // pdfBytes null
-      addTearDown(container.dispose);
-      expect(vm.canAuditDiagrams, isFalse);
-      await vm.auditDiagrams();
-      expect(
-        container.read(workspaceViewModelProvider).error,
-        contains('needs the original file in memory'),
-      );
-    });
+    test(
+      'no bytes (restored session): button hidden, audit explains',
+      () async {
+        final (vm, container) = await visionVm(); // pdfBytes null
+        addTearDown(container.dispose);
+        expect(vm.canAuditDiagrams, isFalse);
+        await vm.auditDiagrams();
+        expect(
+          container.read(workspaceViewModelProvider).error,
+          contains('needs the original file in memory'),
+        );
+      },
+    );
 
     test('audit rows persist into the saved snapshot', () async {
       final (vm, container) = await visionVm(
@@ -1077,13 +1095,12 @@ void main() {
       await vm.auditDiagrams();
       // The autosave snapshot (not the explicit-save list) is what a reopen
       // restores from — that is the persistence the audit must reach.
-      final raw = await (container.read(sessionStoreProvider)
-              as InMemorySessionStore)
-          .loadSnapshot();
+      final raw =
+          await (container.read(sessionStoreProvider) as InMemorySessionStore)
+              .loadSnapshot();
       expect(raw, isNotNull);
       final payload = jsonDecode(raw!) as Map<String, dynamic>;
-      final rows = (payload['referenceFindings'] as List<dynamic>? ??
-          const [])
+      final rows = (payload['referenceFindings'] as List<dynamic>? ?? const [])
           .cast<Map<String, dynamic>>()
           .where((r) => r['check'] == 'diagram_audit');
       expect(rows, hasLength(1));
@@ -1141,7 +1158,6 @@ class _QuotaKillingApi implements ReviewApi {
     );
   }
 
-
   @override
   Future<String> shareReport({
     required String html,
@@ -1190,11 +1206,9 @@ class _AlwaysFailingApi implements ReviewApi {
     CancelToken? cancelToken,
   }) async => throw ApiException('Cannot reach the review proxy.');
 
-
   @override
   Future<String> shareReport({
     required String html,
     required String fileName,
   }) async => throw UnimplementedError('share links are not part of this test');
 }
-

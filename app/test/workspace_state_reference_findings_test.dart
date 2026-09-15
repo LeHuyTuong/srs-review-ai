@@ -22,7 +22,10 @@ void main() {
       // Null parameter = leave the field alone (the existing copyWith contract
       // for every other list field).
       final same = initial.copyWith();
-      expect(identical(same.referenceFindings, initial.referenceFindings), isTrue);
+      expect(
+        identical(same.referenceFindings, initial.referenceFindings),
+        isTrue,
+      );
       // Real parameter swaps the field; old call sites must not be re-pointed.
       const reference = <DeterministicFinding>[
         DeterministicFinding(
@@ -110,9 +113,7 @@ void main() {
       });
       final decoded = jsonDecode(payload) as Map<String, dynamic>;
       final recovered = (decoded['referenceFindings'] as List<dynamic>)
-          .map(
-            (e) => DeterministicFinding.fromJson(e as Map<String, dynamic>),
-          )
+          .map((e) => DeterministicFinding.fromJson(e as Map<String, dynamic>))
           .toList(growable: false);
       // DeterministicFinding does not override operator ==, so we cannot
       // rely on list-equality here without the helper. Field-by-field is
@@ -133,10 +134,12 @@ void main() {
       // The decoder must treat absence as "empty list" — not throw — so
       // those older workspaces open with the same exact behaviour they
       // always had, plus a quietly empty M2 section.
-      final legacy = jsonDecode(
-        '{"fileName":"legacy.docx","pageCount":1,"sizeLabel":"1.0 KB",'
-        '"isDemo":false,"syllabusFindings":[],"findingStatus":{}}',
-      ) as Map<String, dynamic>;
+      final legacy =
+          jsonDecode(
+                '{"fileName":"legacy.docx","pageCount":1,"sizeLabel":"1.0 KB",'
+                '"isDemo":false,"syllabusFindings":[],"findingStatus":{}}',
+              )
+              as Map<String, dynamic>;
       final referenceFindings =
           (legacy['referenceFindings'] as List<dynamic>?)
               ?.map(

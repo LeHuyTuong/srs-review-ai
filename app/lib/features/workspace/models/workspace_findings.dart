@@ -91,9 +91,9 @@ class VerifyDiff {
 
   /// Zero-diff sentinel returned when the re-run was a no-op.
   const VerifyDiff.empty()
-      : promotedToVerified = 0,
-        reopened = 0,
-        unchanged = 0;
+    : promotedToVerified = 0,
+      reopened = 0,
+      unchanged = 0;
 
   /// Compares [before] against [after] and counts transitions for the
   /// deterministic subset only. AI ids never contribute to the diff

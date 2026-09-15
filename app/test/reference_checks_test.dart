@@ -139,15 +139,12 @@ void main() {
   group('missingPostcondition', () {
     test('UC with Postcondition heading passes', () {
       final doc = _doc([
-        _useCase(
-          'UC-01',
-          '''
+        _useCase('UC-01', '''
 Submit weekly report
 Main flow:
   1. User picks a date.
   2. App generates the PDF.
-Postcondition: the PDF sits in the user's download folder.''',
-        ),
+Postcondition: the PDF sits in the user's download folder.'''),
       ]);
       expect(checks.missingPostcondition(doc), isEmpty);
     });
@@ -182,8 +179,7 @@ Postcondition: the PDF sits in the user's download folder.''',
         _useCase('UC-VN', '''
 Luồng chính:
   1. Người dùng chọn lớp.
-Điều kiện sau: lớp được lưu vào hệ thống.''',
-        ),
+Điều kiện sau: lớp được lưu vào hệ thống.'''),
       ]);
       expect(checks.missingPostcondition(doc), isEmpty);
     });
@@ -195,7 +191,7 @@ Luồng chính:
         _useCase(
           'UC-MID',
           'Submit a draft. The system writes a postcondition log entry for '
-          'every successful submit so audits can replay the run.',
+              'every successful submit so audits can replay the run.',
         ),
       ]);
       final findings = checks.missingPostcondition(doc);
@@ -205,7 +201,10 @@ Luồng chính:
 
     test('only use cases are inspected (FR ignored)', () {
       final doc = _doc([
-        _fr('FR-99', 'The system shall export a PDF. Postcondition: file saved.'),
+        _fr(
+          'FR-99',
+          'The system shall export a PDF. Postcondition: file saved.',
+        ),
       ]);
       expect(checks.missingPostcondition(doc), isEmpty);
     });
@@ -218,10 +217,7 @@ Luồng chính:
       ]);
       final findings = checks.missingPostcondition(doc);
       expect(findings, hasLength(3));
-      expect(
-        findings.map((f) => f.subject),
-        ['UC-04', 'UC-07', 'UC-12'],
-      );
+      expect(findings.map((f) => f.subject), ['UC-04', 'UC-07', 'UC-12']);
     });
   });
 
@@ -298,9 +294,7 @@ Hệ thống cho phép đăng nhập bằng email.
       // RequirementKind.statement rows are not "use cases" — the
       // missing-actor check must not produce phantom findings on bare
       // requirement statements.
-      final doc = _doc([
-        _statement('The system shall persist the record.'),
-      ]);
+      final doc = _doc([_statement('The system shall persist the record.')]);
       expect(const ReferenceChecks().missingActor(doc), isEmpty);
     });
 

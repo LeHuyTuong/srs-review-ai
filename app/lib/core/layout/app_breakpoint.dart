@@ -77,9 +77,7 @@ abstract final class AppBreakpoints {
   static bool showsCenteredDialog({
     required double width,
     required AppFormFactor form,
-  }) => form == AppFormFactor.phone
-      ? false
-      : width >= compactMaxWidth;
+  }) => form == AppFormFactor.phone ? false : width >= compactMaxWidth;
 
   static AppBreakpoint forWidth(double width) => switch (width) {
     < compactMaxWidth => AppBreakpoint.compact,

@@ -34,10 +34,10 @@ class ReferenceChecks {
   /// is "clean" against this family. Findings come out grouped per check so
   /// the dashboard can show one section per smell type.
   List<DeterministicFinding> runAll(SrsDocument document) => [
-      ...duplicateIds(document),
-      ...missingPostcondition(document),
-      ...missingActor(document),
-    ];
+    ...duplicateIds(document),
+    ...missingPostcondition(document),
+    ...missingActor(document),
+  ];
 
   // ---------------------------------------------------------------- duplicateIds
   /// Reports every explicit id that two or more requirements share.
@@ -58,8 +58,8 @@ class ReferenceChecks {
       grouped.update(item.id, (n) => n + 1, ifAbsent: () => 1);
     }
     final findings = <DeterministicFinding>[];
-    final sortedIds =
-        grouped.keys.where((id) => grouped[id]! > 1).toList()..sort();
+    final sortedIds = grouped.keys.where((id) => grouped[id]! > 1).toList()
+      ..sort();
     for (final id in sortedIds) {
       final occurrences = grouped[id]!;
       findings.add(

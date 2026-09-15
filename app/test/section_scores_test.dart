@@ -315,7 +315,10 @@ void main() {
           'missing_postcondition:UC-01': FindingStatus.verified,
         },
       );
-      expect(report, contains('| Family | Check | Subject | Result | Status |'));
+      expect(
+        report,
+        contains('| Family | Check | Subject | Result | Status |'),
+      );
       // A promoted row reads Verified; an untouched failing row reads
       // Open — the honest default, never hidden.
       expect(report, contains('Verified'));

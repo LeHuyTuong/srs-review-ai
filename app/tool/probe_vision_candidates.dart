@@ -16,7 +16,10 @@ void main() {
       markTestSkipped('set SRS_TEST_PDF');
       return;
     }
-    final document = await ParseService().parse(bytes: Uint8List.fromList(await File(path).readAsBytes()), fileName: path.split('/').last);
+    final document = await ParseService().parse(
+      bytes: Uint8List.fromList(await File(path).readAsBytes()),
+      fileName: path.split('/').last,
+    );
     final svc = VisionReviewService(
       auditor: (_) async => throw StateError('probe: no audit'),
       renderPage: (_, _) async => 'AA==',

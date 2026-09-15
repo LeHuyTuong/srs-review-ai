@@ -76,10 +76,11 @@ ProviderContainer _container({required ReviewApi api, required bool online}) {
     overrides: [
       sessionStoreProvider.overrideWithValue(InMemorySessionStore()),
       reviewApiProvider.overrideWithValue(
-  
-      const MockReviewApi(latency: Duration.zero),
+        const MockReviewApi(latency: Duration.zero),
       ),
-      mockModeProvider.overrideWith(online ? _OnlineMode.new : _OfflineMode.new),
+      mockModeProvider.overrideWith(
+        online ? _OnlineMode.new : _OfflineMode.new,
+      ),
       reviewRepositoryProvider.overrideWithValue(ReviewRepository(api)),
     ],
   );
@@ -107,22 +108,24 @@ void main() {
       expect(await vm.mintShareLink(), isNull);
     });
 
-    test('online: the dashboard twin is published and the URL comes back',
-        () async {
-      final api = _ShareApi();
-      final container = _container(api: api, online: true);
-      addTearDown(container.dispose);
-      final vm = container.read(workspaceViewModelProvider.notifier);
-      await vm.loadDemo();
-      expect(vm.canShareReport, isTrue);
-      final link = await vm.mintShareLink();
-      expect(link, 'https://proxy.test/share/Ab12cd34EF56gh');
-      expect(api.postedHtml, contains('<!DOCTYPE html>'));
-      expect(api.postedFileName, isNotEmpty);
-      final state = container.read(workspaceViewModelProvider);
-      expect(state.isSharingReport, isFalse);
-      expect(state.error, isNull);
-    });
+    test(
+      'online: the dashboard twin is published and the URL comes back',
+      () async {
+        final api = _ShareApi();
+        final container = _container(api: api, online: true);
+        addTearDown(container.dispose);
+        final vm = container.read(workspaceViewModelProvider.notifier);
+        await vm.loadDemo();
+        expect(vm.canShareReport, isTrue);
+        final link = await vm.mintShareLink();
+        expect(link, 'https://proxy.test/share/Ab12cd34EF56gh');
+        expect(api.postedHtml, contains('<!DOCTYPE html>'));
+        expect(api.postedFileName, isNotEmpty);
+        final state = container.read(workspaceViewModelProvider);
+        expect(state.isSharingReport, isFalse);
+        expect(state.error, isNull);
+      },
+    );
 
     test('a failed POST surfaces the error, not a dead link', () async {
       final container = _container(api: _ShareApi(fail: true), online: true);

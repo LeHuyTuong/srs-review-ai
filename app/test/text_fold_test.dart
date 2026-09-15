@@ -35,8 +35,10 @@ void main() {
     });
 
     test('punctuation and digits survive untouched', () {
-      expect(foldVietnamese('Bước 3: nhập mã (≤ 10 ký tự)'),
-          'Buoc 3: nhap ma (≤ 10 ky tu)'.toLowerCase());
+      expect(
+        foldVietnamese('Bước 3: nhập mã (≤ 10 ký tự)'),
+        'Buoc 3: nhap ma (≤ 10 ky tu)'.toLowerCase(),
+      );
     });
 
     test('whitespace runs (newlines, NBSP) collapse to one space', () {

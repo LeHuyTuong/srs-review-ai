@@ -42,7 +42,10 @@ class QualityChecks {
     ('secure(ly)', RegExp(r'\bsecure(ly)?\b', caseSensitive: false)),
     ('when required', RegExp(r'when required', caseSensitive: false)),
     ('if necessary', RegExp(r'if necessary', caseSensitive: false)),
-    ('as needed/appropriate', RegExp(r'as (needed|appropriate|required)', caseSensitive: false)),
+    (
+      'as needed/appropriate',
+      RegExp(r'as (needed|appropriate|required)', caseSensitive: false),
+    ),
     ('and so on', RegExp(r'and so on', caseSensitive: false)),
     ('etc.', RegExp(r'\betc\.?', caseSensitive: false)),
     (
@@ -53,10 +56,7 @@ class QualityChecks {
     ('usually', RegExp(r'\busually\b', caseSensitive: false)),
     ('in a timely manner', RegExp(r'in a timely manner', caseSensitive: false)),
     ('dễ sử dụng', RegExp('de su dung')),
-    (
-      'thân thiện với người dùng',
-      RegExp('thanh thien (voi|cho) nguoi dung'),
-    ),
+    ('thân thiện với người dùng', RegExp('thanh thien (voi|cho) nguoi dung')),
     ('nhanh chóng', RegExp('nhanh chong')),
     ('phù hợp', RegExp('phu hop')),
     ('hợp lý', RegExp('hop ly')),
@@ -80,7 +80,10 @@ class QualityChecks {
 
   static final List<(String, RegExp)> _placeholders = [
     ('TBD', RegExp(r'\btbd\b')),
-    ('to be defined/determined', RegExp(r'to be (defined|determined|decided)', caseSensitive: false)),
+    (
+      'to be defined/determined',
+      RegExp(r'to be (defined|determined|decided)', caseSensitive: false),
+    ),
     ('[insert…]', RegExp(r'\[insert', caseSensitive: false)),
     ('???', RegExp(r'\?\?\?')),
     ('chưa xác định', RegExp('chua xac dinh')),
@@ -139,7 +142,8 @@ class QualityChecks {
           '$id uses unmeasurable wording: $hits. '
           'Replace with a number, threshold, or test step '
           '(srs-writer quality criteria 2+3).',
-      pass: 'No unmeasurable wording flagged by the conservative '
+      pass:
+          'No unmeasurable wording flagged by the conservative '
           'phrase scan ("all"/"some" deliberately not scanned).',
     ),
     ..._scan(

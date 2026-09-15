@@ -84,8 +84,7 @@ void main() {
       // Round 7 acceptance: emit the same parse-side counts for the M2
       // reference family so a single run reports both F7/F8/F9 and the
       // duplicate-id + missing-postcondition families on the real document.
-      final referenceFindings =
-          const ReferenceChecks().runAll(document);
+      final referenceFindings = const ReferenceChecks().runAll(document);
       final m2DuplicateIds = referenceFindings
           .where((f) => f.check == CheckId.duplicateIds)
           .toList(growable: false);
@@ -135,9 +134,7 @@ void main() {
         'm2CrossArtifactNameActuals': [
           for (final f in m2CrossArtifactName) f.actual,
         ],
-        'm2MissingActorIds': [
-          for (final f in m2MissingActor) f.subject,
-        ],
+        'm2MissingActorIds': [for (final f in m2MissingActor) f.subject],
       };
       _record(caseId, result);
       if (!expectSuccess) {
@@ -311,8 +308,10 @@ void main() {
       final path = _realPdfPath();
       if (path == null) {
         // ignore: avoid_print
-        print('QA|TC-14|{"outcome":"skipped","reason":"no real document — '
-            'set $_realPdfEnv or put one at $_conventionalPdf"}');
+        print(
+          'QA|TC-14|{"outcome":"skipped","reason":"no real document — '
+          'set $_realPdfEnv or put one at $_conventionalPdf"}',
+        );
         return;
       }
       final bytes = File(path).readAsBytesSync();
@@ -378,10 +377,8 @@ void main() {
       final missingPost = result['m2MissingPostconditionCount'] as int;
       final crossArtifact = result['m2CrossArtifactNameCount'] as int;
       final missingActor = result['m2MissingActorCount'] as int;
-      final deterministicCeiling = duplicateIds +
-          missingPost +
-          crossArtifact +
-          missingActor;
+      final deterministicCeiling =
+          duplicateIds + missingPost + crossArtifact + missingActor;
       expect(
         deterministicCeiling,
         greaterThanOrEqualTo(200),
@@ -398,8 +395,10 @@ void main() {
       final path = _realPdfPath();
       if (path == null) {
         // ignore: avoid_print
-        print('QA|TC-15|{"outcome":"skipped","reason":"no real document — '
-            'set $_realPdfEnv or put one at $_conventionalPdf"}');
+        print(
+          'QA|TC-15|{"outcome":"skipped","reason":"no real document — '
+          'set $_realPdfEnv or put one at $_conventionalPdf"}',
+        );
         return;
       }
       final bytes = File(path).readAsBytesSync();

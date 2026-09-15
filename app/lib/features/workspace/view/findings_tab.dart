@@ -30,14 +30,7 @@ class FindingsTab extends ConsumerStatefulWidget {
   ConsumerState<FindingsTab> createState() => _FindingsTabState();
 }
 
-enum _StatusFilter {
-  all,
-  open,
-  fixed,
-  verified,
-  pendingVision,
-  disputed,
-}
+enum _StatusFilter { all, open, fixed, verified, pendingVision, disputed }
 
 extension on _StatusFilter {
   String get label => switch (this) {
@@ -102,8 +95,9 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                   child: Text(
                     'Verdict (rubric E)',
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleSmall
-                        ?.copyWith(color: colors.ink),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: colors.ink,
+                    ),
                   ),
                 ),
                 Text(
@@ -138,8 +132,9 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                       width: 18,
                       child: Text(
                         glyph(comp),
-                        style: theme.textTheme.labelMedium
-                            ?.copyWith(color: colors.ink),
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: colors.ink,
+                        ),
                       ),
                     ),
                     Expanded(
@@ -426,14 +421,11 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                   ReviewMode.textFirst => WBadgeTint.amber,
                   ReviewMode.blind => WBadgeTint.neutral,
                 },
-                leading: Icon(
-                  switch (state.currentMode) {
-                    ReviewMode.full => Icons.verified_outlined,
-                    ReviewMode.textFirst => Icons.article_outlined,
-                    ReviewMode.blind => Icons.visibility_off_outlined,
-                  },
-                  size: 12,
-                ),
+                leading: Icon(switch (state.currentMode) {
+                  ReviewMode.full => Icons.verified_outlined,
+                  ReviewMode.textFirst => Icons.article_outlined,
+                  ReviewMode.blind => Icons.visibility_off_outlined,
+                }, size: 12),
               ),
               // Round 10 — Re-verify. Re-runs the deterministic checker
               // and lets the Verifier promote fixed → verified (or
@@ -608,8 +600,7 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                     child: WPanel(
                       padding: const EdgeInsets.all(AppSpacing.md),
                       child: AppInkWell(
-                        onTap: () =>
-                            showSyllabusCheckDetail(context, finding),
+                        onTap: () => showSyllabusCheckDetail(context, finding),
                         borderRadius: AppRadius.boxSm,
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -643,11 +634,10 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                                   const SizedBox(height: AppSpacing.xs),
                                   Text(
                                     finding.message,
-                                    style: theme.textTheme.bodySmall
-                                        ?.copyWith(
-                                          color: colors.muted,
-                                          height: 1.7,
-                                        ),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colors.muted,
+                                      height: 1.7,
+                                    ),
                                   ),
                                 ],
                               ),

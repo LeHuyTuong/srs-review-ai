@@ -12,7 +12,7 @@
 ///
 /// Quota discipline (AGENTS.md: 50 requests/day, and the limiter charges
 /// one unit per two-call audit): named pages are audited first (visual-only
-  /// pages last, each tier in page order) up to
+/// pages last, each tier in page order) up to
 /// [maxPages]; the rest are reported as skipped, never silently dropped.
 library;
 
@@ -27,16 +27,13 @@ import '../models/srs_document.dart';
 
 /// Sends one audit request; production wiring is [ApiService.diagramAudit],
 /// tests inject a scripted fake.
-typedef DiagramAuditor = Future<DiagramAuditResult> Function(
-  DiagramAuditRequest request,
-);
+typedef DiagramAuditor =
+    Future<DiagramAuditResult> Function(DiagramAuditRequest request);
 
 /// Encodes one page of the PDF as base64 PNG. Production wiring renders
 /// through [PageImageRenderer]; tests inject canned bytes.
-typedef PageImageEncoder = Future<String> Function(
-  int pageIndex,
-  String contextText,
-);
+typedef PageImageEncoder =
+    Future<String> Function(int pageIndex, String contextText);
 
 /// One page worth auditing, decided offline before any request leaves.
 class DiagramPageCandidate {
@@ -75,7 +72,6 @@ class VisionAuditOutcome {
 }
 
 class VisionReviewService {
-
   const VisionReviewService({
     required this.auditor,
     required this.renderPage,
@@ -92,7 +88,6 @@ class VisionReviewService {
   /// Cap on pages per run: one page = one request (two model calls), so
   /// 10 keeps a 50/day quota intact for the ordinary review.
   final int maxPages;
-
 
   /// An auditor that refuses to speak: wired in when only the offline
   /// candidate decision is needed (button labels, counts). A call reaching
@@ -141,7 +136,8 @@ class VisionReviewService {
       final text = textByPage[page]?.toString() ?? '';
       if (text.isEmpty && !visual.contains(page)) continue;
       final kind = classifier.classify(text);
-      final namedHere = kind != DiagramKind.unknown &&
+      final namedHere =
+          kind != DiagramKind.unknown &&
           // A caption index NAMES many diagrams and DRAWS none — it
           // audits only if it also carries real image evidence.
           !classifier.isCaptionIndex(text);
@@ -167,8 +163,12 @@ class VisionReviewService {
     // UI mockups). Named first, visual-only last, each tier in page
     // order; the order is deterministic in the document, so re-runs
     // number the same pages the same way.
-    final named = candidates.where((c) => c.kind != DiagramKind.unknown).toList();
-    final visualOnly = candidates.where((c) => c.kind == DiagramKind.unknown).toList();
+    final named = candidates
+        .where((c) => c.kind != DiagramKind.unknown)
+        .toList();
+    final visualOnly = candidates
+        .where((c) => c.kind == DiagramKind.unknown)
+        .toList();
     return [...named, ...visualOnly];
   }
 
@@ -184,7 +184,8 @@ class VisionReviewService {
     }
 
     final withinBudget = candidates.take(maxPages).toList(growable: false);
-    final skipped = candidates.skip(maxPages)
+    final skipped = candidates
+        .skip(maxPages)
         .map((c) => c.pageIndex)
         .toList(growable: false);
 
@@ -220,9 +221,10 @@ class VisionReviewService {
             : tentativeLabel;
         final next = (familyOrdinal[label] ?? 0) + 1;
         familyOrdinal[label] = next;
-        final subject =
-            "$label-${next.toString().padLeft(2, '0')}";
-        findings.add(_row(subject: subject, candidate: candidate, result: result));
+        final subject = "$label-${next.toString().padLeft(2, '0')}";
+        findings.add(
+          _row(subject: subject, candidate: candidate, result: result),
+        );
       } on Object catch (error) {
         // A failed audit is a gap in our evidence, not a defect in the
         // document: it must not push the ledger toward red or green.
@@ -247,9 +249,7 @@ class VisionReviewService {
     required DiagramAuditResult result,
   }) {
     final page = candidate.pageIndex + 1;
-    final redCount = result.findings
-        .where((f) => f.severity == 'red')
-        .length;
+    final redCount = result.findings.where((f) => f.severity == 'red').length;
     // Family honesty (measured 2026-09-14): when the audit found NO
     // drawn inventory, every real finding is about document structure —
     // filing it under ERD-/SEQ-CLS-/PKG- would tell the reader the
@@ -270,11 +270,11 @@ class VisionReviewService {
         subject: subject,
         message: sawDiagram
             ? 'Vision audit of page $page (${candidate.kind.wire}): no '
-              'notation issues found in ${result.elements.length} element(s), '
-              '${result.relations.length} relation(s).$suffix'
+                  'notation issues found in ${result.elements.length} element(s), '
+                  '${result.relations.length} relation(s).$suffix'
             : 'Vision audit of page $page (${candidate.kind.wire}): no '
-              'drawn diagram found on this page (0 elements, 0 relations) — '
-              'nothing to grade.$suffix',
+                  'drawn diagram found on this page (0 elements, 0 relations) — '
+                  'nothing to grade.$suffix',
       );
     }
     final evidence = result.findings

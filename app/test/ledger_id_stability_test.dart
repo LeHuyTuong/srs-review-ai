@@ -40,12 +40,12 @@ RequirementItem _uc(String id, String text, {String? section}) =>
     );
 
 SrsDocument _doc(List<RequirementItem> reqs) => SrsDocument(
-      fileName: 'fixture.srs',
-      pageCount: 1,
-      pageTexts: const ['fixture'],
-      imagePageIndexes: const [],
-      requirements: reqs,
-    );
+  fileName: 'fixture.srs',
+  pageCount: 1,
+  pageTexts: const ['fixture'],
+  imagePageIndexes: const [],
+  requirements: reqs,
+);
 
 class _StubParser implements DocumentParser {
   _StubParser(this._doc);
@@ -109,36 +109,38 @@ Map<String, FindingStatus> _seed(LoadedDocument loaded) {
 
 void main() {
   group('Ledger re-run ID-stability — goal §3 invariant #1', () {
-    test('same doc, same parser version → byte-identical id sequence',
-        () async {
-      // A document with mixed clean and dirty UCs so every M2 family
-      // fires at least once (duplicateIds, missingPostcondition,
-      // missingActor) and the id sequence is long enough to be a
-      // meaningful identity check.
-      final doc = _doc([
-        _uc('UC-01', 'Submit form.'),
-        _uc('UC-02', 'Cancel form.'),
-        _uc('UC-02', 'Undo cancellation.'), // duplicateId target
-        _uc('UC-03', 'Confirm form.'),
-      ]);
+    test(
+      'same doc, same parser version → byte-identical id sequence',
+      () async {
+        // A document with mixed clean and dirty UCs so every M2 family
+        // fires at least once (duplicateIds, missingPostcondition,
+        // missingActor) and the id sequence is long enough to be a
+        // meaningful identity check.
+        final doc = _doc([
+          _uc('UC-01', 'Submit form.'),
+          _uc('UC-02', 'Cancel form.'),
+          _uc('UC-02', 'Undo cancellation.'), // duplicateId target
+          _uc('UC-03', 'Confirm form.'),
+        ]);
 
-      final run1 = await _loadOnce(doc);
-      final run2 = await _loadOnce(doc);
+        final run1 = await _loadOnce(doc);
+        final run2 = await _loadOnce(doc);
 
-      final ids1 = run1.allFindings
-          .map((f) => '${f.check.wire}:${f.subject}')
-          .toList();
-      final ids2 = run2.allFindings
-          .map((f) => '${f.check.wire}:${f.subject}')
-          .toList();
+        final ids1 = run1.allFindings
+            .map((f) => '${f.check.wire}:${f.subject}')
+            .toList();
+        final ids2 = run2.allFindings
+            .map((f) => '${f.check.wire}:${f.subject}')
+            .toList();
 
-      // The same document parsed twice yields the same finding
-      // sequence in the same order — the ledger invariant that makes
-      // re-review diffs readable as "X findings changed status", not
-      // "the findings themselves changed".
-      expect(ids2, equals(ids1));
-      expect(ids1, isNotEmpty);
-    });
+        // The same document parsed twice yields the same finding
+        // sequence in the same order — the ledger invariant that makes
+        // re-review diffs readable as "X findings changed status", not
+        // "the findings themselves changed".
+        expect(ids2, equals(ids1));
+        expect(ids1, isNotEmpty);
+      },
+    );
 
     test('re-run with no patch → empty diff counters', () async {
       // The trivial case the brief relies on. If nothing changed
@@ -169,44 +171,56 @@ void main() {
       // both runs), and it must match the keyspace — not be empty.
       expect(diff.promotedToVerified, 0);
       expect(diff.reopened, 0);
-      expect(diff.unchanged, before.length,
-          reason: 'No transitions on a no-op patch — the brief\'s '
-              "'diff bằng grep -c OPEN' pattern.");
+      expect(
+        diff.unchanged,
+        before.length,
+        reason:
+            'No transitions on a no-op patch — the brief\'s '
+            "'diff bằng grep -c OPEN' pattern.",
+      );
     });
 
-    test('re-run with one fixed → promotedToVerified increments by 1',
-        () async {
-      // A reviewer marks one UC fixed between rounds. Re-running
-      // the pipeline on the same document must surface exactly that
-      // single promotion; nothing else moves.
-      final doc = _doc([
-        _uc('UC-01', 'Submit form.'),
-        _uc('UC-02', 'Cancel form.\nPostcondition: cancelled.'),
-        _uc('UC-03', 'Confirm form.\nPostcondition: confirmed.'),
-      ]);
+    test(
+      're-run with one fixed → promotedToVerified increments by 1',
+      () async {
+        // A reviewer marks one UC fixed between rounds. Re-running
+        // the pipeline on the same document must surface exactly that
+        // single promotion; nothing else moves.
+        final doc = _doc([
+          _uc('UC-01', 'Submit form.'),
+          _uc('UC-02', 'Cancel form.\nPostcondition: cancelled.'),
+          _uc('UC-03', 'Confirm form.\nPostcondition: confirmed.'),
+        ]);
 
-      final run1 = await _loadOnce(doc);
-      final run2 = await _loadOnce(doc);
+        final run1 = await _loadOnce(doc);
+        final run2 = await _loadOnce(doc);
 
-      final before = _seed(run1);
-      // Apply one edit: the reviewer fixed UC-01. The key is the
-      // full `wire:id` shape the Verifier requires.
-      final uc01Finding = run1.allFindings.firstWhere((f) => f.subject == 'UC-01');
-      final uc01Id = '${uc01Finding.check.wire}:${uc01Finding.subject}';
-      before[uc01Id] = FindingStatus.fixed;
+        final before = _seed(run1);
+        // Apply one edit: the reviewer fixed UC-01. The key is the
+        // full `wire:id` shape the Verifier requires.
+        final uc01Finding = run1.allFindings.firstWhere(
+          (f) => f.subject == 'UC-01',
+        );
+        final uc01Id = '${uc01Finding.check.wire}:${uc01Finding.subject}';
+        before[uc01Id] = FindingStatus.fixed;
 
-      final after = _seed(run2); // fresh re-derive — every status is open
+        final after = _seed(run2); // fresh re-derive — every status is open
 
-      final diff = VerifyDiff.compute(before: before, after: after);
-      // UC-01 went fixed → open, which is a "reopened" transition
-      // (the regression: a fixed item loses its fix between rounds
-      // because the source document still misses whatever fix the
-      // reviewer applied — a verifier catching real drift).
-      expect(diff.reopened, 1,
-          reason: 'A fixed-then-reopened item is a regression — the '
-              'document regressed out from under the reviewer.');
-      expect(diff.promotedToVerified, 0);
-    });
+        final diff = VerifyDiff.compute(before: before, after: after);
+        // UC-01 went fixed → open, which is a "reopened" transition
+        // (the regression: a fixed item loses its fix between rounds
+        // because the source document still misses whatever fix the
+        // reviewer applied — a verifier catching real drift).
+        expect(
+          diff.reopened,
+          1,
+          reason:
+              'A fixed-then-reopened item is a regression — the '
+              'document regressed out from under the reviewer.',
+        );
+        expect(diff.promotedToVerified, 0);
+      },
+    );
 
     test('id keyspace is invariant under re-run', () async {
       // The single most important invariant: between run1 and run2 the

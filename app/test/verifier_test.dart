@@ -123,14 +123,9 @@ void main() {
             'missing_postcondition:UC-01': FindingStatus.pendingVision,
           },
           syllabusFindings: const [],
-          referenceFindings: [
-            _missingPostcondition('UC-01', passed: true),
-          ],
+          referenceFindings: [_missingPostcondition('UC-01', passed: true)],
         );
-        expect(
-          next['missing_postcondition:UC-01'],
-          FindingStatus.verified,
-        );
+        expect(next['missing_postcondition:UC-01'], FindingStatus.verified);
       },
     );
 
@@ -140,14 +135,9 @@ void main() {
           'missing_postcondition:UC-01': FindingStatus.pendingVision,
         },
         syllabusFindings: const [],
-        referenceFindings: [
-          _missingPostcondition('UC-01', passed: false),
-        ],
+        referenceFindings: [_missingPostcondition('UC-01', passed: false)],
       );
-      expect(
-        next['missing_postcondition:UC-01'],
-        FindingStatus.pendingVision,
-      );
+      expect(next['missing_postcondition:UC-01'], FindingStatus.pendingVision);
     });
   });
 
@@ -173,10 +163,11 @@ void main() {
       expect(next['language:UC-02'], FindingStatus.verified);
       expect(next['language:UC-03'], FindingStatus.disputed);
       // And no row from the previous map has been dropped.
-      expect(
-        next.keys.toSet(),
-        {'language:UC-01', 'language:UC-02', 'language:UC-03'},
-      );
+      expect(next.keys.toSet(), {
+        'language:UC-01',
+        'language:UC-02',
+        'language:UC-03',
+      });
     });
 
     test('a fresh failure introduces its own key as open', () {
@@ -201,15 +192,10 @@ void main() {
           'missing_postcondition:UC-01': FindingStatus.fixed,
         },
         syllabusFindings: [_uc('UC-01', passed: false)],
-        referenceFindings: [
-          _missingPostcondition('UC-01', passed: true),
-        ],
+        referenceFindings: [_missingPostcondition('UC-01', passed: true)],
       );
       expect(next['language:UC-01'], FindingStatus.open);
-      expect(
-        next['missing_postcondition:UC-01'],
-        FindingStatus.verified,
-      );
+      expect(next['missing_postcondition:UC-01'], FindingStatus.verified);
     });
   });
 
@@ -240,86 +226,92 @@ void main() {
   // required findings must NEVER be tinted green, so they begin in limbo
   // and the Verifier's transition table can only promote them when the
   // text-only path confirms the check no longer fires.
-  group('Verifier — UNV upstream signal (pendingVision seeded for vision-required findings)', () {
-    test(
-      'fresh finding with requiresVisionEvidence → initial status is pendingVision, not open',
-      () {
-        final next = _verifier.verify(
-          previousStatuses: const {},
-          syllabusFindings: const [],
-          referenceFindings: const [
-            DeterministicFinding(
-              check: CheckId.crossArtifactName,
-              passed: false,
-              severity: Severity.high,
-              subject: 'UC-01',
-              message: 'diagram-vs-text inconsistency',
-              requiresVisionEvidence: true,
-            ),
-          ],
-        );
-        expect(next['cross_artifact_name:UC-01'],
-            FindingStatus.pendingVision);
-      },
-    );
+  group(
+    'Verifier — UNV upstream signal (pendingVision seeded for vision-required findings)',
+    () {
+      test(
+        'fresh finding with requiresVisionEvidence → initial status is pendingVision, not open',
+        () {
+          final next = _verifier.verify(
+            previousStatuses: const {},
+            syllabusFindings: const [],
+            referenceFindings: const [
+              DeterministicFinding(
+                check: CheckId.crossArtifactName,
+                passed: false,
+                severity: Severity.high,
+                subject: 'UC-01',
+                message: 'diagram-vs-text inconsistency',
+                requiresVisionEvidence: true,
+              ),
+            ],
+          );
+          expect(
+            next['cross_artifact_name:UC-01'],
+            FindingStatus.pendingVision,
+          );
+        },
+      );
 
-    test(
-      'fresh finding WITHOUT requiresVisionEvidence → initial status stays open',
-      () {
-        final next = _verifier.verify(
-          previousStatuses: const {},
-          syllabusFindings: const [],
-          referenceFindings: const [
-            DeterministicFinding(
-              check: CheckId.duplicateIds,
-              passed: false,
-              severity: Severity.high,
-              subject: 'UC04',
-              message: 'id reused',
-            ),
-          ],
-        );
-        expect(next['duplicate_ids:UC04'], FindingStatus.open);
-      },
-    );
+      test(
+        'fresh finding WITHOUT requiresVisionEvidence → initial status stays open',
+        () {
+          final next = _verifier.verify(
+            previousStatuses: const {},
+            syllabusFindings: const [],
+            referenceFindings: const [
+              DeterministicFinding(
+                check: CheckId.duplicateIds,
+                passed: false,
+                severity: Severity.high,
+                subject: 'UC04',
+                message: 'id reused',
+              ),
+            ],
+          );
+          expect(next['duplicate_ids:UC04'], FindingStatus.open);
+        },
+      );
 
-    test(
-      'pendingVision + check no longer fires → verified (text-only path confirms)',
-      () {
-        final next = _verifier.verify(
-          previousStatuses: const {
-            'cross_artifact_name:UC-01': FindingStatus.pendingVision,
-          },
-          syllabusFindings: const [],
-          referenceFindings: const [],
-        );
-        expect(next['cross_artifact_name:UC-01'],
-            FindingStatus.verified);
-      },
-    );
+      test(
+        'pendingVision + check no longer fires → verified (text-only path confirms)',
+        () {
+          final next = _verifier.verify(
+            previousStatuses: const {
+              'cross_artifact_name:UC-01': FindingStatus.pendingVision,
+            },
+            syllabusFindings: const [],
+            referenceFindings: const [],
+          );
+          expect(next['cross_artifact_name:UC-01'], FindingStatus.verified);
+        },
+      );
 
-    test(
-      'pendingVision + check still fails → pendingVision (never auto-promotes)',
-      () {
-        final next = _verifier.verify(
-          previousStatuses: const {
-            'cross_artifact_name:UC-01': FindingStatus.pendingVision,
-          },
-          syllabusFindings: const [],
-          referenceFindings: const [
-            DeterministicFinding(
-              check: CheckId.crossArtifactName,
-              passed: false,
-              severity: Severity.high,
-              subject: 'UC-01',
-              message: 'still inconsistent',
-              requiresVisionEvidence: true,
-            ),
-          ],
-        );
-        expect(next['cross_artifact_name:UC-01'],
-            FindingStatus.pendingVision);
-      },
-    );
-  });
+      test(
+        'pendingVision + check still fails → pendingVision (never auto-promotes)',
+        () {
+          final next = _verifier.verify(
+            previousStatuses: const {
+              'cross_artifact_name:UC-01': FindingStatus.pendingVision,
+            },
+            syllabusFindings: const [],
+            referenceFindings: const [
+              DeterministicFinding(
+                check: CheckId.crossArtifactName,
+                passed: false,
+                severity: Severity.high,
+                subject: 'UC-01',
+                message: 'still inconsistent',
+                requiresVisionEvidence: true,
+              ),
+            ],
+          );
+          expect(
+            next['cross_artifact_name:UC-01'],
+            FindingStatus.pendingVision,
+          );
+        },
+      );
+    },
+  );
 }

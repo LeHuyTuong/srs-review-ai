@@ -84,28 +84,37 @@ void main() {
     print('CANDIDATES|${candidates.length}');
     final run1 = await service.audit(document);
     for (final f in run1.findings) {
-      print('ROW1|${f.subject}|${f.passed}|${f.severity.name}|${f.message.length}ch');
+      print(
+        'ROW1|${f.subject}|${f.passed}|${f.severity.name}|${f.message.length}ch',
+      );
     }
-    print('FAILURES1|${run1.failures.length}|${run1.skippedPages.length} skipped');
+    print(
+      'FAILURES1|${run1.failures.length}|${run1.skippedPages.length} skipped',
+    );
     for (final f in run1.failures.take(3)) {
       print('FAIL1|$f');
     }
-    File('/tmp/vision_batch_run1.json').writeAsStringSync(
-      const JsonEncoder.withIndent('  ').convert(rawLog),
-    );
+    File(
+      '/tmp/vision_batch_run1.json',
+    ).writeAsStringSync(const JsonEncoder.withIndent('  ').convert(rawLog));
 
     // Run 2: same pages — the server cache should answer instantly and the
     // ledger rows must be byte-identical (that is the stability contract).
-    final rowsBefore = run1.findings.map((f) => '${f.subject}:${f.passed}:${f.severity}').join('|');
+    final rowsBefore = run1.findings
+        .map((f) => '${f.subject}:${f.passed}:${f.severity}')
+        .join('|');
     rawLog.clear();
     final run2 = await service.audit(document);
-    final rowsAfter = run2.findings.map((f) => '${f.subject}:${f.passed}:${f.severity}').join('|');
-    final allCached = rawLog.isNotEmpty && rawLog.every((e) => e['cached'] == true);
+    final rowsAfter = run2.findings
+        .map((f) => '${f.subject}:${f.passed}:${f.severity}')
+        .join('|');
+    final allCached =
+        rawLog.isNotEmpty && rawLog.every((e) => e['cached'] == true);
     print('STABILITY|${rowsBefore == rowsAfter ? 'identical' : 'DRIFT'}');
     print('CACHE|all-run2-cached=$allCached');
-    File('/tmp/vision_batch_run2.json').writeAsStringSync(
-      const JsonEncoder.withIndent('  ').convert(rawLog),
-    );
+    File(
+      '/tmp/vision_batch_run2.json',
+    ).writeAsStringSync(const JsonEncoder.withIndent('  ').convert(rawLog));
     expect(run1.findings, isNotEmpty);
   });
 }

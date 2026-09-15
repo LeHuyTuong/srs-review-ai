@@ -75,14 +75,16 @@ class Verifier {
     // so they begin in the limbo state and the Verifier's transition
     // table promotes them only when the text-only path confirms.
     final visionRequired = <String>{
-      for (final f in _failingFindings(syllabusFindings)
-        .followedBy(_failingFindings(referenceFindings)))
+      for (final f in _failingFindings(
+        syllabusFindings,
+      ).followedBy(_failingFindings(referenceFindings)))
         if (f.requiresVisionEvidence) _keyOf(f),
     };
     for (final key in stillFailing) {
       if (next.containsKey(key)) continue;
-      next[key] =
-          visionRequired.contains(key) ? FindingStatus.pendingVision : FindingStatus.open;
+      next[key] = visionRequired.contains(key)
+          ? FindingStatus.pendingVision
+          : FindingStatus.open;
     }
     return next;
   }
