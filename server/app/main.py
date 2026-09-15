@@ -10,8 +10,7 @@ Responsibilities (and nothing else):
 from __future__ import annotations
 
 import logging
-
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
@@ -20,30 +19,6 @@ from pydantic import BaseModel, Field, ValidationError
 
 from .cache import LruCache, cache_key
 from .config import Settings, get_settings
-from .llm.base import LlmError
-from .llm.router import build_provider
-from .prompt import ask_system_prompt, ask_user_prompt, review_system_prompt, review_user_prompt
-from .ratelimit import RateLimiter
-from .share import ShareStore
-from .rubric import load_rubric
-from .uploads import (
-    TOKEN_TTL_SECONDS,
-    InvalidTokenError,
-    UploadNotFoundError,
-    UploadStore,
-    UploadTooLargeError,
-)
-from .schemas import (
-    CONTRACT_VERSION,
-    LLM_ASK_SCHEMA,
-    LLM_REVIEW_SCHEMA,
-    AskRequest,
-    AskResponse,
-    Citation,
-    ReviewRequest,
-    ReviewResult,
-)
-from .verify import review_issues, verify_quote
 from .diagram import (
     DESCRIBE_SYSTEM,
     DIAGRAM_PROMPT_VERSION,
@@ -59,6 +34,29 @@ from .diagram import (
     judge_system_prompt,
     judge_user_prompt,
 )
+from .llm.base import LlmError
+from .llm.router import build_provider
+from .prompt import ask_system_prompt, ask_user_prompt, review_system_prompt, review_user_prompt
+from .ratelimit import RateLimiter
+from .rubric import load_rubric
+from .schemas import (
+    CONTRACT_VERSION,
+    LLM_ASK_SCHEMA,
+    LLM_REVIEW_SCHEMA,
+    AskRequest,
+    AskResponse,
+    Citation,
+    ReviewRequest,
+    ReviewResult,
+)
+from .share import ShareStore
+from .uploads import (
+    InvalidTokenError,
+    UploadNotFoundError,
+    UploadStore,
+    UploadTooLargeError,
+)
+from .verify import review_issues, verify_quote
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 log = logging.getLogger("srs-proxy")
@@ -82,7 +80,9 @@ _diagram_cache: LruCache[DiagramResponse] = LruCache()
 _limiter = RateLimiter()
 
 _upload_store = UploadStore(
-    _settings.upload_dir, _settings.max_upload_bytes, _settings.app_token,
+    _settings.upload_dir,
+    _settings.max_upload_bytes,
+    _settings.app_token,
 )
 
 _share_store = ShareStore(_settings.share_dir)
@@ -347,8 +347,7 @@ async def diagram(
         raise HTTPException(
             status_code=429,
             detail=(
-                f"Daily review limit reached ({settings.rate_limit_per_day}). "
-                f"Retry after {retry_after}s."
+                f"Daily review limit reached ({settings.rate_limit_per_day}). Retry after {retry_after}s."
             ),
             headers={"Retry-After": str(retry_after)},
         )
@@ -381,9 +380,7 @@ async def diagram(
             if not describe.elements and not describe.relations
             else ID_FAMILY_BY_TYPE[payload.diagram_type]
         )
-        verdict = DiagramVerdict.model_validate(raw_judge).bind_family(
-            effective_family
-        )
+        verdict = DiagramVerdict.model_validate(raw_judge).bind_family(effective_family)
     except LlmError as exc:
         log.warning("diagram audit failed for page %s: %s", payload.page_index, exc)
         raise HTTPException(
@@ -391,9 +388,7 @@ async def diagram(
         ) from exc
     except ValidationError as exc:
         log.warning("diagram provider returned invalid structure: %s", exc)
-        raise HTTPException(
-            status_code=502, detail="AI provider returned an unexpected structure."
-        ) from exc
+        raise HTTPException(status_code=502, detail="AI provider returned an unexpected structure.") from exc
 
     result = DiagramResponse(
         page_index=payload.page_index,
@@ -415,13 +410,12 @@ def presign_upload(payload: PresignRequest) -> dict[str, Any]:
         raise HTTPException(
             status_code=413,
             detail=(
-                f"File is {payload.size_bytes} bytes; the upload ceiling is "
-                f"{_upload_store.max_bytes} bytes."
+                f"File is {payload.size_bytes} bytes; the upload ceiling is {_upload_store.max_bytes} bytes."
             ),
         )
     key = _upload_store.generate_key(payload.file_name)
     token, exp = _upload_store.create_token(key=key, size=payload.size_bytes)
-    expires_at = datetime.fromtimestamp(exp, tz=timezone.utc).isoformat()
+    expires_at = datetime.fromtimestamp(exp, tz=UTC).isoformat()
     return {
         "upload_uri": f"/uploads/{key}",
         "put_url": f"/uploads/{key}?token={token}",
@@ -503,10 +497,7 @@ def share_report(
     if len(body) > settings.share_max_bytes:
         raise HTTPException(
             status_code=413,
-            detail=(
-                f"report is {len(body)} bytes; the share limit is "
-                f"{settings.share_max_bytes} bytes"
-            ),
+            detail=(f"report is {len(body)} bytes; the share limit is {settings.share_max_bytes} bytes"),
         )
     share_id = _share_store.put(body)
     return {"id": share_id, "url": f"/share/{share_id}"}

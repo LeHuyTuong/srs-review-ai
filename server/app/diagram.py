@@ -31,7 +31,6 @@ from pydantic import BaseModel, Field, field_validator
 from .cache import cache_key
 from .schemas import Strict
 
-
 #: Diagram prompts version — bumped independently of the review prompt
 #: version; both go into the cache key (diagram_cache_key).
 DIAGRAM_PROMPT_VERSION = "d1"
@@ -69,7 +68,7 @@ DESCRIBE_SYSTEM = (
     "Bạn đang audit một mảnh diagram từ tài liệu SDS. Nhiệm vụ:\n"
     "1. Liệt kê MỌI phần tử nhìn thấy (tên nguyên văn, kể cả typo — ghi "
     "[sic] sau lỗi).\n"
-    "2. Liệt kê MỌI quan hệ: \"A -> B : nhãn (kiểu mũi tên, đầu nào có "
+    '2. Liệt kê MỌI quan hệ: "A -> B : nhãn (kiểu mũi tên, đầu nào có '
     "crow's foot)\".\n"
     "3. Không kết luận đúng/sai — chỉ mô tả. Model chấm lỗi là lượt gọi "
     "SAU.\n"
@@ -129,9 +128,7 @@ _JUDGE_CONTRACT = (
 )
 
 
-def describe_user_prompt(
-    *, page_index: int, diagram_type: DiagramType, context_text: str
-) -> str:
+def describe_user_prompt(*, page_index: int, diagram_type: DiagramType, context_text: str) -> str:
     return (
         f"Trang {page_index + 1}. Loại diagram được detector gọi tên: "
         f"{diagram_type.value}. Ngữ cảnh chữ quanh trang:\n"
@@ -147,11 +144,8 @@ def judge_system_prompt(diagram_type: DiagramType) -> str:
     )
 
 
-def judge_user_prompt(describe: "DiagramDescribe") -> str:
-    return (
-        "JSON mô tả từ lượt gọi trước:\n"
-        + json.dumps(describe.model_dump(), ensure_ascii=False, indent=1)
-    )
+def judge_user_prompt(describe: DiagramDescribe) -> str:
+    return "JSON mô tả từ lượt gọi trước:\n" + json.dumps(describe.model_dump(), ensure_ascii=False, indent=1)
 
 
 # --- LLM response schemas (Gemini protobuf casing — see schemas.py note) ---
@@ -252,7 +246,7 @@ class DiagramVerdict(BaseModel):
     clean: bool
     findings: list[DiagramFinding] = Field(default_factory=list)
 
-    def bind_family(self, expected_family: str) -> "DiagramVerdict":
+    def bind_family(self, expected_family: str) -> DiagramVerdict:
         """Force findings into the page's own ID family.
 
         A judge told to audit an ERD that answers with family='UC' is

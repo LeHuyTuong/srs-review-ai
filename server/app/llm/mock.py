@@ -119,7 +119,9 @@ class MockProvider:
             "elements": names[:8],
             "relations": [
                 {"from": a, "to": b, "label": "", "arrowhead_side": "unknown"}
-                for a, b in zip(names, names[1:])
+                # strict=False is the point: names[1:] is always one shorter —
+                # this is an adjacent-pair walk, not a mis-zip.
+                for a, b in zip(names, names[1:], strict=False)
             ][:4],
             "unreadable": ["toan bo trang"] if not names else [],
         }
@@ -141,7 +143,7 @@ class MockProvider:
                 findings.append(
                     {
                         "family": "DOC",
-                        "entity": f'{rel.get("from", "?")}->{rel.get("to", "?")}',
+                        "entity": f"{rel.get('from', '?')}->{rel.get('to', '?')}",
                         "evidence": "chieu quan he khong xac dinh duoc tu mo ta",
                         "severity": "red",
                     }

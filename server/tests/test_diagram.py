@@ -12,7 +12,6 @@ from __future__ import annotations
 import base64
 import json
 import os
-
 import struct
 import zlib
 
@@ -20,7 +19,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.config import Settings, get_settings
-from app.diagram import DiagramDescribe, DiagramVerdict, ID_FAMILY_BY_TYPE
+from app.diagram import ID_FAMILY_BY_TYPE, DiagramDescribe, DiagramVerdict
 from app.llm.base import LlmError
 from app.main import _diagram_cache, _limiter, app
 
@@ -39,9 +38,7 @@ def _isolate_state():
 
 @pytest.fixture
 def client():
-    app.dependency_overrides[get_settings] = lambda: Settings(
-        mock_mode=True, gemini_api_key=""
-    )
+    app.dependency_overrides[get_settings] = lambda: Settings(mock_mode=True, gemini_api_key="")
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
@@ -75,16 +72,13 @@ class RecordingProvider:
             if "clean" in schema.get("properties", {})
             else "other"
         )
-        self.calls.append(
-            {"kind": kind, "system": system, "user": user, "image": image_b64}
-        )
+        self.calls.append({"kind": kind, "system": system, "user": user, "image": image_b64})
         if kind == "describe":
             return (
                 {
                     "elements": ["Customer", "Order"],
                     "relations": [
-                        {"from": "Customer", "to": "Order", "label": "places",
-                         "arrowhead_side": "to"}
+                        {"from": "Customer", "to": "Order", "label": "places", "arrowhead_side": "to"}
                     ],
                     "unreadable": ["tiny crow's foot near Order.id"],
                 },
@@ -94,8 +88,12 @@ class RecordingProvider:
             {
                 "clean": False,
                 "findings": [
-                    {"family": "UC", "entity": "Order.id",
-                     "evidence": "cot _id khong co nhan FK", "severity": "red"}
+                    {
+                        "family": "UC",
+                        "entity": "Order.id",
+                        "evidence": "cot _id khong co nhan FK",
+                        "severity": "red",
+                    }
                 ],
             },
             self.model_id,
@@ -114,8 +112,12 @@ class EmptyInventoryProvider(RecordingProvider):
             {
                 "clean": False,
                 "findings": [
-                    {"family": "ERD", "entity": "Table 105",
-                     "evidence": "ten bang thieu tien to <Fields>", "severity": "amber"}
+                    {
+                        "family": "ERD",
+                        "entity": "Table 105",
+                        "evidence": "ten bang thieu tien to <Fields>",
+                        "severity": "amber",
+                    }
                 ],
             },
             self.model_id,
@@ -161,9 +163,7 @@ class TestPipeline:
         second = client.post("/diagram", json=_req())
         assert second.json()["cached"] is True
 
-    def test_describe_then_judge_order_judge_sees_describe_json_and_image(
-        self, client, monkeypatch
-    ):
+    def test_describe_then_judge_order_judge_sees_describe_json_and_image(self, client, monkeypatch):
         provider = RecordingProvider()
         _patch_provider(monkeypatch, provider)
         r = client.post("/diagram", json=_req())
@@ -174,25 +174,18 @@ class TestPipeline:
         # and it receives BOTH the description and the image (trap #2).
         assert "places" not in provider.calls[0]["system"]
         judge = provider.calls[1]
-        assert json.loads(judge["user"].split("\n", 1)[1])["elements"] == [
-            "Customer", "Order"
-        ]
+        assert json.loads(judge["user"].split("\n", 1)[1])["elements"] == ["Customer", "Order"]
         assert judge["image"] == PNG_A
         assert provider.calls[0]["image"] == PNG_A
         # wrong-family finding from the judge is rewritten to the page family
-        assert all(
-            f["family"] == "ERD" for f in r.json()["verdict"]["findings"]
-        )
+        assert all(f["family"] == "ERD" for f in r.json()["verdict"]["findings"])
 
     def test_image_is_part_of_cache_identity(self, client):
         assert client.post("/diagram", json=_req()).json()["cached"] is False
         assert client.post("/diagram", json=_req()).json()["cached"] is True
         # same page/type/context, different image -> NOT a cache hit
         # (c3fc786 regression family: prompt inputs must be key inputs)
-        assert (
-            client.post("/diagram", json=_req(image_b64=PNG_B)).json()["cached"]
-            is False
-        )
+        assert client.post("/diagram", json=_req(image_b64=PNG_B)).json()["cached"] is False
 
     def test_diagram_type_and_context_reach_the_prompt_and_the_key(self, client):
         base = _req(diagram_type="sequence", context_text="Lifeline Auth issues token.")
@@ -251,9 +244,10 @@ class TestContract:
 class TestPureLogic:
     def test_bind_family_rewrites_foreign_families(self):
         v = DiagramVerdict.model_validate(
-            {"clean": False, "findings": [
-                {"family": "UC", "entity": "e", "evidence": "x", "severity": "amber"}
-            ]}
+            {
+                "clean": False,
+                "findings": [{"family": "UC", "entity": "e", "evidence": "x", "severity": "amber"}],
+            }
         )
         bound = v.bind_family("ERD")
         assert bound.findings[0].family == "ERD"
@@ -269,7 +263,13 @@ class TestPureLogic:
 
     def test_every_diagram_type_has_an_id_family(self):
         assert set(ID_FAMILY_BY_TYPE) == {
-            "erd", "state_machine", "sequence", "class", "use_case", "component", "unknown"
+            "erd",
+            "state_machine",
+            "sequence",
+            "class",
+            "use_case",
+            "component",
+            "unknown",
         }
 
 
@@ -277,8 +277,10 @@ def _valid_png_b64() -> str:
     """A real 1x1 PNG, built not typed — a hand-typed base64 blob failed the
     live API with a corrupt-image 502, which is exactly the kind of fixture
     bug a live smoke test exists to catch (in the fixture, not the wire)."""
+
     def chunk(t: bytes, d: bytes) -> bytes:
         return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d))
+
     ihdr = chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0))
     idat = chunk(b"IDAT", zlib.compress(b"\x00\xff\x00\x00"))
     png = b"\x89PNG\r\n\x1a\n" + ihdr + idat + chunk(b"IEND", b"")

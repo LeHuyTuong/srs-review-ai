@@ -51,9 +51,7 @@ class TestShareSecurity:
         from app import main as main_mod
 
         monkeypatch.setattr(main_mod._settings, "app_token", "sekret", raising=False)
-        ok = client.post(
-            "/share", json={"html": "<html/>"}, headers={"X-App-Token": "sekret"}
-        )
+        ok = client.post("/share", json={"html": "<html/>"}, headers={"X-App-Token": "sekret"})
         assert ok.status_code == 200
         bad = client.post("/share", json={"html": "<html/>"})
         assert bad.status_code == 401
@@ -71,9 +69,7 @@ class TestShareBodyValidation:
         assert client.post("/share", json={"html": ""}).status_code == 422
 
     def test_extra_fields_rejected(self):
-        assert client.post(
-            "/share", json={"html": "<html/>", "script": "evil"}
-        ).status_code == 422
+        assert client.post("/share", json={"html": "<html/>", "script": "evil"}).status_code == 422
 
     def test_read_needs_no_token(self):
         # The capability id model: GET is the supervisor's browser, which

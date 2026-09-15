@@ -46,7 +46,6 @@ backend; swap the class for an S3 adapter and drop it behind the same methods
 # Groundwork for server-side parse / share-by-link; see F1 for the
 # keep-vs-build-vs-remove decision left to the product owner.
 
-
 from __future__ import annotations
 
 import asyncio
@@ -57,7 +56,7 @@ import shutil
 import time
 import uuid
 from base64 import urlsafe_b64decode, urlsafe_b64encode
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -162,9 +161,7 @@ class UploadStore:
     def _canonical(obj: dict[str, Any]) -> bytes:
         return json.dumps(obj, separators=(",", ":"), sort_keys=True, default=str).encode("utf-8")
 
-    def create_token(
-        self, *, key: str, size: int, ttl_seconds: int = TOKEN_TTL_SECONDS
-    ) -> tuple[str, float]:
+    def create_token(self, *, key: str, size: int, ttl_seconds: int = TOKEN_TTL_SECONDS) -> tuple[str, float]:
         """Mint an HMAC-signed capability token for *key*.
 
         Returns ``(token, exp)`` where ``exp`` is the Unix expiry timestamp.
@@ -189,7 +186,10 @@ class UploadStore:
             payload_bytes = _b64url_decode(payload_b64)
             provided_sig = _b64url_decode(sig_b64)
         except (ValueError, IndexError):
-            raise InvalidTokenError("malformed token")
+            # `from None`: the base error is a decode-detail (split/JSON) that
+            # tells the caller nothing the message lacks; chaining it would
+            # only lengthen the traceback of an expected bad-input path.
+            raise InvalidTokenError("malformed token") from None
 
         expected_sig = hmac.new(self._secret, payload_bytes, hashlib.sha256).digest()
         if not hmac.compare_digest(provided_sig, expected_sig):
@@ -204,9 +204,7 @@ class UploadStore:
     # persistence
     # ------------------------------------------------------------------ #
 
-    async def persist(
-        self, key: str, request: Request, *, chunk_size: int = 65536
-    ) -> dict[str, Any]:
+    async def persist(self, key: str, request: Request, *, chunk_size: int = 65536) -> dict[str, Any]:
         """Stream *request* body to disk under *key*, enforcing ``max_bytes``.
 
         The body is written to a ``.part`` sidecar first and atomically renamed
@@ -227,9 +225,7 @@ class UploadStore:
         try:
             async for chunk in request.stream():
                 if size + len(chunk) > self.max_bytes:
-                    raise UploadTooLargeError(
-                        f"Upload exceeds the {self.max_bytes}-byte ceiling"
-                    )
+                    raise UploadTooLargeError(f"Upload exceeds the {self.max_bytes}-byte ceiling")
                 size += len(chunk)
                 sha.update(chunk)
                 await asyncio.to_thread(self._append, tmp, chunk)
@@ -260,11 +256,9 @@ class UploadStore:
             "key": key,
             "size": size,
             "sha256": sha256,
-            "uploaded_at": datetime.now(timezone.utc).isoformat(),
+            "uploaded_at": datetime.now(UTC).isoformat(),
         }
-        self._meta_path(key).write_text(
-            json.dumps(meta, separators=(",", ":")), encoding="utf-8"
-        )
+        self._meta_path(key).write_text(json.dumps(meta, separators=(",", ":")), encoding="utf-8")
 
     # ------------------------------------------------------------------ #
     # resolution & metadata
@@ -283,7 +277,7 @@ class UploadStore:
         prefix = "upload://"
         if not uri.startswith(prefix):
             raise UploadError(f"not an upload URI: {uri!r}")
-        key = uri[len(prefix):]
+        key = uri[len(prefix) :]
         path = self._key_path(key)
         if not path.exists():
             raise UploadNotFoundError(key)

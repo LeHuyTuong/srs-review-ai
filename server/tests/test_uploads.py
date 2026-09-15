@@ -87,9 +87,7 @@ def test_presign_put_meta_roundtrip_stores_exact_bytes(make_client):
     assert put_body["sha256"] == expected_sha
 
     # 3. Fetch metadata and confirm the hash matches the exact bytes.
-    meta_resp = client.get(
-        f"/uploads/{key}/meta", headers={"X-App-Token": APP_TOKEN}
-    )
+    meta_resp = client.get(f"/uploads/{key}/meta", headers={"X-App-Token": APP_TOKEN})
     assert meta_resp.status_code == 200
     meta = meta_resp.json()
     assert meta["sha256"] == expected_sha
@@ -111,9 +109,7 @@ def test_put_rejects_tampered_token(make_client):
     flipped = "A" if sig[0] != "A" else "B"
     tampered = f"{head}.{flipped}{sig[1:]}"
 
-    resp = client.put(
-        f"/uploads/{key}?token={tampered}", content=b"hello"
-    )
+    resp = client.put(f"/uploads/{key}?token={tampered}", content=b"hello")
     assert resp.status_code == 403
     # And nothing was stored.
     assert not (main_module._upload_store._key_path(key).exists())
@@ -201,9 +197,7 @@ def test_file_name_cannot_influence_storage_key(make_client):
 
 def test_meta_unknown_key_is_404(make_client):
     client, _ = make_client()
-    resp = client.get(
-        "/uploads/does-not-exist/meta", headers={"X-App-Token": APP_TOKEN}
-    )
+    resp = client.get("/uploads/does-not-exist/meta", headers={"X-App-Token": APP_TOKEN})
     assert resp.status_code == 404
 
 
@@ -228,8 +222,6 @@ def test_meta_requires_app_token(make_client):
 
 
 def test_resolve_returns_path_and_size(make_client):
-    from app.uploads import UploadNotFoundError
-
     client, store = make_client()
     content = b"resolve me"
     presigned = _presign(client, size_bytes=len(content))
