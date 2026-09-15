@@ -10,8 +10,9 @@ Round 17 was marked `blocked` on two conditions:
 The user responded with env-key set + HisWise fixture pointed to the
 actual disk path. Both conditions were probed and **confirmed false**:
 
-- `server/.env` contains `GEMINI_API_KEY=AQ.Ab8RN...` (53 chars,
-  live) and `GEMINI_MODEL=gemini-3.5-flash`.
+- `server/.env` contains `GEMINI_API_KEY` (set, 53 chars,
+  live — the value is intentionally not transcribed into this doc) and
+  `GEMINI_MODEL=gemini-3.5-flash`.
 - HisWise fixture exists at `/Users/lehuytuong/dsh-chat/hiswise/`
   with `HisWise_SDS Document.docx` (13.5 MB), 4 ERD quadrants
   (`erd-bl/br/tl/tr.png`), pre-extracted text (`sds-full.txt`,

@@ -38,7 +38,7 @@ void _record(String caseId, Map<String, Object?> data) {
 /// Why a default at all: the env var has existed since the first QA round and
 /// TC-14/TC-15 have skipped on every run since, because nobody remembers to
 /// export it. A test that never runs measures nothing. With a conventional
-/// path, `mkdir -p samples/private && cp <your SRS>.pdf
+/// path, `mkdir -p samples/private && cp YourSRS.pdf
 /// samples/private/real-srs.pdf` once makes both
 /// cases run for good — TC-15 ("repeat parses are stable") is the only
 /// automatic repeatability measurement this repo has.

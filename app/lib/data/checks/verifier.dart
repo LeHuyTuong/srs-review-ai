@@ -21,8 +21,8 @@
 /// under its original id, marked verified.
 library;
 
-import '../../features/workspace/models/workspace_findings.dart';
 import '../models/deterministic_finding.dart';
+import '../models/finding_status.dart';
 
 class Verifier {
   const Verifier();
