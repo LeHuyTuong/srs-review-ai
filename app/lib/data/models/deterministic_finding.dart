@@ -7,7 +7,8 @@ library;
 import 'review_models.dart' show Severity;
 
 enum CheckId {
-  /// F7 — number of use cases in the SRS (syllabus: 20–25 medium UCs).
+  /// F7 — number of use cases in the SRS (syllabus: at least 20 medium UCs,
+  /// no upper bound since rubric v3 / rulebook 1.5 Q1; size is F9's job).
   ucCount,
 
   /// F8 — documents must be written in English.
@@ -65,7 +66,26 @@ enum CheckId {
   /// requirement in the whole document names a priority. Priority lives
   /// in use-case table metadata, so this is a document-level verdict:
   /// firing means the field is absent everywhere, never a per-row flag.
-  missingPriority;
+  missingPriority,
+
+  /// Rulebook 1.5 hard rule 6 — a non-functional requirement with no number
+  /// AND no measurement condition. Distinct from [ambiguousWording], which
+  /// fires on a fixed phrase list: this one fires on the *absence* of a
+  /// figure, so "the system shall be available" trips it while
+  /// "available 99.5% of the time, measured monthly" does not, even though
+  /// neither contains a listed vague phrase. The rulebook grades this red;
+  /// the app was silent on it until now.
+  nfrUnquantified;
+
+  // NOT here, deliberately: `idFormat` (rulebook 1.5 §4, id shape).
+  // `requirement_splitter._canonicalId` rewrites every parsed id to
+  // `PREFIX-NN` before any check sees it, so a shape check would be grading
+  // our own normalisation, not the document: every FR and NFR from a real
+  // file would fail, and the malformed ids the rule targets (UC01, NFR01)
+  // would already have been silently repaired. The check is worth having —
+  // a malformed id drops its row out of every traceability join without an
+  // error — but it needs the splitter to keep the raw source id alongside
+  // the canonical one first. See review-rules/adapters/app-port-map.md §4.
 
   String get wire => switch (this) {
     CheckId.ucCount => 'uc_count',
@@ -79,6 +99,7 @@ enum CheckId {
     CheckId.placeholderTbd => 'placeholder_tbd',
     CheckId.missingPriority => 'missing_priority',
     CheckId.diagramAudit => 'diagram_audit',
+    CheckId.nfrUnquantified => 'nfr_unquantified',
   };
 
   String get label => switch (this) {
@@ -93,6 +114,7 @@ enum CheckId {
     CheckId.placeholderTbd => 'TBD / placeholder',
     CheckId.missingPriority => 'Priority field',
     CheckId.diagramAudit => 'Diagram audit',
+    CheckId.nfrUnquantified => 'Unquantified NFR',
   };
 
   /// True for M2 reference checks; they live next to F7/F8/F9 in the

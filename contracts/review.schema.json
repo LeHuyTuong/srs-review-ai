@@ -27,9 +27,9 @@
       "enum": ["exact", "fuzzy"]
     },
     "CheckId": {
-      "description": "Deterministic (rule-based, offline, zero-token) checks derived from the SEP490 syllabus. M2 reference checks (duplicate_ids, missing_postcondition) extend the same enum — they share the on-wire shape but live in a separate UI section.",
+      "description": "Deterministic (rule-based, offline, zero-token) checks derived from the SEP490 syllabus and from review-rules/RULEBOOK.md. M2 reference checks (duplicate_ids, missing_postcondition) extend the same enum — they share the on-wire shape but live in a separate UI section. This list had drifted behind the Dart CheckId enum; it is now complete as of rubric v3, and adding a CheckId without adding it here is the drift to watch for.",
       "type": "string",
-      "enum": ["uc_count", "language", "uc_size", "duplicate_ids", "missing_postcondition", "cross_artifact_name", "missing_actor"]
+      "enum": ["uc_count", "language", "uc_size", "duplicate_ids", "missing_postcondition", "cross_artifact_name", "missing_actor", "ambiguous_wording", "placeholder_tbd", "missing_priority", "diagram_audit", "nfr_unquantified"]
     },
     "Issue": {
       "type": "object",

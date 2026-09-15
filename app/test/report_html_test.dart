@@ -452,7 +452,6 @@ void main() {
       // — a first review must not print "0 fixed" as if it meant work.
       expect(html, isNot(contains('Ledger:')));
     });
-  });
 
     test('vision rows split into their own ledger family', () {
       final html = buildHtmlReport(
@@ -474,4 +473,5 @@ void main() {
       expect(html, isNot(contains('<td>reference (M2)</td>')));
       expect(html, contains('ERD-01'));
     });
+  });
 }

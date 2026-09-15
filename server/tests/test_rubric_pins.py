@@ -15,12 +15,12 @@ def test_rubric_version_and_weights_are_pinned():
     this file too (AGENTS.md: the weights are a proposal until the
     supervisor's real marking sheet replaces them)."""
     rubric = load_rubric()
-    assert rubric["version"] == "v2"
+    assert rubric["version"] == "v3"
     weights = {
         name: float(c["weight"])
         for name, c in rubric["quality_criteria"].items()
     }
-    assert weights == {"clear": 0.3, "testable": 0.3, "complete": 0.25, "consistent": 0.15}
+    assert weights == {"clear": 0.25, "testable": 0.4, "complete": 0.2, "consistent": 0.15}
     # Provenance must keep saying "proposal": if the supervisor's real rubric
     # ever lands, the sentence changes and this assertion should fail loudly.
     assert "starting proposal" in rubric["provenance"]

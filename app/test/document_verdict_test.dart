@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:srs_review_ai/data/checks/diagram_type_classifier.dart';
 import 'package:srs_review_ai/data/models/deterministic_finding.dart';
 import 'package:srs_review_ai/data/models/review_models.dart' show Severity;
 import 'package:srs_review_ai/features/workspace/models/document_verdict.dart';
@@ -74,7 +75,36 @@ void main() {
             severity: Severity.high),
       ]));
       expect(v.diagram, ComponentState.failed);
-      expect(v.deductions, 0, reason: 'rubric deducts FLOW/ERD only');
+      expect(v.deductions, 0,
+          reason: 'a DOC red is a writing defect, not a claim about the system');
+    });
+
+    // Regression, 2026-09-15. The rule used to match the prefix `FLOW-`,
+    // taken from the rubric's prose, but DiagramKind emits SM / SEQ-CLS and
+    // never FLOW — so from the first release until this test existed, every
+    // broken state machine and every broken sequence deducted nothing.
+    test('SM and SEQ-CLS reds deduct — the families "FLOW" really means', () {
+      final v = computeVerdict(_allFloorPass(extra: [
+        _row(CheckId.crossArtifactName),
+        _row(CheckId.diagramAudit, subject: 'SM-01', passed: false,
+            severity: Severity.high),
+        _row(CheckId.diagramAudit, subject: 'SEQ-CLS-01', passed: false,
+            severity: Severity.high),
+      ]));
+
+      expect(v.deductions, 2);
+    });
+
+    test('no family named FLOW is ever emitted, so none may be relied on', () {
+      expect(deductingFamilies, isNot(contains('FLOW-')));
+      for (final prefix in deductingFamilies) {
+        expect(
+          DiagramKind.values.any((k) => '${k.family}-' == prefix),
+          isTrue,
+          reason: '$prefix matches no family DiagramKind can produce — '
+              'a deduction rule that can never fire',
+        );
+      }
     });
 
     test('ERD red rows deduct one each (per ledger row, documented)', () {

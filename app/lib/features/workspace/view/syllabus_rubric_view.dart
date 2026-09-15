@@ -25,8 +25,8 @@ class SyllabusRubricView extends ConsumerWidget {
       (
         'F7',
         'Use-case baseline',
-        'Provisional range: ${rubric.ucCountMin}–${rubric.ucCountMax} medium '
-            'use cases. The 75% completion gate requires a verified declared '
+        'Provisional minimum: ${rubric.ucCountMin} medium use cases, no upper '
+            'bound. The 75% completion gate requires a verified declared '
             'inventory and human assessment.',
         Icons.inventory_2_outlined,
       ),

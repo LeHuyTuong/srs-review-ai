@@ -50,14 +50,18 @@ class SyllabusChecks {
         expectedMax: max,
       );
     }
-    if (count > max) {
+    // No upper bound since rubric 1.5 Q1 (ADR-0009). A large use-case count is
+    // not itself a defect — OTES had 63 and the real problem was that 45 of
+    // them were single-transaction. Size is measured separately by F9, and
+    // folding the two into one band hid the defect that mattered.
+    if (max != null && count > max) {
       return DeterministicFinding(
         check: CheckId.ucCount,
-        passed: false,
+        passed: true,
         severity: Severity.low,
         message:
-            'Found $count use cases, above the recommended $max. '
-            'Doable, but confirm the scope with your supervisor.',
+            'Found $count use cases, above the $max this rubric recommends. '
+            'Not a defect on its own — check F9 (use-case size) instead.',
         actual: count,
         expectedMin: min,
         expectedMax: max,
@@ -67,8 +71,9 @@ class SyllabusChecks {
       check: CheckId.ucCount,
       passed: true,
       severity: Severity.low,
-      message:
-          'Found $count use cases, inside the recommended $min–$max range.',
+      message: max == null
+          ? 'Found $count use cases, at or above the $min required.'
+          : 'Found $count use cases, inside the recommended $min–$max range.',
       actual: count,
       expectedMin: min,
       expectedMax: max,

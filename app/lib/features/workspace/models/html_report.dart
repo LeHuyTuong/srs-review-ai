@@ -210,7 +210,7 @@ String buildHtmlReport({
     'Cross-artifact clean (2 pts)': verdict.crossArtifact.name,
     'Traceability UC→design→test (1 pt)':
         '${verdict.traceability.name} (no test-artifact input in this tool)',
-    'Deductions −1 per 🔴 FLOW/ERD row': '${verdict.deductions}',
+    'Deductions −1 per 🔴 ERD/SM/SEQ-CLS row': '${verdict.deductions}',
   }.entries) {
     out.write('<tr><td>${_esc(entry.key)}</td><td>${_esc(entry.value)}</td></tr>');
   }

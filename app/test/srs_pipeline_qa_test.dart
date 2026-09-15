@@ -4,9 +4,11 @@
 /// drives — ParseService -> RequirementSplitter -> SyllabusChecks — so what
 /// they observe is what a user sees, not a mocked stand-in.
 ///
-/// The real OTES document is read from the `SRS_TEST_PDF` environment variable
-/// when set; its cases skip otherwise, so CI never depends on a 27 MB file
-/// that is deliberately not committed.
+/// The real document is read from `SRS_TEST_PDF` when set, else from
+/// `samples/private/real-srs.pdf` (gitignored). Its cases skip when neither
+/// exists, so CI never depends on a 27 MB file that is deliberately not
+/// committed — but a developer who drops the file in the conventional place
+/// gets TC-14/TC-15 on every run without remembering a variable.
 library;
 
 import 'dart:convert';
@@ -30,10 +32,33 @@ void _record(String caseId, Map<String, Object?> data) {
   print('QA|$caseId|${jsonEncode(data)}');
 }
 
+/// Conventional home for the real document, relative to `app/`. Gitignored
+/// (`/samples/private/`), so dropping a file here commits nothing.
+///
+/// Why a default at all: the env var has existed since the first QA round and
+/// TC-14/TC-15 have skipped on every run since, because nobody remembers to
+/// export it. A test that never runs measures nothing. With a conventional
+/// path, `mkdir -p samples/private && cp <your SRS>.pdf
+/// samples/private/real-srs.pdf` once makes both
+/// cases run for good — TC-15 ("repeat parses are stable") is the only
+/// automatic repeatability measurement this repo has.
+const String _conventionalPdf = '../samples/private/real-srs.pdf';
+
 String? _realPdfPath() {
-  final path = Platform.environment[_realPdfEnv];
-  if (path == null || path.isEmpty) return null;
-  return File(path).existsSync() ? path : null;
+  final fromEnv = Platform.environment[_realPdfEnv];
+  if (fromEnv != null && fromEnv.isNotEmpty) {
+    // An env var that points nowhere is a typo, not a request to skip: say so
+    // rather than silently reporting "not set" and passing.
+    if (!File(fromEnv).existsSync()) {
+      throw StateError(
+        '$_realPdfEnv is set to "$fromEnv" but no file is there. '
+        'Fix the path, or unset the variable to fall back to '
+        '$_conventionalPdf.',
+      );
+    }
+    return fromEnv;
+  }
+  return File(_conventionalPdf).existsSync() ? _conventionalPdf : null;
 }
 
 void main() {
@@ -286,7 +311,8 @@ void main() {
       final path = _realPdfPath();
       if (path == null) {
         // ignore: avoid_print
-        print('QA|TC-14|{"outcome":"skipped","reason":"$_realPdfEnv not set"}');
+        print('QA|TC-14|{"outcome":"skipped","reason":"no real document — '
+            'set $_realPdfEnv or put one at $_conventionalPdf"}');
         return;
       }
       final bytes = File(path).readAsBytesSync();
@@ -372,7 +398,8 @@ void main() {
       final path = _realPdfPath();
       if (path == null) {
         // ignore: avoid_print
-        print('QA|TC-15|{"outcome":"skipped","reason":"$_realPdfEnv not set"}');
+        print('QA|TC-15|{"outcome":"skipped","reason":"no real document — '
+            'set $_realPdfEnv or put one at $_conventionalPdf"}');
         return;
       }
       final bytes = File(path).readAsBytesSync();

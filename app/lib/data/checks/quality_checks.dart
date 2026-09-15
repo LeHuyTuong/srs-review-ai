@@ -89,6 +89,46 @@ class QualityChecks {
     ('sẽ cập nhật', RegExp('se cap nhat')),
   ];
 
+  // ------------------------------------------------------- NFR quantification
+  /// No `\b` after `NFR` on purpose: the splitter canonicalises ids, and this
+  /// must recognise both `NFR01` and `NFR-01`.
+  static final RegExp _nfrPrefix = RegExp(r'^NFR', caseSensitive: false);
+
+  /// A figure that could be a target: a number optionally followed by a unit,
+  /// or a percentage. Bare years and section numbers are excluded by the
+  /// unit/percent requirement — "ISO 25010" and "section 3.2" must not read
+  /// as measurable targets, which is the trap a plain `\d` scan falls into.
+  static final RegExp _measurableNumber = RegExp(
+    r'(\d+([.,]\d+)?\s*%)'
+    r'|(\d+([.,]\d+)?\s*(ms|s|sec|second|seconds|min|minute|minutes|hour|hours|'
+    r'day|days|kb|mb|gb|tb|rps|qps|tps|fps|users?|requests?|concurrent|'
+    r'giay|phut|gio|ngay|nguoi dung|nguoi))\b',
+    caseSensitive: false,
+  );
+  // The trailing \b matters more than it looks: `s` is one of the unit
+  // alternatives, so without a boundary "ISO 25010 security" and
+  // "clause 7 shall…" both read as measurements. Digits are everywhere in a
+  // requirements document; only digits followed by a unit are targets.
+
+  /// The condition the figure is measured under. This is the half that
+  /// distinguishes a target from a wish, and the half documents omit.
+  static final RegExp _measurementCondition = RegExp(
+    r'\b(under|within|per|at least|at most|no more than|not exceed|'
+    r'up to|concurrent|percentile|p9[05]|load|peak|average|median|'
+    r'measured|uptime|availability|throughput|per (second|minute|hour|day|month)|'
+    r'duoi|trong vong|toi da|toi thieu|khong qua|dong thoi|trung binh|do bang)\b',
+    caseSensitive: false,
+  );
+
+  /// Words that mark a statement as non-functional when its id does not.
+  static final RegExp _nfrSectionWord = RegExp(
+    r'\b(performance|security|usability|reliability|availability|'
+    r'maintainability|portability|compatibility|scalability|'
+    r'non[\s-]?functional|hieu nang|bao mat|kha dung|do tin cay|'
+    r'phi chuc nang)\b',
+    caseSensitive: false,
+  );
+
   List<DeterministicFinding> run(SrsDocument document) => [
     ..._scan(
       document,
@@ -114,7 +154,74 @@ class QualityChecks {
       pass: 'No TBD/placeholder text found.',
     ),
     ..._priority(document),
+    ..._nfrUnquantified(document),
   ];
+
+  /// Rulebook 1.5 hard rule 6 — every NFR must carry a number AND a condition
+  /// under which that number is measured.
+  ///
+  /// Two conditions, not one, and the second is the point. "Response time
+  /// under 2 s" has a number and is still untestable: under what load, at
+  /// which percentile, on what hardware? The OTES run found 44/44
+  /// requirements with no writable test case, and most of them did contain
+  /// digits — version numbers, section references, counts of things. A digit
+  /// scan alone would have passed them.
+  ///
+  /// Deliberately narrow, same discipline as the phrase scan above: it runs
+  /// only on items the parser already typed as non-functional, and it reports
+  /// the absence, never a judgement about whether the number is the *right*
+  /// one. A human still decides whether 2 s is a sensible target.
+  List<DeterministicFinding> _nfrUnquantified(SrsDocument document) {
+    final nfrs = document.requirements
+        .where((item) => _looksNonFunctional(item))
+        .toList();
+    if (nfrs.isEmpty) return const [];
+
+    final findings = <DeterministicFinding>[];
+    for (final item in nfrs) {
+      final folded = foldVietnamese(item.text);
+      final hasNumber = _measurableNumber.hasMatch(folded);
+      final hasCondition = _measurementCondition.hasMatch(folded);
+      final ok = hasNumber && hasCondition;
+      findings.add(
+        DeterministicFinding(
+          check: CheckId.nfrUnquantified,
+          passed: ok,
+          // Red in the rulebook; high here. An NFR nobody can measure is not
+          // a weak requirement, it is an absent one wearing a label.
+          severity: ok ? Severity.low : Severity.high,
+          subject: item.id,
+          message: ok
+              ? '${item.id} states a figure and the condition it is measured '
+                    'under.'
+              : !hasNumber && !hasCondition
+              ? '${item.id} has neither a measurable figure nor a measurement '
+                    'condition. A tester cannot tell whether it is met '
+                    '(rulebook 1.5 hard rule 6).'
+              : !hasNumber
+              ? '${item.id} names a measurement condition but no figure to '
+                    'measure against (rulebook 1.5 hard rule 6).'
+              : '${item.id} gives a figure but not the condition it holds '
+                    'under — under what load, at which percentile, on what '
+                    'hardware? (rulebook 1.5 hard rule 6).',
+        ),
+      );
+    }
+    return findings;
+  }
+
+  /// An item counts as non-functional when its id says so, or when its text
+  /// carries an ISO 25010 quality word.
+  ///
+  /// The second branch skips use cases on purpose. A use case that mentions
+  /// "security" in its narrative is describing a flow, not stating a quality
+  /// target, and charging it a high-severity "unquantified NFR" is exactly
+  /// the false positive that gets a whole checker ignored (see this file's
+  /// header: recall is traded for precision, deliberately).
+  bool _looksNonFunctional(RequirementItem item) =>
+      _nfrPrefix.hasMatch(item.id.trim()) ||
+      (item.kind != RequirementKind.useCase &&
+          _nfrSectionWord.hasMatch(foldVietnamese(item.text)));
 
   /// Criterion 7, document-level: requirement rows are table fragments,
   /// so "no priority anywhere" is the only honest deterministic claim —

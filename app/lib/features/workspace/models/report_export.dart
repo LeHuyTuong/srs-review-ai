@@ -18,7 +18,11 @@ import 'section_scores.dart';
 import 'workspace_findings.dart';
 import 'workspace_unit.dart';
 
-const String kRubricLabel = 'SEP490 · provisional v0.1';
+// Names what this report was actually scored against. NOT the same thing as
+// review-rules/RULEBOOK.md: the app implements a subset of it, so claiming
+// "rulebook 1.5" here would assert a conformance the code does not have.
+// Bump this string only in the same PR that bumps rubric.json.
+const String kRubricLabel = 'SEP490 · app rubric v3 (partial rulebook 1.5)';
 
 /// The honesty contract, as one source of truth for every report twin.
 ///
@@ -162,7 +166,7 @@ String buildMarkdownReport({
     '| Cross-artifact clean (2 pts) | ${verdict.crossArtifact.name} |',
     '| Traceability UC→design→test (1 pt) | ${verdict.traceability.name} '
     '(no test-artifact input in this tool) |',
-    '| Deductions −1 per 🔴 FLOW/ERD row | ${verdict.deductions} |',
+    '| Deductions −1 per 🔴 ERD/SM/SEQ-CLS row | ${verdict.deductions} |',
     '',
   ]);
   if (result != null && result.scores.isNotEmpty) {

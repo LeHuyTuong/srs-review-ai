@@ -40,7 +40,7 @@ void main() {
       },
     );
 
-    test('passes inside the recommended 20-25 range', () {
+    test('passes at or above the 20 use case minimum', () {
       final finding = checks.useCaseCount(_documentWith(_useCases(22)));
 
       expect(finding.passed, isTrue);
@@ -50,15 +50,17 @@ void main() {
       expect(checks.useCaseCount(_documentWith(_useCases(20))).passed, isTrue);
     });
 
-    test(
-      'warns only mildly above 25 — more scope is allowed, just unusual',
-      () {
-        final finding = checks.useCaseCount(_documentWith(_useCases(30)));
+    // Rubric v3 / rulebook 1.5 Q1 dropped the ceiling of 25. This is the
+    // OTES case: 63 use cases used to fail here, while the real defect —
+    // 45 of them holding a single transaction — was F9's to report and got
+    // buried behind a count warning nobody could act on.
+    test('a large count is not a defect — 63 use cases pass', () {
+      final finding = checks.useCaseCount(_documentWith(_useCases(63)));
 
-        expect(finding.passed, isFalse);
-        expect(finding.severity, Severity.low);
-      },
-    );
+      expect(finding.passed, isTrue);
+      expect(finding.severity, Severity.low);
+      expect(finding.expectedMax, isNull);
+    });
 
     test('ignores non use case requirements when counting', () {
       final document = _documentWith([

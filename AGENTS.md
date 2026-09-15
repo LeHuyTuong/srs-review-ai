@@ -10,11 +10,16 @@ Repo 11 commit, hai ngôn ngữ trong một cây và **không dùng chung build*
 app/        Flutter (dart sdk ^3.12.2, package `srs_review_ai`) — UI + tách requirement
 server/     FastAPI + Gemini — chấm điểm, cache, rate limit
 contracts/  review.schema.json + fixtures — hợp đồng giữa hai bên
-docs/       adr/, evidence/, roadmap.md, tech-lead-brief.md
+docs/       adr/ (0001–0008, chỉ mục ở adr/README.md), evidence/, plans/, roadmap.md, tech-lead-brief.md
 tools/      check_guardrails.py, install-hooks.sh
+review-rules/  bộ luật chấm SRS/SDS model-agnostic (RULEBOOK.md là nguồn sự thật) — xem README trong đó
+skills/     Claude skill srs-reviewer / sds-reviewer — adapter mỏng trỏ về review-rules/
+reviews/    ledger chạy thật trên tài liệu có sẵn (OTES, HisWise, CarbonX) — bằng chứng hiệu chuẩn thang điểm
 ```
 
-`docs/adr/` và `docs/evidence/` là nơi ghi quyết định và bằng chứng; đọc trước khi đổi luật chấm.
+`docs/adr/` và `docs/evidence/` là nơi ghi quyết định và bằng chứng; đọc trước khi đổi luật chấm. Hai file phải đọc trước khi động vào engine chấm: **`docs/plans/7-review-engine-v2-2026-09-15.md`** (kết luận rút từ 4 lần chạy thật: đơn vị output của app sai, 8 check giá trị nhất đều thuần text, workflow hai pass) và **`docs/adr/0008-kiraai-provider-evaluation.md`** (vì sao không thêm KiraAI làm provider).
+
+**Luật chấm mới thêm vào `review-rules/`, không vào code hay prompt trước.** Muốn port một luật vào app: tra `review-rules/adapters/app-port-map.md` xem nó đã có `CheckId`/`DiagramType` chưa và thuộc tầng nào.
 
 ## Chạy và test
 

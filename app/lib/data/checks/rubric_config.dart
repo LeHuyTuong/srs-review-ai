@@ -7,7 +7,7 @@ class RubricConfig {
   const RubricConfig({
     required this.version,
     required this.ucCountMin,
-    required this.ucCountMax,
+    this.ucCountMax,
     required this.ucMinTransactions,
     required this.ucMaxTransactions,
     required this.passMark,
@@ -23,7 +23,10 @@ class RubricConfig {
     return RubricConfig(
       version: json['version'] as String,
       ucCountMin: ucCount['min'] as int,
-      ucCountMax: ucCount['max'] as int,
+      // Nullable since rubric v3: rulebook 1.5 Q1 dropped the upper bound, and
+      // the key is kept as an explicit `null` rather than removed so that an
+      // older client casting it still fails loudly instead of defaulting to 25.
+      ucCountMax: ucCount['max'] as int?,
       ucMinTransactions: ucSize['min_transactions'] as int,
       ucMaxTransactions: ucSize['max_transactions'] as int,
       passMark: (thresholds['pass_mark'] as num).toDouble(),
@@ -34,9 +37,9 @@ class RubricConfig {
 
   /// Mirrors server/app/rubric.json; used when the proxy is unreachable.
   static const RubricConfig fallback = RubricConfig(
-    version: 'v2-local',
+    version: 'v3-local',
     ucCountMin: 20,
-    ucCountMax: 25,
+    ucCountMax: null,
     ucMinTransactions: 3,
     ucMaxTransactions: 7,
     passMark: 5,
@@ -46,7 +49,9 @@ class RubricConfig {
 
   final String version;
   final int ucCountMin;
-  final int ucCountMax;
+  /// Null means "no upper bound" (rubric v3 / rulebook 1.5 Q1). A high use-case
+  /// count is not a defect; use-case SIZE is the criterion that matters.
+  final int? ucCountMax;
   final int ucMinTransactions;
   final int ucMaxTransactions;
 

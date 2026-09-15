@@ -12,8 +12,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/app_config.dart';
+import '../../../core/layout/app_breakpoint.dart';
 import '../../../core/platform/app_platform.dart';
 import '../../../core/providers.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
 import '../../../data/checks/rubric_config.dart';
@@ -36,7 +38,10 @@ Future<T?> _show<T>({
   bool wide = false,
 }) {
   final width = MediaQuery.sizeOf(context).width;
-  if (width >= 700) {
+  if (AppBreakpoints.showsCenteredDialog(
+    width: width,
+    form: AppPlatform.formFactor,
+  )) {
     return showDialog<T>(
       context: context,
       builder: (dialogContext) => Dialog(
@@ -543,7 +548,7 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colors.muted,
                   fontFamily: 'monospace',
-                  fontSize: 10.5,
+                  fontSize: AppType.dense,
                 ),
               ),
             ),
@@ -1062,7 +1067,7 @@ Future<void> showRubricModal(BuildContext context, WidgetRef ref) => _show(
   builder: (_) => Consumer(
     builder: (context, ref, _) {
       final rubric = ref.watch(rubricProvider).value;
-      final version = rubric?.version ?? 'v2-local';
+      final version = rubric?.version ?? RubricConfig.fallback.version;
       return _ModalScaffold(
         icon: Icons.menu_book_outlined,
         title: 'Clear expectations. Honest limits.',
@@ -1074,9 +1079,9 @@ Future<void> showRubricModal(BuildContext context, WidgetRef ref) => _show(
             'F7 · Use-case baseline',
             rubric == null
                 ? 'Provisional minimum: 20 use cases.'
-                : 'Provisional range: ${rubric.ucCountMin}–${rubric.ucCountMax} '
-                      'use cases. The 75% completion gate requires a verified '
-                      'declared inventory and human assessment.',
+                : 'Provisional minimum: ${rubric.ucCountMin} use cases, no '
+                      'upper bound. The 75% completion gate requires a '
+                      'verified declared inventory and human assessment.',
           ),
           _settingRow(
             context,
@@ -1460,8 +1465,8 @@ class _SyllabusCheckDetail extends StatelessWidget {
 
   String get _rule => switch (finding.check) {
     CheckId.ucCount =>
-      'Syllabus band: ${rubric.ucCountMin}–${rubric.ucCountMax} medium '
-          'use cases in the declared inventory.',
+      'Syllabus gate: at least ${rubric.ucCountMin} medium use cases in the '
+          'declared inventory. No upper bound — size is checked by F9.',
     CheckId.language =>
       'Submitted documents are written in English. This is a non-ASCII '
           'heuristic, not a language classifier.',
@@ -1509,6 +1514,12 @@ class _SyllabusCheckDetail extends StatelessWidget {
           'directions, missing FK labels, orphan elements. At A4 render '
           'resolution tiny text may be unreadable, so evidence lists what '
           'was seen, not a verdict on what was not.',
+    CheckId.nfrUnquantified =>
+      'Rulebook 1.5 hard rule 6: a non-functional requirement must carry a '
+          'figure AND the condition it is measured under. Both halves are '
+          'required — "under 2 s" is still untestable without a load and a '
+          'percentile. The check reports the absence, never whether the '
+          'number you chose is the right one.',
   };
 
   String get _fix => switch (finding.check) {
@@ -1568,6 +1579,12 @@ class _SyllabusCheckDetail extends StatelessWidget {
           'incomplete or ambiguous. Confirm before fixing — the audit is '
           'evidence from one render, not a substitute for your eyes on '
           'the original figure.',
+    CheckId.nfrUnquantified =>
+      'Give the requirement a number and the condition it holds under: '
+          '"the search page responds in under 2 s at the 95th percentile '
+          'with 200 concurrent users". If you cannot name a condition, the '
+          'requirement is a wish — either make it measurable or move it to '
+          'the goals section where it belongs.',
   };
 
   @override

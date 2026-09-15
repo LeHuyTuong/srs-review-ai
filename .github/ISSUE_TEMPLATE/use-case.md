@@ -5,9 +5,11 @@ title: "UC-XX "
 labels: use-case
 ---
 
-<!-- The syllabus counts 20–25 medium use cases and requires >=75% of them
-     completed as submitted in Report 3. One issue per use case keeps the
-     GitHub board and the SRS in step. -->
+<!-- The syllabus needs at least 20 medium use cases (no upper bound — see
+     review-rules/RULEBOOK.md §9 Q1) and requires >=75% of them completed as
+     submitted in Report 3. "Medium" means 3–7 transactions; that is a separate
+     criterion from the count. One issue per use case keeps the GitHub board
+     and the SRS in step. -->
 
 **Actor:**
 **Goal:**

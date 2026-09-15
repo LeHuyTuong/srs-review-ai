@@ -295,3 +295,9 @@ sequenceDiagram
 | [0002](adr/0002-no-codegen.md) | Không sinh code tự động |
 | [0003](adr/0003-syncfusion-licence.md) | Giấy phép Syncfusion (PDF parsing) |
 | [0004](adr/0004-model-selection.md) | Model Gemini 3.5 Flash-Lite + fallback 3.1 |
+| [0005](adr/0005-run-cap-vs-quota.md) | Run cap 60 nằm trên quota 50/ngày/người |
+| [0006](adr/0006-desktop-edition-three-decisions.md) | Desktop: window sizing native-only, command registry, uplift màn lớn |
+| [0007](adr/0007-m3-adaptive-thresholds.md) | M3 window class cho rail; dialog căn giữa miễn trừ trên phone |
+| [0008](adr/0008-kiraai-provider-evaluation.md) | Không dùng KiraAI làm provider chính |
+
+Chỉ mục đầy đủ + số ADR tiếp theo: [`adr/README.md`](adr/README.md).

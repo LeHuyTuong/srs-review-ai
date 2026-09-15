@@ -2,6 +2,9 @@
 // Fixtures are bilingual on purpose: the checker that only speaks English
 // fails silently on the Vietnamese documents this app actually reviews
 // (AGENTS.md: verify scripts must match the document language).
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:srs_review_ai/data/checks/quality_checks.dart';
 import 'package:srs_review_ai/data/models/deterministic_finding.dart';
@@ -186,5 +189,102 @@ void main() {
         isEmpty,
       );
     });
+  });
+
+  // Rulebook 1.5 hard rule 6. Both halves are required — that is the whole
+  // point of the check, and each test below isolates one half.
+  group('nfrUnquantified (rulebook hard rule 6)', () {
+    Iterable<DeterministicFinding> nfr(List<RequirementItem> items) =>
+        checks.run(_doc(items)).where((f) => f.check == CheckId.nfrUnquantified);
+
+    test('passes an NFR with both a figure and a measurement condition', () {
+      final finding = nfr([
+        _item(
+          'NFR-PERF-01',
+          'The search page shall respond within 2 s at the 95th percentile.',
+        ),
+      ]).single;
+
+      expect(finding.passed, isTrue);
+      expect(finding.severity, Severity.low);
+    });
+
+    test('flags an NFR with no figure at all as high severity', () {
+      final finding = nfr([
+        _item('NFR-RELI-01', 'The system shall be available at all times.'),
+      ]).single;
+
+      expect(finding.passed, isFalse);
+      expect(finding.severity, Severity.high);
+    });
+
+    test('flags a figure with no condition — the half documents omit', () {
+      final finding = nfr([
+        _item('NFR-PERF-02', 'Response time is 2 s.'),
+      ]).single;
+
+      expect(finding.passed, isFalse);
+      expect(finding.message, contains('not the condition'));
+    });
+
+    // The trap a plain digit scan falls into: standards references and
+    // section numbers are digits that measure nothing.
+    test('a standards reference is not a measurable figure', () {
+      final finding = nfr([
+        _item(
+          'NFR-SECU-01',
+          'Security shall follow ISO 25010 and section 3.2 of the policy.',
+        ),
+      ]).single;
+
+      expect(finding.passed, isFalse);
+    });
+
+    test('recognises an NFR by section wording when the id does not say so', () {
+      final findings = nfr([
+        _item('R-09', 'Performance: the report builds in under 5 min.'),
+      ]);
+
+      expect(findings, hasLength(1));
+      expect(findings.single.passed, isTrue);
+    });
+
+    test('functional requirements are not measured here', () {
+      expect(
+        nfr([_item('FR-AUTH-01', 'The system shall let a user log in.')]),
+        isEmpty,
+      );
+    });
+
+    // A use case narrating a security step is describing a flow, not
+    // stating a quality target. Charging it a high-severity NFR finding is
+    // the false positive that gets a checker switched off.
+    test('a use case mentioning a quality word is not an NFR', () {
+      final useCase = RequirementItem(
+        id: 'UC-004',
+        text: 'Security: the actor enters a password and the system verifies '
+            'it against the stored hash.',
+        kind: RequirementKind.useCase,
+        pageIndex: 1,
+      );
+
+      expect(nfr([useCase]), isEmpty);
+    });
+  });
+
+  // Guards the drift the schema's own description warns about: a CheckId
+  // added in Dart but not in contracts/review.schema.json ships a wire value
+  // no consumer of the contract knows about.
+  test('every CheckId wire value is listed in the contract schema', () {
+    final schema =
+        jsonDecode(File('../contracts/review.schema.json').readAsStringSync())
+            as Map<String, dynamic>;
+    final listed =
+        ((schema[r'$defs'] as Map)['CheckId'] as Map)['enum'] as List;
+
+    expect(
+      listed.cast<String>(),
+      unorderedEquals(CheckId.values.map((c) => c.wire).toList()),
+    );
   });
 }

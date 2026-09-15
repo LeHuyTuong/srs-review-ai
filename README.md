@@ -33,7 +33,7 @@ measurable in seconds, without waiting for supervisor feedback.
 | **F4** | Tap an issue → see the quote in context, jump to its page |
 | **F5** | Free-form Q&A grounded in the document ("what does section 3.2 say?") |
 | **F6** | Offline mock mode — the full flow with no network and no quota |
-| **F7** | Count use cases, warn outside the syllabus range of 20–25 |
+| **F7** | Count use cases, warn below the syllabus minimum of 20 (the app still enforces an upper bound of 25 — a known gap against rulebook 1.5, which dropped the ceiling; see `review-rules/adapters/app-port-map.md` §5 việc A) |
 | **F8** | Flag requirements not written in English (the syllabus requires English) |
 | **F9** | Estimate transactions per use case, warn outside 3–7 |
 
@@ -160,7 +160,16 @@ srs-review-ai/
 │   └── app/rubric.json      ← the rubric is DATA; edit this, not the code
 ├── contracts/               wire schema + fixtures both test suites parse
 ├── tools/                   guardrails + git hooks
-└── docs/adr/                why each decision was made
+├── review-rules/            the SRS/SDS marking rulebook — model-agnostic markdown,
+│                            runs offline. RULEBOOK.md is the single source of truth;
+│                            the app, the Claude skills and the DeepSeek adapter all read it
+├── skills/                  Claude skills srs-reviewer / sds-reviewer (thin adapters)
+├── reviews/                 real runs of the rulebook on real documents — the evidence
+│                            the scoring scale is calibrated against
+└── docs/
+    ├── adr/                 why each code decision was made (index in adr/README.md)
+    ├── evidence/            measurements behind the decisions
+    └── plans/               work orders; plan 7 is the current one for the review engine
 ```
 
 ## Rubric
@@ -169,6 +178,12 @@ Quality scoring uses four ISO/IEC/IEEE 29148 criteria — clear (30%), testable
 (30%), complete (25%), consistent (15%) — configured in
 [`server/app/rubric.json`](server/app/rubric.json) together with the syllabus
 thresholds (20–25 use cases, 3–7 transactions, pass 5.0, minimum 2.0 per part).
+
+Two of those numbers are **superseded by `review-rules/RULEBOOK.md` and not yet
+ported into the app**: the use-case ceiling of 25 is dropped (≥ 20, no upper
+bound) and the weights become clear .25 / testable .40 / complete .20 /
+consistent .15. Both are blocked on being able to run the test suites; the file
+list is in `review-rules/adapters/app-port-map.md` §5.
 
 **These weights are a proposal, not the official marking sheet.** The syllabus
 publishes per-report weights but not the per-item criteria graders use, which

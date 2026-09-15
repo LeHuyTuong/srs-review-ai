@@ -2,6 +2,8 @@
 
 **Ngày:** 2026-09-14 · **Commit code:** `02560f8` · **Commit sửa narrative:** `76f03bc`
 
+> **File lịch sử — đọc để biết app từng ở đâu, không phải để tra luật.** Luật hiện hành nằm ở `review-rules/RULEBOOK.md` (1.5-draft) và `review-rules/references/scoring.md`. Cụ thể: cross-artifact ở đây ghi **6 chain**, từ rulebook 1.1 là **7 chain**; §D (thang artifact ≠ thang per-requirement) vẫn còn hiệu lực và được RULEBOOK §6 viện dẫn.
+
 Câu hỏi của user: "app có check theo rule và theo skills sds/srs tôi gửi chưa?"
 Trả lời trung thực: **trước hôm đó là chưa** — rubric của app theo brief SEP490
 (F7/F8/F9 + M2), chưa đối chiếu skill nào. Tài liệu này là bản kiểm kê sau khi

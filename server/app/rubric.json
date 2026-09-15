@@ -1,19 +1,19 @@
 {
-  "version": "v2",
+  "version": "v3",
   "syllabus": "SEP490-14065 (QĐ 377/QĐ-ĐHFPT 04/09/2026)",
   "scope": "SRS quality (Report 3)",
-  "provenance": "Weights are a starting proposal derived from ISO/IEC/IEEE 29148 — the per-item marking sheet used by FPTU graders is internal and NOT public (research 12, §7). Replace these numbers with the supervisor's real rubric when obtained; no code change needed.",
+  "provenance": "Weights are a starting proposal derived from ISO/IEC/IEEE 29148 — the per-item marking sheet used by FPTU graders is internal and NOT public (research 12, §7). Reweighted 2026-09-15 per rulebook 1.5 Q6 (ADR-0009): testable raised to .40 because it was the dominant failure on OTES — 44/44 requirements had no writable test case. Replace these numbers with the supervisor's real rubric when obtained; no code change needed.",
   "quality_criteria": {
-    "clear": { "weight": 0.3, "source": "ISO/IEC/IEEE 29148 unambiguous" },
-    "testable": { "weight": 0.3, "source": "ISO/IEC/IEEE 29148 verifiable" },
-    "complete": { "weight": 0.25, "source": "ISO/IEC/IEEE 29148 complete + atomic" },
+    "clear": { "weight": 0.25, "source": "ISO/IEC/IEEE 29148 unambiguous" },
+    "testable": { "weight": 0.4, "source": "ISO/IEC/IEEE 29148 verifiable" },
+    "complete": { "weight": 0.2, "source": "ISO/IEC/IEEE 29148 complete + atomic" },
     "consistent": { "weight": 0.15, "source": "ISO/IEC/IEEE 29148 consistent + singular" }
   },
   "deterministic_checks": {
     "uc_count": {
       "min": 20,
-      "max": 25,
-      "gate": "Defense requires >=20 completed use cases (syllabus TDA clause)"
+      "max": null,
+      "gate": "Defense requires >=20 completed use cases (syllabus TDA clause); no upper bound (rulebook 1.5 Q1). Use case SIZE (3-7 transactions) is a separate criterion — see uc_size — and must not be folded back into this count."
     },
     "language": {
       "must": "en",

@@ -6,7 +6,8 @@
 ///   +2: diagram pass — notation đúng, không lỗi nghiêm trọng từng ảnh
 ///   +2: cross-artifact pass — 0 🔴 mục B, FK matrix sạch
 ///   +1: traceability thật (UC→design→test)
-///   Múc trừ: −1 mỗi 🔴 FLOW/ERD ảnh hưởng dữ liệu thật
+///   Mức trừ: −1 mỗi 🔴 FLOW/ERD ảnh hưởng dữ liệu thật
+///            (see [deductingFamilies] — "FLOW" is emitted as SM / SEQ-CLS)
 ///
 /// HONEST DEVIATIONS (the app reviews SRS, not SDS — see
 /// docs/evidence/rubric-vs-skills-map.md row 4):
@@ -57,6 +58,26 @@ const List<FloorCriterion> floorCriteria = [
   FloorCriterion('consistent', [CheckId.duplicateIds]),
   FloorCriterion('prioritized', [CheckId.missingPriority]),
 ];
+
+/// Ledger families whose red rows cost a point, as subject prefixes.
+///
+/// The rubric line is "−1 mỗi 🔴 FLOW/ERD ảnh hưởng dữ liệu thật": a red that
+/// asserts something wrong about the data or about runtime behaviour, as
+/// opposed to a red about how the document is written.
+///
+/// **`FLOW-` was never generated.** It was written here from the rubric's
+/// prose, but [DiagramKind] emits only ERD / SM / SEQ-CLS / UC / PKG / DOC —
+/// so from the first release until 2026-09-15 every state-machine and
+/// sequence red silently cost nothing, and the deduction rule covered data
+/// defects only. `SM-` and `SEQ-CLS-` are the families the rubric's "FLOW"
+/// actually names. Fixing it makes documents with broken state machines or
+/// broken sequences score lower than they did, which is the point.
+///
+/// Rule for extending this list: a family belongs here only if its reds are
+/// claims about the *system*, not about the *document*. `DOC-` and `PKG-`
+/// stay out — a missing caption or an orphan package is a writing defect,
+/// already paid for by forfeiting the +2.
+const List<String> deductingFamilies = ['ERD-', 'SM-', 'SEQ-CLS-'];
 
 /// State of one score component: earned / failed / not assessable.
 enum ComponentState { passed, failed, unassessed }
@@ -148,7 +169,7 @@ DocumentVerdict computeVerdict(List<DeterministicFinding> rows) {
   }
 
   // +2 cross-artifact: the naming-drift chain. FK matrix / seq↔class /
-  // status-vocabulary chains are not implemented (1/6 chain, map row 6),
+  // status-vocabulary chains are not implemented (1/7 chain, map row 6),
   // so passing this earns the bonus only against what CAN be checked —
   // the deviation is recorded here and in the plan, not hidden.
   final xRows = rows.where((r) => r.check == CheckId.crossArtifactName);
@@ -164,13 +185,12 @@ DocumentVerdict computeVerdict(List<DeterministicFinding> rows) {
   // +1 traceability: no test-artifact input exists in this app.
   const traceability = ComponentState.unassessed;
 
-  // −1 each: diagram rows with reds (high) whose family is ERD or FLOW.
+  // −1 each: diagram rows with reds (high) in a data-or-behaviour family.
   final deductionRows = diagramRows.where(
     (r) =>
         !r.passed &&
         r.severity == Severity.high &&
-        ((r.subject ?? '').startsWith('ERD-') ||
-            (r.subject ?? '').startsWith('FLOW-')),
+        deductingFamilies.any((f) => (r.subject ?? '').startsWith(f)),
   );
   final deductions = deductionRows.length;
 

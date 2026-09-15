@@ -59,5 +59,10 @@ def test_rubric_json_is_valid_and_weights_sum_to_one():
     rubric = load_rubric(str(RUBRIC_PATH))
     assert abs(sum(c["weight"] for c in rubric["quality_criteria"].values()) - 1.0) < 1e-9
     assert rubric["deterministic_checks"]["uc_count"]["min"] == 20
+    # Rulebook 1.5 Q1 (ADR-0009): no upper bound. The key stays present and
+    # explicitly null so an older client that casts it fails loudly instead of
+    # silently falling back to the old ceiling of 25.
+    assert "max" in rubric["deterministic_checks"]["uc_count"]
+    assert rubric["deterministic_checks"]["uc_count"]["max"] is None
     assert rubric["deterministic_checks"]["uc_size"]["max_transactions"] == 7
     assert rubric["thresholds"]["pass_mark"] == 5.0
