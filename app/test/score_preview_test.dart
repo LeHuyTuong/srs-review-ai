@@ -136,6 +136,10 @@ void main() {
     // switching itself is covered by the shell tests; this one is about the
     // panel.
     container.read(workspaceTabProvider.notifier).select(WorkspaceTab.findings);
+    // A finished run now leaves the summary bar in the top chrome, which can
+    // sit over the scores panel's first section on this phone surface — close
+    // it first, exactly as a user would.
+    container.read(workspaceViewModelProvider.notifier).dismissRunSummary();
     await tester.pump(const Duration(milliseconds: 200));
 
     expect(find.text('Scores by section'), findsOneWidget);

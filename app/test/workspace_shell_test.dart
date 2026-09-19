@@ -216,11 +216,18 @@ void main() {
     await tester.tap(find.text('Browse files'));
     await tester.pump(const Duration(milliseconds: 100));
     // Phase 1 is visible while the (stubbed) blocking read runs.
-    expect(find.textContaining('Reading x.docx'), findsOneWidget);
+    //
+    // TWO copies, on purpose: the sheet now stays open through the parse (so
+    // an import failure surfaces where the user clicked) and shows the phase
+    // itself, while the empty state behind it swaps its card for the same
+    // phase. Either alone would leave a hole — the sheet is the only surface
+    // on the History/Syllabus destinations, and the empty state is the only
+    // one left if the sheet is dismissed.
+    expect(find.textContaining('Reading x.docx'), findsNWidgets(2));
     // Phase 2 replaces it; the empty-state card is gone meanwhile.
     expect(find.text('A second look, backed by evidence.'), findsNothing);
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Opening DOCX archive…'), findsOneWidget);
+    expect(find.textContaining('Opening DOCX archive…'), findsNWidgets(2));
 
     await _pumpWhile(
       tester,
@@ -429,6 +436,14 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 100));
 
+    // A finished run now leaves the summary bar in the top chrome, which
+    // overlaps the document card's own actions. Close it first, exactly as a
+    // user would — then the header's Export report button is reachable again.
+    expect(find.textContaining('Review finished'), findsOneWidget);
+    await tester.tap(find.byTooltip('Dismiss summary'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Review finished'), findsNothing);
+
     // Open through the real entry point (document review's Export report
     // button), not by calling showExportModal on a synthetic context — the
     // wiring under test includes that button.
@@ -437,16 +452,25 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 400));
 
+    // Every leg now names what it is FOR, not just its format: users read
+    // "Save as JSON file" and "Copy Markdown report" as interchangeable and
+    // could not tell which one attached to a report or an email.
     Finder leg(String label) => find.text(label, skipOffstage: false);
-    expect(leg('Save as Markdown file'), findsOneWidget);
-    expect(leg('Save as JSON file'), findsOneWidget);
-    expect(leg('Save as HTML dashboard'), findsOneWidget);
-    expect(leg('Share report'), findsOneWidget);
-    // Plan 6: the share-BY-LINK button must be absent in mock mode — a
-    // link to nothing is the one thing offline mode never fakes. (The
-    // legacy 'Share report' above uses the OS sheet, not a URL.)
-    expect(leg('Share link — open in any browser'), findsNothing);
-    expect(leg('Copy Markdown report'), findsOneWidget);
+    expect(leg('Save as Markdown (.md) — for reports & docs'), findsOneWidget);
+    expect(
+      leg('Save as JSON (.json) — for tools & automation'),
+      findsOneWidget,
+    );
+    expect(leg('Save as HTML (.html) — open in any browser'), findsOneWidget);
+    expect(leg('Share via device apps (mail, Drive…)'), findsOneWidget);
+    // Plan 6: the share-BY-LINK leg is visible here because this container
+    // does NOT force mock mode (only the API is a stub). It used to hide
+    // behind `canAuditDiagrams`, so a DOCX or a restored session — neither of
+    // which has page bytes — lost the one export that needs no file dialog.
+    // The mock-mode absence (a link to nothing is the one thing offline mode
+    // never fakes) is pinned in share_link_test.dart.
+    expect(leg('Get a shareable link (opens in any browser)'), findsOneWidget);
+    expect(leg('Copy Markdown to clipboard — paste anywhere'), findsOneWidget);
     // The modal previews the markdown report it is about to save — pinned
     // so the JSON button can never silently replace the markdown preview.
     expect(
