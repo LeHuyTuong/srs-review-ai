@@ -1,0 +1,72 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#EDF6F0', 'primaryTextColor': '#17324D', 'primaryBorderColor': '#315C7D', 'lineColor': '#526575', 'secondaryColor': '#F7F3E8', 'tertiaryColor': '#FFFFFF', 'fontSize': '12px'}}}%%
+sequenceDiagram
+    autonumber
+    actor User as Người dùng
+    participant UI as Flutter UI
+    participant VM as WorkspaceViewModel
+    participant Repo as ReviewRepository
+    participant API as ReviewApi
+    participant Http as ApiService
+    participant Proxy as FastAPI proxy
+    participant Limit as RateLimiter
+    participant Cache as LRU cache
+    participant Gemini as Gemini provider
+    participant Verify as QuoteVerifier
+    participant Store as SessionStore
+
+    User->>UI: Chọn unit + Review
+    UI->>VM: runReview()
+    VM->>VM: clamp selection to 60
+    VM->>Repo: run(filtered document, concurrency=4)
+    activate Repo
+    Repo->>Repo: retry retryable errors per unit, max 3 attempts
+    Repo->>Repo: 401/429 kills run
+    Repo->>Repo: create workers (tối đa 4)
+
+    par worker 1
+        Repo->>API: review(unit 1, text, section, page, image?)
+    and worker 2
+        Repo->>API: review(unit 2, text, section, page, image?)
+    and worker 3
+        Repo->>API: review(unit 3, text, section, page, image?)
+    and worker 4
+        Repo->>API: review(unit 4, text, section, page, image?)
+    end
+
+    API->>Http: POST /review
+    Http->>Proxy: request + X-App-Token + X-User-Id
+    Proxy->>Limit: check(user, 50/day)
+    alt quota đã hết
+        Limit-->>Proxy: 429
+        Proxy-->>Http: 429 + Retry-After
+        Http-->>API: ApiException(non-retryable)
+        API-->>Repo: kill run
+    else quota còn
+        Limit-->>Proxy: allowed
+        Proxy->>Cache: lookup(exact key)
+        alt cache hit
+            Cache-->>Proxy: ReviewResult cached
+            Proxy-->>Http: result
+        else cache miss
+            Proxy->>Gemini: generate_json(review prompt + optional image)
+            Gemini-->>Proxy: structured JSON
+            Proxy->>Verify: review_issues(quotes, source, threshold=0.92)
+            Verify-->>Proxy: kept issues + dropped count
+            Proxy->>Cache: put(exact key, ReviewResult)
+            Proxy-->>Http: ReviewResult
+        end
+        Http-->>API: ReviewResult
+        API-->>Repo: result
+    end
+
+    opt có image và image path lỗi
+        Repo->>API: review same unit without image
+        API-->>Repo: text-only result hoặc failure
+    end
+    Repo->>Repo: aggregate results + failures + coverage
+    Repo-->>VM: ReviewProgress events
+    VM->>VM: update unit statuses
+    VM->>Store: save session + snapshot
+    Store-->>VM: persisted
+    Repo-->>UI: done / cancelled / failed
+    deactivate Repo

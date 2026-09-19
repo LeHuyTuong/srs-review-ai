@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#EDF6F0', 'primaryTextColor': '#17324D', 'primaryBorderColor': '#315C7D', 'lineColor': '#526575', 'secondaryColor': '#F7F3E8', 'tertiaryColor': '#FFFFFF', 'fontSize': '13px'}}}%%
+sequenceDiagram
+    autonumber
+    actor User as Người dùng
+    participant UI as Flutter UI
+    participant VM as WorkspaceViewModel
+    participant Repo as DocumentRepository
+    participant Picker as FilePickerService
+    participant Parser as ParseService
+    participant Split as RequirementSplitter
+    participant Checks as SyllabusChecks + ReferenceChecks + ContradictionPass
+    participant Store as SessionStore
+
+    User->>UI: Chọn PDF hoặc DOCX
+    UI->>VM: importDocument()
+    VM->>Repo: pickAndParse(onStatus)
+    Repo->>Picker: pickSrsFile()
+    alt người dùng hủy
+        Picker-->>Repo: null
+        Repo-->>VM: null
+        VM-->>UI: Import canceled
+    else chọn file hợp lệ
+        Picker-->>Repo: fileName + bytes + size + path
+        Repo->>Parser: parse(fileName, bytes)
+        activate Parser
+        Parser->>Split: split(pageTexts)
+        alt PDF
+            Split-->>Parser: RequirementItem[] + page indexes
+            Parser-->>Repo: SrsDocument
+        else DOCX
+            Split-->>Parser: RequirementItem[] + logical page 0
+            Parser-->>Repo: SrsDocument
+        end
+        deactivate Parser
+        Repo->>Checks: runAll(document)
+        Checks-->>Repo: deterministic findings
+        Repo-->>VM: LoadedDocument
+        VM->>VM: build inventory + findings + mode
+        VM->>Store: saveSnapshot()
+        Store-->>VM: persisted
+        VM-->>UI: workspace ready
+    else file lỗi
+        Picker-->>Repo: ParseException
+        Repo-->>VM: error
+        VM-->>UI: hiển thị lý do
+    end

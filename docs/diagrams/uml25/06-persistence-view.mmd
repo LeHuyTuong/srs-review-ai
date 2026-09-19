@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#EDF6F0', 'primaryTextColor': '#17324D', 'primaryBorderColor': '#315C7D', 'lineColor': '#526575', 'secondaryColor': '#F7F3E8', 'tertiaryColor': '#FFFFFF', 'fontSize': '14px'}}}%%
+flowchart LR
+    subgraph APP["Flutter app"]
+        A["WorkspaceViewModel"]
+        B["ReviewRepository"]
+        C["ApiService"]
+        D["SessionStore"]
+        E["ReportExporter"]
+    end
+
+    subgraph STORE["Persistent storage"]
+        F[("SharedPreferences")]
+        G["snapshot: selected units + findings"]
+        H["sessions: SavedSession[]\nmax 30"]
+        I["proxy URL + app token + user id"]
+    end
+
+    subgraph PROXY["FastAPI proxy"]
+        J["POST /share"]
+        K["ShareStore"]
+        L["server/.shares\nstatic HTML + sandbox CSP"]
+    end
+
+    A --> D
+    D --> F
+    F --> G
+    F --> H
+    F --> I
+    A --> E
+    E -->|saveFile| USER["Người dùng / OS file picker"]
+    A -->|mintShareLink| B
+    B --> C
+    C --> J
+    J --> K --> L
+    K -->|capability URL| A
+
+    classDef app fill:#EDF6F0,stroke:#315C7D,color:#17324D;
+    classDef store fill:#FFF7E5,stroke:#B1955B,color:#4A3A18;
+    classDef proxy fill:#EEF2F7,stroke:#526E8B,color:#17324D;
+    class A,B,C,D,E app;
+    class F,G,H,I store;
+    class J,K,L proxy;

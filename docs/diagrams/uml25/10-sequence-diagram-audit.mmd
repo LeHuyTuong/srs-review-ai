@@ -1,0 +1,48 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#EDF6F0', 'primaryTextColor': '#17324D', 'primaryBorderColor': '#315C7D', 'lineColor': '#526575', 'secondaryColor': '#F7F3E8', 'tertiaryColor': '#FFFFFF', 'fontSize': '12px'}}}%%
+sequenceDiagram
+    autonumber
+    actor User as Người dùng
+    participant UI as Flutter UI
+    participant VM as WorkspaceViewModel
+    participant Vision as VisionReviewService
+    participant Detector as DiagramDetector
+    participant Classifier as DiagramTypeClassifier
+    participant Renderer as PageImageRenderer
+    participant API as ApiService
+    participant Proxy as FastAPI /diagram
+    participant Describe as Gemini Describe
+    participant Judge as Gemini Judge
+    participant Store as SessionStore
+
+    User->>UI: Audit diagrams
+    UI->>VM: auditDiagrams()
+    VM->>VM: require current PDF bytes
+    VM->>Vision: audit(document)
+    Vision->>Detector: detect diagram intent
+    Vision->>Classifier: classify named diagram type
+    Vision->>Vision: candidates = named pages first + visual-only pages
+    Vision->>Vision: candidates named first plus visual-only, take 10 pages
+    loop mỗi candidate trong ngân sách
+        Vision->>Renderer: renderPage(pageIndex)
+        Renderer-->>Vision: PNG bytes
+        Vision->>API: POST /diagram(page, type, context, image_b64)
+        API->>Proxy: request + auth headers
+        Proxy->>Describe: call 1: describe elements/relations
+        Describe-->>Proxy: DiagramDescribe
+        Proxy->>Judge: call 2: judge notation
+        Judge-->>Proxy: DiagramVerdict
+        Proxy->>Proxy: bind effective family (DOC if no inventory)
+        Proxy-->>API: DiagramAuditResult
+        API-->>Vision: result
+        Vision->>Vision: create stable ledger row
+    end
+    Vision-->>VM: findings + failures + skipped pages
+    VM->>VM: replace diagramAudit rows only
+    VM->>Store: saveSnapshot()
+    VM-->>UI: audit summary
+    opt vượt ngân sách
+        Vision-->>VM: skipped page indexes
+    end
+    opt toàn bộ audit lỗi
+        VM-->>UI: no verdict written
+    end

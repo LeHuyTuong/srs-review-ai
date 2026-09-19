@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#EDF6F0', 'primaryTextColor': '#17324D', 'primaryBorderColor': '#315C7D', 'lineColor': '#526575', 'secondaryColor': '#F7F3E8', 'tertiaryColor': '#FFFFFF', 'fontSize': '13px'}}}%%
+sequenceDiagram
+    autonumber
+    actor User as Người dùng
+    participant UI as Flutter UI
+    participant VM as WorkspaceViewModel
+    participant Exporter as ReportExporter
+    participant API as ReviewRepository
+    participant Http as ApiService
+    participant Proxy as FastAPI /share
+    participant Share as ShareStore
+    participant OS as OS share sheet
+
+    User->>UI: Export report
+    UI->>VM: exportMarkdown / exportJson / exportHtml
+    VM->>VM: build one report state
+    VM->>Exporter: save(fileName, contents, mimeType)
+    Exporter->>User: OS save dialog
+    User-->>Exporter: chọn nơi lưu
+    Exporter-->>VM: destination path
+    VM-->>UI: saved
+
+    User->>UI: Share report
+    UI->>VM: exportHtml() + share()
+    alt web
+        VM-->>UI: save as file, share sheet unavailable
+    else mobile/desktop
+        VM->>Exporter: share(fileName, html)
+        Exporter->>OS: open native share sheet
+        OS-->>VM: user action completed
+    end
+
+    User->>UI: Create share link (online only)
+    UI->>VM: mintShareLink()
+    alt mock mode
+        VM-->>UI: hidden / unavailable
+    else online
+        VM->>API: shareReport(html, fileName)
+        API->>Http: POST /share + auth
+        Http->>Proxy: HTML body
+        Proxy->>Share: write HTML to .shares
+        Share-->>Proxy: capability URL
+        Proxy-->>Http: url
+        Http-->>API: absolute URL
+        API-->>VM: share link
+        VM-->>UI: link ready
+    end

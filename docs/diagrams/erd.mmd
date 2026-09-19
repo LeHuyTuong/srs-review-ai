@@ -1,0 +1,197 @@
+erDiagram
+
+    SrsDocument ||--o{ RequirementItem : contains
+    SrsDocument {
+        string fileName PK
+        int pageCount
+        string pageTexts
+        string requirements
+        string occurrenceKeys
+        string imagePageIndexes
+        string documentFingerprint
+    }
+
+    RequirementItem {
+        string id PK
+        string text
+        string kind
+        string? section
+        int? pageIndex
+    }
+
+    RequirementKind {
+        string name
+    }
+
+    SrsDocument ||--o{ WorkspaceUnit : mapped_to
+    WorkspaceUnit {
+        string key PK
+        string id
+        string title
+        string text
+        string kind
+        string? section
+        int pageIndex
+        boolean malformed
+        boolean selected
+        string status
+    }
+
+    UnitKind {
+        string name
+    }
+
+    UnitStatus {
+        string name
+    }
+
+    DeterministicFinding {
+        string check PK
+        boolean passed
+        string severity
+        string message
+        string? subject
+        int? actual
+        int? expectedMin
+        int? expectedMax
+        boolean requiresVisionEvidence
+    }
+
+    CheckId {
+        string wire PK
+        string label
+    }
+
+    Severity {
+        string name
+        int weight
+    }
+
+    ReviewResult ||--|{ ReviewIssue : has
+    ReviewResult {
+        string requirementId PK
+        int score
+        string issues
+        string model
+        string? contextNote
+        int droppedIssueCount
+        boolean cached
+        boolean mock
+    }
+
+    ReviewIssue {
+        string type
+        string severity
+        string quote
+        string suggestion
+        string verification
+        double? similarity
+    }
+
+    ReviewProgress {
+        string stage PK
+        int total
+        int completed
+        int skipped
+        string? currentRequirementId
+        string? error
+    }
+
+    ReviewResult }o--|{ ReviewProgress : progresses_to
+
+    LoadedDocument {
+        string document PK
+        string findings
+        string referenceFindings
+        int sizeBytes
+        string? path
+        string? pdfBytes
+    }
+
+    DiagramAuditResult {
+        int pageIndex PK
+        string diagramType
+        string elements
+        string relations
+        string unreadable
+        boolean clean
+        string findings
+        string model
+        boolean cached
+        boolean mock
+    }
+
+    DiagramFindingData {
+        string family
+        string entity
+        string evidence
+        string severity
+    }
+
+    DiagramRelationData {
+        string source
+        string target
+        string label
+        string arrowheadSide
+    }
+
+    DiagramAuditRequest {
+        int pageIndex
+        string diagramType
+        string contextText
+        string imageB64
+    }
+
+    SavedSession {
+        string id PK
+        string fileName
+        string payloadJson
+        string createdAt
+        string fingerprint
+        string parserVersion
+    }
+
+    SessionStore ||--o{ SavedSession : stores
+    SessionStore {
+        int maxSessions
+    }
+
+    Citation {
+        string quote
+        string verification
+        int? pageIndex
+    }
+
+    AskResponse {
+        string answer
+        boolean grounded
+        string citations
+        string model
+        boolean mock
+    }
+
+    AskResponse ||--|{ Citation : has
+
+    ReportExport {
+        string markdown
+        string json
+        string html
+    }
+
+    IssueType {
+        string name
+    }
+
+    Verification {
+        string name
+    }
+
+    %% ── Lookup / enum references ──
+    RequirementItem ||--|{ RequirementKind : kind
+    WorkspaceUnit ||--|{ UnitKind : kind
+    WorkspaceUnit ||--|{ UnitStatus : status
+    DeterministicFinding ||--|{ CheckId : check
+    DeterministicFinding ||--|{ Severity : severity
+    ReviewIssue ||--|{ IssueType : type
+    ReviewIssue ||--|{ Severity : severity
+    ReviewIssue ||--|{ Verification : verification

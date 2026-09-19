@@ -1,0 +1,79 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#E9E3F5', 'primaryTextColor': '#1A1A1A', 'primaryBorderColor': '#333333', 'lineColor': '#444444', 'secondaryColor': '#FFFFFF', 'tertiaryColor': '#FFFDE7', 'fontSize': '13px'}}}%%
+flowchart TB
+    subgraph USER["Người dùng"]
+        A([Bắt đầu])
+        B["Chọn PDF/DOCX\n≤ 30 MB"]
+        C["Xem inventory\nphân loại + chọn unit"]
+        D["Bấm Review"]
+        E["Hỏi về tài liệu"]
+        F["Export / Share"]
+        Z([Kết thúc])
+    end
+
+    subgraph UI["Flutter UI"]
+        UI1["Import modal\nstatus + progress"]
+        UI2["Workspace inventory"]
+        UI3["Findings + Q&A"]
+        UI4["Export / share dialog"]
+    end
+
+    subgraph VM["WorkspaceViewModel"]
+        V1["importDocument"]
+        V2["load document + checks"]
+        V3["runReview\nclamp 60"]
+        V4["askQuestion"]
+        V5["auditDiagrams\noptional"]
+        V6["exportHtml / mintShareLink"]
+        V7["save snapshot/session"]
+    end
+
+    subgraph DATA["Repository + Services"]
+        R1["DocumentRepository\nParseService"]
+        R2["SyllabusChecks (có QualityChecks)\nReferenceChecks + ContradictionPass"]
+        R3["ReviewRepository\n4 workers + retry 3"]
+        R4["PageImageSelector\nbudget 12"]
+        R5["PageImageRenderer"]
+        R6["VisionReviewService\nmax 10 pages"]
+        R7["AskDocument\noffline search"]
+        R8["ReportExporter"]
+        R9["SessionStore"]
+    end
+
+    subgraph PROXY["FastAPI proxy"]
+        P1["POST /review"]
+        P2["POST /ask"]
+        P3["POST /diagram\nDescribe + Judge"]
+        P4["POST /share"]
+        P5["Cache + rate limit\nquote verify"]
+    end
+
+    subgraph AI["Gemini / Mock"]
+        G1["Review / Ask\nstructured JSON"]
+        G2["Diagram Describe\nDiagram Judge"]
+    end
+
+    A --> B --> UI1 --> V1 --> R1
+    R1 -->|SrsDocument| V2 --> R2 --> V2 --> UI2 --> C --> V3
+    C --> D --> V3 --> R3
+    R3 -->|online| P1 --> P5 --> G1 --> P5 --> R3
+    R3 -->|mock| G1
+    R3 -->|progress/result| V3 --> V7 --> R9 --> UI3
+    V3 -->|if PDF + pages| R4 --> R5 --> R6 --> P3 --> G2 --> R6 --> V5 --> R9
+    V3 --> E --> V4 --> R7
+    R7 -->|no match| UI3
+    R7 -->|online| P2 --> P5 --> G1 --> P5 --> UI3
+    V3 --> F --> V6 --> R8 --> UI4 --> Z
+    V6 --> P4 --> P5 --> UI4
+
+    classDef user fill:#F4EFF8,stroke:#76558B,color:#24172E;
+    classDef ui fill:#EDF6F0,stroke:#315C7D,color:#17324D;
+    classDef vm fill:#E9E3F5,stroke:#66508A,color:#24172E;
+    classDef data fill:#FFF7E5,stroke:#B1955B,color:#4A3A18;
+    classDef proxy fill:#EEF2F7,stroke:#526E8B,color:#17324D;
+    classDef ai fill:#FDECEC,stroke:#9B5252,color:#4A1C1C;
+    class A,B,C,D,E,F,Z user;
+    class UI1,UI2,UI3,UI4 ui;
+    class V1,V2,V3,V4,V5,V6,V7 vm;
+    class R1,R2,R3,R4,R5,R6,R7,R8,R9 data;
+    class P1,P2,P3,P4,P5 proxy;
+    class G1,G2 ai;

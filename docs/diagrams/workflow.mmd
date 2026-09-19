@@ -1,0 +1,95 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#EDF6F0', 'primaryTextColor': '#17624D', 'lineColor': '#55615A', 'tertiaryColor': '#FFF'}}}%%
+flowchart TB
+
+    subgraph USER["👤 User"]
+        A["📄 Import SRS\n(PDF / DOCX)"]
+        I["✅ Select units\n+ classify"]
+        M["🔍 Ask question\n(document Q&A)"]
+        E["📤 Export / Share\nreport"]
+    end
+
+    subgraph APP["📱 Flutter App — app/lib"]
+        direction TB
+
+        FP["FilePickerService\npickSrsFile()\n🔒 30 MB cap"]
+        PS["ParseService\nparse()\n→ SrsDocument"]
+        DC["DocumentRepository\npickAndParse()"]
+        VM["WorkspaceViewModel\nRiverpod Notifier"]
+        RU["ReviewRepository\nrun()"]
+        AP["ApiService\nHTTPS + retry"]
+        VS["VisionReviewService\naudit()"]
+        EX["ReportExporter\nsave() / share()"]
+    end
+
+    subgraph CHECKS["🔍 Offline Checks — 0 token"]
+        direction TB
+        F7["F7 Use case count\n(≥ 20)"]
+        F8["F8 English only"]
+        F9["F9 Use case size\n(3–7 transactions)"]
+        M2["M2 Reference checks\ndup ids · postcond · actor"]
+        CP["Contradiction pass\ncross-artifact naming"]
+        Q["Quality checks\nambiguous · TBD · priority"]
+    end
+
+    subgraph SERVER["⚡ FastAPI Proxy — server/app"]
+        direction TB
+        SR["/review\nGemini → score\n+ issues"]
+        DA["/diagram\n2-call vision\nDescribe+Judge"]
+        AS["/ask\ngrounded Q&A"]
+        SH["/share\ncapability URL"]
+        UL["/uploads\npresigned PUT"]
+        HC["/health"]
+        RB["Rubric\n+ Rate limit\n50/day"]
+        CB["LRU Cache\n+ Contract\nverify"]
+    end
+
+    subgraph DB["💾 Storage"]
+        SP["SharedPreferences\nsessions · snapshot\nproxy · token · user"]
+        UF["Upload dir\n(raw PDF bytes)"]
+        SF["Share dir\n(HTML reports)"]
+        LB["LRU Review Cache\n+ Diagram Cache"]
+    end
+
+    %% ── Import flow ──
+    A --> FP --> PS --> DC
+    DC -->|"Syllabus\n(F7/F8/F9)"| CHECKS
+    DC -->|"Reference\n(M2) + Contradiction"| CHECKS
+    DC -->|"LoadedDocument"| VM
+
+    %% ── Main flow ──
+    VM --> I
+    I -->|"selected units"| RU
+    RU -->|"concurrent × 4"| AP
+    AP --> SR
+    SR --> CB
+    RB --> SR
+    CB --> LB
+
+    AP -.->|"Vision chain\nonly if PDF + pages"| VS
+    VS -->|"page audit\nERD-/SEQ-/PKG-"| DA
+    DA --> RB
+
+    %% ── Ask flow ──
+    VM --> M
+    M -->|"offline first"| VM
+    M -->|"proxy"| AS
+    AS --> RB
+
+    %% ── Export flow ──
+    VM --> E
+    E --> EX
+    EX -->|"save file"| SP
+    EX -->|"share"| SH
+    SH --> SF
+
+    %% ── Storage connections ──
+    SP -.->|"session state"| VM
+    UL -->|"raw bytes"| UF
+    SH -->|"report"| SF
+
+    %% ── Styling ──
+    style USER fill:#F4EFF8,stroke:#8E76A4
+    style APP fill:#EDF6F0,stroke:#17624D
+    style CHECKS fill:#EEF4E9,stroke:#7E9B66
+    style SERVER fill:#EDF3F7,stroke:#7397B3
+    style DB fill:#FFF7E5,stroke:#B1955B

@@ -1,0 +1,68 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#EDF6F0', 'primaryTextColor': '#17324D', 'primaryBorderColor': '#315C7D', 'lineColor': '#526575', 'secondaryColor': '#F7F3E8', 'tertiaryColor': '#FFFFFF', 'fontSize': '14px'}}}%%
+flowchart LR
+    subgraph APP["Flutter app"]
+        direction TB
+        UI["Workspace UI\nView"]
+        VM["WorkspaceViewModel\nRiverpod Notifier"]
+        DOC["DocumentRepository"]
+        REV["ReviewRepository"]
+        VIS["VisionReviewService"]
+        ASK["AskDocument"]
+        EXPORT["ReportExporter"]
+        STORE["SessionStore"]
+        PARSE["ParseService"]
+        CHECK["Deterministic checks"]
+        IMAGE["PageImageSelector + Renderer"]
+        API["ReviewApi\nApiService / MockReviewApi"]
+    end
+
+    subgraph PROXY["FastAPI proxy"]
+        direction TB
+        ROUTES["REST routes\n/review /ask /diagram /share"]
+        GUARD["Auth + bounds + rate limit"]
+        CACHE["LRU cache"]
+        VERIFY["QuoteVerifier"]
+        PROMPT["Rubric + prompts"]
+        ROUTER["ProviderRouter"]
+        UPLOAD["UploadStore"]
+        SHARE["ShareStore"]
+    end
+
+    subgraph EXT["Bên ngoài"]
+        GEMINI["Gemini API"]
+        LOCAL["Local files\nSharedPreferences / .uploads / .shares"]
+    end
+
+    UI -->|commands + state| VM
+    VM --> DOC
+    DOC --> PARSE
+    PARSE --> CHECK
+    CHECK -->|LoadedDocument| VM
+    VM --> REV
+    REV --> API
+    API -.->|online| ROUTES
+    API -.->|mock| MOCK["MockReviewApi"]
+    ROUTES --> GUARD --> CACHE
+    CACHE -->|miss| PROMPT --> ROUTER --> GEMINI
+    ROUTER -->|structured JSON| VERIFY
+    VERIFY -->|kept issues| CACHE
+    CACHE -->|ReviewResult| API
+    REV --> VIS
+    VIS --> IMAGE
+    VIS -->|POST /diagram| ROUTES
+    VM --> ASK
+    ASK -->|POST /ask| ROUTES
+    VM --> EXPORT
+    EXPORT -->|save/share| LOCAL
+    VM -->|mintShareLink| ROUTES
+    ROUTES --> SHARE --> LOCAL
+    ROUTES --> UPLOAD --> LOCAL
+    VM --> STORE
+    STORE --> LOCAL
+
+    classDef app fill:#EDF6F0,stroke:#315C7D,color:#17324D;
+    classDef proxy fill:#EEF2F7,stroke:#526E8B,color:#17324D;
+    classDef ext fill:#FFF7E5,stroke:#B1955B,color:#4A3A18;
+    class UI,VM,DOC,REV,VIS,ASK,EXPORT,STORE,PARSE,CHECK,IMAGE,API,MOCK app;
+    class ROUTES,GUARD,CACHE,VERIFY,PROMPT,ROUTER,UPLOAD,SHARE proxy;
+    class GEMINI,LOCAL ext;
