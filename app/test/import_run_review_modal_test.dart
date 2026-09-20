@@ -112,7 +112,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Review 2 units', skipOffstage: false),
+        find.text('Chấm 2 mục', skipOffstage: false),
         findsOneWidget,
         reason:
             'the review modal must open with its run action after a real import',

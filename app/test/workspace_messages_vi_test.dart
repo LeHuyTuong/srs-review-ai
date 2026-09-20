@@ -1,4 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:srs_review_ai/data/checks/reference_checks.dart';
+import 'package:srs_review_ai/data/checks/rubric_config.dart';
+import 'package:srs_review_ai/data/checks/syllabus_checks.dart';
 import 'package:srs_review_ai/data/models/review_progress.dart';
 import 'package:srs_review_ai/data/models/srs_document.dart';
 import 'package:srs_review_ai/data/services/api_service.dart';
@@ -54,18 +57,19 @@ void main() {
         ],
       );
 
-      // Các thông báo mẫu thực tế do SyllabusChecks và ReferenceChecks sinh ra
-      final sampleFindingMessages = [
-        'Document has fewer than 20 use cases.',
-        'Use case UC01 exceeds maximum recommended size.',
-        'Unreferenced business rule BR01 detected.',
+      // Exercise actual checker output so wording and coverage cannot drift.
+      final findings = [
+        ...const SyllabusChecks(RubricConfig.fallback).runAll(document),
+        ...const ReferenceChecks().runAll(document),
       ];
 
-      for (final msg in sampleFindingMessages) {
+      expect(findings, isNotEmpty);
+      for (final finding in findings) {
         expect(
-          workspaceMessage(msg),
-          isNot(msg),
-          reason: 'Thông báo "$msg" chưa được dịch sang tiếng Việt',
+          workspaceMessage(finding.message),
+          isNot(finding.message),
+          reason:
+              'Thông báo "${finding.message}" chưa được dịch sang tiếng Việt',
         );
       }
 

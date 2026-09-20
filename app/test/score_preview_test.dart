@@ -164,7 +164,7 @@ void main() {
     // The source sheet is now a review preview, not just the raw text.
     expect(find.text('KẾT QUẢ ĐÁNH GIÁ'), findsOneWidget);
     expect(
-      find.textContaining('${unitWithIssues.findingCount} lỗi'),
+      find.text('${unitWithIssues.findingCount} lỗi cần sửa tại đây'),
       findsOneWidget,
     );
     final quote = container
