@@ -130,7 +130,6 @@ class _ReviewHistoryViewState extends ConsumerState<ReviewHistoryView> {
                             final confirmed = await showDialog<bool>(
                               context: context,
                               builder: (dialogContext) {
-                                final colors = dialogContext.workspaceColors;
                                 return AlertDialog(
                                   title: const Text('Xóa phiên đánh giá?'),
                                   content: Text(
