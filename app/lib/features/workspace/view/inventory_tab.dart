@@ -68,7 +68,7 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
                     _page = 1;
                   }),
                   decoration: InputDecoration(
-                    hintText: 'Search ID or requirement…',
+                    hintText: 'Tìm kiếm theo ID hoặc nội dung...',
                     prefixIcon: const Icon(Icons.search, size: 18),
                     isDense: true,
                     border: OutlineInputBorder(borderRadius: AppRadius.boxSm),
@@ -82,7 +82,10 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
                     'All types',
                     ...UnitKind.values.map((k) => k.label),
                   ])
-                    DropdownMenuItem(value: label, child: Text(label)),
+                    DropdownMenuItem(
+                      value: label,
+                      child: Text(workspaceLabel(label)),
+                    ),
                 ],
                 underline: const SizedBox.shrink(),
                 borderRadius: AppRadius.boxSm,
@@ -103,7 +106,10 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
                     'Selected',
                     'Reviewed',
                   ])
-                    DropdownMenuItem(value: label, child: Text(label)),
+                    DropdownMenuItem(
+                      value: label,
+                      child: Text(workspaceLabel(label)),
+                    ),
                 ],
                 underline: const SizedBox.shrink(),
                 borderRadius: AppRadius.boxSm,
@@ -130,7 +136,9 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
               spacing: AppSpacing.sm,
               children: [
                 InputChip(
-                  label: Text(_status != 'All units' ? _status : _kind),
+                  label: Text(
+                    workspaceLabel(_status != 'All units' ? _status : _kind),
+                  ),
                   onDeleted: () => setState(() {
                     _status = 'All units';
                     _kind = 'All types';
@@ -155,8 +163,8 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
               Expanded(
                 child: Text(
                   _status == 'Needs attention'
-                      ? 'Unclassified requirements'
-                      : 'Requirements inventory',
+                      ? 'Yêu cầu cần kiểm tra'
+                      : 'Danh sách yêu cầu',
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: colors.muted,
                     fontWeight: FontWeight.w600,
@@ -164,7 +172,7 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
                 ),
               ),
               Text(
-                '${filtered.length} units',
+                '${filtered.length} mục',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: colors.muted,
                 ),
@@ -189,56 +197,60 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
             border: Border.all(color: colors.border),
           ),
           padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Row(
-            children: [
-              Container(
-                width: 26,
-                height: 26,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: colors.sageBg,
-                  border: Border.all(color: colors.border),
-                ),
-                child: Icon(Icons.check, size: 14, color: colors.sage),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${state.selectedCount} units selected',
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: colors.ink,
-                        fontWeight: FontWeight.w600,
-                      ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final selection = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Đã chọn ${state.selectedCount} / ${state.units.length} mục',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: colors.ink,
+                      fontWeight: FontWeight.w600,
                     ),
-                    Text(
-                      state.attentionCount > 0
-                          ? '${state.attentionCount} flagged units are preserved for your review'
-                          : 'All detected units are accounted for',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colors.muted,
-                      ),
+                  ),
+                  Text(
+                    state.attentionCount > 0
+                        ? '${state.attentionCount} mục cần kiểm tra lại mã ID'
+                        : 'Đã giữ lại toàn bộ mục trích xuất',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colors.muted,
                     ),
-                  ],
-                ),
-              ),
-              WButton.primary(
-                label: 'Run review',
+                  ),
+                ],
+              );
+              final action = WButton.primary(
+                label: 'Bắt đầu chấm điểm AI',
                 icon: Icons.auto_awesome,
                 onPressed: state.selectedCount == 0 || state.isRunning
                     ? null
                     : () => showReviewModal(context, ref),
-              ),
-            ],
+              );
+              if (constraints.maxWidth < 560) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    selection,
+                    const SizedBox(height: AppSpacing.sm),
+                    action,
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: selection),
+                  const SizedBox(width: AppSpacing.md),
+                  action,
+                ],
+              );
+            },
           ),
         ),
         if (visible.isEmpty)
           WEmptyState(
             icon: Icons.search,
-            title: 'No matching requirements',
-            message: 'Try another keyword or reset your filters.',
+            title: 'Không tìm thấy yêu cầu phù hợp',
+            message: 'Thử từ khóa khác hoặc đặt lại bộ lọc.',
           )
         else
           Column(
@@ -266,16 +278,16 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
                 child: Text(
                   filtered.isEmpty
                       ? ''
-                      : 'Showing ${(safePage - 1) * _rowsPerPage + 1}–'
+                      : 'Hiển thị ${(safePage - 1) * _rowsPerPage + 1}–'
                             '${((safePage - 1) * _rowsPerPage) + visible.length} '
-                            'of ${filtered.length} units',
+                            'trên ${filtered.length} mục',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: colors.muted,
                   ),
                 ),
               ),
               IconButton(
-                tooltip: 'Previous page',
+                tooltip: 'Trang trước',
                 onPressed: safePage <= 1
                     ? null
                     : () => setState(() => _page = safePage - 1),
@@ -289,7 +301,7 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
                 ),
               ),
               IconButton(
-                tooltip: 'Next page',
+                tooltip: 'Trang sau',
                 onPressed: safePage >= pageCount
                     ? null
                     : () => setState(() => _page = safePage + 1),
@@ -374,13 +386,13 @@ class _UnitRow extends StatelessWidget {
       unit.malformed,
       unit.status,
     )) {
-      (true, _) => (colors.amber, 'Check ID'),
-      (false, UnitStatus.reviewed) => (colors.brand, 'Reviewed'),
-      (false, UnitStatus.failed) => (colors.amber, 'Failed'),
-      (false, UnitStatus.skipped) => (colors.muted, 'Skipped'),
+      (true, _) => (colors.amber, 'Kiểm tra ID'),
+      (false, UnitStatus.reviewed) => (colors.brand, 'Đã chấm'),
+      (false, UnitStatus.failed) => (colors.amber, 'Thất bại'),
+      (false, UnitStatus.skipped) => (colors.muted, 'Bỏ qua'),
       (false, UnitStatus.pending) => (
         colors.sage,
-        unit.selected ? 'Ready' : 'Skipped',
+        unit.selected ? 'Sẵn sàng' : 'Bỏ qua',
       ),
     };
 
@@ -411,6 +423,72 @@ class _UnitRow extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final compact = constraints.maxWidth < 560;
+              if (compact) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Checkbox(
+                      value: unit.selected,
+                      onChanged: (value) => onToggle(value ?? false),
+                      activeColor: colors.brand,
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.xs,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Wrap(
+                              spacing: AppSpacing.sm,
+                              runSpacing: AppSpacing.xs,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Text(
+                                  unit.id,
+                                  style: theme.textTheme.labelMedium,
+                                ),
+                                if (score != null && !unit.malformed)
+                                  WScoreChip(
+                                    score: score,
+                                    passMark: rubric.passMark,
+                                    warnScore: rubric.warnScore,
+                                    dense: true,
+                                  )
+                                else
+                                  Text(
+                                    statusLabel,
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: statusColor,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              unit.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colors.ink,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              workspaceLabel(unit.kind.label),
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: colors.muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Icon(Icons.chevron_right, size: 18, color: colors.muted),
+                  ],
+                );
+              }
               final columns = <Widget>[
                 SizedBox(
                   width: 32,
@@ -448,7 +526,7 @@ class _UnitRow extends StatelessWidget {
                 // already carries the meaning.
                 Flexible(
                   child: WBadge(
-                    label: unit.kind.label,
+                    label: workspaceLabel(unit.kind.label),
                     tint: unit.kind == UnitKind.unknown
                         ? WBadgeTint.amber
                         : unit.kind == UnitKind.businessRule
@@ -461,7 +539,7 @@ class _UnitRow extends StatelessWidget {
                   SizedBox(
                     width: 52,
                     child: Text(
-                      'p. ${unit.pageIndex + 1}',
+                      'Tr. ${unit.pageIndex + 1}',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: colors.muted,
                       ),

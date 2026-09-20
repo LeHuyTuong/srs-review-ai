@@ -45,7 +45,7 @@ class FilePickerService {
     void Function(String status)? onStatus,
   }) async {
     final file = await FilePicker.pickFile(
-      dialogTitle: 'Choose an SRS document',
+      dialogTitle: 'Chọn tài liệu SRS',
       type: FileType.custom,
       allowedExtensions: kSupportedDocumentExtensions.toList(growable: false),
     );

@@ -138,7 +138,7 @@ void main() {
     container.read(workspaceTabProvider.notifier).select(WorkspaceTab.findings);
     await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.text('Scores by section'), findsOneWidget);
+    expect(find.text('Điểm theo phần'), findsOneWidget);
     expect(find.text(worst.section), findsOneWidget);
 
     var center = await _scrollToTappable(tester, find.text(worst.section));
@@ -162,9 +162,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     // The source sheet is now a review preview, not just the raw text.
-    expect(find.text('REVIEW RESULT'), findsOneWidget);
+    expect(find.text('KẾT QUẢ ĐÁNH GIÁ'), findsOneWidget);
     expect(
-      find.textContaining('${unitWithIssues.findingCount} thing'),
+      find.text('${unitWithIssues.findingCount} lỗi cần sửa tại đây'),
       findsOneWidget,
     );
     final quote = container
@@ -214,15 +214,15 @@ void main() {
     container.read(workspaceTabProvider.notifier).select(WorkspaceTab.syllabus);
     await tester.pump(const Duration(milliseconds: 300));
 
-    final checkCardFinder = find.text('Use case count').first;
+    final checkCardFinder = find.text('Số lượng Use Case').first;
     final center = await _scrollToTappable(tester, checkCardFinder);
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tapAt(center);
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('THE RULE'), findsOneWidget);
-    expect(find.text('HOW TO FIX IT'), findsOneWidget);
+    expect(find.text('TIÊU CHÍ KIỂM TRA'), findsOneWidget);
+    expect(find.text('CÁCH KHẮC PHỤC'), findsOneWidget);
     await tester.pump(const Duration(seconds: 5));
   });
 }

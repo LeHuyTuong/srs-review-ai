@@ -100,7 +100,7 @@ class _SourceSheetBody extends ConsumerWidget {
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
-                    'SOURCE CONTEXT',
+                    'NGỮ CẢNH TÀI LIỆU GỐC',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: colors.muted,
                       letterSpacing: 1.4,
@@ -109,7 +109,7 @@ class _SourceSheetBody extends ConsumerWidget {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Close source',
+                  tooltip: 'Đóng tài liệu gốc',
                   icon: const Icon(Icons.close),
                   color: colors.muted,
                   onPressed: () => Navigator.of(context).pop(),
@@ -128,11 +128,11 @@ class _SourceSheetBody extends ConsumerWidget {
                   children: [
                     WBadge(label: current.id),
                     WBadge(
-                      label: 'Page ${current.pageIndex + 1}',
+                      label: 'Trang ${current.pageIndex + 1}',
                       tint: WBadgeTint.green,
                     ),
                     if (current.malformed)
-                      WBadge(label: 'Malformed ID', tint: WBadgeTint.amber),
+                      WBadge(label: 'ID sai định dạng', tint: WBadgeTint.amber),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -144,7 +144,7 @@ class _SourceSheetBody extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  current.section ?? 'Unclassified',
+                  current.section ?? 'Chưa phân loại',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: colors.muted,
                   ),
@@ -155,16 +155,14 @@ class _SourceSheetBody extends ConsumerWidget {
                     warning: true,
                     icon: Icons.error_outline,
                     text:
-                        'This ID is not in the recognized format. It has been '
-                        'preserved as an unknown unit — choose a classification '
-                        'to include it in your review.',
+                        'Mã ID chưa đúng định dạng và vẫn được giữ lại. Hãy chọn loại yêu cầu để đưa mục này vào lượt chấm.',
                   ),
                 ],
                 const SizedBox(height: AppSpacing.lg),
                 DropdownButtonFormField<String>(
                   initialValue: current.kind.label,
                   decoration: InputDecoration(
-                    labelText: 'Classification',
+                    labelText: 'Phân loại',
                     border: OutlineInputBorder(borderRadius: AppRadius.boxSm),
                     isDense: true,
                   ),
@@ -172,7 +170,7 @@ class _SourceSheetBody extends ConsumerWidget {
                     for (final kind in UnitKind.values)
                       DropdownMenuItem(
                         value: kind.label,
-                        child: Text(kind.label),
+                        child: Text(workspaceLabel(kind.label)),
                       ),
                   ],
                   onChanged: (value) {
@@ -193,7 +191,7 @@ class _SourceSheetBody extends ConsumerWidget {
                     onChanged: (value) =>
                         viewModel.setUnitSelected(current.key, value ?? false),
                     title: Text(
-                      'Include in review',
+                      'Đưa vào lượt chấm',
                       style: theme.textTheme.labelLarge?.copyWith(
                         color: colors.ink,
                       ),
@@ -212,7 +210,7 @@ class _SourceSheetBody extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        'REVIEW RESULT',
+                        'KẾT QUẢ ĐÁNH GIÁ',
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: colors.muted,
                           letterSpacing: 1.4,
@@ -233,25 +231,20 @@ class _SourceSheetBody extends ConsumerWidget {
                   WInfoNote(
                     icon: Icons.help_outline,
                     text:
-                        'This unit has no score in the latest run yet — '
-                        'include it in a review to see what needs fixing, '
-                        'where and how.',
+                        'Mục này chưa có điểm trong lượt chấm gần nhất. Hãy chọn mục để chấm và xem gợi ý sửa.',
                   )
                 else if (scored.isEmpty)
                   WInfoNote(
                     icon: Icons.verified_outlined,
                     text:
-                        'No verified issue against this requirement. The '
-                        'score rates wording quality; it is not a '
-                        'completeness guarantee.',
+                        'Chưa có lỗi được xác minh cho yêu cầu này. Điểm phản ánh chất lượng diễn đạt, chưa đảm bảo tính đầy đủ.',
                   )
                 else
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        '${scored.length} thing${scored.length == 1 ? '' : 's'} '
-                        'to fix here',
+                        '${scored.length} lỗi cần sửa tại đây',
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: colors.ink,
                           fontWeight: FontWeight.w600,
@@ -266,24 +259,26 @@ class _SourceSheetBody extends ConsumerWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
+                                Wrap(
+                                  spacing: AppSpacing.sm,
+                                  runSpacing: AppSpacing.xs,
                                   children: [
                                     WBadge(
-                                      label: row.severity.name,
+                                      label: workspaceLabel(row.severity.name),
                                       tint: row.severity == Severity.high
                                           ? WBadgeTint.amber
                                           : WBadgeTint.neutral,
                                     ),
-                                    const SizedBox(width: AppSpacing.sm),
                                     WBadge(
-                                      label: row.typeLabel,
+                                      label: workspaceLabel(row.typeLabel),
                                       tint: WBadgeTint.neutral,
                                     ),
-                                    const Spacer(),
                                     if (state.statusOf(row.id) !=
                                         FindingStatus.open)
                                       WBadge(
-                                        label: state.statusOf(row.id).label,
+                                        label: workspaceLabel(
+                                          state.statusOf(row.id).label,
+                                        ),
                                         tint:
                                             state.statusOf(row.id) ==
                                                 FindingStatus.fixed
@@ -316,7 +311,7 @@ class _SourceSheetBody extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: AppSpacing.xs),
                                 Text(
-                                  row.suggestion,
+                                  workspaceMessage(row.suggestion),
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: colors.muted,
                                     height: 1.7,
@@ -333,14 +328,14 @@ class _SourceSheetBody extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        'Original source text',
+                        'Nội dung tài liệu gốc',
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: colors.muted,
                         ),
                       ),
                     ),
                     IconButton(
-                      tooltip: 'Copy source text',
+                      tooltip: 'Sao chép nội dung gốc',
                       icon: const Icon(Icons.copy, size: 17),
                       color: colors.muted,
                       onPressed: () async {
@@ -350,7 +345,7 @@ class _SourceSheetBody extends ConsumerWidget {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Source text copied.'),
+                              content: Text('Đã sao chép nội dung gốc.'),
                             ),
                           );
                         }

@@ -35,7 +35,7 @@ class _StubProgressRepository extends DocumentRepository {
   }) async {
     onStatus?.call('Reading x.docx (25.0 MB)…');
     await Future<void>.delayed(const Duration(milliseconds: 300));
-    onStatus?.call('Opening DOCX archive…');
+    onStatus?.call('Đang mở tệp DOCX…');
     await Future<void>.delayed(const Duration(milliseconds: 300));
     return LoadedDocument(
       document: SrsDocument(
@@ -168,17 +168,17 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('A second look, backed by evidence.'), findsOneWidget);
-    expect(find.byTooltip('Open navigation'), findsOneWidget);
+    expect(find.text('Kiểm tra tài liệu dựa trên bằng chứng'), findsOneWidget);
+    expect(find.byTooltip('Mở điều hướng'), findsOneWidget);
 
-    await tester.tap(find.text('Load the sample document'));
+    await tester.tap(find.text('Mở tài liệu mẫu'));
     await _pumpWhile(
       tester,
       () => find.text('UC01', skipOffstage: false).evaluate().isEmpty,
     );
-    expect(find.text('A second look, backed by evidence.'), findsNothing);
+    expect(find.text('Kiểm tra tài liệu dựa trên bằng chứng'), findsNothing);
     expect(find.text('UC01'), findsWidgets);
-    expect(find.text('Load the sample document'), findsNothing);
+    expect(find.text('Mở tài liệu mẫu'), findsNothing);
     // Let the 4.5s toast timer expire so no Timer is pending at teardown.
     await tester.pump(const Duration(seconds: 5));
   });
@@ -206,27 +206,27 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 100));
 
-    await tester.tap(find.text('Import document'));
+    await tester.tap(find.text('Tải file mới'));
     await tester.pump(const Duration(milliseconds: 200));
-    expect(find.text('A fresh set of requirements.'), findsOneWidget);
+    expect(find.text('Tải tài liệu SRS'), findsOneWidget);
 
     // The CTA sits below the fold inside the phone bottom sheet.
-    await tester.ensureVisible(find.text('Browse files'));
+    await tester.ensureVisible(find.text('Chọn tệp'));
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Browse files'));
+    await tester.tap(find.text('Chọn tệp'));
     await tester.pump(const Duration(milliseconds: 100));
     // Phase 1 is visible while the (stubbed) blocking read runs.
-    expect(find.textContaining('Reading x.docx'), findsOneWidget);
+    expect(find.textContaining('Đang đọc x.docx'), findsOneWidget);
     // Phase 2 replaces it; the empty-state card is gone meanwhile.
-    expect(find.text('A second look, backed by evidence.'), findsNothing);
+    expect(find.text('Kiểm tra tài liệu dựa trên bằng chứng'), findsNothing);
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Opening DOCX archive…'), findsOneWidget);
+    expect(find.text('Đang mở tệp DOCX…'), findsOneWidget);
 
     await _pumpWhile(
       tester,
       () => find.text('x.docx', skipOffstage: false).evaluate().isEmpty,
     );
-    expect(find.textContaining('Opening DOCX archive'), findsNothing);
+    expect(find.textContaining('Đang mở tệp DOCX'), findsNothing);
     expect(find.textContaining('x.docx'), findsWidgets);
     // Let the 4.5s toast timer expire so no Timer is pending at teardown.
     await tester.pump(const Duration(seconds: 5));
@@ -260,7 +260,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('Original source text'), findsOneWidget);
+    expect(find.text('Nội dung tài liệu gốc'), findsOneWidget);
     // The sheet prints the unit's verbatim text, not a paraphrase.
     final unit = container
         .read(workspaceViewModelProvider)
@@ -306,13 +306,13 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 100));
 
-    // 'Findings' also labels workflow step 3 — target the tab (last match),
+    // 'Kết quả & Lỗi' also labels workflow step 3 — target the tab (last match),
     // scrolled clear of the floating bars.
-    await _scrollToTappable(tester, find.text('Findings').last);
-    await tester.tap(find.text('Findings').last);
+    await _scrollToTappable(tester, find.text('Kết quả & Lỗi').last);
+    await tester.tap(find.text('Kết quả & Lỗi').last);
     await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.text('Exact match'), findsWidgets);
+    expect(find.text('Khớp chính xác'), findsWidgets);
 
     final quote = container
         .read(workspaceViewModelProvider)
@@ -320,12 +320,8 @@ void main() {
         .findings
         .first
         .quote;
-    await tester.scrollUntilVisible(
-      find.text('View in source').first,
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('View in source').first);
+    await _scrollToTappable(tester, find.text('Xem bản gốc').first);
+    await tester.tap(find.text('Xem bản gốc').first);
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.textContaining(quote), findsWidgets);
@@ -372,21 +368,18 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 100));
 
-    await _scrollToTappable(tester, find.text('Findings').last);
-    await tester.tap(find.text('Findings').last);
+    await _scrollToTappable(tester, find.text('Kết quả & Lỗi').last);
+    await tester.tap(find.text('Kết quả & Lỗi').last);
     await tester.pump(const Duration(milliseconds: 200));
 
     // The model family now declares itself.
     await tester.scrollUntilVisible(
-      find.text('Model findings'),
+      find.text('Lỗi do AI phát hiện'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('Model findings'), findsOneWidget);
-    expect(
-      find.textContaining('Scored by the model from the text you sent'),
-      findsOneWidget,
-    );
+    expect(find.text('Lỗi do AI phát hiện'), findsOneWidget);
+    expect(find.textContaining('AI đánh giá nội dung đã gửi'), findsOneWidget);
     await tester.pump(const Duration(seconds: 5));
   });
 
@@ -432,21 +425,21 @@ void main() {
     // Open through the real entry point (document review's Export report
     // button), not by calling showExportModal on a synthetic context — the
     // wiring under test includes that button.
-    await _scrollToTappable(tester, find.text('Export report').first);
-    await tester.tap(find.text('Export report').first);
+    await _scrollToTappable(tester, find.text('Xuất báo cáo').first);
+    await tester.tap(find.text('Xuất báo cáo').first);
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 400));
 
     Finder leg(String label) => find.text(label, skipOffstage: false);
-    expect(leg('Save as Markdown file'), findsOneWidget);
-    expect(leg('Save as JSON file'), findsOneWidget);
-    expect(leg('Save as HTML dashboard'), findsOneWidget);
-    expect(leg('Share report'), findsOneWidget);
+    expect(leg('Lưu tệp Markdown'), findsOneWidget);
+    expect(leg('Lưu tệp JSON'), findsOneWidget);
+    expect(leg('Lưu báo cáo HTML'), findsOneWidget);
+    expect(leg('Chia sẻ báo cáo'), findsOneWidget);
     // Plan 6: the share-BY-LINK button must be absent in mock mode — a
     // link to nothing is the one thing offline mode never fakes. (The
-    // legacy 'Share report' above uses the OS sheet, not a URL.)
-    expect(leg('Share link — open in any browser'), findsNothing);
-    expect(leg('Copy Markdown report'), findsOneWidget);
+    // legacy 'Chia sẻ báo cáo' above uses the OS sheet, not a URL.)
+    expect(leg('Tạo liên kết mở trên trình duyệt'), findsNothing);
+    expect(leg('Sao chép báo cáo Markdown'), findsOneWidget);
     // The modal previews the markdown report it is about to save — pinned
     // so the JSON button can never silently replace the markdown preview.
     expect(
@@ -481,7 +474,7 @@ void main() {
       ),
     );
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Load the sample document'));
+    await tester.tap(find.text('Mở tài liệu mẫu'));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 400));
 
@@ -574,7 +567,7 @@ void main() {
       reason: 'on the primary destination back must remain an exit',
     );
 
-    await tester.tap(find.text('Review history'));
+    await tester.tap(find.text('Lịch sử đánh giá'));
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(
@@ -587,7 +580,7 @@ void main() {
     // means "you own what happens now"), and expect the home destination.
     guard().onPopInvokedWithResult!(false, null);
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('A second look, backed by evidence.'), findsOneWidget);
+    expect(find.text('Kiểm tra tài liệu dựa trên bằng chứng'), findsOneWidget);
 
     // Back on branch 0 the guard must lift immediately.
     expect(guard().canPop, isTrue);
@@ -715,7 +708,7 @@ void main() {
       ),
     );
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Load the sample document'));
+    await tester.tap(find.text('Mở tài liệu mẫu'));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 400));
 
@@ -836,7 +829,7 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 100));
     // The demo is capped at 40 units per run, so it exercises the cap message.
-    await tester.tap(find.text('Load the sample document'));
+    await tester.tap(find.text('Mở tài liệu mẫu'));
     await tester.pump(const Duration(milliseconds: 400));
 
     final vm = container.read(workspaceViewModelProvider.notifier);
@@ -844,11 +837,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
 
     expect(find.byKey(const Key('review-progress-bar')), findsOneWidget);
-    expect(find.text('Cancel'), findsWidgets);
+    expect(find.text('Hủy'), findsWidgets);
     expect(find.byType(LinearProgressIndicator), findsWidgets);
 
     // The demo holds 65 units and the cap is 40, so the shortfall is stated.
-    expect(find.textContaining('outside this run'), findsOneWidget);
+    expect(find.textContaining('mục chưa được chấm'), findsOneWidget);
 
     // Elapsed time appears and ticks.
     expect(find.textContaining('0:0'), findsWidgets);
@@ -888,7 +881,7 @@ void main() {
       ),
     );
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Load the sample document'));
+    await tester.tap(find.text('Mở tài liệu mẫu'));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 400));
 
@@ -993,7 +986,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     final put = tester.getRect(find.byType(SingleChildScrollView).first);
-    final firstHeading = tester.getRect(find.text('Document review').first);
+    final firstHeading = tester.getRect(find.text('Đánh giá tài liệu').first);
     expect(
       firstHeading.top,
       greaterThan(put.top + 40),
@@ -1051,10 +1044,10 @@ void main() {
     // whether a proxy happens to be running. Asserting "Online" here would
     // make the suite pass or fail on network conditions.
     for (final wanted in [
-      'Workspace / Document review',
-      'Connection status',
-      'Open navigation',
-      'Help & getting started',
+      'Không gian làm việc / Đánh giá tài liệu',
+      'Kết nối:',
+      'Mở điều hướng',
+      'Trợ giúp & hướng dẫn',
     ]) {
       expect(
         labels.where((l) => l.contains(wanted)).length,
@@ -1065,9 +1058,9 @@ void main() {
 
     // And never doubled: each must appear on exactly one node.
     for (final wanted in [
-      'Workspace / Document review',
-      'Open navigation',
-      'Help & getting started',
+      'Không gian làm việc / Đánh giá tài liệu',
+      'Mở điều hướng',
+      'Trợ giúp & hướng dẫn',
     ]) {
       expect(
         labels.where((l) => l == wanted).length,
@@ -1152,18 +1145,18 @@ void main() {
 
     // Settings was reachable only by a detour through the right column.
     expect(
-      _buttonsNamed(nodes, 'Settings'),
+      _buttonsNamed(nodes, 'Cài đặt'),
       isNotEmpty,
       reason: 'Settings must be announced as a button; labels were $labels',
     );
     // The offline card and its link were missing too.
     expect(
-      labels.contains('Built to work offline'),
+      labels.contains('Dùng được ngoại tuyến'),
       isTrue,
       reason: 'the offline card must be announced; labels were $labels',
     );
     expect(
-      _buttonsNamed(nodes, 'Explore mock mode'),
+      _buttonsNamed(nodes, 'Thử chế độ mô phỏng'),
       isNotEmpty,
       reason:
           'the mock-mode link must be announced as a button; '
@@ -1206,7 +1199,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
     while (tester.takeException() != null) {}
 
-    await tester.tap(find.byTooltip('Open navigation'));
+    await tester.tap(find.byTooltip('Mở điều hướng'));
     await tester.pumpAndSettle();
     while (tester.takeException() != null) {}
 
@@ -1228,9 +1221,9 @@ void main() {
         reason: '"$label" selected state must be ${i == 0}',
       );
     }
-    expect(_buttonsNamed(nodes, 'Settings'), isNotEmpty, reason: '$labels');
+    expect(_buttonsNamed(nodes, 'Cài đặt'), isNotEmpty, reason: '$labels');
     expect(
-      _buttonsNamed(nodes, 'Help & getting started'),
+      _buttonsNamed(nodes, 'Trợ giúp & hướng dẫn'),
       isNotEmpty,
       reason: '$labels',
     );
@@ -1289,13 +1282,13 @@ void main() {
 
     expect(
       find.text(
-        'Review first ${AppConfig.maxRequirementsPerRun} of $selected units',
+        'Chấm ${AppConfig.maxRequirementsPerRun} mục đầu trong $selected mục',
       ),
       findsOneWidget,
       reason: 'over the cap, the button must name the part it will run',
     );
     expect(
-      find.text('Review $selected units'),
+      find.text('Chấm $selected mục'),
       findsNothing,
       reason: 'the button must not promise the whole selection',
     );
@@ -1317,7 +1310,7 @@ void main() {
     await tester.tap(find.text('open sheet'));
     await tester.pumpAndSettle();
     expect(
-      find.text('Review ${AppConfig.maxRequirementsPerRun} units'),
+      find.text('Chấm ${AppConfig.maxRequirementsPerRun} mục'),
       findsOneWidget,
       reason: 'inside the cap, the button names the whole selection',
     );
