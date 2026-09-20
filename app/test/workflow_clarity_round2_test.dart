@@ -82,8 +82,10 @@ void main() {
       );
       await _pumpWhile(
         tester,
-        () =>
-            find.text('A second look, backed by evidence.').evaluate().isEmpty,
+        () => find
+            .text('Kiểm tra tài liệu dựa trên bằng chứng')
+            .evaluate()
+            .isEmpty,
       );
       await _runDemoWithinCap(container, tester);
       await tester.pump(const Duration(milliseconds: 100));
@@ -130,7 +132,8 @@ void main() {
     );
     await _pumpWhile(
       tester,
-      () => find.text('A second look, backed by evidence.').evaluate().isEmpty,
+      () =>
+          find.text('Kiểm tra tài liệu dựa trên bằng chứng').evaluate().isEmpty,
     );
     await _runDemoWithinCap(container, tester);
     await tester.pump(const Duration(milliseconds: 100));
@@ -199,7 +202,8 @@ void main() {
     );
     await _pumpWhile(
       tester,
-      () => find.text('A second look, backed by evidence.').evaluate().isEmpty,
+      () =>
+          find.text('Kiểm tra tài liệu dựa trên bằng chứng').evaluate().isEmpty,
     );
     await _runDemoWithinCap(container, tester);
     await tester.pump(const Duration(milliseconds: 100));
@@ -265,13 +269,13 @@ void main() {
       // divergent implementation.
       await tester.tap(find.byTooltip('Unit actions').first);
       await tester.pump(const Duration(milliseconds: 400));
-      expect(find.text('Open source'), findsOneWidget);
-      expect(find.text('Copy requirement text'), findsOneWidget);
+      expect(find.text('Mở tài liệu gốc'), findsOneWidget);
+      expect(find.text('Sao chép nội dung yêu cầu'), findsOneWidget);
       // 'Mark as <kind>' omits the unit's CURRENT kind, so the demo's use
       // case rows offer every other bucket — including "Mark as Unknown",
       // the counter-intuitive one the flagging feature depends on.
-      expect(find.text('Mark as Business rule'), findsWidgets);
-      expect(find.text('Mark as Unknown'), findsWidgets);
+      expect(find.text('Phân loại: Quy tắc nghiệp vụ'), findsWidgets);
+      expect(find.text('Phân loại: Chưa phân loại'), findsWidgets);
     });
   });
 }

@@ -1,0 +1,97 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#EDF6F0', 'primaryTextColor': '#17324D', 'primaryBorderColor': '#315C7D', 'lineColor': '#526575', 'secondaryColor': '#F7F3E8', 'tertiaryColor': '#FFFFFF', 'fontSize': '14px'}}}%%
+flowchart LR
+    subgraph USER["Người dùng"]
+        U["Sinh viên\nMở app, chọn file, chọn unit"]
+    end
+
+    subgraph APP["Flutter app — app/lib"]
+        direction TB
+        UI["Workspace UI\nView + Riverpod"]
+        VM["WorkspaceViewModel\ntrạng thái + lệnh"]
+        DOC["DocumentRepository"]
+        PARSE["ParseService\nPDF/DOCX → SrsDocument"]
+        SPLIT["RequirementSplitter"]
+        CHECK["Deterministic checks\nF7/F8/F9 + M2 + Quality"]
+        REV["ReviewRepository\nconcurrency = 4\nretry = 3\ncap = 60"]
+        API["ReviewApi\nApiService hoặc MockReviewApi"]
+        MOCK["MockReviewApi\noffline-rules-v1\nkhông mạng"]
+        IMAGE["PageImageSelector\nImageBudget = 12"]
+        RENDER["PageImageRenderer\nPNG → base64"]
+        VISION["VisionReviewService\nmaxPages = 10"]
+        ASK["AskDocument\noffline search"]
+        EXPORT["ReportExporter\nsave / native share"]
+        STORE["SessionStore\nSharedPreferences"]
+    end
+
+    subgraph PROXY["FastAPI proxy — server/app"]
+        direction TB
+        ROUTES["REST routes\n/review /ask /diagram\n/share /uploads/*"]
+        AUTH["X-App-Token\nX-User-Id"]
+        LIMIT["RateLimiter\n50 logical requests/ngày"]
+        CACHE["LRU cache\nreview + diagram"]
+        VERIFY["QuoteVerifier\nexact/fuzzy ≥ 0,92"]
+        PROMPT["Rubric + prompts\nstructured JSON"]
+        ROUTER["ProviderRouter\nGemini 3.5 Flash-Lite\nfallback 3.1 Flash-Lite"]
+        UPLOAD["UploadStore\npresign + PUT\n40 MiB"]
+        SHARE["ShareStore\nHTML report"]
+    end
+
+    subgraph EXT["Hạ tầng bên ngoài"]
+        GEMINI["Gemini API"]
+        LOCAL["Local storage\nserver/.uploads\nserver/.shares"]
+    end
+
+    U -->|chọn PDF/DOCX ≤ 30 MB| UI
+    UI -->|importDocument| VM
+    VM --> DOC
+    DOC --> PARSE
+    PARSE --> SPLIT
+    SPLIT --> CHECK
+    CHECK -->|LoadedDocument| VM
+    VM -->|inventory + selection| REV
+    REV -->|"review()"| API
+    API -->|online: HTTPS| ROUTES
+    API -.->|mock mode: fixtures/rules| MOCK
+    MOCK -.-> API
+    ROUTES --> AUTH
+    AUTH -->|review/ask/diagram/share| LIMIT --> CACHE
+    CACHE -->|miss| PROMPT
+    PROMPT --> ROUTER
+    ROUTER --> GEMINI
+    ROUTER -->|structured result| VERIFY
+    VERIFY -->|kept issues only| CACHE
+    CACHE -->|ReviewResult| API
+    API --> REV
+    REV -->|progress/result| VM
+    VM --> STORE
+    VM -->|askQuestion| ASK
+    ASK -->|no match: offline answer| VM
+    ASK -->|online: bounded context| API
+    API -->|POST /ask| ROUTES
+    ROUTES -->|citations verified| API
+    VM -->|auditDiagrams| VISION
+    VISION --> IMAGE
+    IMAGE -->|selected page| RENDER
+    RENDER -->|image_b64| API
+    API -->|POST /diagram| ROUTES
+    ROUTES -->|Describe + Judge| GEMINI
+    ROUTES -->|DiagramAuditResult| API
+    VISION -->|ledger rows| VM
+    VM -->|exportHtml/markdown/json| EXPORT
+    EXPORT -->|saveFile| U
+    EXPORT -->|share sheet| U
+    VM -->|mintShareLink| API
+    API -->|POST /share| ROUTES
+    ROUTES --> SHARE
+    SHARE --> LOCAL
+    ROUTES -.->|groundwork, chưa gọi từ import| UPLOAD
+    UPLOAD --> LOCAL
+
+    classDef user fill:#F4EFF8,stroke:#76558B,color:#24172E;
+    classDef app fill:#EDF6F0,stroke:#315C7D,color:#17324D;
+    classDef proxy fill:#EEF2F7,stroke:#526E8B,color:#17324D;
+    classDef ext fill:#FFF7E5,stroke:#B1955B,color:#4A3A18;
+    class U user;
+    class UI,VM,DOC,PARSE,SPLIT,CHECK,REV,API,MOCK,IMAGE,RENDER,VISION,ASK,EXPORT,STORE app;
+    class ROUTES,AUTH,LIMIT,CACHE,VERIFY,PROMPT,ROUTER,UPLOAD,SHARE proxy;
+    class GEMINI,LOCAL ext;

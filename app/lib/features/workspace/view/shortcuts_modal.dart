@@ -74,7 +74,7 @@ class _ShortcutsSheet extends StatelessWidget {
             Align(
               alignment: Alignment.topRight,
               child: IconButton(
-                tooltip: 'Close dialog',
+                tooltip: 'Đóng hộp thoại',
                 icon: const Icon(Icons.close),
                 color: colors.muted,
                 onPressed: () => Navigator.of(context).pop(),
@@ -101,15 +101,14 @@ class _ShortcutsSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   Text(
-                    'Every shortcut, one page.',
+                    'Danh sách phím tắt',
                     style: theme.textTheme.headlineSmall?.copyWith(
                       color: colors.ink,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    'Shortcuts stay still while you are typing, except for '
-                    'Esc and the review key.',
+                    'Khi đang nhập văn bản, chỉ phím Esc và phím chấm điểm hoạt động.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colors.muted,
                       height: 1.7,
@@ -162,7 +161,7 @@ class _ShortcutsSheet extends StatelessWidget {
                     ),
                   const SizedBox(height: AppSpacing.lg),
                   WButton.primary(
-                    label: 'Got it',
+                    label: 'Đã hiểu',
                     icon: Icons.check,
                     expanded: true,
                     onPressed: () => Navigator.of(context).pop(),

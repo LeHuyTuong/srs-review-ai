@@ -1,0 +1,27 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#EDF6F0', 'primaryTextColor': '#17324D', 'primaryBorderColor': '#315C7D', 'lineColor': '#526575', 'secondaryColor': '#F7F3E8', 'tertiaryColor': '#FFFFFF', 'fontSize': '13px'}}}%%
+sequenceDiagram
+    autonumber
+    actor User as Người dùng
+    participant App as Flutter app
+    participant Http as ApiService
+    participant Proxy as FastAPI /uploads/presign
+    participant Upload as UploadStore
+    participant Storage as server/.uploads
+
+    User->>App: chọn file lớn (groundwork)
+    App->>Http: POST /uploads/presign(file_name, size_bytes)
+    Http->>Proxy: request + X-App-Token
+    Proxy->>Upload: generate_key + HMAC capability token
+    Upload-->>Proxy: upload_uri + put_url + token + expiry
+    Proxy-->>Http: presign response
+    Http-->>App: capability data
+    App->>Storage: PUT /uploads/{key}?token=...
+    Storage-->>App: 201 Created
+    App->>Http: GET /uploads/{key}/meta
+    Http->>Proxy: request + X-App-Token
+    Proxy->>Upload: meta(key)
+    Upload-->>Proxy: metadata
+    Proxy-->>Http: metadata
+    Http-->>App: stored upload reference
+
+    Note over User,Storage: Đường upload đã có ở proxy nhưng core import/review hiện tại chưa gọi nó.

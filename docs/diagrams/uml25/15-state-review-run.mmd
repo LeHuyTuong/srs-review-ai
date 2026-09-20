@@ -1,0 +1,56 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#FAF6E0', 'primaryTextColor': '#1A1A1A', 'primaryBorderColor': '#333333', 'lineColor': '#444444', 'secondaryColor': '#FFFFFF', 'tertiaryColor': '#FFFDE7', 'fontSize': '13px'}}}%%
+stateDiagram-v2
+    [*] --> Idle : app/workspace created
+
+    state "Importing" as Importing {
+        [*] --> Picking : open file picker
+        Picking --> Parsing : PDF/DOCX selected
+        Parsing --> Checks : parse succeeded
+        Checks --> Ready : deterministic checks complete
+        Picking --> ImportError : cancel/error
+        Parsing --> ImportError : ParseException
+    }
+
+    state "Ready" as Ready : inventory + findings loaded
+    state "Reviewing" as Reviewing {
+        [*] --> Queueing : selected units
+        Queueing --> ReviewingUnits : workers ≤ 4
+        ReviewingUnits --> ReviewingUnits : retry transient error (≤3)
+        ReviewingUnits --> VerifyingQuotes : results collected
+        ReviewingUnits --> RunFailed : 401/429/provider kill
+        ReviewingUnits --> RunCancelled : user cancels
+    }
+
+    state "Verifying quotes" as VerifyingQuotes
+    state "Done" as Done
+    state "Cancelled" as Cancelled
+    state "Failed" as Failed
+    state "Import error" as ImportError
+
+    Idle --> Importing : importDocument()
+    Importing --> Ready : LoadedDocument
+    Importing --> ImportError : invalid/cancelled
+    ImportError --> Idle : dismiss/error handled
+    Ready --> Reviewing : runReview()
+    Ready --> Ready : ask/export/audit without run
+    Reviewing --> VerifyingQuotes : done
+    Reviewing --> RunCancelled : cancel
+    Reviewing --> RunFailed : fatal error
+    VerifyingQuotes --> Done : aggregate + persist
+    Done --> Ready : new selection/import
+    RunCancelled --> Ready : inspect partial result
+    RunFailed --> Ready : retry/mock mode
+
+    state "Unit triage" as Triage {
+        [*] --> Pending : parsed
+        Pending --> Selected : user selects
+        Selected --> Reviewed : result returned
+        Selected --> Failed : request failed
+        Selected --> Skipped : cap/no selection
+        Reviewed --> Ready : status persisted
+        Failed --> Ready : inspect failure
+        Skipped --> Ready : inspect skipped unit
+    }
+
+    Ready --> Triage : build inventory
+    Triage --> Ready : triage complete

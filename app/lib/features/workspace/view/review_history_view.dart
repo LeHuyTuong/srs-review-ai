@@ -64,11 +64,10 @@ class _ReviewHistoryViewState extends ConsumerState<ReviewHistoryView> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               PageHeading(
-                kicker: 'Your pre-submission companion',
-                title: 'Review history',
+                kicker: 'Đồng hành trước khi nộp bài',
+                title: 'Lịch sử đánh giá',
                 subtitle:
-                    'A little progress, every review. Revisit your saved '
-                    'sessions.',
+                    'Xem lại các phiên đánh giá đã lưu và theo dõi tiến độ cải thiện.',
               ),
               const SizedBox(height: AppSpacing.xl),
               if (state.error != null) ...[
@@ -87,15 +86,14 @@ class _ReviewHistoryViewState extends ConsumerState<ReviewHistoryView> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Saved reviews',
+                                  'Các phiên đánh giá đã lưu',
                                   style: theme.textTheme.titleSmall?.copyWith(
                                     color: colors.ink,
                                   ),
                                 ),
                                 const SizedBox(height: AppSpacing.xs),
                                 Text(
-                                  'Offline reviews stay on this device. Each '
-                                  'completed run is kept here (up to 30).',
+                                  'Các phiên đánh giá được lưu trên thiết bị, tối đa 30 phiên hoàn thành gần nhất.',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: colors.muted,
                                   ),
@@ -104,7 +102,7 @@ class _ReviewHistoryViewState extends ConsumerState<ReviewHistoryView> {
                             ),
                           ),
                           WButton.secondary(
-                            label: 'Refresh',
+                            label: 'Làm mới',
                             icon: Icons.refresh,
                             onPressed: viewModel.loadHistory,
                           ),
@@ -119,10 +117,9 @@ class _ReviewHistoryViewState extends ConsumerState<ReviewHistoryView> {
                     else if (state.history.isEmpty)
                       WEmptyState(
                         icon: Icons.history,
-                        title: 'Your review journey starts here',
+                        title: 'Chưa có lịch sử đánh giá',
                         message:
-                            'Run your first review from the Document review '
-                            'view — it will be saved here automatically.',
+                            'Bắt đầu chấm tại màn hình Đánh giá tài liệu. Kết quả sẽ tự động được lưu tại đây.',
                       )
                     else
                       for (final session in state.history)
@@ -133,11 +130,41 @@ class _ReviewHistoryViewState extends ConsumerState<ReviewHistoryView> {
                               session.id,
                             );
                             if (opened && context.mounted) {
-                              // Jump to the findings the session contains.
                               context.go('/workspace');
                             }
                           },
-                          onDelete: () => viewModel.deleteSession(session.id),
+                          onDelete: () async {
+                            // 1. Hiển thị Dialog xác nhận trước khi xóa
+                            final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder: (dialogContext) {
+                                return AlertDialog(
+                                  title: const Text('Xóa phiên đánh giá?'),
+                                  content: Text(
+                                    'Bạn có chắc chắn muốn xóa phiên đánh giá của tệp "${session.fileName}"? Hành động này không thể hoàn tác.',
+                                  ),
+                                  actions: [
+                                    WButton.secondary(
+                                      label: 'Hủy',
+                                      onPressed: () => Navigator.of(
+                                        dialogContext,
+                                      ).pop(false),
+                                    ),
+                                    WButton.primary(
+                                      label: 'Xóa',
+                                      onPressed: () =>
+                                          Navigator.of(dialogContext).pop(true),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+
+                            // 2. Chỉ thực hiện xóa khi người dùng chọn bấm nút "Xóa"
+                            if (confirmed == true) {
+                              await viewModel.deleteSession(session.id);
+                            }
+                          },
                         ),
                   ],
                 ),
@@ -151,7 +178,7 @@ class _ReviewHistoryViewState extends ConsumerState<ReviewHistoryView> {
                   color: colors.muted,
                 ),
                 label: Text(
-                  'Review settings',
+                  'Cài đặt đánh giá',
                   style: TextStyle(color: colors.muted),
                 ),
               ),
@@ -191,8 +218,7 @@ class _HistoryRow extends StatelessWidget {
     final created = session.createdAt.toLocal();
     String two(int v) => v.toString().padLeft(2, '0');
     final stamp =
-        '${two(created.day)}/${two(created.month)}/${created.year} '
-        '${two(created.hour)}:${two(created.minute)}';
+        '${two(created.day)}/${two(created.month)}/${created.year} ${two(created.hour)}:${two(created.minute)}';
 
     return InkWell(
       onTap: onOpen,
@@ -229,7 +255,7 @@ class _HistoryRow extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    '$stamp · saved on this device',
+                    '$stamp · đã lưu trên thiết bị',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: colors.muted,
                     ),
@@ -238,11 +264,11 @@ class _HistoryRow extends StatelessWidget {
               ),
             ),
             WBadge(
-              label: isMock ? 'Mock' : 'Online',
+              label: isMock ? 'Mô phỏng' : 'Trực tuyến',
               tint: isMock ? WBadgeTint.green : WBadgeTint.neutral,
             ),
             IconButton(
-              tooltip: 'Delete session',
+              tooltip: 'Xóa phiên đánh giá',
               icon: const Icon(Icons.delete_outline, size: 19),
               color: colors.muted,
               onPressed: onDelete,

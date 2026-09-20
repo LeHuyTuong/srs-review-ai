@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#FAF6E0', 'primaryTextColor': '#1A1A1A', 'primaryBorderColor': '#333333', 'lineColor': '#444444', 'secondaryColor': '#FFFFFF', 'tertiaryColor': '#FFFDE7', 'fontSize': '13px'}}}%%
+stateDiagram-v2
+    [*] --> Open : finding created
+
+    Open --> Fixed : user applies source fix
+    Open --> Disputed : user marks false positive
+    Open --> PendingVision : checker needs diagram evidence
+    Open --> Verified : deterministic re-run no longer fires
+
+    Fixed --> Verified : verifier re-runs and finding disappears
+    Fixed --> Open : verifier re-runs and finding remains
+    Fixed --> Disputed : user disputes after fixing
+
+    Disputed --> Open : user reopens
+
+    PendingVision --> Verified : deterministic re-run no longer fires
+    PendingVision --> Open : deterministic re-run still fires
+    PendingVision --> Disputed : user disputes
+
+    Verified --> Open : deterministic regression
+
+    Verified --> [*]
+    Disputed --> [*]
+
+    note right of Open
+      Default state.
+      Every finding keeps one
+      stable ledger identity.
+    end note
+
+
+    note right of Verified
+      Only verifier can promote
+      Fixed to Verified.
+    end note
+
+    note right of PendingVision
+      Never silently promote
+      to Verified.
+    end note

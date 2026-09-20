@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import '../../../core/platform/app_platform.dart';
 import '../models/workspace_findings.dart';
 import '../models/workspace_unit.dart';
+import 'workspace_widgets.dart';
 
 /// What the user picked from an inventory row's menu.
 enum UnitMenuAction { openSource, copyText, toggleSelection, classify }
@@ -90,22 +91,22 @@ Future<UnitMenuChoice?> showUnitContextMenu({
     items: <PopupMenuEntry<UnitMenuChoice>>[
       const PopupMenuItem<UnitMenuChoice>(
         value: UnitMenuChoice.openSource(),
-        child: Text('Open source'),
+        child: Text('Mở tài liệu gốc'),
       ),
       const PopupMenuItem<UnitMenuChoice>(
         value: UnitMenuChoice.copyText(),
-        child: Text('Copy requirement text'),
+        child: Text('Sao chép nội dung yêu cầu'),
       ),
       PopupMenuItem<UnitMenuChoice>(
         value: const UnitMenuChoice.toggleSelection(),
-        child: Text(unit.selected ? 'Remove from review' : 'Add to review'),
+        child: Text(unit.selected ? 'Bỏ khỏi lượt chấm' : 'Thêm vào lượt chấm'),
       ),
       const PopupMenuDivider(),
       for (final kind in UnitKind.values)
         if (kind != unit.kind)
           PopupMenuItem<UnitMenuChoice>(
             value: UnitMenuChoice.classify(kind),
-            child: Text('Mark as ${kind.label}'),
+            child: Text('Phân loại: ${workspaceLabel(kind.label)}'),
           ),
     ],
   );
@@ -128,31 +129,31 @@ Future<FindingMenuAction?> showFindingContextMenu({
       PopupMenuItem<FindingMenuAction>(
         enabled: canOpenSource,
         value: FindingMenuAction.openSource,
-        child: const Text('Open source'),
+        child: const Text('Mở tài liệu gốc'),
       ),
       const PopupMenuItem<FindingMenuAction>(
         value: FindingMenuAction.copyText,
-        child: Text('Copy requirement text'),
+        child: Text('Sao chép nội dung yêu cầu'),
       ),
       const PopupMenuItem<FindingMenuAction>(
         value: FindingMenuAction.copyQuote,
-        child: Text('Copy verified quote'),
+        child: Text('Sao chép trích dẫn đã đối chiếu'),
       ),
       const PopupMenuDivider(),
       PopupMenuItem<FindingMenuAction>(
         value: FindingMenuAction.accept,
         child: Text(
           status == FindingStatus.fixed
-              ? 'Undo accept'
-              : 'Accept — worth fixing',
+              ? 'Hoàn tác chấp nhận'
+              : 'Chấp nhận — cần sửa',
         ),
       ),
       PopupMenuItem<FindingMenuAction>(
         value: FindingMenuAction.dismiss,
         child: Text(
           status == FindingStatus.disputed
-              ? 'Undo dismiss'
-              : 'Dismiss — not a real issue',
+              ? 'Hoàn tác bác bỏ'
+              : 'Bác bỏ — không phải lỗi',
         ),
       ),
     ],

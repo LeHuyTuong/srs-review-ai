@@ -1,0 +1,80 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#EDF6F0', 'primaryTextColor': '#17324D', 'primaryBorderColor': '#315C7D', 'lineColor': '#526575', 'secondaryColor': '#F7F3E8', 'tertiaryColor': '#FFFFFF', 'fontSize': '14px'}}}%%
+flowchart TB
+    subgraph UI["UI layer\napp/lib/features/workspace/view"]
+        U1["WorkspacePage"]
+        U2["DocumentReviewView"]
+        U3["ReadinessPanel"]
+        U4["Import / findings / Q&A dialogs"]
+    end
+
+    subgraph VM["ViewModel layer\napp/lib/features/workspace/view_model"]
+        V1["WorkspaceViewModel"]
+        V2["WorkspaceState"]
+        V3["ReviewMode.decide"]
+    end
+
+    subgraph DATA["Data layer\napp/lib/data"]
+        D1["DocumentRepository"]
+        D2["ReviewRepository"]
+        D3["ReviewApi interface"]
+        D4["ApiService / MockReviewApi"]
+        D5["ParseService"]
+        D6["Checks"]
+        D7["VisionReviewService"]
+        D8["ReportExporter"]
+        D9["SessionStore"]
+    end
+
+    subgraph CORE["Core\napp/lib/core"]
+        C1["Riverpod providers"]
+        C2["AppConfig"]
+        C3["Router"]
+    end
+
+    subgraph SERVER["Proxy"]
+        S1["FastAPI routes"]
+        S2["Rubric + prompts"]
+        S3["Verification + cache"]
+        S4["ProviderRouter"]
+    end
+
+    U1 --> U2
+    U1 --> U3
+    U1 --> U4
+    U2 --> V1
+    U3 --> V1
+    U4 --> V1
+    V1 --> V2
+    V1 --> V3
+    V1 --> D1
+    V1 --> D2
+    V1 --> D7
+    V1 --> D8
+    V1 --> D9
+    D1 --> D5
+    D1 --> D6
+    D2 --> D3
+    D3 --> D4
+    D7 --> D3
+    D4 --> S1
+    D7 --> S1
+    S1 --> S2
+    S1 --> S3
+    S1 --> S4
+    C1 --> V1
+    C1 --> D1
+    C1 --> D2
+    C2 --> D2
+    C2 --> D4
+    C3 --> U1
+
+    classDef ui fill:#EDF6F0,stroke:#315C7D,color:#17324D;
+    classDef vm fill:#E9E3F5,stroke:#66508A,color:#24172E;
+    classDef data fill:#FFF7E5,stroke:#B1955B,color:#4A3A18;
+    classDef core fill:#F4EFF8,stroke:#76558B,color:#24172E;
+    classDef server fill:#EEF2F7,stroke:#526E8B,color:#17324D;
+    class U1,U2,U3,U4 ui;
+    class V1,V2,V3 vm;
+    class D1,D2,D3,D4,D5,D6,D7,D8,D9 data;
+    class C1,C2,C3 core;
+    class S1,S2,S3,S4 server;

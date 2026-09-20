@@ -56,7 +56,8 @@ void main() {
     );
     await _pumpWhile(
       tester,
-      () => find.text('A second look, backed by evidence.').evaluate().isEmpty,
+      () =>
+          find.text('Kiểm tra tài liệu dựa trên bằng chứng').evaluate().isEmpty,
     );
 
     // The checklist is the only place a brand-new user learns the flow and
@@ -136,19 +137,20 @@ void main() {
     );
     await _pumpWhile(
       tester,
-      () => find.text('A second look, backed by evidence.').evaluate().isEmpty,
+      () =>
+          find.text('Kiểm tra tài liệu dựa trên bằng chứng').evaluate().isEmpty,
     );
 
     final viewModel = container.read(workspaceViewModelProvider.notifier);
     await viewModel.loadDemo();
     await _pumpWhile(
       tester,
-      () => find.text('Export report').evaluate().isEmpty,
+      () => find.text('Xuất báo cáo').evaluate().isEmpty,
     );
 
     WButton button() => tester.widget<WButton>(
       find.ancestor(
-        of: find.text('Export report'),
+        of: find.text('Xuất báo cáo'),
         matching: find.byType(WButton),
       ),
     );

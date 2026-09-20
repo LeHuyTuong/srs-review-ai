@@ -120,7 +120,7 @@ class AppShortcut {
   final bool allowedWhileTyping;
 
   /// Human label, platform-correct: `⌘⇧I` on macOS, `Ctrl+Shift+I` elsewhere.
-  String get label => activators.map(activatorLabel).join(' or ');
+  String get label => activators.map(activatorLabel).join(' hoặc ');
 }
 
 /// One source of truth for every binding in the app.
@@ -144,39 +144,38 @@ List<AppShortcut> get kAppShortcuts {
   return [
     AppShortcut(
       id: 'import',
-      title: 'Import document',
-      description: 'Open the import sheet and pick a PDF or DOCX.',
+      title: 'Tải file mới',
+      description: 'Mở hộp thoại tải tài liệu và chọn PDF hoặc DOCX.',
       activators: [bind(LogicalKeyboardKey.keyO)],
     ),
     AppShortcut(
       id: 'review',
-      title: 'Start or cancel a review',
+      title: 'Bắt đầu hoặc hủy lượt chấm',
       description:
-          'Runs the review when idle, cancels the run while one is in '
-          'flight.',
+          'Bắt đầu chấm khi đang rảnh; hủy nếu có lượt chấm đang chạy.',
       activators: [bind(LogicalKeyboardKey.enter)],
       allowedWhileTyping: true,
     ),
     AppShortcut(
       id: 'export',
-      title: 'Export report',
-      description: 'Save or copy the Markdown review report.',
+      title: 'Xuất báo cáo',
+      description: 'Lưu hoặc sao chép báo cáo Markdown.',
       activators: [bind(LogicalKeyboardKey.keyE)],
     ),
     AppShortcut(
       id: 'settings',
-      title: 'Settings',
-      description: 'Offline mode, proxy URL and app token.',
+      title: 'Cài đặt',
+      description: 'Chế độ ngoại tuyến, địa chỉ máy chủ và mã truy cập.',
       activators: [bind(LogicalKeyboardKey.comma)],
     ),
     for (var i = 0; i < 3; i++)
       AppShortcut(
         id: 'destination-$i',
-        title: 'Go to destination ${i + 1}',
+        title: 'Chuyển đến màn hình ${i + 1}',
         description: const [
-          'Document review',
-          'Review history',
-          'Syllabus & rubric',
+          'Đánh giá tài liệu',
+          'Lịch sử đánh giá',
+          'Chuẩn Syllabus & Thang điểm',
         ][i],
         activators: [
           bind(
@@ -190,26 +189,26 @@ List<AppShortcut> get kAppShortcuts {
       ),
     AppShortcut(
       id: 'subtab-inventory',
-      title: 'Inventory',
-      description: 'Show the extracted requirements.',
+      title: 'Danh sách yêu cầu',
+      description: 'Hiển thị các yêu cầu đã trích xuất.',
       activators: [bind(LogicalKeyboardKey.keyI, shift: true)],
     ),
     AppShortcut(
       id: 'subtab-findings',
-      title: 'Findings',
-      description: 'Show the reviewed findings and their quotes.',
+      title: 'Kết quả & Lỗi',
+      description: 'Hiển thị các lỗi và trích dẫn đối chiếu.',
       activators: [bind(LogicalKeyboardKey.keyF, shift: true)],
     ),
     AppShortcut(
       id: 'subtab-syllabus',
-      title: 'Syllabus checks',
-      description: 'Show the deterministic syllabus checks.',
+      title: 'Kiểm tra Syllabus',
+      description: 'Hiển thị kết quả kiểm tra theo quy tắc Syllabus.',
       activators: [bind(LogicalKeyboardKey.keyY, shift: true)],
     ),
     AppShortcut(
       id: 'shortcuts',
-      title: 'This list',
-      description: 'Show every keyboard shortcut.',
+      title: 'Hiển thị phím tắt',
+      description: 'Hiển thị toàn bộ phím tắt.',
       // `?` is Shift+/ on a US layout only, so F1 is bound as a second path —
       // otherwise a non-US layout would have no way to discover this sheet.
       activators: [
@@ -219,8 +218,8 @@ List<AppShortcut> get kAppShortcuts {
     ),
     AppShortcut(
       id: 'dismiss',
-      title: 'Close',
-      description: 'Cancel a running review, or close the top-most dialog.',
+      title: 'Đóng',
+      description: 'Hủy lượt chấm đang chạy hoặc đóng hộp thoại trên cùng.',
       activators: [SingleActivator(LogicalKeyboardKey.escape)],
       allowedWhileTyping: true,
     ),

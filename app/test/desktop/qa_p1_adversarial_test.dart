@@ -520,8 +520,8 @@ void main() {
         final unit = container.read(workspaceViewModelProvider).units.first;
         await _rightClick(tester, find.text(unit.title).first);
 
-        expect(find.text('Open source'), findsOneWidget);
-        expect(find.text('Copy requirement text'), findsOneWidget);
+        expect(find.text('Mở tài liệu gốc'), findsOneWidget);
+        expect(find.text('Sao chép nội dung yêu cầu'), findsOneWidget);
       });
     });
 
@@ -535,7 +535,7 @@ void main() {
         final unit = container.read(workspaceViewModelProvider).units.first;
         await _rightClick(tester, find.text(unit.title).first);
 
-        await tester.tap(find.text('Open source'));
+        await tester.tap(find.text('Mở tài liệu gốc'));
         await tester.pumpAndSettle();
         // The source sheet is a DraggableScrollableSheet in a bottom sheet —
         // its presence is the side effect the menu entry promises.
@@ -551,7 +551,9 @@ void main() {
       await withDesktopPlatform(_mac, tester, () async {
         await _pumpInventory(tester, container);
         final before = container.read(workspaceViewModelProvider).units.first;
-        final label = before.selected ? 'Remove from review' : 'Add to review';
+        final label = before.selected
+            ? 'Bỏ khỏi lượt chấm'
+            : 'Thêm vào lượt chấm';
 
         await _rightClick(tester, find.text(before.title).first);
         await tester.tap(find.text(label));
@@ -579,7 +581,7 @@ void main() {
           kind: PointerDeviceKind.mouse,
         );
         await tester.pumpAndSettle();
-        expect(find.text('Open source'), findsNothing);
+        expect(find.text('Mở tài liệu gốc'), findsNothing);
         expect(tester.takeException(), isNull);
       });
     });
@@ -597,7 +599,7 @@ void main() {
         kind: PointerDeviceKind.mouse,
       );
       await tester.pumpAndSettle();
-      expect(find.text('Open source'), findsNothing);
+      expect(find.text('Mở tài liệu gốc'), findsNothing);
     });
 
     testWidgets('macOS: a finding card menu really changes the status', (
@@ -646,8 +648,8 @@ void main() {
             .findings
             .first;
         await _rightClick(tester, find.text(finding.title).first);
-        expect(find.text('Accept — worth fixing'), findsOneWidget);
-        await tester.tap(find.text('Accept — worth fixing'));
+        expect(find.text('Chấp nhận — cần sửa'), findsOneWidget);
+        await tester.tap(find.text('Chấp nhận — cần sửa'));
         await tester.pumpAndSettle();
 
         expect(
@@ -660,8 +662,8 @@ void main() {
         // menu really reads live status, the wording flips and tapping it puts
         // the finding back to open.
         await _rightClick(tester, find.text(finding.title).first);
-        expect(find.text('Undo accept'), findsOneWidget);
-        await tester.tap(find.text('Undo accept'));
+        expect(find.text('Hoàn tác chấp nhận'), findsOneWidget);
+        await tester.tap(find.text('Hoàn tác chấp nhận'));
         await tester.pumpAndSettle();
         expect(
           container.read(workspaceViewModelProvider).statusOf(finding.id),
@@ -729,7 +731,7 @@ void main() {
             .findings
             .first;
         await _rightClick(tester, find.text(finding.title).first);
-        await tester.tap(find.text('Copy verified quote'));
+        await tester.tap(find.text('Sao chép trích dẫn đã đối chiếu'));
         await tester.pumpAndSettle();
 
         final copies = calls

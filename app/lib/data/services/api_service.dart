@@ -106,7 +106,6 @@ class ApiService implements ReviewApi {
   }
 
   @override
-  @override
   Future<String> shareReport({
     required String html,
     required String fileName,

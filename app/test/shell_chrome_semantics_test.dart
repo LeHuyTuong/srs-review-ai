@@ -95,7 +95,7 @@ void main() {
     final before = _labels(tester);
     expect(
       before,
-      contains('Help & getting started'),
+      contains('Trợ giúp & hướng dẫn'),
       reason:
           'the top bar must put at least one control in the tree: '
           'otherwise the chrome is provably unreachable, not merely thin',

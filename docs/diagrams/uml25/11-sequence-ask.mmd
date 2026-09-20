@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#EDF6F0', 'primaryTextColor': '#17324D', 'primaryBorderColor': '#315C7D', 'lineColor': '#526575', 'secondaryColor': '#F7F3E8', 'tertiaryColor': '#FFFFFF', 'fontSize': '13px'}}}%%
+sequenceDiagram
+    autonumber
+    actor User as Người dùng
+    participant UI as Flutter UI
+    participant VM as WorkspaceViewModel
+    participant Search as AskDocument
+    participant API as ReviewApi
+    participant Http as ApiService
+    participant Proxy as FastAPI /ask
+    participant Limit as RateLimiter
+    participant Gemini as Gemini provider
+    participant Verify as QuoteVerifier
+
+    User->>UI: Nhập câu hỏi
+    UI->>VM: askQuestion(question)
+    VM->>Search: search(question, units, limit=3)
+    alt không có passage nào khớp
+        Search-->>VM: empty
+        VM-->>UI: Not found in the document
+    else có passage
+        Search-->>VM: matching units
+        alt mock mode
+            VM-->>UI: offline keyword answer + passages
+        else online
+            VM->>Search: contextFor(question, units, limit=5, max 12000)
+            Search-->>VM: bounded context
+            VM->>API: ask(question, context, page?)
+            API->>Http: POST /ask
+            Http->>Proxy: context + question + auth
+            Proxy->>Limit: check(user, 50/day)
+            alt quota đã hết
+                Limit-->>Proxy: 429
+                Proxy-->>Http: 429
+                Http-->>VM: ApiException
+                VM-->>UI: offline fallback / error
+            else quota còn
+                Limit-->>Proxy: allowed
+                Proxy->>Gemini: generate_json(ask prompt)
+                Gemini-->>Proxy: answer + quotes + grounded
+                Proxy->>Verify: verify every quote (≥ 0.92)
+                Verify-->>Proxy: verified citations
+                Proxy-->>Http: AskResponse
+                Http-->>API: AskResponse
+                API-->>VM: AskOutcome(engine=model)
+                VM-->>UI: answer + citations
+            end
+        end
+    end

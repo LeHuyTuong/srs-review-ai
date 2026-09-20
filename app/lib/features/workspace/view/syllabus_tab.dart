@@ -31,17 +31,14 @@ class SyllabusTab extends ConsumerWidget {
           WInfoNote(
             icon: Icons.info_outline,
             text:
-                'These checks run offline, cost zero tokens and are taken '
-                'from the SEP490 syllabus. They are provisional — confirm '
-                'against your supervisor\'s rubric.',
+                'Các kiểm tra theo Syllabus SEP490 chạy ngoại tuyến, không tốn lượt AI. Ngưỡng chỉ để tham khảo; cần đối chiếu thang điểm của người hướng dẫn.',
           ),
           const SizedBox(height: AppSpacing.lg),
           if (state.syllabusFindings.isEmpty)
             WInfoNote(
               icon: Icons.history,
               text:
-                  'No live checks for this view — reopen a document or load '
-                  'the sample to run F7/F8/F9 again.',
+                  'Chưa có kết quả kiểm tra. Mở lại tài liệu hoặc dùng tài liệu mẫu để chạy F7/F8/F9.',
             )
           else
             for (final finding in state.syllabusFindings) ...[
@@ -50,27 +47,24 @@ class SyllabusTab extends ConsumerWidget {
             ],
           const SizedBox(height: AppSpacing.md),
           Text(
-            'What the syllabus says',
+            'Yêu cầu trong Syllabus',
             style: theme.textTheme.titleSmall?.copyWith(color: colors.ink),
           ),
           const SizedBox(height: AppSpacing.sm),
           _explanation(
             context,
-            'F7 · Use-case baseline',
-            'Provisional minimum: 20 use cases. The 75% completion gate '
-                'requires a verified declared inventory and human assessment.',
+            'F7 · Số lượng Use Case tối thiểu',
+            'Ngưỡng tham khảo: tối thiểu 20 Use Case. Mốc hoàn thành 75% cần danh sách khai báo đã xác minh và đánh giá của người hướng dẫn.',
           ),
           _explanation(
             context,
-            'F8 · English-language heuristic',
-            'Non-English detection is an offline signal, not a language '
-                'classifier. A human must confirm the language requirement.',
+            'F8 · Kiểm tra ngôn ngữ tiếng Anh',
+            'Phát hiện dấu hiệu ngoài tiếng Anh chỉ là kiểm tra sơ bộ. Người hướng dẫn cần xác nhận yêu cầu ngôn ngữ.',
           ),
           _explanation(
             context,
-            'F9 · Transaction range',
-            'Provisional 3–7 numbered steps per use case. Alternative flows '
-                'may affect this count.',
+            'F9 · Số bước xử lý',
+            'Ngưỡng tham khảo: 3–7 bước đánh số cho mỗi Use Case. Luồng thay thế có thể ảnh hưởng cách đếm.',
           ),
         ],
       ),
@@ -160,7 +154,7 @@ class _CheckCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          finding.check.label,
+                          workspaceLabel(finding.check.label),
                           style: theme.textTheme.labelLarge?.copyWith(
                             color: colors.ink,
                             fontWeight: FontWeight.w600,
@@ -173,7 +167,7 @@ class _CheckCard extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    finding.message,
+                    workspaceMessage(finding.message),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colors.muted,
                       height: 1.7,
@@ -181,7 +175,7 @@ class _CheckCard extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    finding.passed ? 'Passed' : 'Check needed',
+                    finding.passed ? 'Đạt' : 'Cần kiểm tra',
                     style: theme.textTheme.labelSmall?.copyWith(color: fg),
                   ),
                 ],

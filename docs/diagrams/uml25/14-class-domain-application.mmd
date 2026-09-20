@@ -1,0 +1,295 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#FFFFFF', 'primaryTextColor': '#1A1A1A', 'primaryBorderColor': '#333333', 'lineColor': '#444444', 'secondaryColor': '#FAF6E0', 'tertiaryColor': '#FFFFFF', 'fontSize': '12px'}}}%%
+classDiagram
+    direction LR
+
+    class SrsDocument {
+        +String fileName
+        +int pageCount
+        +List~String~ pageTexts
+        +List~RequirementItem~ requirements
+        +List~String~ occurrenceKeys
+        +List~int~ imagePageIndexes
+        +String documentFingerprint
+        +int useCaseCount
+    }
+
+    class RequirementItem {
+        +String id
+        +String text
+        +RequirementKind kind
+        +String? section
+        +int? pageIndex
+        +bool isUseCase
+    }
+
+    class RequirementKind {
+        <<enumeration>>
+        functional
+        useCase
+        statement
+    }
+
+    class LoadedDocument {
+        +SrsDocument document
+        +List~DeterministicFinding~ findings
+        +List~DeterministicFinding~ referenceFindings
+        +int sizeBytes
+        +String? path
+        +Uint8List? pdfBytes
+        +Iterable~DeterministicFinding~ allFindings
+    }
+
+    class WorkspaceUnit {
+        +String key
+        +String id
+        +String title
+        +String text
+        +String? section
+        +int pageIndex
+        +bool malformed
+        +bool selected
+        +UnitStatus status
+        +UnitKind kind
+        +WorkspaceUnit copyWith(...)
+        +WorkspaceUnit classified(UnitKind)
+    }
+
+    class UnitKind {
+        <<enumeration>>
+        useCase
+        businessRule
+        nonFunctional
+        functional
+        unknown
+    }
+
+    class UnitStatus {
+        <<enumeration>>
+        pending
+        reviewed
+        failed
+        skipped
+    }
+
+    class DeterministicFinding {
+        +CheckId check
+        +bool passed
+        +Severity severity
+        +String message
+        +String? subject
+        +num? actual
+        +num? expectedMin
+        +num? expectedMax
+        +bool requiresVisionEvidence
+    }
+
+    class CheckId {
+        <<enumeration>>
+        ucCount
+        language
+        ucSize
+        duplicateIds
+        missingPostcondition
+        crossArtifactName
+        missingActor
+        ambiguousWording
+        placeholderTbd
+        diagramAudit
+        missingPriority
+        nfrUnquantified
+    }
+
+    class ReviewRun {
+        +Map~String, ReviewResult~ results
+        +Map~String, String~ failures
+        +Map~String, String~ failureRequirementIds
+        +ReviewStage stage
+        +int skipped
+        +PageImageCoverage imageCoverage
+        +int totalDropped
+    }
+
+    class ReviewResult {
+        +String requirementId
+        +int score
+        +List~ReviewIssue~ issues
+        +String? contextNote
+        +int droppedIssueCount
+        +String model
+        +bool cached
+        +bool mock
+    }
+
+    class ReviewIssue {
+        +IssueType type
+        +Severity severity
+        +String quote
+        +String suggestion
+        +Verification verification
+        +double? similarity
+    }
+
+    class ReviewProgress {
+        +ReviewStage stage
+        +int completed
+        +int total
+        +String? currentRequirementId
+        +String? error
+        +int skipped
+        +double fraction
+    }
+
+    class ReviewStage {
+        <<enumeration>>
+        idle
+        parsing
+        reviewing
+        verifying
+        done
+        cancelled
+        failed
+    }
+
+    class PageImageCoverage {
+        +int candidates
+        +int extracted
+        +int reviewed
+        +int skipped
+        +int failed
+        +Map~String, int~ reasons
+        +Map~String, int~ decisions
+        +Set~String~ reviewedOccurrenceKeys
+    }
+
+    class DiagramAuditRequest {
+        +int pageIndex
+        +String diagramType
+        +String contextText
+        +String imageB64
+    }
+
+    class DiagramAuditResult {
+        +int pageIndex
+        +String diagramType
+        +List~String~ elements
+        +List~DiagramRelationData~ relations
+        +List~String~ unreadable
+        +bool clean
+        +List~DiagramFindingData~ findings
+        +String model
+        +bool cached
+        +bool mock
+    }
+
+    class DiagramRelationData {
+        +String source
+        +String target
+        +String label
+        +String arrowheadSide
+    }
+
+    class DiagramFindingData {
+        +String family
+        +String entity
+        +String evidence
+        +String severity
+    }
+
+    class AskOutcome {
+        +AskEngine engine
+        +String answer
+        +bool grounded
+        +List~WorkspaceUnit~ units
+        +List~Citation~ citations
+        +String? model
+        +String? note
+    }
+
+    class AskEngine {
+        <<enumeration>>
+        offlineSearch
+        model
+    }
+
+    class Citation {
+        +String quote
+        +Verification verification
+        +int? pageIndex
+    }
+
+    class SavedSession {
+        +String id
+        +String fileName
+        +String payloadJson
+        +DateTime createdAt
+        +String fingerprint
+        +String parserVersion
+    }
+
+    class SessionStore {
+        <<interface>>
+        +Future~List~SavedSession~~ list()
+        +Future~void~ save(SavedSession)
+        +Future~SavedSession?~ open(String)
+        +Future~void~ delete(String)
+        +Future~String?~ loadSnapshot()
+        +Future~void~ saveSnapshot(String)
+        +Future~void~ clearSnapshot()
+    }
+
+    class ReviewApi {
+        <<interface>>
+        +Future~bool~ isProxyUp()
+        +Future~RubricConfig~ fetchRubric()
+        +Future~ReviewResult~ review(...)
+        +Future~DiagramAuditResult~ diagramAudit(...)
+        +Future~String~ shareReport(...)
+        +Future~AskResponse~ ask(...)
+    }
+
+    class ApiService
+    class MockReviewApi
+    class ReviewRepository
+    class VisionReviewService
+    class PageImageSelector
+    class PageImageRenderer
+    class DocumentRepository
+    class ParseService
+    class ReportExporter
+    class WorkspaceViewModel
+
+    SrsDocument "1" o-- "0..*" RequirementItem : contains
+    RequirementItem --> RequirementKind : kind
+    LoadedDocument *-- SrsDocument : document
+    LoadedDocument "1" o-- "0..*" DeterministicFinding : findings
+    DeterministicFinding --> CheckId : check
+    DeterministicFinding --> Severity : severity
+    WorkspaceUnit --> UnitKind : kind
+    WorkspaceUnit --> UnitStatus : status
+    ReviewRun "1" o-- "0..*" ReviewResult : results
+    ReviewResult "1" o-- "0..*" ReviewIssue : issues
+    ReviewResult --> Severity : severity
+    ReviewIssue --> IssueType : type
+    ReviewIssue --> Verification : verification
+    ReviewProgress --> ReviewStage : stage
+    ReviewRun "1" o-- "0..1" PageImageCoverage : coverage
+    DiagramAuditResult "1" o-- "0..*" DiagramRelationData : relations
+    DiagramAuditResult "1" o-- "0..*" DiagramFindingData : findings
+    AskOutcome --> AskEngine : engine
+    AskOutcome "1" o-- "0..*" WorkspaceUnit : passages
+    AskOutcome "1" o-- "0..*" Citation : citations
+    InMemorySessionStore ..|> SessionStore : implements
+    SharedPreferencesSessionStore ..|> SessionStore : implements
+    ApiService ..|> ReviewApi : implements
+    MockReviewApi ..|> ReviewApi : implements
+    ReviewRepository ..> ReviewApi : uses
+    ReviewRepository ..> PageImageRenderer : uses
+    VisionReviewService ..> ReviewApi : uses
+    VisionReviewService ..> PageImageSelector : uses
+    DocumentRepository ..> ParseService : uses
+    DocumentRepository ..> DeterministicFinding : produces
+    WorkspaceViewModel ..> ReviewRepository : commands
+    WorkspaceViewModel ..> VisionReviewService : commands
+    WorkspaceViewModel ..> SessionStore : persists
+    WorkspaceViewModel ..> ReportExporter : exports
+    WorkspaceViewModel ..> SrsDocument : owns current document

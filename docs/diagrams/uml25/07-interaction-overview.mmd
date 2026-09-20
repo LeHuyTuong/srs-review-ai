@@ -1,0 +1,31 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#E9E3F5', 'primaryTextColor': '#1A1A1A', 'primaryBorderColor': '#333333', 'lineColor': '#444444', 'secondaryColor': '#FFFFFF', 'tertiaryColor': '#FFFDE7', 'fontSize': '13px'}}}%%
+flowchart TB
+    A([Bắt đầu])
+    B["ref: Import SRS"]
+    C{"Có document?"}
+    D["ref: Run deterministic checks"]
+    E{"Có unit được chọn?"}
+    F["ref: Review selected units"]
+    G{"PDF + diagram pages?"}
+    H["ref: Audit diagrams\noptional"]
+    I["ref: Ask document"]
+    J["ref: Export / share"]
+    K([Kết thúc])
+
+    A --> B --> C
+    C -->|không| K
+    C -->|có| D --> E
+    E -->|không| K
+    E -->|có| F
+    F --> G
+    G -->|có| H
+    G -->|không| I
+    H --> I
+    I --> J --> K
+
+    classDef control fill:#FFFFFF,stroke:#333333,color:#1A1A1A;
+    classDef interaction fill:#E9E3F5,stroke:#333333,color:#1A1A1A;
+    classDef terminal fill:#D8F0D8,stroke:#333333,color:#1A1A1A;
+    class A,K terminal;
+    class C,E,G control;
+    class B,D,F,H,I,J interaction;

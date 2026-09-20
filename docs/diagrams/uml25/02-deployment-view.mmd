@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#EDF6F0', 'primaryTextColor': '#17324D', 'primaryBorderColor': '#315C7D', 'lineColor': '#526575', 'secondaryColor': '#F7F3E8', 'tertiaryColor': '#FFFFFF', 'fontSize': '14px'}}}%%
+flowchart LR
+    subgraph DEVICE["Thiết bị người dùng"]
+        direction TB
+        APP["Flutter app\nAndroid · Windows · Web"]
+        PREF[("SharedPreferences\nsession + snapshot + settings")]
+        APP --- PREF
+    end
+
+    subgraph NETWORK["Kênh truyền"]
+        HTTPS["HTTPS REST\nJSON + X-App-Token + X-User-Id"]
+    end
+
+    subgraph HOST["FastAPI proxy / Vercel host"]
+        direction TB
+        API["FastAPI app\nmain.py"]
+        MOCK["MockProvider\nserver mock fixtures\nkhông mạng"]
+        CACHE[("LRU cache\nreview + diagram")]
+        UPLOAD[("UploadStore\nserver/.uploads\n40 MiB")]
+        SHARE[("ShareStore\nserver/.shares")]
+        API --- CACHE
+        API --- UPLOAD
+        API --- SHARE
+    end
+
+    subgraph CLOUD["Dịch vụ bên ngoài"]
+        GEMINI["Gemini API\ngemini-3.5-flash-lite\nfallback 3.1-flash-lite"]
+    end
+
+    APP -->|online| HTTPS --> API
+    API -->|generate_json| GEMINI
+    API -.->|mock_mode hoặc thiếu key| MOCK
+    MOCK -.-> API
+
+    classDef device fill:#F4EFF8,stroke:#76558B,color:#24172E;
+    classDef network fill:#EEF4F8,stroke:#526E8B,color:#17324D;
+    classDef host fill:#EDF6F0,stroke:#315C7D,color:#17324D;
+    classDef cloud fill:#FFF7E5,stroke:#B1955B,color:#4A3A18;
+    class APP,PREF device;
+    class HTTPS network;
+    class API,MOCK,CACHE,UPLOAD,SHARE host;
+    class GEMINI cloud;
