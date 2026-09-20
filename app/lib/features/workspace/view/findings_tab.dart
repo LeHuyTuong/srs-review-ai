@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/platform/app_platform.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
@@ -40,6 +41,17 @@ extension on _StatusFilter {
     _StatusFilter.verified => 'Đã xác minh',
     _StatusFilter.pendingVision => 'Chờ kiểm tra hình ảnh',
     _StatusFilter.disputed => 'Đã bác bỏ',
+  };
+
+  /// Which persisted status this chip selects, if any. "All" filters nothing,
+  /// so it has no status to explain.
+  FindingStatus? get status => switch (this) {
+    _StatusFilter.all => null,
+    _StatusFilter.open => FindingStatus.open,
+    _StatusFilter.fixed => FindingStatus.fixed,
+    _StatusFilter.verified => FindingStatus.verified,
+    _StatusFilter.pendingVision => FindingStatus.pendingVision,
+    _StatusFilter.disputed => FindingStatus.disputed,
   };
 }
 
@@ -659,6 +671,10 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
             child: TextField(
               onChanged: (value) => setState(() => _query = value),
               decoration: InputDecoration(
+                // "unit" everywhere else — see the same note at the
+                // inventory search box. A mixed vocabulary makes the user
+                // wonder whether a unit and a requirement are two
+                // different things.
                 hintText: 'Tìm kiếm lỗi hoặc mã yêu cầu...',
                 prefixIcon: const Icon(Icons.search, size: 18),
                 isDense: true,
@@ -677,11 +693,24 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
               spacing: AppSpacing.sm,
               children: [
                 for (final option in _StatusFilter.values)
-                  FilterChip(
-                    label: Text(option.label),
-                    selected: _filter == option,
-                    onSelected: (_) => setState(() => _filter = option),
-                  ),
+                  // Each chip explains its own status on hover: the words
+                  // "Pending vision" and "Disputed" were unguessable, and a
+                  // chip is where the user goes to find out what they mean.
+                  if (option.status case final status?)
+                    Tooltip(
+                      message: status.description,
+                      child: FilterChip(
+                        label: Text(option.label),
+                        selected: _filter == option,
+                        onSelected: (_) => setState(() => _filter = option),
+                      ),
+                    )
+                  else
+                    FilterChip(
+                      label: Text(option.label),
+                      selected: _filter == option,
+                      onSelected: (_) => setState(() => _filter = option),
+                    ),
               ],
             ),
           ),
@@ -790,6 +819,31 @@ class _FindingCard extends StatelessWidget {
 
   final VoidCallback onOpenSource;
 
+  /// Opens the card's action menu at [globalPosition] and runs the choice.
+  /// Shared by the right-click gesture and the ⋮ button, which exist for the
+  /// same actions on the same card.
+  Future<void> _openMenu(BuildContext context, Offset globalPosition) async {
+    final choice = await showFindingContextMenu(
+      context: context,
+      globalPosition: globalPosition,
+      status: status,
+      canOpenSource: canOpenSource,
+    );
+    if (choice == null || !context.mounted) return;
+    switch (choice) {
+      case FindingMenuAction.openSource:
+        onOpenSource();
+      case FindingMenuAction.copyText:
+        await Clipboard.setData(ClipboardData(text: finding.title));
+      case FindingMenuAction.copyQuote:
+        await Clipboard.setData(ClipboardData(text: finding.quote));
+      case FindingMenuAction.accept:
+        onAccept();
+      case FindingMenuAction.dismiss:
+        onDismiss();
+    }
+  }
+
   /// Marks, or un-marks, the finding as worth acting on.
   final VoidCallback onAccept;
 
@@ -809,27 +863,7 @@ class _FindingCard extends StatelessWidget {
     );
 
     return DesktopContextMenuArea(
-      onSecondaryTapUp: (details) async {
-        final choice = await showFindingContextMenu(
-          context: context,
-          globalPosition: details.globalPosition,
-          status: status,
-          canOpenSource: canOpenSource,
-        );
-        if (choice == null || !context.mounted) return;
-        switch (choice) {
-          case FindingMenuAction.openSource:
-            onOpenSource();
-          case FindingMenuAction.copyText:
-            await Clipboard.setData(ClipboardData(text: finding.title));
-          case FindingMenuAction.copyQuote:
-            await Clipboard.setData(ClipboardData(text: finding.quote));
-          case FindingMenuAction.accept:
-            onAccept();
-          case FindingMenuAction.dismiss:
-            onDismiss();
-        }
-      },
+      onSecondaryTapUp: (details) => _openMenu(context, details.globalPosition),
       child: WPanel(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: AppInkWell(
@@ -925,11 +959,18 @@ class _FindingCard extends StatelessWidget {
                   ),
                   Icon(Icons.arrow_forward, size: 13, color: colors.sage),
                   if (status != FindingStatus.open)
-                    WBadge(
-                      label: workspaceLabel(status.label),
-                      tint: status == FindingStatus.fixed
-                          ? WBadgeTint.purple
-                          : WBadgeTint.neutral,
+                    // "Pending vision" and "Disputed" were bare words here.
+                    // The tooltip is the zero-space answer: hover (desktop) or
+                    // long-press (touch) explains the badge without adding a
+                    // line to every card.
+                    Tooltip(
+                      message: status.description,
+                      child: WBadge(
+                        label: workspaceLabel(status.label),
+                        tint: status == FindingStatus.fixed
+                            ? WBadgeTint.purple
+                            : WBadgeTint.neutral,
+                      ),
                     ),
                   IconButton(
                     tooltip: status == FindingStatus.fixed
@@ -961,6 +1002,29 @@ class _FindingCard extends StatelessWidget {
                         : colors.muted,
                     onPressed: onDismiss,
                   ),
+                  // Right-click alone was invisible; the ⋮ affordance makes
+                  // the card's actions (copy quote, open source, mark fixed/
+                  // dismissed) discoverable and reuses the same menu.
+                  // Desktop-only: the menu itself is a desktop surface.
+                  if (AppPlatform.isDesktop)
+                    Builder(
+                      builder: (buttonContext) => IconButton(
+                        tooltip: 'Finding actions',
+                        icon: Icon(
+                          Icons.more_vert,
+                          size: 18,
+                          color: colors.muted,
+                        ),
+                        onPressed: () {
+                          final box =
+                              buttonContext.findRenderObject() as RenderBox;
+                          final origin = box.localToGlobal(
+                            Offset(0, box.size.height),
+                          );
+                          _openMenu(buttonContext, origin);
+                        },
+                      ),
+                    ),
                 ],
               ),
             ],

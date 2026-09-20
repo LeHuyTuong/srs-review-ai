@@ -61,6 +61,27 @@ enum FindingStatus {
     FindingStatus.disputed => 'Disputed',
   };
 
+  /// One line that explains the status to someone who has never seen it.
+  ///
+  /// Sits next to [label] because it is the same kind of thing — user-facing
+  /// text about this state — and the model is the only place that owns what
+  /// the state means. "Pending vision" and "Disputed" were bare words in the
+  /// UI: the first looked like a failure, the second like a deletion.
+  String get description => switch (this) {
+    FindingStatus.open => 'Nothing has been said about this one yet.',
+    FindingStatus.fixed =>
+      'You marked it as fixed in your document. A re-run confirms it.',
+    FindingStatus.verified =>
+      'A re-run confirmed the issue no longer fires. Only the checker can set '
+          'this — clicking cannot.',
+    FindingStatus.pendingVision =>
+      'A text-only check cannot settle this one — it needs the diagram page '
+          'itself. Run the vision audit to decide it.',
+    FindingStatus.disputed =>
+      'You judged this a false positive. Nothing is deleted: it stays visible '
+          'and still appears in the report.',
+  };
+
   static FindingStatus fromName(String? name) {
     // Legacy aliases from Round ≤7. Once every persisted session has
     // been re-saved (no migration script needed — they all auto-upgrade

@@ -44,7 +44,23 @@ class DocumentReviewView extends ConsumerWidget {
     final showInnerSplit = viewport.showInnerSplit;
 
     if (state.restoring) {
-      return const Center(child: CircularProgressIndicator());
+      // A bare spinner was the entire first-launch experience while the
+      // snapshot loaded: no app name, no hint of what was happening. Say it.
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'Restoring your workspace…',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: colors.muted),
+            ),
+          ],
+        ),
+      );
     }
     if (!state.hasDocument) {
       return WorkspacePage(
@@ -85,24 +101,38 @@ class DocumentReviewView extends ConsumerWidget {
                 icon: Icons.description_outlined,
                 title: 'Kiểm tra tài liệu dựa trên bằng chứng',
                 message:
-                    'Tải tài liệu SRS để lập danh sách yêu cầu, hoặc dùng tài liệu mẫu để trải nghiệm.',
-                action: Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.sm,
-                  alignment: WrapAlignment.center,
+                    'Tải tài liệu SRS để lập danh sách yêu cầu, hoặc dùng '
+                    'tài liệu mẫu để trải nghiệm.',
+                action: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    WButton.primary(
-                      label: 'Tải file mới',
-                      icon: Icons.add,
-                      onPressed: () => showImportModal(context, ref),
+                    Wrap(
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.sm,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        WButton.primary(
+                          label: 'Tải file mới',
+                          icon: Icons.add,
+                          onPressed: () => showImportModal(context, ref),
+                        ),
+                        WButton.secondary(
+                          label: 'Mở tài liệu mẫu',
+                          icon: Icons.play_arrow,
+                          onPressed: () => ref
+                              .read(workspaceViewModelProvider.notifier)
+                              .loadDemo(),
+                        ),
+                      ],
                     ),
-                    WButton.secondary(
-                      label: 'Mở tài liệu mẫu',
-                      icon: Icons.play_arrow,
-                      onPressed: () => ref
-                          .read(workspaceViewModelProvider.notifier)
-                          .loadDemo(),
-                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    // First-run orientation: the workflow stepper above the
+                    // document card only appears AFTER a document exists, so
+                    // a brand-new user had no map of what happens next. These
+                    // three steps mirror the real flow (import → review →
+                    // findings) and define "unit" at the exact moment the
+                    // word first matters.
+                    const _FirstRunChecklist(),
                   ],
                 ),
               ),
@@ -130,7 +160,13 @@ class DocumentReviewView extends ConsumerWidget {
               WButton.secondary(
                 label: 'Xuất báo cáo',
                 icon: Icons.download_outlined,
-                onPressed: () => showExportModal(context, ref),
+                // Gated on a finished run, mirroring the Ctrl/Cmd+E shortcut
+                // (workspace_shell.dart) and step 4 of the workflow steps
+                // below: an export with no review behind it used to render an
+                // all-zero report that looked like a real one.
+                onPressed: state.hasResult
+                    ? () => showExportModal(context, ref)
+                    : null,
               ),
               WButton.primary(
                 label: 'Tải file mới',
@@ -159,7 +195,7 @@ class DocumentReviewView extends ConsumerWidget {
                     showReviewModal(context, ref);
                   }
                 case 4:
-                  showExportModal(context, ref);
+                  if (state.hasResult) showExportModal(context, ref);
               }
             },
           ),
@@ -576,6 +612,101 @@ class _TabbedPanel extends ConsumerWidget {
             WorkspaceTab.syllabus => const SyllabusTab(),
           },
         ],
+      ),
+    );
+  }
+}
+
+/// Three-step orientation card shown only while no document is loaded.
+///
+/// The 4-step [WorkflowSteps] stepper lives above the document card, which
+/// means it only renders after `hasDocument` — a first-time user saw the
+/// empty state with two buttons and no story. This card is that story,
+/// phrased as outcomes rather than UI labels.
+class _FirstRunChecklist extends StatelessWidget {
+  const _FirstRunChecklist();
+
+  static const _steps = [
+    (
+      Icons.upload_file_outlined,
+      'Import your SRS',
+      'PDF or DOCX, up to 30 MB. We build an inventory of requirement units '
+          '— nothing is reviewed yet.',
+    ),
+    (
+      Icons.checklist_outlined,
+      'Pick units & run a review',
+      'A "unit" is one reviewable requirement (use case, rule, or '
+          'statement). Up to 40 per run; progress stays on screen.',
+    ),
+    (
+      Icons.fact_check_outlined,
+      'Read findings & export',
+      'Every finding carries an exact quote from your document. Export the '
+          'report once a run has finished.',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.workspaceColors;
+    final theme = Theme.of(context);
+    return Semantics(
+      container: true,
+      label: 'Getting started: three steps',
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 520),
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: colors.canvas,
+          borderRadius: AppRadius.boxMd,
+          border: Border.all(color: colors.border),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'How it works',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: colors.muted,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            for (var i = 0; i < _steps.length; i++) ...[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(_steps[i].$1, size: 16, color: colors.sage),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${i + 1}. ${_steps[i].$2}',
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: colors.ink,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          _steps[i].$3,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colors.muted,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (i < _steps.length - 1) const SizedBox(height: AppSpacing.sm),
+            ],
+          ],
+        ),
       ),
     );
   }

@@ -15,7 +15,7 @@ const Set<String> kSupportedDocumentExtensions = {'pdf', 'docx'};
 /// and sessions record this separately from the content fingerprint: the same
 /// text parsed by a different parser version may produce different units, so
 /// review results must not be reused across versions.
-const String kParserVersion = '1.0.0';
+const String kParserVersion = '1.1.0';
 
 enum RequirementKind {
   /// FR-xx / NFR-xx style functional or non-functional statement.

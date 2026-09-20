@@ -236,4 +236,25 @@ F-02: Trang Dịch Vụ
       expect(items.single.section, isNull);
     },
   );
+
+  test('a DOCX table cell holding only a modal verb never becomes a unit', () {
+    // Real OTES failure: a table cell contains just "must", text extraction
+    // puts it alone on a line, and the inventory grew a unit whose entire
+    // text was "must" — meaningless to review and confusing in the source
+    // sheet. A one-word modal fragment is not a requirement statement.
+    final items = splitter.split([
+      'Preconditions',
+      'must',
+      'must not',
+      'User account',
+      'The system must lock the account after five failed attempts.',
+    ]);
+
+    expect(items, hasLength(1));
+    expect(items.single.id, 'ST-1');
+    expect(
+      items.single.text,
+      'The system must lock the account after five failed attempts.',
+    );
+  });
 }

@@ -190,19 +190,53 @@ Future<void> showImportModal(BuildContext context, WidgetRef ref) => _show(
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                state.isRunning
-                    ? const CircularProgressIndicator()
+                // Busy while EITHER a review or an import is in flight: the
+                // import now keeps this sheet open for the whole parse, so
+                // `importStatus` is the signal that matters here.
+                state.isRunning || state.importStatus != null
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(),
+                          if (state.importStatus != null) ...[
+                            const SizedBox(height: AppSpacing.sm),
+                            Text(
+                              workspaceMessage(state.importStatus!),
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: colors.muted,
+                              ),
+                            ),
+                          ],
+                        ],
+                      )
                     : WButton.primary(
                         label: 'Chọn tệp',
                         icon: Icons.folder_outlined,
                         onPressed: () async {
-                          Navigator.of(sheetContext).pop();
+                          // The sheet stays open until the import resolves.
+                          // It used to pop first, which sent every import
+                          // failure to whatever screen was behind the sheet —
+                          // a size-cap rejection looked like nothing happened
+                          // at all unless you were already on Document review
+                          // (workflow-review round 2, pain point 5). On
+                          // success the sheet closes; on failure it stays so
+                          // the banner and the retry button are right here.
                           await viewModel.importDocument();
+                          if (!sheetContext.mounted) return;
+                          if (ref.read(workspaceViewModelProvider).error ==
+                              null) {
+                            Navigator.of(sheetContext).pop();
+                          }
                         },
                       ),
               ],
             ),
           ),
+          if (state.error != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            WErrorBanner(message: state.error!),
+          ],
           const SizedBox(height: AppSpacing.md),
           const WInfoNote(
             text:
@@ -275,6 +309,19 @@ Future<void> showReviewModal(BuildContext context, WidgetRef ref) => _show(
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          // The cap exists because the server quota is 50 requests/day per
+          // user; 40 keeps 10 in reserve for same-day re-runs (cache hits are
+          // free). Users hit this ceiling and assumed the app was broken, so
+          // the reason is stated here, next to the number it explains.
+          WInfoNote(
+            icon: Icons.speed_outlined,
+            text:
+                'Why the ${AppConfig.maxRequirementsPerRun}-unit limit? Each '
+                'reviewed unit costs one request against a 50/day quota. The '
+                'cap keeps room for same-day re-runs; already-reviewed units '
+                'are cached and cost nothing.',
           ),
           const SizedBox(height: AppSpacing.md),
           WInfoNote(
@@ -434,10 +481,25 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
         description:
             'Báo cáo gồm lỗi, trích dẫn, vị trí trong tài liệu gốc, phạm vi đánh giá và các giới hạn.',
         children: [
+          // What this report IS, before the buttons: users read the five
+          // actions below as interchangeable and could not tell which one
+          // attached to a report or an email.
+          const WInfoNote(
+            icon: Icons.shield_outlined,
+            text:
+                'Một lượt chấm, ba định dạng cùng dữ liệu: Markdown '
+                '(dán vào tài liệu), JSON (dùng cho công cụ/CI), HTML (mở bằng '
+                'trình duyệt). Mỗi định dạng đều có phiên bản rubric, điểm từng '
+                'mục, trích dẫn, kiểm tra đề cương và các giới hạn.',
+          ),
+          const SizedBox(height: AppSpacing.md),
           WInfoNote(
             icon: Icons.description_outlined,
             text:
-                '${state.result?.reviewed ?? 0} mục đã chấm · ${state.result?.findings.length ?? 0} lỗi · Báo cáo Markdown',
+                'Lượt này: ${state.result?.reviewed ?? 0} mục đã chấm · '
+                '${state.result?.findings.length ?? 0} lỗi. '
+                'Báo cáo được tạo trên thiết bị này và chỉ được gửi đi '
+                'khi bạn chọn nơi lưu hoặc chia sẻ.',
           ),
           const SizedBox(height: AppSpacing.md),
           // Vision audit lives HERE, beside the report it feeds: rows land
@@ -449,7 +511,8 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
             WButton.secondary(
               label: state.isAuditingDiagrams
                   ? 'Đang kiểm tra các trang sơ đồ…'
-                  : 'Kiểm tra hình ảnh ${viewModel.diagramAuditCount} trang sơ đồ',
+                  : 'Kiểm tra thêm ${viewModel.diagramAuditCount} trang '
+                        'sơ đồ trước khi xuất',
               icon: Icons.image_search_outlined,
               expanded: true,
               onPressed: state.isAuditingDiagrams
@@ -457,67 +520,76 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
                   : () => unawaited(viewModel.auditDiagrams()),
             ),
             const SizedBox(height: AppSpacing.sm),
-            // Plan 6: share-by-link. Online only — mock mode has no share
-            // store, and a fake link would be the one lie this offline mode
-            // has never told.
-            if (viewModel.canShareReport) ...[
-              WButton.secondary(
-                label: state.isSharingReport
-                    ? 'Đang tạo liên kết chia sẻ…'
-                    : 'Tạo liên kết mở trên trình duyệt',
-                icon: Icons.link,
-                expanded: true,
-                onPressed: state.isSharingReport
-                    ? null
-                    : () async {
-                        final link = await viewModel.mintShareLink();
-                        if (link == null || !context.mounted) return;
-                        await showDialog<void>(
-                          context: context,
-                          builder: (dialogContext) => AlertDialog(
-                            title: const Text('Đã tạo liên kết chia sẻ'),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Bất kỳ ai có liên kết đều có thể đọc báo cáo. Chỉ chia sẻ với người phù hợp.',
-                                ),
-                                const SizedBox(height: AppSpacing.sm),
-                                SelectableText(
-                                  link,
-                                  style: Theme.of(
-                                    dialogContext,
-                                  ).textTheme.bodyMedium,
-                                ),
-                              ],
-                            ),
-                            actions: [
-                              TextButton.icon(
-                                icon: const Icon(Icons.copy, size: 18),
-                                label: const Text('Sao chép'),
-                                onPressed: () {
-                                  unawaited(
-                                    Clipboard.setData(
-                                      ClipboardData(text: link),
-                                    ),
-                                  );
-                                  Navigator.of(dialogContext).pop();
-                                },
+          ],
+          // Plan 6: share-by-link. Online only — mock mode has no share
+          // store, and a fake link would be the one lie this offline mode
+          // has never told. Stands on its own now: it used to hide behind
+          // `canAuditDiagrams`, so a DOCX or restored session lost the one
+          // export that needs no file dialog at all.
+          if (viewModel.canShareReport) ...[
+            WButton.secondary(
+              label: state.isSharingReport
+                  ? 'Đang tạo liên kết chia sẻ…'
+                  : 'Tạo liên kết mở trên trình duyệt',
+              icon: Icons.link,
+              expanded: true,
+              onPressed: state.isSharingReport
+                  ? null
+                  : () async {
+                      final link = await viewModel.mintShareLink();
+                      if (link == null || !context.mounted) return;
+                      await showDialog<void>(
+                        context: context,
+                        builder: (dialogContext) => AlertDialog(
+                          title: const Text('Đã tạo liên kết chia sẻ'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Báo cáo HTML đã được tải lên máy chủ. '
+                                'Bất kỳ ai có liên kết đều có thể đọc báo cáo. '
+                                'Chỉ chia sẻ với người phù hợp.',
                               ),
-                              TextButton(
-                                onPressed: () =>
-                                    Navigator.of(dialogContext).pop(),
-                                child: const Text('Đóng'),
+                              const SizedBox(height: AppSpacing.sm),
+                              SelectableText(
+                                link,
+                                style: Theme.of(
+                                  dialogContext,
+                                ).textTheme.bodyMedium,
                               ),
                             ],
                           ),
-                        );
-                      },
-              ),
-              const SizedBox(height: AppSpacing.sm),
-            ],
+                          actions: [
+                            TextButton.icon(
+                              icon: const Icon(Icons.copy, size: 18),
+                              label: const Text('Sao chép'),
+                              onPressed: () {
+                                unawaited(
+                                  Clipboard.setData(ClipboardData(text: link)),
+                                );
+                                Navigator.of(dialogContext).pop();
+                              },
+                            ),
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(),
+                              child: const Text('Đóng'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+            ),
+            const SizedBox(height: AppSpacing.sm),
           ],
+          // The preview is unlabelled raw Markdown — a first-time user cannot
+          // tell which of the four buttons below this text belongs to. Say it.
+          Text(
+            'Xem trước báo cáo Markdown (để dán vào tài liệu):',
+            style: theme.textTheme.labelSmall?.copyWith(color: colors.muted),
+          ),
+          const SizedBox(height: AppSpacing.xs),
           Container(
             constraints: const BoxConstraints(maxHeight: 260),
             width: double.infinity,
@@ -539,8 +611,16 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
+          Text(
+            'Chọn cách lưu hoặc chia sẻ báo cáo:',
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: colors.ink,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
           WButton.primary(
-            label: 'Lưu tệp Markdown',
+            label: 'Lưu tệp Markdown (.md) — dùng cho tài liệu',
             icon: Icons.save_alt,
             expanded: true,
             onPressed: () async {
@@ -570,7 +650,7 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
           // server or web tool can read the report without scraping
           // Markdown tables.
           WButton.secondary(
-            label: 'Lưu tệp JSON',
+            label: 'Lưu tệp JSON (.json) — dùng cho công cụ và tự động hóa',
             icon: Icons.data_object,
             expanded: true,
             onPressed: () async {
@@ -597,7 +677,7 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
           // The brief's Report row — a dashboard a supervisor opens in a
           // browser, from the same data as the markdown and JSON twins.
           WButton.secondary(
-            label: 'Lưu báo cáo HTML',
+            label: 'Lưu báo cáo HTML (.html) — mở bằng trình duyệt',
             icon: Icons.dashboard_outlined,
             expanded: true,
             onPressed: () async {
@@ -622,7 +702,7 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
           ),
           const SizedBox(height: AppSpacing.sm),
           WButton.secondary(
-            label: 'Sao chép báo cáo Markdown',
+            label: 'Sao chép báo cáo Markdown — dán vào nơi cần dùng',
             icon: Icons.copy,
             expanded: true,
             onPressed: () async {
@@ -645,7 +725,7 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
           if (!AppPlatform.isWeb) ...[
             const SizedBox(height: AppSpacing.sm),
             WButton.secondary(
-              label: 'Chia sẻ báo cáo',
+              label: 'Chia sẻ báo cáo qua ứng dụng (mail, Drive…)',
               icon: Icons.ios_share,
               expanded: true,
               onPressed: () async {
@@ -674,7 +754,8 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
           const WInfoNote(
             icon: Icons.info_outline,
             text:
-                'Phiên bản này chưa hỗ trợ xuất PDF. Bạn có thể lưu Markdown rồi chuyển sang PDF bằng trình soạn thảo.',
+                'Phiên bản này chưa hỗ trợ xuất PDF trực tiếp. Mở báo cáo HTML '
+                'bằng trình duyệt rồi in thành PDF (Ctrl/Cmd+P) để giữ bố cục.',
           ),
         ],
       );
@@ -936,6 +1017,27 @@ Future<void> showHelpModal(BuildContext context, WidgetRef ref) => _show(
         description:
             'Tài liệu gốc là căn cứ đối chiếu. Các bước dưới đây giúp bạn kiểm tra kết quả đánh giá.',
         children: [
+          // Two terms the whole UI leans on but never defined — first-time
+          // users met "40 units", "8 mục đã chọn" and "limit per run" with
+          // no way to learn what a unit is or why the limit exists.
+          const WInfoNote(
+            icon: Icons.layers_outlined,
+            text:
+                'A "unit" is one reviewable requirement parsed from your '
+                'document — a use case, a business rule, or a functional / '
+                'non-functional statement. Each unit keeps its source page '
+                'and ID so every finding traces back.',
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          const WInfoNote(
+            icon: Icons.speed_outlined,
+            text:
+                'One run reviews at most 40 units, because each unit costs '
+                'one request against a 50/day quota. The reserve covers '
+                'same-day re-runs; already-reviewed units are served from '
+                'cache and cost nothing.',
+          ),
+          const SizedBox(height: AppSpacing.lg),
           for (final (number, title, body) in steps) ...[
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,

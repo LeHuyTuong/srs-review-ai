@@ -18,6 +18,7 @@ import '../../../core/widgets/app_ink_well.dart';
 import '../../../core/widgets/chrome_insets.dart';
 import '../../../core/widgets/content_shell.dart';
 import '../../../core/widgets/glass_surface.dart';
+import '../models/workspace_tab.dart';
 import '../view_model/workspace_shortcut_commands.dart';
 import '../view_model/workspace_tab_controller.dart';
 import '../view_model/workspace_view_model.dart';
@@ -521,7 +522,7 @@ class ReviewProgressBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(workspaceViewModelProvider);
-    if (!state.isRunning) return const SizedBox.shrink();
+    if (!state.isRunning) return _RunSummaryBar(state: state);
 
     final progress = state.progress!;
     final viewModel = ref.read(workspaceViewModelProvider.notifier);
@@ -628,6 +629,92 @@ class ReviewProgressBar extends ConsumerWidget {
                   ),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The bar that replaces the progress bar the moment a run ends.
+///
+/// Before this, finishing a run put the user back on exactly the screen they
+/// started from: the findings were one tab away with nothing pointing at them,
+/// and the only signal was a 4.5-second toast. This surface stays until the
+/// user acts on it, and carries the two actions a finished run implies.
+class _RunSummaryBar extends ConsumerWidget {
+  const _RunSummaryBar({required this.state});
+
+  final WorkspaceState state;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!state.showsRunSummary) return const SizedBox.shrink();
+
+    final viewModel = ref.read(workspaceViewModelProvider.notifier);
+    final colors = context.workspaceColors;
+    final theme = Theme.of(context);
+    final findings = state.result?.findings.length ?? 0;
+    final failed = state.result?.failed ?? 0;
+
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label:
+          'Review finished. ${state.runReviewed} units reviewed, '
+          '$findings findings.',
+      child: GlassSurface(
+        key: const Key('run-summary-bar'),
+        compact: true,
+        radius: 0,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.sm,
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.check_circle_outline, size: 18, color: colors.sage),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                'Review finished · ${state.runReviewed} units reviewed · '
+                '$findings findings'
+                // A run where units failed must not read as a clean result —
+                // the same honesty rule the toast already follows.
+                '${failed > 0 ? ' · $failed failed' : ''}'
+                '${state.runSkipped > 0 ? ' · ${state.runSkipped} left out by the ${AppConfig.maxRequirementsPerRun}-unit cap' : ''}',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colors.ink,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            TextButton(
+              // Goes through the shortcut command registry rather than
+              // selecting the tab directly: this bar is visible on all three
+              // destinations, and `goSubTab` is the one place that knows to
+              // switch back to Document review first.
+              onPressed: () => ref
+                  .read(workspaceShortcutCommandsProvider)
+                  .goSubTab
+                  ?.call(WorkspaceTab.findings),
+              child: const Text('View findings'),
+            ),
+            IconButton(
+              tooltip: 'Export report',
+              icon: const Icon(Icons.download_outlined, size: 17),
+              color: colors.muted,
+              onPressed: () => showExportModal(context, ref),
+            ),
+            IconButton(
+              tooltip: 'Dismiss summary',
+              icon: const Icon(Icons.close, size: 17),
+              color: colors.muted,
+              onPressed: viewModel.dismissRunSummary,
+            ),
           ],
         ),
       ),

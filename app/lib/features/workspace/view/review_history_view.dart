@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/layout/app_viewport.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
 import '../../../core/widgets/chrome_insets.dart';
@@ -51,7 +52,14 @@ class _ReviewHistoryViewState extends ConsumerState<ReviewHistoryView> {
       ),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900),
+          // Was a hard-coded 900, so on a 1440+ desktop window these two
+          // destinations rendered as a narrow column in the middle of a wide
+          // empty page while Document review used the full width. Read the
+          // shell's resolved width instead — the same value WorkspacePage
+          // uses, so all three destinations agree.
+          constraints: BoxConstraints(
+            maxWidth: AppViewport.of(context).contentMaxWidth,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

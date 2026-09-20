@@ -71,6 +71,7 @@ class WorkspaceState {
     this.imageCoverage,
     this.documentFingerprint = '',
     this.parserVersion = '',
+    this.runSummaryDismissed = false,
   });
 
   final bool hasDocument;
@@ -195,6 +196,22 @@ class WorkspaceState {
       progress != null && _runningStages.contains(progress!.stage);
   bool get hasResult => result != null;
 
+  /// True once the user has closed the "run finished" summary bar.
+  ///
+  /// The bar is the only place in the shell that survives after a run ends —
+  /// without it, a finished run left the user on the same page they started
+  /// on, with the findings one tab away and nothing pointing at them.
+  final bool runSummaryDismissed;
+
+  /// Whether the shell should render the "run finished · N reviewed" bar.
+  ///
+  /// Gated on [runReviewed] > 0 rather than [hasResult]: `result` is persisted
+  /// in snapshots, so a `hasResult` gate would re-open the app onto a summary
+  /// of a run from a previous session. `runReviewed` only ever describes the
+  /// run that just finished in this session.
+  bool get showsRunSummary =>
+      !isRunning && !runSummaryDismissed && hasResult && runReviewed > 0;
+
   int get selectedCount => units.where((u) => u.selected).length;
   int get attentionCount => units.where((u) => u.malformed).length;
   int get useCaseCount => units.where((u) => u.kind == UnitKind.useCase).length;
@@ -249,6 +266,7 @@ class WorkspaceState {
     bool clearImageCoverage = false,
     String? documentFingerprint,
     String? parserVersion,
+    bool? runSummaryDismissed,
   }) => WorkspaceState(
     hasDocument: hasDocument ?? this.hasDocument,
     fileName: fileName ?? this.fileName,
@@ -284,6 +302,7 @@ class WorkspaceState {
         : (imageCoverage ?? this.imageCoverage),
     documentFingerprint: documentFingerprint ?? this.documentFingerprint,
     parserVersion: parserVersion ?? this.parserVersion,
+    runSummaryDismissed: runSummaryDismissed ?? this.runSummaryDismissed,
   );
 }
 
@@ -579,6 +598,9 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       clearResult: true,
       runStartedAt: DateTime.now(),
       runReviewed: 0,
+      // Hide the previous run's summary for the duration of the new one; the
+      // finished run re-opens it.
+      runSummaryDismissed: true,
       imageReviewedCount: 0,
       clearImageCoverage: true,
       runSkipped: selected.length - selectedItems.length,
@@ -821,6 +843,10 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         runStartedAt: DateTime.now(),
         runReviewed: reviewed,
         runSkipped: skipped,
+        // The run ended here, so the shell's summary bar takes over from the
+        // progress bar: same slot, same visibility, but now with the two
+        // actions a finished run implies instead of a Cancel button.
+        runSummaryDismissed: false,
         toast:
             '$reviewed units reviewed · $findings verified findings'
             '$failNote$capNote · saved on this device',
@@ -857,6 +883,13 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
 
   void cancelReview() {
     ref.read(reviewRepositoryProvider).cancel();
+  }
+
+  /// Closes the "run finished" summary bar. Same lifetime as a toast except
+  /// this one waits for the user instead of a timer: the two buttons in it
+  /// ("View findings", "Export") are the actions a finished run implies.
+  void dismissRunSummary() {
+    state = state.copyWith(runSummaryDismissed: true);
   }
 
   // ------------------------------------------------------------- ask
@@ -1034,6 +1067,12 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
             : WorkspaceReviewResult.fromJson(resultJson),
         documentFingerprint: session.fingerprint,
         parserVersion: session.parserVersion,
+        // The summary bar describes the run that just finished in THIS
+        // session. `copyWith` carries `runReviewed` over, so opening a saved
+        // review would otherwise re-show a bar about a run the user cannot
+        // see in this context.
+        runReviewed: 0,
+        runSummaryDismissed: true,
         toast: 'Saved review restored.',
         restoring: false,
       );

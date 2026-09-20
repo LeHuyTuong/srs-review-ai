@@ -327,7 +327,9 @@ class WorkflowSteps extends StatelessWidget {
           step(3, 'Kết quả & Lỗi'),
           step(4, 'Xuất báo cáo'),
         ];
-        if (constraints.maxWidth < 560) {
+        // Vietnamese step labels need more room than the original English
+        // labels, including on a desktop with the navigation rail visible.
+        if (constraints.maxWidth < 800) {
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(

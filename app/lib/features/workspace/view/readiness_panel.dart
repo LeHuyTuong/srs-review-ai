@@ -87,17 +87,14 @@ class ReadinessPanel extends ConsumerWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  Text(
-                    ' / $total',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: colors.muted,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    'mục đã chọn',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colors.muted,
+                  Flexible(
+                    child: Text(
+                      ' / $total mục đã chọn',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: colors.muted,
+                      ),
                     ),
                   ),
                 ],

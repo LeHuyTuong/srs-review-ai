@@ -144,7 +144,7 @@ class RequirementSplitter {
           continue;
         }
 
-        if (_modal.hasMatch(line)) {
+        if (_modal.hasMatch(line) && _looksLikeSentence(line)) {
           statementSeq++;
           add(
             RequirementItem(
@@ -161,6 +161,23 @@ class RequirementSplitter {
     flush();
 
     return List<RequirementItem>.unmodifiable(collected);
+  }
+
+  /// Whether a modal line actually reads as a statement.
+  ///
+  /// The modal check alone fired on DOCX table cells: an OTES table keeps a
+  /// bare `must` in its own cell, text extraction put it on its own line, and
+  /// the inventory grew a unit whose entire text was `must` — meaningless to
+  /// review and embarrassing to show. A statement needs something AROUND the
+  /// modal verb: at least two more words on the same line. The page text is
+  /// never altered by this — the drop only affects what becomes a reviewable
+  /// unit, and the sentence case is unaffected.
+  static bool _looksLikeSentence(String line) {
+    final trimmed = line.trim();
+    if (trimmed.length < 15 || !trimmed.contains(' ')) return false;
+    // Two words besides the modal verb itself: "must allow registration"
+    // passes, "must not" and a lone "must" do not.
+    return trimmed.split(RegExp(r'\s+')).length >= 3;
   }
 
   static String _canonicalId(String raw) {

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/platform/app_platform.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
@@ -68,6 +69,9 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
                     _page = 1;
                   }),
                   decoration: InputDecoration(
+                    // "unit" everywhere else, so the search box says "unit" too:
+                    // a mixed vocabulary makes the user wonder whether a unit
+                    // and a requirement are two different things.
                     hintText: 'Tìm kiếm theo ID hoặc nội dung...',
                     prefixIcon: const Icon(Icons.search, size: 18),
                     isDense: true,
@@ -357,6 +361,19 @@ class _UnitRow extends StatelessWidget {
   /// row stays a pure function of its inputs.
   final ValueChanged<UnitKind> onClassify;
 
+  /// Opens the row's action menu at [globalPosition] and runs the choice.
+  /// Shared by the right-click gesture and the ⋮ button, which exist for the
+  /// same actions on the same row.
+  Future<void> _openMenu(BuildContext context, Offset globalPosition) async {
+    final choice = await showUnitContextMenu(
+      context: context,
+      globalPosition: globalPosition,
+      unit: unit,
+    );
+    if (choice == null || !context.mounted) return;
+    await _onMenuChoice(context, choice);
+  }
+
   /// Maps a menu choice onto the action it names. Every branch calls something
   /// the app already does elsewhere — nothing here is a new capability.
   Future<void> _onMenuChoice(
@@ -397,15 +414,7 @@ class _UnitRow extends StatelessWidget {
     };
 
     return DesktopContextMenuArea(
-      onSecondaryTapUp: (details) async {
-        final choice = await showUnitContextMenu(
-          context: context,
-          globalPosition: details.globalPosition,
-          unit: unit,
-        );
-        if (choice == null || !context.mounted) return;
-        await _onMenuChoice(context, choice);
-      },
+      onSecondaryTapUp: (details) => _openMenu(context, details.globalPosition),
       child: AppInkWell(
         onTap: onOpen,
         child: Container(
@@ -571,7 +580,30 @@ class _UnitRow extends StatelessWidget {
                           ],
                         ),
                 ),
-                Icon(Icons.chevron_right, size: 15, color: colors.muted),
+                // The right-click menu was undiscoverable: no hint anywhere
+                // that a row had actions beyond opening it. A ⋮ affordance is
+                // the desktop-idiomatic answer and reuses the exact same menu.
+                // Desktop-only: the menu itself is a desktop surface.
+                if (AppPlatform.isDesktop)
+                  Builder(
+                    builder: (buttonContext) => IconButton(
+                      tooltip: 'Unit actions',
+                      icon: Icon(
+                        Icons.more_vert,
+                        size: 16,
+                        color: colors.muted,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () {
+                        final box =
+                            buttonContext.findRenderObject() as RenderBox;
+                        final origin = box.localToGlobal(
+                          Offset(0, box.size.height),
+                        );
+                        _openMenu(buttonContext, origin);
+                      },
+                    ),
+                  ),
               ];
               return Row(children: columns);
             },
