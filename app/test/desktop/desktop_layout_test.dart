@@ -210,7 +210,7 @@ void main() {
         // 'WORKSPACE' is the sidebar's section heading and appears nowhere
         // else, which makes it a proxy for "the 228px rail is on screen".
         expect(
-          find.text('WORKSPACE'),
+          find.text('KHÔNG GIAN LÀM VIỆC'),
           findsOneWidget,
           reason: 'at ${size.width}x${size.height} the rail must be shown',
         );
@@ -260,7 +260,7 @@ void main() {
       // And the in-content copy must be gone, or the readiness numbers would
       // be on screen twice.
       expect(
-        find.text('Review overview'),
+        find.text('Tổng quan đánh giá'),
         findsOneWidget,
         reason: 'the readiness panel must render exactly once',
       );
@@ -269,7 +269,7 @@ void main() {
       // comes back — mobile/web parity at 1280.
       await _pumpAt(tester, container, const Size(1280, 860));
       expect(find.byKey(const Key('right-rail')), findsNothing);
-      expect(find.text('Review overview'), findsOneWidget);
+      expect(find.text('Tổng quan đánh giá'), findsOneWidget);
 
       await _drainTimers(tester);
     });
@@ -360,7 +360,7 @@ void main() {
       // The panel moved from the content column into the shell rail; it was
       // not rebuilt from nothing, which is what the Riverpod lift buys.
       expect(find.byKey(const Key('right-rail')), findsOneWidget);
-      expect(find.text('Review overview'), findsOneWidget);
+      expect(find.text('Tổng quan đánh giá'), findsOneWidget);
 
       await _drainTimers(tester);
     });

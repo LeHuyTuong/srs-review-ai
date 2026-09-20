@@ -94,7 +94,7 @@ class _ModalScaffold extends ConsumerWidget {
             Align(
               alignment: Alignment.topRight,
               child: IconButton(
-                tooltip: 'Close dialog',
+                tooltip: 'Đóng hộp thoại',
                 icon: const Icon(Icons.close),
                 color: colors.muted,
                 onPressed: () => Navigator.of(context).pop(),
@@ -159,10 +159,9 @@ Future<void> showImportModal(BuildContext context, WidgetRef ref) => _show(
       final theme = Theme.of(context);
       return _ModalScaffold(
         icon: Icons.upload_outlined,
-        title: 'A fresh set of requirements.',
+        title: 'Tải tài liệu SRS',
         description:
-            'Import your SRS. We\'ll build an inventory you can inspect '
-            'before anything is reviewed.',
+            'Tải tài liệu SRS để lập danh sách yêu cầu. Bạn có thể kiểm tra danh sách trước khi chấm.',
         children: [
           Container(
             padding: const EdgeInsets.all(AppSpacing.xl),
@@ -177,15 +176,15 @@ Future<void> showImportModal(BuildContext context, WidgetRef ref) => _show(
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   state.isRunning
-                      ? 'Extracting your document…'
-                      : 'Pick your SRS to build the inventory',
+                      ? 'Đang trích xuất tài liệu…'
+                      : 'Chọn tài liệu SRS để lập danh sách yêu cầu',
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: colors.ink,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'PDF, DOCX · up to 30 MB',
+                  'PDF, DOCX · tối đa 30 MB',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: colors.muted,
                   ),
@@ -194,7 +193,7 @@ Future<void> showImportModal(BuildContext context, WidgetRef ref) => _show(
                 state.isRunning
                     ? const CircularProgressIndicator()
                     : WButton.primary(
-                        label: 'Browse files',
+                        label: 'Chọn tệp',
                         icon: Icons.folder_outlined,
                         onPressed: () async {
                           Navigator.of(sheetContext).pop();
@@ -207,11 +206,7 @@ Future<void> showImportModal(BuildContext context, WidgetRef ref) => _show(
           const SizedBox(height: AppSpacing.md),
           const WInfoNote(
             text:
-                'Parsed locally · no OCR for scanned files. DOCX source '
-                'references use logical pages. Original file bytes stay on '
-                'this device. Online PDF reviews may send bounded page images '
-                'plus requirement text to your proxy; DOCX, demo, and restored '
-                'sessions are text-only.',
+                'Trích xuất ngay trên thiết bị; chưa nhận dạng chữ trong bản quét. DOCX sử dụng số trang quy ước. Tệp gốc được giữ trên thiết bị. Khi chấm PDF trực tuyến, văn bản và ảnh trang có giới hạn dung lượng có thể được gửi đến máy chủ; DOCX, tài liệu mẫu và phiên khôi phục chỉ gửi văn bản.',
           ),
           const SizedBox(height: AppSpacing.sm),
           TextButton.icon(
@@ -223,12 +218,12 @@ Future<void> showImportModal(BuildContext context, WidgetRef ref) => _show(
                   },
             icon: Icon(Icons.play_arrow, size: 15, color: colors.brand),
             label: Text(
-              'Just exploring? Load the sample document',
+              'Trải nghiệm bằng tài liệu mẫu',
               style: TextStyle(color: colors.brand),
             ),
           ),
           Text(
-            'Synthetic OTES demo · $demoFileName',
+            'Dữ liệu OTES mô phỏng · $demoFileName',
             style: theme.textTheme.labelSmall?.copyWith(color: colors.muted),
           ),
         ],
@@ -252,10 +247,9 @@ Future<void> showReviewModal(BuildContext context, WidgetRef ref) => _show(
       final theme = Theme.of(context);
       return _ModalScaffold(
         icon: Icons.auto_awesome,
-        title: 'Let\'s give your SRS a second look.',
+        title: 'Xác nhận chấm điểm SRS',
         description:
-            'Review whole requirements, not isolated fragments. Every '
-            'displayed finding must include an exact source quote.',
+            'Chấm từng yêu cầu với đầy đủ ngữ cảnh. Mỗi lỗi hiển thị đều phải có trích dẫn từ tài liệu gốc.',
         children: [
           Container(
             decoration: BoxDecoration(
@@ -266,18 +260,18 @@ Future<void> showReviewModal(BuildContext context, WidgetRef ref) => _show(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
             child: Row(
               children: [
-                _runSummaryCell(context, '${state.selectedCount}', 'selected'),
+                _runSummaryCell(context, '${state.selectedCount}', 'đã chọn'),
                 _verticalDivider(colors),
                 _runSummaryCell(
                   context,
                   '${state.units.length - state.selectedCount}',
-                  'skipped',
+                  'bỏ qua',
                 ),
                 _verticalDivider(colors),
                 _runSummaryCell(
                   context,
                   '${AppConfig.maxRequirementsPerRun}',
-                  'limit per run',
+                  'tối đa mỗi lượt',
                 ),
               ],
             ),
@@ -286,17 +280,10 @@ Future<void> showReviewModal(BuildContext context, WidgetRef ref) => _show(
           WInfoNote(
             icon: Icons.wifi_off_outlined,
             text: mockMode
-                ? 'Offline mock review — runs entirely on this device with '
-                      'deterministic rules. No model calls are made. Suggestions '
-                      'are illustrative, not an official assessment.'
+                ? 'Đánh giá mô phỏng chạy hoàn toàn trên thiết bị bằng các quy tắc cố định, không gọi AI. Gợi ý chỉ để minh họa, không phải đánh giá chính thức.'
                 : state.imageReviewAvailable
-                ? 'Online review — sends requirement text and, for '
-                      'eligible pages in this imported PDF, bounded page '
-                      'images to your local proxy and configured model. '
-                      'Quotes are verified before any finding is shown.'
-                : 'Online review — sends requirement text only (DOCX, '
-                      'demo, or restored session); no page image is sent. '
-                      'Quotes are verified before any finding is shown.',
+                ? 'Đánh giá trực tuyến gửi văn bản yêu cầu và ảnh các trang PDF phù hợp đến máy chủ và mô hình đã cấu hình. Trích dẫn được đối chiếu trước khi hiển thị lỗi.'
+                : 'Đánh giá trực tuyến chỉ gửi văn bản yêu cầu (DOCX, tài liệu mẫu hoặc phiên khôi phục), không gửi ảnh trang. Trích dẫn được đối chiếu trước khi hiển thị lỗi.',
           ),
           if (state.attentionCount > 0) ...[
             const SizedBox(height: AppSpacing.sm),
@@ -304,8 +291,7 @@ Future<void> showReviewModal(BuildContext context, WidgetRef ref) => _show(
               warning: true,
               icon: Icons.error_outline,
               text:
-                  'Some malformed IDs remain visible in your inventory. They '
-                  'are preserved, never dropped.',
+                  'Một số mã ID chưa đúng định dạng vẫn được giữ trong danh sách để bạn kiểm tra.',
             ),
           ],
           if (state.isRunning) ...[
@@ -320,7 +306,9 @@ Future<void> showReviewModal(BuildContext context, WidgetRef ref) => _show(
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
-                    state.progress?.label ?? 'Reviewing…',
+                    state.progress == null
+                        ? 'Đang chấm điểm…'
+                        : workspaceProgressLabel(state.progress!),
                     style: theme.textTheme.labelMedium?.copyWith(
                       color: colors.ink,
                     ),
@@ -328,7 +316,7 @@ Future<void> showReviewModal(BuildContext context, WidgetRef ref) => _show(
                 ),
                 TextButton(
                   onPressed: viewModel.cancelReview,
-                  child: const Text('Cancel'),
+                  child: const Text('Hủy'),
                 ),
               ],
             ),
@@ -382,8 +370,8 @@ Future<void> showReviewModal(BuildContext context, WidgetRef ref) => _show(
 String _runButtonLabel(int selectedCount) {
   final cap = AppConfig.maxRequirementsPerRun;
   return selectedCount > cap
-      ? 'Review first $cap of $selectedCount units'
-      : 'Review $selectedCount units';
+      ? 'Chấm $cap mục đầu trong $selectedCount mục'
+      : 'Chấm $selectedCount mục';
 }
 
 /// Resolves as soon as the run has emitted its first progress event, so the
@@ -442,17 +430,14 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
       final theme = Theme.of(context);
       return _ModalScaffold(
         icon: Icons.download_outlined,
-        title: 'Your progress, ready to share.',
+        title: 'Xuất và chia sẻ báo cáo',
         description:
-            'A transparent report with findings, exact quotes, source '
-            'references, coverage and limitations.',
+            'Báo cáo gồm lỗi, trích dẫn, vị trí trong tài liệu gốc, phạm vi đánh giá và các giới hạn.',
         children: [
           WInfoNote(
             icon: Icons.description_outlined,
             text:
-                '${state.result?.reviewed ?? 0} reviewed · '
-                '${state.result?.findings.length ?? 0} findings · '
-                'Markdown report',
+                '${state.result?.reviewed ?? 0} mục đã chấm · ${state.result?.findings.length ?? 0} lỗi · Báo cáo Markdown',
           ),
           const SizedBox(height: AppSpacing.md),
           // Vision audit lives HERE, beside the report it feeds: rows land
@@ -463,9 +448,8 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
           if (viewModel.canAuditDiagrams) ...[
             WButton.secondary(
               label: state.isAuditingDiagrams
-                  ? 'Auditing diagram pages…'
-                  : 'Vision-audit ${viewModel.diagramAuditCount} diagram '
-                        'page(s)',
+                  ? 'Đang kiểm tra các trang sơ đồ…'
+                  : 'Kiểm tra hình ảnh ${viewModel.diagramAuditCount} trang sơ đồ',
               icon: Icons.image_search_outlined,
               expanded: true,
               onPressed: state.isAuditingDiagrams
@@ -479,8 +463,8 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
             if (viewModel.canShareReport) ...[
               WButton.secondary(
                 label: state.isSharingReport
-                    ? 'Creating share link…'
-                    : 'Share link — open in any browser',
+                    ? 'Đang tạo liên kết chia sẻ…'
+                    : 'Tạo liên kết mở trên trình duyệt',
                 icon: Icons.link,
                 expanded: true,
                 onPressed: state.isSharingReport
@@ -491,14 +475,13 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
                         await showDialog<void>(
                           context: context,
                           builder: (dialogContext) => AlertDialog(
-                            title: const Text('Share link created'),
+                            title: const Text('Đã tạo liên kết chia sẻ'),
                             content: Column(
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  'Anyone with this link can read the report. '
-                                  'Keep it where it belongs.',
+                                  'Bất kỳ ai có liên kết đều có thể đọc báo cáo. Chỉ chia sẻ với người phù hợp.',
                                 ),
                                 const SizedBox(height: AppSpacing.sm),
                                 SelectableText(
@@ -512,7 +495,7 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
                             actions: [
                               TextButton.icon(
                                 icon: const Icon(Icons.copy, size: 18),
-                                label: const Text('Copy'),
+                                label: const Text('Sao chép'),
                                 onPressed: () {
                                   unawaited(
                                     Clipboard.setData(
@@ -525,7 +508,7 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
                               TextButton(
                                 onPressed: () =>
                                     Navigator.of(dialogContext).pop(),
-                                child: const Text('Close'),
+                                child: const Text('Đóng'),
                               ),
                             ],
                           ),
@@ -557,7 +540,7 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
           ),
           const SizedBox(height: AppSpacing.lg),
           WButton.primary(
-            label: 'Save as Markdown file',
+            label: 'Lưu tệp Markdown',
             icon: Icons.save_alt,
             expanded: true,
             onPressed: () async {
@@ -570,16 +553,14 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
               } on Object catch (error) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Could not save the report: $error'),
-                    ),
+                    SnackBar(content: Text('Không thể lưu báo cáo: $error')),
                   );
                 }
                 return;
               }
               if (!context.mounted || destination == null) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Report saved to $destination')),
+                SnackBar(content: Text('Đã lưu báo cáo tại $destination')),
               );
             },
           ),
@@ -589,7 +570,7 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
           // server or web tool can read the report without scraping
           // Markdown tables.
           WButton.secondary(
-            label: 'Save as JSON file',
+            label: 'Lưu tệp JSON',
             icon: Icons.data_object,
             expanded: true,
             onPressed: () async {
@@ -600,7 +581,7 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Could not save the JSON report: $error'),
+                      content: Text('Không thể lưu báo cáo JSON: $error'),
                     ),
                   );
                 }
@@ -608,7 +589,7 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
               }
               if (!context.mounted || destination == null) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('JSON report saved to $destination')),
+                SnackBar(content: Text('Đã lưu báo cáo JSON tại $destination')),
               );
             },
           ),
@@ -616,7 +597,7 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
           // The brief's Report row — a dashboard a supervisor opens in a
           // browser, from the same data as the markdown and JSON twins.
           WButton.secondary(
-            label: 'Save as HTML dashboard',
+            label: 'Lưu báo cáo HTML',
             icon: Icons.dashboard_outlined,
             expanded: true,
             onPressed: () async {
@@ -627,9 +608,7 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(
-                        'Could not save the HTML dashboard: $error',
-                      ),
+                      content: Text('Không thể lưu báo cáo HTML: $error'),
                     ),
                   );
                 }
@@ -637,13 +616,13 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
               }
               if (!context.mounted || destination == null) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('HTML dashboard saved to $destination')),
+                SnackBar(content: Text('Đã lưu báo cáo HTML tại $destination')),
               );
             },
           ),
           const SizedBox(height: AppSpacing.sm),
           WButton.secondary(
-            label: 'Copy Markdown report',
+            label: 'Sao chép báo cáo Markdown',
             icon: Icons.copy,
             expanded: true,
             onPressed: () async {
@@ -651,7 +630,7 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
               viewModel.dismissToast();
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Report copied to clipboard.')),
+                  const SnackBar(content: Text('Đã sao chép báo cáo.')),
                 );
               }
             },
@@ -666,7 +645,7 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
           if (!AppPlatform.isWeb) ...[
             const SizedBox(height: AppSpacing.sm),
             WButton.secondary(
-              label: 'Share report',
+              label: 'Chia sẻ báo cáo',
               icon: Icons.ios_share,
               expanded: true,
               onPressed: () async {
@@ -674,14 +653,16 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
                   final path = await viewModel.shareReport();
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Report ready to share ($path)')),
+                      SnackBar(
+                        content: Text('Báo cáo sẵn sàng chia sẻ ($path)'),
+                      ),
                     );
                   }
                 } on Object catch (error) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Could not share the report: $error'),
+                        content: Text('Không thể chia sẻ báo cáo: $error'),
                       ),
                     );
                   }
@@ -693,8 +674,7 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
           const WInfoNote(
             icon: Icons.info_outline,
             text:
-                'PDF export is not part of this release — save the Markdown and '
-                'convert it in any editor if you need a PDF.',
+                'Phiên bản này chưa hỗ trợ xuất PDF. Bạn có thể lưu Markdown rồi chuyển sang PDF bằng trình soạn thảo.',
           ),
         ],
       );
@@ -737,7 +717,7 @@ class _ProxyUrlFieldState extends ConsumerState<_ProxyUrlField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Proxy URL',
+          'Địa chỉ máy chủ',
           style: theme.textTheme.titleSmall?.copyWith(color: colors.ink),
         ),
         const SizedBox(height: AppSpacing.xs),
@@ -747,9 +727,8 @@ class _ProxyUrlFieldState extends ConsumerState<_ProxyUrlField> {
           decoration: InputDecoration(
             hintText: 'http://192.168.1.20:8000',
             helperText: saved == null
-                ? 'Empty = build-in default. Point at a machine running the '
-                      'FastAPI proxy on the same WiFi, then submit.'
-                : 'Saved — reviews will call $saved. Clear and submit to reset.',
+                ? 'Để trống để dùng địa chỉ mặc định. Nhập địa chỉ máy chủ FastAPI cùng mạng Wi-Fi rồi xác nhận.'
+                : 'Đã lưu — các lượt chấm sẽ kết nối $saved. Xóa và xác nhận để đặt lại.',
             isDense: true,
           ),
           onSubmitted: (value) =>
@@ -793,7 +772,7 @@ class _AppTokenFieldState extends ConsumerState<_AppTokenField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'App token',
+          'Mã truy cập ứng dụng',
           style: theme.textTheme.titleSmall?.copyWith(color: colors.ink),
         ),
         const SizedBox(height: AppSpacing.xs),
@@ -803,11 +782,10 @@ class _AppTokenFieldState extends ConsumerState<_AppTokenField> {
           enableSuggestions: false,
           autocorrect: false,
           decoration: InputDecoration(
-            hintText: 'Leave empty when the proxy has no APP_TOKEN',
+            hintText: 'Để trống nếu máy chủ không yêu cầu APP_TOKEN',
             helperText: saved == null
-                ? 'Optional. Set it only when your proxy requires one — then it '
-                      'is sent on every request as X-App-Token.'
-                : 'Saved — sent as X-App-Token. Clear and submit to remove.',
+                ? 'Không bắt buộc. Chỉ nhập khi máy chủ yêu cầu; mã được gửi trong mỗi yêu cầu qua X-App-Token.'
+                : 'Đã lưu mã truy cập. Xóa và xác nhận để gỡ mã.',
             isDense: true,
           ),
           onSubmitted: (value) =>
@@ -827,9 +805,8 @@ Future<void> showSettingsModal(BuildContext context, WidgetRef ref) => _show(
       final theme = Theme.of(context);
       return _ModalScaffold(
         icon: Icons.settings_outlined,
-        title: 'Make this workspace yours.',
-        description:
-            'Simple, transparent defaults for your pre-submission review.',
+        title: 'Cài đặt không gian làm việc',
+        description: 'Thiết lập chế độ đánh giá và kết nối máy chủ.',
         children: [
           Row(
             children: [
@@ -838,15 +815,14 @@ Future<void> showSettingsModal(BuildContext context, WidgetRef ref) => _show(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Offline only',
+                      'Chỉ dùng ngoại tuyến',
                       style: theme.textTheme.titleSmall?.copyWith(
                         color: colors.ink,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      'Keep document text and results on this device. Reviews '
-                      'come from local rules.',
+                      'Giữ văn bản và kết quả trên thiết bị. Đánh giá bằng quy tắc cục bộ.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colors.muted,
                       ),
@@ -867,23 +843,20 @@ Future<void> showSettingsModal(BuildContext context, WidgetRef ref) => _show(
           const SizedBox(height: AppSpacing.md),
           _settingRow(
             context,
-            'Review engine',
-            'Deterministic checks + verified quotes',
-            badge: 'Mock',
+            'Bộ máy đánh giá',
+            'Kiểm tra theo quy tắc và đối chiếu trích dẫn',
+            badge: 'Mô phỏng',
           ),
           _settingRow(
             context,
-            'Declared limits',
-            '30 MB/file · 300 PDF pages · '
-                '${AppConfig.maxRequirementsPerRun} units/run',
+            'Giới hạn sử dụng',
+            '30 MB/tệp · 300 trang PDF · ${AppConfig.maxRequirementsPerRun} mục/lượt',
           ),
           const SizedBox(height: AppSpacing.md),
           const WInfoNote(
             icon: Icons.help_outline,
             text:
-                'Turning offline mode off routes reviews through your local '
-                'proxy to the configured model — it never embeds a key in '
-                'this app.',
+                'Tắt chế độ ngoại tuyến để chấm qua máy chủ bằng mô hình đã cấu hình. Khóa của nhà cung cấp AI không được lưu trong ứng dụng.',
           ),
         ],
       );
@@ -938,36 +911,30 @@ Future<void> showHelpModal(BuildContext context, WidgetRef ref) => _show(
       const steps = [
         (
           '01',
-          'Import & inspect',
-          'Import a text-layer PDF or DOCX. All detected identifiers stay '
-              'in the inventory, including duplicates and unclassified rows.',
+          'Tải và kiểm tra tài liệu',
+          'Tải PDF có lớp văn bản hoặc DOCX. Mọi mã tìm thấy đều được giữ lại, kể cả mã trùng và mục chưa phân loại.',
         ),
         (
           '02',
-          'Review with evidence',
-          'The engine checks vague wording, missing shall/must statements '
-              'and more. A quote is displayed only if it matches its source '
-              'unit.',
+          'Đánh giá có bằng chứng',
+          'Bộ máy đánh giá kiểm tra diễn đạt mơ hồ, thiếu câu yêu cầu bắt buộc và các vấn đề khác. Chỉ hiển thị trích dẫn khớp với yêu cầu gốc.',
         ),
         (
           '03',
-          'Follow the source',
-          'Open a finding to see its highlighted quote, the original '
-              'requirement and the parser-provided page.',
+          'Đối chiếu tài liệu gốc',
+          'Mở một lỗi để xem trích dẫn được tô sáng, yêu cầu gốc và số trang do bộ trích xuất cung cấp.',
         ),
         (
           '04',
-          'Export honestly',
-          'Reports include reviewed/skipped coverage, the rubric version '
-              'and their limitations.',
+          'Xuất báo cáo đầy đủ phạm vi',
+          'Báo cáo ghi rõ các mục đã chấm, bị bỏ qua, phiên bản thang điểm và giới hạn đánh giá.',
         ),
       ];
       return _ModalScaffold(
         icon: Icons.shield_outlined,
-        title: 'A review you can trace back.',
+        title: 'Hướng dẫn sử dụng',
         description:
-            'Your source is the ground truth. Here\'s how this workspace '
-            'keeps the evidence close.',
+            'Tài liệu gốc là căn cứ đối chiếu. Các bước dưới đây giúp bạn kiểm tra kết quả đánh giá.',
         children: [
           for (final (number, title, body) in steps) ...[
             Row(
@@ -1021,7 +988,7 @@ Future<void> showHelpModal(BuildContext context, WidgetRef ref) => _show(
           // tooltip appears on exactly one semantics node.
           Semantics(
             button: true,
-            label: 'Keyboard shortcuts',
+            label: 'Phím tắt',
             excludeSemantics: true,
             child: InkWell(
               onTap: () => showShortcutsModal(context, ref),
@@ -1038,7 +1005,7 @@ Future<void> showHelpModal(BuildContext context, WidgetRef ref) => _show(
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
-                        'Keyboard shortcuts',
+                        'Phím tắt',
                         style: theme.textTheme.labelLarge?.copyWith(
                           color: colors.brand,
                           fontWeight: FontWeight.w600,
@@ -1053,7 +1020,7 @@ Future<void> showHelpModal(BuildContext context, WidgetRef ref) => _show(
           ),
           const SizedBox(height: AppSpacing.lg),
           WButton.primary(
-            label: 'Got it',
+            label: 'Đã hiểu',
             icon: Icons.check,
             expanded: true,
             onPressed: () => Navigator.of(context).pop(),
@@ -1072,44 +1039,34 @@ Future<void> showRubricModal(BuildContext context, WidgetRef ref) => _show(
       final version = rubric?.version ?? RubricConfig.fallback.version;
       return _ModalScaffold(
         icon: Icons.menu_book_outlined,
-        title: 'Clear expectations. Honest limits.',
+        title: 'Tiêu chí đánh giá và giới hạn',
         description:
-            'SEP490 · $version — the numbers this workspace checks against.',
+            'SEP490 · $version — bộ tiêu chí dùng để kiểm tra tài liệu.',
         children: [
           _settingRow(
             context,
-            'F7 · Use-case baseline',
+            'F7 · Số lượng Use Case tối thiểu',
             rubric == null
-                ? 'Provisional minimum: 20 use cases.'
-                : 'Provisional minimum: ${rubric.ucCountMin} use cases, no '
-                      'upper bound. The 75% completion gate requires a '
-                      'verified declared inventory and human assessment.',
+                ? 'Ngưỡng tham khảo: tối thiểu 20 Use Case.'
+                : 'Ngưỡng tham khảo: tối thiểu ${rubric.ucCountMin} Use Case, không giới hạn tối đa. Mốc hoàn thành 75% cần danh sách khai báo đã xác minh và đánh giá của người hướng dẫn.',
           ),
           _settingRow(
             context,
-            'F8 · English-language heuristic',
-            'Non-English detection is an offline signal, not a language '
-                'classifier. A human must confirm the syllabus language '
-                'requirement.',
+            'F8 · Kiểm tra ngôn ngữ tiếng Anh',
+            'Phát hiện dấu hiệu ngoài tiếng Anh chỉ là kiểm tra sơ bộ ngoại tuyến. Người hướng dẫn cần xác nhận yêu cầu ngôn ngữ trong Syllabus.',
           ),
           _settingRow(
             context,
-            'F9 · Transaction range',
+            'F9 · Số bước xử lý',
             rubric == null
-                ? 'Provisional 3–7 numbered steps per use case.'
-                : 'Provisional ${rubric.ucMinTransactions}–'
-                      '${rubric.ucMaxTransactions} transactions per use case. '
-                      'Alternative flows may affect this count; confirm against '
-                      'the supervisor\'s rubric.',
+                ? 'Ngưỡng tham khảo: 3–7 bước đánh số cho mỗi Use Case.'
+                : 'Ngưỡng tham khảo: ${rubric.ucMinTransactions}–${rubric.ucMaxTransactions} bước xử lý cho mỗi Use Case. Luồng thay thế có thể ảnh hưởng cách đếm; cần đối chiếu thang điểm của người hướng dẫn.',
           ),
           const SizedBox(height: AppSpacing.sm),
           const WInfoNote(
             icon: Icons.arrow_outward,
             text:
-                'Outside this release: OCR, atomic resume, and '
-                'precision/recall evaluation remain future work. Page-image '
-                'review is limited to detector-selected PDF pages and does '
-                'not imply full visual understanding.',
+                'Phiên bản này chưa hỗ trợ OCR, tiếp tục lượt chấm bị gián đoạn hoặc đo độ chính xác/độ bao phủ. Kiểm tra hình ảnh chỉ áp dụng cho các trang PDF được chọn, chưa bao quát toàn bộ sơ đồ.',
           ),
         ],
       );
@@ -1131,38 +1088,32 @@ Future<void> showDocumentInfoModal(
       final state = ref.watch(workspaceViewModelProvider);
       return _ModalScaffold(
         icon: Icons.description_outlined,
-        title: 'About this document',
+        title: 'Thông tin tài liệu',
         description: state.fileName,
         children: [
           _detailGrid(context, [
-            ('Document type', 'Software Requirements Specification'),
-            ('Pages', '${state.pageCount}'),
-            ('File size', state.sizeLabel),
-            ('Extracted units', '${state.units.length} · no silent cap'),
+            ('Loại tài liệu', 'Đặc tả yêu cầu phần mềm'),
+            ('Số trang', '${state.pageCount}'),
+            ('Dung lượng tệp', state.sizeLabel),
             (
-              'Source',
+              'Số mục trích xuất',
+              '${state.units.length} · không âm thầm giới hạn số mục',
+            ),
+            (
+              'Nguồn',
               state.isDemo
-                  ? 'Synthetic demo fixture'
-                  : 'Locally imported document',
+                  ? 'Dữ liệu mẫu mô phỏng'
+                  : 'Tài liệu tải từ thiết bị',
             ),
           ]),
           const SizedBox(height: AppSpacing.md),
           WInfoNote(
             icon: Icons.help_outline,
             text: state.isDemo
-                ? 'The sample uses illustrative content inspired by the '
-                      'brief. Its units are not measured OTES extraction '
-                      'results.'
+                ? 'Tài liệu mẫu dùng nội dung minh họa, không phải kết quả trích xuất thực tế từ OTES.'
                 : state.imageReviewAvailable
-                ? 'Original PDF bytes stay in memory only for this session. '
-                      'Online reviews may send bounded page images plus '
-                      'requirement text to your proxy. Inventory text is '
-                      'kept in app storage; sessions save findings/results, '
-                      'never source bytes.'
-                : 'This DOCX, demo, or restored session is text-only; no '
-                      'page image is sent. Inventory text is kept in app '
-                      'storage; sessions save findings/results, never '
-                      'source bytes.',
+                ? 'Tệp PDF gốc chỉ nằm trong bộ nhớ của phiên hiện tại. Khi chấm trực tuyến, văn bản và ảnh trang giới hạn dung lượng có thể được gửi đến máy chủ. Ứng dụng lưu danh sách yêu cầu và kết quả, không lưu tệp gốc trong phiên đã lưu.'
+                : 'DOCX, tài liệu mẫu hoặc phiên khôi phục chỉ có văn bản, không gửi ảnh trang. Ứng dụng lưu danh sách yêu cầu và kết quả, không lưu tệp gốc trong phiên đã lưu.',
           ),
         ],
       );
@@ -1251,17 +1202,15 @@ class _AskSheetState extends ConsumerState<_AskSheet> {
     final theme = Theme.of(context);
     return _ModalScaffold(
       icon: Icons.chat_bubble_outline,
-      title: 'Find answers in your source.',
+      title: 'Hỏi đáp từ tài liệu',
       description:
-          'Answers come from your document only. Online, the model answers and '
-          'every quote is verified before it is shown; offline it falls back to '
-          'keyword search and says which one you got.',
+          'Câu trả lời chỉ dựa trên tài liệu của bạn. Chế độ trực tuyến dùng AI và đối chiếu trích dẫn; chế độ ngoại tuyến tìm theo từ khóa. Kết quả luôn ghi rõ cách tìm.',
       children: [
         TextField(
           controller: _controller,
           onSubmitted: _search,
           decoration: InputDecoration(
-            hintText: 'e.g. What are the password requirements?',
+            hintText: 'Ví dụ: Tài liệu yêu cầu gì về mật khẩu?',
             suffixIcon: IconButton(
               onPressed: _controller.text.trim().isEmpty
                   ? null
@@ -1289,7 +1238,7 @@ class _AskSheetState extends ConsumerState<_AskSheet> {
                 'System performance',
               ])
                 ActionChip(
-                  label: Text(suggestion),
+                  label: Text(workspaceLabel(suggestion)),
                   onPressed: () {
                     _controller.text = suggestion;
                     _search(suggestion);
@@ -1302,9 +1251,8 @@ class _AskSheetState extends ConsumerState<_AskSheet> {
             icon: Icons.search_off,
             warning: true,
             text: _outcome!.answer.isEmpty
-                ? 'No matching source found. Try a specific term used in your '
-                      'document. No answer was invented.'
-                : _outcome!.answer,
+                ? 'Không tìm thấy nội dung phù hợp. Hãy thử từ khóa có trong tài liệu; ứng dụng không tự tạo câu trả lời.'
+                : workspaceMessage(_outcome!.answer),
           )
         else
           Column(
@@ -1320,7 +1268,7 @@ class _AskSheetState extends ConsumerState<_AskSheet> {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   WBadge(
-                    label: _outcome!.engine.label,
+                    label: workspaceLabel(_outcome!.engine.label),
                     tint: _outcome!.engine == AskEngine.model
                         ? WBadgeTint.green
                         : WBadgeTint.neutral,
@@ -1342,7 +1290,10 @@ class _AskSheetState extends ConsumerState<_AskSheet> {
               ),
               if (_outcome!.note != null) ...[
                 const SizedBox(height: AppSpacing.sm),
-                WInfoNote(icon: Icons.info_outline, text: _outcome!.note!),
+                WInfoNote(
+                  icon: Icons.info_outline,
+                  text: workspaceMessage(_outcome!.note!),
+                ),
               ],
               const SizedBox(height: AppSpacing.md),
               if (_outcome!.engine == AskEngine.model) ...[
@@ -1356,7 +1307,7 @@ class _AskSheetState extends ConsumerState<_AskSheet> {
                 if (_outcome!.citations.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.md),
                   Text(
-                    'Verified passages',
+                    'Trích dẫn đã đối chiếu',
                     style: theme.textTheme.labelLarge?.copyWith(
                       color: colors.ink,
                       fontWeight: FontWeight.w600,
@@ -1373,8 +1324,8 @@ class _AskSheetState extends ConsumerState<_AskSheet> {
                           children: [
                             WBadge(
                               label: citation.verification == Verification.exact
-                                  ? 'Exact match'
-                                  : 'Close match',
+                                  ? 'Khớp chính xác'
+                                  : 'Khớp gần đúng',
                               tint: WBadgeTint.green,
                             ),
                             const SizedBox(height: AppSpacing.sm),
@@ -1404,7 +1355,8 @@ class _AskSheetState extends ConsumerState<_AskSheet> {
                             runSpacing: AppSpacing.xs,
                             children: [
                               WBadge(
-                                label: '${unit.id} · p. ${unit.pageIndex + 1}',
+                                label:
+                                    '${unit.id} · trang ${unit.pageIndex + 1}',
                                 tint: WBadgeTint.green,
                               ),
                             ],
@@ -1467,126 +1419,56 @@ class _SyllabusCheckDetail extends StatelessWidget {
 
   String get _rule => switch (finding.check) {
     CheckId.ucCount =>
-      'Syllabus gate: at least ${rubric.ucCountMin} medium use cases in the '
-          'declared inventory. No upper bound — size is checked by F9.',
+      'Danh sách khai báo cần tối thiểu ${rubric.ucCountMin} Use Case cỡ vừa. Không giới hạn tối đa; quy mô từng Use Case được kiểm tra ở F9.',
     CheckId.language =>
-      'Submitted documents are written in English. This is a non-ASCII '
-          'heuristic, not a language classifier.',
+      'Tài liệu nộp phải viết bằng tiếng Anh. Kiểm tra ký tự ngoài ASCII chỉ là dấu hiệu sơ bộ, không phải bộ phân loại ngôn ngữ.',
     CheckId.ucSize =>
-      'A medium use case holds ${rubric.ucMinTransactions}–'
-          '${rubric.ucMaxTransactions} numbered transactions.',
+      'Một Use Case cỡ vừa có ${rubric.ucMinTransactions}–${rubric.ucMaxTransactions} bước xử lý đánh số.',
     CheckId.duplicateIds =>
-      'The same explicit id labels two or more requirements. Reuse can be '
-          'intentional (a UC table repeated under one id) but it almost always '
-          'hides either an unfinished rename or two distinct requirements that '
-          'should have been split apart.',
+      'Một mã ID được dùng cho nhiều yêu cầu. Có thể đây là chủ ý, nhưng cần xác nhận để tránh nhầm lẫn giữa các chức năng khác nhau.',
     CheckId.missingPostcondition =>
-      'A use case without a Postcondition leaves the tester without a '
-          'measurable end-state — there is no line a tester can read and say '
-          '"this is what the system looks like when the flow is done".',
+      'Use Case thiếu hậu điều kiện khiến người kiểm thử không xác định được trạng thái hệ thống khi luồng hoàn tất.',
     CheckId.crossArtifactName =>
-      'The same concept shows up under two or more different labels in two '
-          'or more sections of the document. One of the labels is right; the '
-          'others are spelling, casing, or plural drift that confuses a reader '
-          'who has to follow the entity across diagrams.',
+      'Cùng một khái niệm có nhiều tên ở các phần khác nhau, gây khó khăn khi đối chiếu thực thể giữa các sơ đồ.',
     CheckId.missingActor =>
-      'A use case without an Actor row leaves the system boundary '
-          'undefined. The flow has no "who" — was it a human, another '
-          'system, or time? A reader cannot tell, and a test designer '
-          'cannot pick the right tool to drive the scenario.',
+      'Use Case thiếu tác nhân nên chưa rõ ai hoặc hệ thống nào khởi động luồng xử lý.',
     CheckId.ambiguousWording =>
-      'From the srs-writer quality checklist (IEEE 830 criteria 2 and 3): '
-          'the sentence uses wording with no measurable threshold. This is '
-          'a conservative bilingual phrase scan, not judgment — "all" and '
-          '"some" are deliberately not scanned because they fire on almost '
-          'every document.',
+      'Theo tiêu chí chất lượng 2 và 3 của IEEE 830, diễn đạt cần có ngưỡng đo được. Bộ quét chỉ tìm một số cụm từ song ngữ; không quét “all” và “some” để hạn chế báo sai.',
     CheckId.placeholderTbd =>
-      'Quality criterion 4 (Complete): the document still carries TBD-style '
-          'placeholders. A submitted document must stand alone — every '
-          'open question is either answered or moved to an explicit '
-          'assumptions list.',
+      'Tiêu chí 4 về tính đầy đủ: tài liệu còn chỗ giữ chỗ như TBD. Mọi câu hỏi mở cần được giải đáp hoặc chuyển sang danh sách giả định rõ ràng.',
     CheckId.missingPriority =>
-      'Quality criterion 7 (Prioritized): no requirement in the document '
-          'names a priority. Without one, a team under a deadline cannot '
-          'decide what to cut, and the reviewer cannot tell which '
-          'findings matter first.',
+      'Tiêu chí 7 về độ ưu tiên: chưa có yêu cầu nào nêu mức ưu tiên, khiến nhóm khó sắp xếp công việc và thứ tự sửa lỗi.',
     CheckId.diagramAudit =>
-      'Vision audit (sds-reviewer steps 4-6): the model looked at this '
-          'diagram page and reported notation findings — cardinality '
-          'directions, missing FK labels, orphan elements. At A4 render '
-          'resolution tiny text may be unreadable, so evidence lists what '
-          'was seen, not a verdict on what was not.',
+      'AI kiểm tra ký pháp trên trang sơ đồ: hướng quan hệ, bội số, khóa ngoại và phần tử rời rạc. Chữ nhỏ có thể không đọc được; kết quả chỉ phản ánh bằng chứng nhìn thấy.',
     CheckId.nfrUnquantified =>
-      'Rulebook 1.5 hard rule 6: a non-functional requirement must carry a '
-          'figure AND the condition it is measured under. Both halves are '
-          'required — "under 2 s" is still untestable without a load and a '
-          'percentile. The check reports the absence, never whether the '
-          'number you chose is the right one.',
+      'Quy tắc 6, mục 1.5: yêu cầu phi chức năng phải có cả chỉ số và điều kiện đo. Chỉ ghi “dưới 2 giây” vẫn thiếu tải và phân vị. Kiểm tra này phát hiện thiếu sót, không đánh giá mức chỉ tiêu có phù hợp hay không.',
   };
 
   String get _fix => switch (finding.check) {
     CheckId.ucCount =>
-      'Merge use-case fragments that share one actor and one goal; split '
-          'mega use cases along their distinct goals; then update the '
-          'declared inventory so the count and the list agree.',
+      'Gộp các mảnh Use Case cùng tác nhân và mục tiêu; tách Use Case quá lớn theo mục tiêu riêng. Cập nhật danh sách khai báo cho khớp số lượng.',
     CheckId.language =>
-      'Rewrite the flagged passages in English — narrative, table cells '
-          'and figure captions included — or have your supervisor '
-          'confirm the exemption in writing.',
+      'Viết lại phần được đánh dấu bằng tiếng Anh, gồm cả bảng và chú thích hình; hoặc xin người hướng dẫn xác nhận ngoại lệ bằng văn bản.',
     CheckId.ucSize =>
-      'For the named use case: merge trivial steps into their parent '
-          'transaction, move shared behaviour into a business rule, or '
-          'split the use case in two so each half stays in the band.',
+      'Gộp bước quá nhỏ vào bước xử lý chính, chuyển hành vi dùng chung thành quy tắc nghiệp vụ hoặc tách Use Case theo mục tiêu.',
     CheckId.duplicateIds =>
-      'For each reported id, open every requirement that carries it and '
-          'decide whether the reuse is intentional. If it is not, mint a '
-          'distinct id (UC04a, UC04b) or merge the rows under one id so the '
-          'two views of the requirement stop drifting apart.',
+      'Mở từng yêu cầu dùng chung mã để xác nhận chủ ý. Nếu bị trùng ngoài ý muốn, đặt mã riêng hoặc gộp các dòng mô tả cùng một yêu cầu.',
     CheckId.missingPostcondition =>
-      'Add a Postcondition section to every flagged use case. One sentence '
-          'is enough — name a state the tester can verify (a persisted '
-          'record, a confirmation toast, a changed role), so "done" stops '
-          'being a matter of judgement.',
+      'Thêm mục hậu điều kiện với trạng thái có thể kiểm thử: bản ghi đã lưu, thông báo xác nhận hoặc quyền đã thay đổi.',
     CheckId.crossArtifactName =>
-      'For each variant in the report, pick the canonical form, then '
-          'replace every other occurrence across the document. A search '
-          'across the source for the variant string is usually enough — '
-          'these are short labels, not long phrases.',
+      'Chọn một tên chuẩn cho mỗi thực thể và thay các biến thể còn lại xuyên suốt tài liệu.',
     CheckId.missingActor =>
-      'Add an Actor row to every flagged use case. One short label is '
-          'enough (Customer, Admin, Scheduler, External System) — name '
-          'the role, not the person, so the test designer can pick the '
-          'right tool to drive it.',
+      'Thêm tác nhân cho từng Use Case: khách hàng, quản trị viên, bộ lập lịch hoặc hệ thống ngoài. Nêu vai trò thay vì tên người cụ thể.',
     CheckId.ambiguousWording =>
-      'Replace each flagged phrase with a number, threshold, or test '
-          'step: "fast" → "within 2 s at the 95th percentile", '
-          '"user-friendly" → "a new user completes registration in '
-          '≤ 3 clicks". If the sentence genuinely has no measurable '
-          'claim, that is the finding — delete or rewrite it.',
+      'Thay cụm từ mơ hồ bằng số, ngưỡng hoặc bước kiểm thử. Ví dụ: phản hồi trong 2 giây ở phân vị 95; đăng ký trong tối đa 3 lần nhấn. Viết lại hoặc bỏ phát biểu không thể đo.',
     CheckId.placeholderTbd =>
-      'Resolve the placeholder before submission, or move it into an '
-          'explicit "Open questions / assumptions" section with an '
-          'owner — a TBD buried in a requirement reads as a promise '
-          'nobody made.',
+      'Hoàn thiện nội dung còn bỏ trống trước khi nộp, hoặc chuyển sang mục câu hỏi mở/giả định và ghi rõ người chịu trách nhiệm.',
     CheckId.missingPriority =>
-      'Add a Priority field (High / Medium / Low, or MoSCoW) to the use '
-          'case tables and requirement list — the OTES-style template '
-          'already has the row, it just needs a value. A document that '
-          'cannot sequence its own requirements hands that call to '
-          'whoever shouts loudest.',
+      'Thêm mức ưu tiên Cao/Trung bình/Thấp hoặc MoSCoW vào bảng Use Case và danh sách yêu cầu.',
     CheckId.diagramAudit =>
-      'Open the page and read the finding against the drawing: red '
-          'severity means the notation asserts something wrong (reversed '
-          'cardinality, absent relation line), amber means it is '
-          'incomplete or ambiguous. Confirm before fixing — the audit is '
-          'evidence from one render, not a substitute for your eyes on '
-          'the original figure.',
+      'Đối chiếu từng lỗi với sơ đồ gốc. Mức nghiêm trọng chỉ ký pháp sai; mức cảnh báo chỉ nội dung thiếu hoặc mơ hồ. Xác nhận bằng mắt trước khi sửa.',
     CheckId.nfrUnquantified =>
-      'Give the requirement a number and the condition it holds under: '
-          '"the search page responds in under 2 s at the 95th percentile '
-          'with 200 concurrent users". If you cannot name a condition, the '
-          'requirement is a wish — either make it measurable or move it to '
-          'the goals section where it belongs.',
+      'Bổ sung chỉ số và điều kiện đo, ví dụ: trang tìm kiếm phản hồi dưới 2 giây ở phân vị 95 với 200 người dùng đồng thời. Nếu chưa thể đo, cần làm rõ hoặc chuyển sang mục mục tiêu.',
   };
 
   @override
@@ -1603,28 +1485,28 @@ class _SyllabusCheckDetail extends StatelessWidget {
     return _ModalScaffold(
       icon: finding.passed ? Icons.check_circle_outline : Icons.rule_outlined,
       title: finding.subject == null
-          ? finding.check.label
-          : '${finding.check.label} · ${finding.subject}',
-      description: finding.message,
+          ? workspaceLabel(finding.check.label)
+          : '${workspaceLabel(finding.check.label)} · ${finding.subject}',
+      description: workspaceMessage(finding.message),
       children: [
         Wrap(
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.xs,
           children: [
             WBadge(
-              label: finding.passed ? 'Passed' : 'Needs attention',
+              label: finding.passed ? 'Đạt' : 'Cần kiểm tra',
               tint: finding.passed ? WBadgeTint.green : WBadgeTint.amber,
             ),
             if (finding.actual != null)
-              WBadge(label: 'found: ${finding.actual}'),
-            if (expected != null) WBadge(label: 'expected: $expected'),
+              WBadge(label: 'Thực tế: ${finding.actual}'),
+            if (expected != null) WBadge(label: 'Yêu cầu: $expected'),
             if (finding.subject != null)
               WBadge(label: finding.subject!, tint: WBadgeTint.purple),
           ],
         ),
         const SizedBox(height: AppSpacing.lg),
         Text(
-          'THE RULE',
+          'TIÊU CHÍ KIỂM TRA',
           style: theme.textTheme.labelSmall?.copyWith(
             color: colors.muted,
             letterSpacing: 1.4,
@@ -1641,7 +1523,7 @@ class _SyllabusCheckDetail extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.lg),
         Text(
-          'HOW TO FIX IT',
+          'CÁCH KHẮC PHỤC',
           style: theme.textTheme.labelSmall?.copyWith(
             color: colors.muted,
             letterSpacing: 1.4,
@@ -1660,9 +1542,7 @@ class _SyllabusCheckDetail extends StatelessWidget {
         WInfoNote(
           icon: Icons.menu_book_outlined,
           text:
-              'Deterministic syllabus checks run offline at import time and '
-              'cost zero tokens. They are provisional — confirm against '
-              'your supervisor\'s rubric.',
+              'Các kiểm tra Syllabus chạy ngoại tuyến khi tải tài liệu, không tốn lượt AI. Ngưỡng chỉ để tham khảo; cần xác nhận với thang điểm của người hướng dẫn.',
         ),
       ],
     );

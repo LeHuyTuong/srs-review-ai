@@ -10,6 +10,74 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
 import '../../../core/widgets/app_ink_well.dart';
 import '../../../data/models/review_models.dart' show Severity;
+import '../../../data/models/review_progress.dart';
+import 'workspace_messages_vi.dart';
+
+export 'workspace_messages_vi.dart';
+
+String workspaceProgressLabel(
+  ReviewProgress progress,
+) => switch (progress.stage) {
+  ReviewStage.idle => 'Sẵn sàng',
+  ReviewStage.parsing => 'Đang tách yêu cầu…',
+  ReviewStage.reviewing =>
+    'Đang chấm ${progress.completed}/${progress.total}${progress.currentRequirementId == null ? '' : ' (${progress.currentRequirementId})'}…',
+  ReviewStage.verifying => 'Đang đối chiếu trích dẫn…',
+  ReviewStage.done => 'Đã chấm ${progress.completed} mục',
+  ReviewStage.cancelled => 'Đã hủy',
+  ReviewStage.failed => workspaceMessage(progress.error ?? 'Đánh giá thất bại'),
+};
+
+/// Display-only translations: stored labels and filter values stay unchanged.
+String workspaceLabel(String label) => switch (label) {
+  'All types' => 'Tất cả loại',
+  'All units' => 'Tất cả mục',
+  'Needs attention' => 'Cần kiểm tra',
+  'Selected' => 'Đã chọn',
+  'Reviewed' => 'Đã chấm',
+  'Use case' => 'Use Case',
+  'Business rule' => 'Quy tắc nghiệp vụ',
+  'Non-functional' => 'Phi chức năng',
+  'Functional' => 'Chức năng',
+  'Unknown' => 'Chưa phân loại',
+  'Open' => 'Chưa xử lý',
+  'Fixed' => 'Đã sửa',
+  'Verified' => 'Đã xác minh',
+  'Pending vision' => 'Chờ kiểm tra hình ảnh',
+  'Disputed' => 'Đã bác bỏ',
+  'Full review (text + vision)' => 'Đánh giá văn bản và hình ảnh',
+  'Text-first review (no vision)' =>
+    'Đánh giá văn bản (chưa kiểm tra hình ảnh)',
+  'Blind review (vision only)' => 'Chỉ đánh giá hình ảnh',
+  'high' => 'Nghiêm trọng',
+  'medium' => 'Trung bình',
+  'low' => 'Nhẹ',
+  'Use case count' => 'Số lượng Use Case',
+  'English only' => 'Ngôn ngữ tiếng Anh',
+  'Use case size' => 'Quy mô Use Case',
+  'Duplicate requirement ids' => 'Trùng mã yêu cầu',
+  'Missing postcondition' => 'Thiếu hậu điều kiện',
+  'Cross-artifact entity naming' => 'Tên thực thể giữa các thành phần',
+  'Missing actor' => 'Thiếu tác nhân',
+  'Vague wording' => 'Diễn đạt mơ hồ',
+  'TBD / placeholder' => 'Nội dung chưa hoàn thiện',
+  'Priority field' => 'Mức độ ưu tiên',
+  'Diagram audit' => 'Kiểm tra sơ đồ',
+  'Unquantified NFR' => 'Yêu cầu phi chức năng chưa định lượng',
+  'Offline keyword search' => 'Tìm từ khóa ngoại tuyến',
+  'Model · quotes verified' => 'AI · trích dẫn đã đối chiếu',
+  'Password policy' => 'Chính sách mật khẩu',
+  'Examination results' => 'Kết quả thi',
+  'System performance' => 'Hiệu năng hệ thống',
+  'Unclassified' => 'Chưa phân loại',
+  'ambiguity' => 'Mơ hồ',
+  'vagueness' => 'Thiếu rõ ràng',
+  'untestable' => 'Không thể kiểm thử',
+  'incomplete' => 'Chưa đầy đủ',
+  'inconsistent' => 'Không nhất quán',
+  'duplicate' => 'Trùng lặp',
+  _ => label,
+};
 
 /// Small rounded label — the brief's `.badge` (neutral / green / amber).
 class WBadge extends StatelessWidget {
@@ -254,15 +322,23 @@ class WorkflowSteps extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final steps = [
-          step(1, 'Import'),
-          step(2, 'Inventory'),
-          step(3, 'Findings'),
-          step(4, 'Export'),
+          step(1, 'Tải tài liệu'),
+          step(2, 'Danh sách yêu cầu'),
+          step(3, 'Kết quả & Lỗi'),
+          step(4, 'Xuất báo cáo'),
         ];
         if (constraints.maxWidth < 560) {
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: Row(children: steps),
+            child: Row(
+              children: [
+                for (final item in steps)
+                  Padding(
+                    padding: const EdgeInsets.only(right: AppSpacing.md),
+                    child: item,
+                  ),
+              ],
+            ),
           );
         }
         return Row(
@@ -341,7 +417,10 @@ class MetricCard extends StatelessWidget {
                       color: background,
                       borderRadius: AppRadius.boxSm,
                     ),
-                    child: Icon(icon, size: 16, color: color),
+                    child: Tooltip(
+                      message: note,
+                      child: Icon(icon, size: 16, color: color),
+                    ),
                   ),
                 ],
               ),
@@ -352,15 +431,6 @@ class MetricCard extends StatelessWidget {
                   color: colors.ink,
                   fontWeight: FontWeight.w700,
                 ),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                note,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colors.muted,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -426,7 +496,7 @@ class PageHeading extends StatelessWidget {
           // Brief parity: actions sit beside the heading on wide screens and
           // wrap beneath it on phones (a Row would overflow at 390 dp).
           LayoutBuilder(
-            builder: (context, constraints) => constraints.maxWidth < 620
+            builder: (context, constraints) => constraints.maxWidth < 900
                 ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -492,7 +562,7 @@ class WEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              message,
+              workspaceMessage(message),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(color: colors.muted),
             ),
@@ -524,7 +594,7 @@ class WErrorBanner extends StatelessWidget {
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
-              message,
+              workspaceMessage(message),
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(color: colors.ink),

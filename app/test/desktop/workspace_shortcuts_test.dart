@@ -158,13 +158,13 @@ void main() {
       await withDesktopPlatform(TargetPlatform.macOS, tester, () async {
         expect(_byId('import').label, '⌘O');
         expect(_byId('subtab-inventory').label, '⌘⇧I');
-        expect(_byId('shortcuts').label, 'F1 or ⇧?');
+        expect(_byId('shortcuts').label, 'F1 hoặc ⇧?');
         expect(_byId('dismiss').label, 'Esc');
       });
       await withDesktopPlatform(TargetPlatform.windows, tester, () async {
         expect(_byId('import').label, 'Ctrl+O');
         expect(_byId('subtab-inventory').label, 'Ctrl+Shift+I');
-        expect(_byId('shortcuts').label, 'F1 or Shift+?');
+        expect(_byId('shortcuts').label, 'F1 hoặc Shift+?');
       });
     });
   });
@@ -369,13 +369,13 @@ void main() {
           LogicalKeyboardKey.keyO,
         ]);
         expect(
-          find.text('Browse files'),
+          find.text('Chọn tệp'),
           findsOneWidget,
           reason: '⌘O must reach the shell and open the import sheet',
         );
 
         await _chord(tester, [LogicalKeyboardKey.escape]);
-        expect(find.text('Browse files'), findsNothing);
+        expect(find.text('Chọn tệp'), findsNothing);
       });
     });
 
@@ -389,7 +389,7 @@ void main() {
           LogicalKeyboardKey.digit2,
         ]);
         expect(
-          find.text('Review history'),
+          find.text('Lịch sử đánh giá'),
           findsWidgets,
           reason: '⌘2 must select the second destination',
         );
@@ -425,14 +425,14 @@ void main() {
         final container = await pumpShell(tester);
         addTearDown(container.dispose);
 
-        expect(find.byTooltip('Keyboard shortcuts'), findsOneWidget);
-        await tester.tap(find.byTooltip('Keyboard shortcuts'));
+        expect(find.byTooltip('Phím tắt'), findsOneWidget);
+        await tester.tap(find.byTooltip('Phím tắt'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
-        expect(find.text('Every shortcut, one page.'), findsOneWidget);
+        expect(find.text('Danh sách phím tắt'), findsOneWidget);
         // And the sheet is itself reachable with F1.
         await _chord(tester, [LogicalKeyboardKey.escape]);
-        expect(find.text('Every shortcut, one page.'), findsNothing);
+        expect(find.text('Danh sách phím tắt'), findsNothing);
       });
     });
   });

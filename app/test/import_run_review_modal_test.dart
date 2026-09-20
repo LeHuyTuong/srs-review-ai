@@ -90,16 +90,16 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 100));
 
-      await tester.tap(find.text('Import document'));
+      await tester.tap(find.text('Tải file mới'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Browse files'));
+      await tester.tap(find.text('Chọn tệp'));
       await _pumpWhile(
         tester,
         () => find.text('FR-01', skipOffstage: false).evaluate().isEmpty,
       );
       expect(find.text('FR-01', skipOffstage: false), findsWidgets);
 
-      await tester.ensureVisible(find.text('Run review'));
+      await tester.ensureVisible(find.text('Bắt đầu chấm điểm AI'));
       await tester.pumpAndSettle();
       // `ensureVisible` parks the button at y=0, which the FLOATING TOP BAR
       // covers (ChromeInsets reserves _kTopBarHeight = 58 at the top). Tapping
@@ -108,7 +108,7 @@ void main() {
       // test having to scroll the way ChromeInsets expects, not a product bug.
       await tester.drag(find.byType(Scrollable).first, const Offset(0, 90));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Run review'));
+      await tester.tap(find.text('Bắt đầu chấm điểm AI'));
       await tester.pumpAndSettle();
 
       expect(

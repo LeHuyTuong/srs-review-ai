@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import 'package:srs_review_ai/core/providers.dart';
 import 'package:srs_review_ai/core/theme/app_theme.dart';
 import 'package:srs_review_ai/data/services/mock_review_api.dart';
@@ -26,6 +27,7 @@ import 'package:srs_review_ai/features/workspace/models/workspace_findings.dart'
 import 'package:srs_review_ai/features/workspace/models/workspace_unit.dart';
 import 'package:srs_review_ai/features/workspace/view/desktop_context_menu.dart';
 import 'package:srs_review_ai/features/workspace/view/inventory_tab.dart';
+import 'package:srs_review_ai/features/workspace/view/workspace_widgets.dart';
 import 'package:srs_review_ai/features/workspace/view_model/workspace_view_model.dart';
 
 import '../support/desktop_test_platform.dart';
@@ -128,14 +130,16 @@ void main() {
         final clipboard = _recordClipboard();
         await _rightClickFirstRow(tester);
 
-        expect(find.text('Open source'), findsOneWidget);
-        expect(find.text('Copy requirement text'), findsOneWidget);
+        expect(find.text('Mở tài liệu gốc'), findsOneWidget);
+        expect(find.text('Sao chép nội dung yêu cầu'), findsOneWidget);
         expect(
-          find.text(first.selected ? 'Remove from review' : 'Add to review'),
+          find.text(
+            first.selected ? 'Bỏ khỏi lượt chấm' : 'Thêm vào lượt chấm',
+          ),
           findsOneWidget,
         );
 
-        await tester.tap(find.text('Copy requirement text'));
+        await tester.tap(find.text('Sao chép nội dung yêu cầu'));
         await tester.pumpAndSettle();
 
         final copies = clipboard
@@ -164,8 +168,13 @@ void main() {
         await _rightClickFirstRow(tester);
         // The unit's own kind is deliberately missing from the list: offering
         // to classify it as what it already is reads as a broken menu item.
-        expect(find.text('Mark as ${before.kind.label}'), findsNothing);
-        await tester.tap(find.text('Mark as ${target.label}'));
+        expect(
+          find.text('Phân loại: ${workspaceLabel(before.kind.label)}'),
+          findsNothing,
+        );
+        await tester.tap(
+          find.text('Phân loại: ${workspaceLabel(target.label)}'),
+        );
         await tester.pumpAndSettle();
 
         final after = container
@@ -220,12 +229,14 @@ void main() {
 
         for (final kind in UnitKind.values) {
           expect(
-            find.text('Mark as ${kind.label}'),
+            find.text('Phân loại: ${workspaceLabel(kind.label)}'),
             kind == _unit.kind ? findsNothing : findsOneWidget,
           );
         }
 
-        await tester.tap(find.text('Mark as ${UnitKind.functional.label}'));
+        await tester.tap(
+          find.text('Phân loại: ${workspaceLabel(UnitKind.functional.label)}'),
+        );
         await tester.pumpAndSettle();
       });
       expect(chosen?.action, UnitMenuAction.classify);
@@ -262,14 +273,14 @@ void main() {
         await tester.tap(find.text('menu'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Open source'), findsOneWidget);
-        expect(find.text('Copy verified quote'), findsOneWidget);
-        expect(find.text('Accept — worth fixing'), findsOneWidget);
-        expect(find.text('Dismiss — not a real issue'), findsOneWidget);
+        expect(find.text('Mở tài liệu gốc'), findsOneWidget);
+        expect(find.text('Sao chép trích dẫn đã đối chiếu'), findsOneWidget);
+        expect(find.text('Chấp nhận — cần sửa'), findsOneWidget);
+        expect(find.text('Bác bỏ — không phải lỗi'), findsOneWidget);
         // Undo wording only applies to a finding already in that state.
-        expect(find.text('Undo accept'), findsNothing);
+        expect(find.text('Hoàn tác chấp nhận'), findsNothing);
 
-        await tester.tap(find.text('Accept — worth fixing'));
+        await tester.tap(find.text('Chấp nhận — cần sửa'));
         await tester.pumpAndSettle();
       });
       expect(chosen, FindingMenuAction.accept);
@@ -297,8 +308,8 @@ void main() {
         );
         await tester.tap(find.text('menu'));
         await tester.pumpAndSettle();
-        expect(find.text('Undo accept'), findsOneWidget);
-        expect(find.text('Accept — worth fixing'), findsNothing);
+        expect(find.text('Hoàn tác chấp nhận'), findsOneWidget);
+        expect(find.text('Chấp nhận — cần sửa'), findsNothing);
       });
     });
 

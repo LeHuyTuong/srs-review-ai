@@ -56,21 +56,21 @@ class ReadinessPanel extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Review overview',
+                      'Tổng quan đánh giá',
                       style: theme.textTheme.titleSmall?.copyWith(
                         color: colors.ink,
                       ),
                     ),
                   ),
                   WBadge(
-                    label: mockMode ? 'Mock mode' : 'Online mode',
+                    label: mockMode ? 'Mô phỏng' : 'Trực tuyến',
                     tint: mockMode ? WBadgeTint.amber : WBadgeTint.green,
                   ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'A good review starts with a clear inventory.',
+                'Kiểm tra danh sách trước khi chấm điểm.',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: colors.muted,
                 ),
@@ -95,7 +95,7 @@ class ReadinessPanel extends ConsumerWidget {
                   ),
                   const Spacer(),
                   Text(
-                    'units selected',
+                    'mục đã chọn',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: colors.muted,
                     ),
@@ -117,7 +117,7 @@ class ReadinessPanel extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Ready to review',
+                    'Sẵn sàng chấm điểm',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: colors.muted,
                     ),
@@ -133,9 +133,9 @@ class ReadinessPanel extends ConsumerWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               ...[
-                ('Whole use-case context', Icons.check_circle_outline),
-                ('Source references preserved', Icons.check_circle_outline),
-                ('No silent truncation', Icons.check_circle_outline),
+                ('Đầy đủ ngữ cảnh Use Case', Icons.check_circle_outline),
+                ('Bảo toàn trích dẫn gốc', Icons.check_circle_outline),
+                ('Không cắt ngắn dữ liệu', Icons.check_circle_outline),
               ].map(
                 (row) => Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -176,7 +176,7 @@ class ReadinessPanel extends ConsumerWidget {
                           const SizedBox(width: AppSpacing.xs),
                           Expanded(
                             child: Text(
-                              '${state.attentionCount} units need a quick look',
+                              '${state.attentionCount} mục cần kiểm tra lại (Mã ID không khớp mẫu mặc định)',
                               style: theme.textTheme.labelMedium?.copyWith(
                                 color: colors.amber,
                                 fontWeight: FontWeight.w600,
@@ -187,8 +187,7 @@ class ReadinessPanel extends ConsumerWidget {
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        'Unrecognized IDs are kept, not dropped. Check them '
-                        'before you review.',
+                        'Các mục này vẫn được giữ lại. Hãy kiểm tra mã ID trước khi chấm.',
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: colors.amber,
                         ),
@@ -234,7 +233,7 @@ class ReadinessPanel extends ConsumerWidget {
                             .read(workspaceTabProvider.notifier)
                             .select(WorkspaceTab.inventory),
                         child: Text(
-                          'Inspect flagged units →',
+                          'Xem các mục cần kiểm tra →',
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: colors.amber,
                             fontWeight: FontWeight.w600,
@@ -257,7 +256,7 @@ class ReadinessPanel extends ConsumerWidget {
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Text(
-                          'All identifiers look good.',
+                          'Các mã ID đều đúng định dạng.',
                           style: theme.textTheme.labelMedium?.copyWith(
                             color: colors.brand,
                           ),
@@ -278,8 +277,8 @@ class ReadinessPanel extends ConsumerWidget {
                   Expanded(
                     child: Text(
                       mockMode
-                          ? 'Offline mock · no API key needed'
-                          : 'Proxy review · quotes verified before display',
+                          ? 'Mô phỏng ngoại tuyến · không cần khóa API'
+                          : 'Chấm qua máy chủ · đã đối chiếu trích dẫn',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: colors.muted,
                       ),
@@ -288,7 +287,7 @@ class ReadinessPanel extends ConsumerWidget {
                   InkWell(
                     onTap: () => showSettingsModal(context, ref),
                     child: Text(
-                      'Change',
+                      'Thay đổi',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: colors.muted,
                         decoration: TextDecoration.underline,
@@ -308,7 +307,7 @@ class ReadinessPanel extends ConsumerWidget {
               Icon(Icons.shield_outlined, size: 28, color: colors.sage),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                'Evidence, not guesswork.',
+                'Đánh giá có bằng chứng',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.titleSmall?.copyWith(
                   color: colors.brand,
@@ -316,8 +315,7 @@ class ReadinessPanel extends ConsumerWidget {
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'Every finding is checked against your source. No matching '
-                'quote? It doesn\'t make the cut.',
+                'Chỉ hiển thị lỗi có trích dẫn đối chiếu được với tài liệu gốc.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: colors.muted,
@@ -327,7 +325,7 @@ class ReadinessPanel extends ConsumerWidget {
               InkWell(
                 onTap: () => showHelpModal(context, ref),
                 child: Text(
-                  'How verification works →',
+                  'Cách đối chiếu trích dẫn →',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: colors.sage,
                     fontWeight: FontWeight.w600,

@@ -24,34 +24,26 @@ class SyllabusRubricView extends ConsumerWidget {
     final checks = [
       (
         'F7',
-        'Use-case baseline',
-        'Provisional minimum: ${rubric.ucCountMin} medium use cases, no upper '
-            'bound. The 75% completion gate requires a verified declared '
-            'inventory and human assessment.',
+        'Số lượng Use Case tối thiểu',
+        'Ngưỡng tham khảo: tối thiểu ${rubric.ucCountMin} Use Case cỡ vừa, không giới hạn tối đa. Mốc hoàn thành 75% cần danh sách khai báo đã xác minh và đánh giá của người hướng dẫn.',
         Icons.inventory_2_outlined,
       ),
       (
         'F8',
-        'English-language heuristic',
-        'Non-ASCII detection is an offline signal, not a language '
-            'classifier. A human must confirm the syllabus language '
-            'requirement.',
+        'Kiểm tra ngôn ngữ tiếng Anh',
+        'Phát hiện ký tự ngoài ASCII chỉ là kiểm tra sơ bộ ngoại tuyến. Người hướng dẫn cần xác nhận yêu cầu ngôn ngữ trong Syllabus.',
         Icons.translate_outlined,
       ),
       (
         'F9',
-        'Transaction range',
-        'Provisional ${rubric.ucMinTransactions}–${rubric.ucMaxTransactions} '
-            'transactions per use case. Alternative flows may affect this '
-            'count; confirm against the supervisor\'s rubric.',
+        'Số bước xử lý',
+        'Ngưỡng tham khảo: ${rubric.ucMinTransactions}–${rubric.ucMaxTransactions} bước xử lý cho mỗi Use Case. Luồng thay thế có thể ảnh hưởng cách đếm; cần đối chiếu thang điểm của người hướng dẫn.',
         Icons.swap_horiz_outlined,
       ),
       (
         '→',
-        'Outside this release',
-        'OCR, atomic resume, and precision/recall evaluation remain future '
-            'work; page-image review is limited to detector-selected PDF pages '
-            'and does not imply full visual understanding.',
+        'Chưa hỗ trợ trong phiên bản này',
+        'Chưa hỗ trợ OCR, tiếp tục lượt chấm bị gián đoạn hoặc đo độ chính xác/độ bao phủ. Kiểm tra ảnh chỉ áp dụng cho các trang PDF được chọn, chưa bao quát toàn bộ sơ đồ.',
         Icons.schedule_outlined,
       ),
     ];
@@ -73,11 +65,10 @@ class SyllabusRubricView extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               PageHeading(
-                kicker: 'Your pre-submission companion',
-                title: 'Syllabus & rubric',
+                kicker: 'Đồng hành trước khi nộp bài',
+                title: 'Chuẩn Syllabus & Thang điểm',
                 subtitle:
-                    'Know the expectations. Check the essentials, even '
-                    'offline.',
+                    'Nắm rõ tiêu chí và kiểm tra các yêu cầu cơ bản ngay cả khi ngoại tuyến.',
               ),
               const SizedBox(height: AppSpacing.xl),
               WPanel(
@@ -88,9 +79,7 @@ class SyllabusRubricView extends ConsumerWidget {
                     WInfoNote(
                       icon: Icons.menu_book_outlined,
                       text:
-                          'SEP490 · ${rubric.version} — thresholds come from '
-                          'the proxy\'s rubric endpoint and fall back to the '
-                          'committed copy offline.',
+                          'SEP490 · ${rubric.version} — ngưỡng đánh giá lấy từ máy chủ; khi ngoại tuyến dùng bản đi kèm ứng dụng.',
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     for (final (code, title, body, icon) in checks) ...[

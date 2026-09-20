@@ -34,12 +34,12 @@ enum _StatusFilter { all, open, fixed, verified, pendingVision, disputed }
 
 extension on _StatusFilter {
   String get label => switch (this) {
-    _StatusFilter.all => 'All',
-    _StatusFilter.open => 'Open',
-    _StatusFilter.fixed => 'Fixed',
-    _StatusFilter.verified => 'Verified',
-    _StatusFilter.pendingVision => 'Pending vision',
-    _StatusFilter.disputed => 'Disputed',
+    _StatusFilter.all => 'Tất cả',
+    _StatusFilter.open => 'Chưa xử lý',
+    _StatusFilter.fixed => 'Đã sửa',
+    _StatusFilter.verified => 'Đã xác minh',
+    _StatusFilter.pendingVision => 'Chờ kiểm tra hình ảnh',
+    _StatusFilter.disputed => 'Đã bác bỏ',
   };
 }
 
@@ -93,7 +93,7 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
               children: [
                 Expanded(
                   child: Text(
-                    'Verdict (rubric E)',
+                    'Kết luận (thang điểm E)',
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleSmall?.copyWith(
                       color: colors.ink,
@@ -111,7 +111,11 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              verdict.display,
+              total == null
+                  ? 'Chưa đánh giá (chưa chạy kiểm tra tự động)'
+                  : verdict.unassessedCount == 0
+                  ? '$total/10'
+                  : '$total/10 (còn ${verdict.unassessedCount} thành phần chưa đánh giá)',
               style: theme.textTheme.labelSmall?.copyWith(
                 color: colors.muted,
                 height: 1.6,
@@ -119,10 +123,13 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
             ),
             const SizedBox(height: AppSpacing.sm),
             for (final (label, comp) in [
-              ('Floor: 7 quality criteria (5 pts)', verdict.floor),
-              ('Diagrams, no severe notation errors (2 pts)', verdict.diagram),
-              ('Cross-artifact chains clean (2 pts)', verdict.crossArtifact),
-              ('Traceability to tests (1 pt)', verdict.traceability),
+              ('Nền tảng: 7 tiêu chí chất lượng (5 điểm)', verdict.floor),
+              (
+                'Sơ đồ không sai ký pháp nghiêm trọng (2 điểm)',
+                verdict.diagram,
+              ),
+              ('Nhất quán giữa các thành phần (2 điểm)', verdict.crossArtifact),
+              ('Truy vết đến ca kiểm thử (1 điểm)', verdict.traceability),
             ])
               Padding(
                 padding: const EdgeInsets.only(bottom: 2),
@@ -150,8 +157,7 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
               ),
             if (verdict.deductions > 0)
               Text(
-                '−${verdict.deductions} for serious ERD/SM/SEQ-CLS errors'
-                'affecting real data',
+                '−${verdict.deductions} điểm do lỗi ERD/SM/SEQ-CLS nghiêm trọng ảnh hưởng dữ liệu thực tế',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: colors.amber,
                 ),
@@ -188,13 +194,12 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Scores by section',
+              'Điểm theo phần',
               style: theme.textTheme.titleSmall?.copyWith(color: colors.ink),
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'Worst average first. Open a section to see which requirement '
-              'to fix — tap one for the full preview.',
+              'Ưu tiên phần có điểm thấp. Mở từng phần để xem yêu cầu cần sửa.',
               style: theme.textTheme.labelSmall?.copyWith(
                 color: colors.muted,
                 height: 1.6,
@@ -203,8 +208,7 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
             const SizedBox(height: AppSpacing.sm),
             if (sections.isEmpty)
               Text(
-                'Nothing scored yet — run a review over your selected units '
-                'and this table fills in.',
+                'Chưa có điểm. Hãy chấm các mục đã chọn để xem kết quả.',
                 style: theme.textTheme.bodySmall?.copyWith(color: colors.muted),
               )
             else
@@ -235,7 +239,9 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                         const SizedBox(width: AppSpacing.sm),
                         Expanded(
                           child: Text(
-                            section.section,
+                            section.section == SectionScore.unclassifiedLabel
+                                ? 'Chưa phân loại'
+                                : section.section,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.labelLarge?.copyWith(
@@ -247,9 +253,9 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                         const SizedBox(width: AppSpacing.sm),
                         Text(
                           section.findingCount == 0
-                              ? '${section.reviewedCount} scored'
-                              : '${section.findingCount} to fix'
-                                    '${section.highSeverityCount > 0 ? ' · ${section.highSeverityCount} high' : ''}',
+                              ? '${section.reviewedCount} mục đã chấm'
+                              : '${section.findingCount} lỗi cần sửa'
+                                    '${section.highSeverityCount > 0 ? ' · ${section.highSeverityCount} nghiêm trọng' : ''}',
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: section.highSeverityCount > 0
                                 ? context.severityColors.forSeverity(
@@ -278,8 +284,7 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                           WInfoNote(
                             icon: Icons.hourglass_empty,
                             text:
-                                'Findings in this section, but no scored '
-                                'unit yet — review it to get the numbers.',
+                                'Phần này có lỗi nhưng chưa được chấm điểm. Hãy chạy đánh giá để có điểm.',
                           ),
                         for (final scored in section.units)
                           AppInkWell(
@@ -317,7 +322,8 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                                   ),
                                   if (scored.findingCount > 0)
                                     WBadge(
-                                      label: '${scored.findingCount} to fix',
+                                      label:
+                                          '${scored.findingCount} lỗi cần sửa',
                                       tint: WBadgeTint.amber,
                                     ),
                                   const SizedBox(width: AppSpacing.xs),
@@ -367,16 +373,14 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
     if (result == null && syllabus.isEmpty && reference.isEmpty) {
       return WEmptyState(
         icon: Icons.auto_awesome,
-        title: 'A second look, backed by evidence.',
-        message:
-            'Run a review over your selected units and every finding will '
-            'show up here with its verified quote.',
+        title: 'Kiểm tra tài liệu dựa trên bằng chứng',
+        message: 'Chấm các mục đã chọn để xem lỗi kèm trích dẫn đã đối chiếu.',
         action: Wrap(
           spacing: AppSpacing.sm,
           alignment: WrapAlignment.center,
           children: [
             WButton.primary(
-              label: 'Run review',
+              label: 'Bắt đầu chấm điểm AI',
               icon: Icons.auto_awesome,
               onPressed: state.selectedCount == 0 || state.isRunning
                   ? null
@@ -415,7 +419,7 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
               // student never sees a green badge for a run that did not
               // touch the diagrams.
               WBadge(
-                label: state.currentMode.label,
+                label: workspaceLabel(state.currentMode.label),
                 tint: switch (state.currentMode) {
                   ReviewMode.full => WBadgeTint.green,
                   ReviewMode.textFirst => WBadgeTint.amber,
@@ -433,7 +437,7 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
               // snack bar so the student sees what actually moved.
               if (state.hasDocument)
                 WButton.primary(
-                  label: 'Re-verify',
+                  label: 'Xác minh lại',
                   icon: Icons.refresh,
                   onPressed: () {
                     final diff = viewModel.verifyStatuses();
@@ -443,10 +447,8 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                       SnackBar(
                         content: Text(
                           diff.isEmpty
-                              ? 'Re-verify: nothing changed — every '
-                                    'finding is already in its current '
-                                    'state.'
-                              : 'Re-verify: ${diff.summary}',
+                              ? 'Xác minh lại: không có thay đổi trạng thái.'
+                              : 'Xác minh lại: ${diff.promotedToVerified} đã xác minh · ${diff.reopened} mở lại · ${diff.unchanged} không đổi',
                         ),
                       ),
                     );
@@ -454,12 +456,12 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                 ),
               if (result != null) ...[
                 WBadge(
-                  label: '${result.findings.length} verified findings',
+                  label: '${result.findings.length} lỗi đã đối chiếu',
                   tint: WBadgeTint.green,
                   leading: Icon(Icons.shield_outlined, size: 12),
                 ),
                 Text(
-                  '${result.droppedIssueCount} unverified dropped',
+                  '${result.droppedIssueCount} lỗi bị loại do chưa xác minh',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: colors.muted,
                   ),
@@ -468,13 +470,15 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                 // hardcoded "Mock review" here misled users running the real
                 // Gemini proxy into thinking no AI was involved.
                 WBadge(
-                  label: result.mock ? 'Mock review' : 'AI review via proxy',
+                  label: result.mock
+                      ? 'Đánh giá mô phỏng'
+                      : 'AI chấm qua máy chủ',
                   tint: result.mock ? WBadgeTint.amber : WBadgeTint.green,
                 ),
               ],
               if (state.fixedCount > 0)
                 WBadge(
-                  label: '${state.fixedCount} fixed',
+                  label: '${state.fixedCount} lỗi đã sửa',
                   tint: WBadgeTint.purple,
                 ),
             ],
@@ -494,16 +498,14 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Offline syllabus checks',
+                  'Kiểm tra Syllabus ngoại tuyến',
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: colors.ink,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'Deterministic rules from the SEP490 syllabus — no model, '
-                  'zero tokens, run the moment you import. They count as '
-                  'findings and they go in the report.',
+                  'Kiểm tra tự động theo Syllabus SEP490 khi tải tài liệu, không tốn lượt AI. Kết quả được đưa vào báo cáo.',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: colors.muted,
                   ),
@@ -534,7 +536,7 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          finding.check.label,
+                                          workspaceLabel(finding.check.label),
                                           style: theme.textTheme.labelLarge
                                               ?.copyWith(
                                                 color: colors.ink,
@@ -548,7 +550,7 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                                   ),
                                   const SizedBox(height: AppSpacing.xs),
                                   Text(
-                                    finding.message,
+                                    workspaceMessage(finding.message),
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: colors.muted,
                                       height: 1.7,
@@ -577,18 +579,14 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Consistency smells (M2)',
+                  'Vấn đề nhất quán (M2)',
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: colors.ink,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'Reference checks — duplicate ids, missing postconditions. '
-                  'Independent of the syllabus: a passing F7/F8/F9 score '
-                  'does not save a use case that no tester can mark "done", '
-                  'and a perfectly clean report still flags a UC04 used 7 '
-                  'times.',
+                  'Phát hiện mã ID trùng và thiếu hậu điều kiện, độc lập với các tiêu chí Syllabus.',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: colors.muted,
                   ),
@@ -619,7 +617,7 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          finding.check.label,
+                                          workspaceLabel(finding.check.label),
                                           style: theme.textTheme.labelLarge
                                               ?.copyWith(
                                                 color: colors.ink,
@@ -633,7 +631,7 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                                   ),
                                   const SizedBox(height: AppSpacing.xs),
                                   Text(
-                                    finding.message,
+                                    workspaceMessage(finding.message),
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: colors.muted,
                                       height: 1.7,
@@ -661,7 +659,7 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
             child: TextField(
               onChanged: (value) => setState(() => _query = value),
               decoration: InputDecoration(
-                hintText: 'Search findings or requirement ID…',
+                hintText: 'Tìm kiếm lỗi hoặc mã yêu cầu...',
                 prefixIcon: const Icon(Icons.search, size: 18),
                 isDense: true,
                 border: OutlineInputBorder(borderRadius: AppRadius.boxSm),
@@ -692,11 +690,11 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
           WEmptyState(
             icon: Icons.check_circle_outline,
             title: query.isEmpty && _filter == _StatusFilter.all
-                ? 'No issues found by the checks'
-                : 'No matching findings',
+                ? 'Chưa phát hiện lỗi qua các kiểm tra'
+                : 'Không tìm thấy lỗi phù hợp',
             message: query.isEmpty && _filter == _StatusFilter.all
-                ? 'This is not a guarantee of SRS completeness.'
-                : 'Try a different keyword or filter.',
+                ? 'Kết quả này chưa khẳng định tài liệu SRS đã đầy đủ.'
+                : 'Thử từ khóa hoặc bộ lọc khác.',
           )
         else
           Padding(
@@ -718,17 +716,14 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                 // (Checker vs AI layer), so the section now declares
                 // itself the same way the other two do.
                 Text(
-                  'Model findings',
+                  'Lỗi do AI phát hiện',
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: colors.ink,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'Scored by the model from the text you sent. These cost '
-                  'tokens and they are the only rows that depend on the '
-                  'API being reachable — the two sections above ran '
-                  'offline.',
+                  'AI đánh giá nội dung đã gửi. Phần này cần kết nối máy chủ và sử dụng lượt chấm.',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: colors.muted,
                   ),
@@ -855,7 +850,7 @@ class _FindingCard extends StatelessWidget {
                       borderRadius: AppRadius.boxSm,
                     ),
                     child: Text(
-                      finding.severity.name,
+                      workspaceLabel(finding.severity.name),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: severityFg,
                         fontSize: AppType.micro,
@@ -866,7 +861,7 @@ class _FindingCard extends StatelessWidget {
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      '${finding.requirementId} · p. ${finding.pageIndex + 1}',
+                      '${finding.requirementId} · trang ${finding.pageIndex + 1}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelSmall?.copyWith(
@@ -878,8 +873,8 @@ class _FindingCard extends StatelessWidget {
                   const SizedBox(width: AppSpacing.xs),
                   Text(
                     finding.issue.verification == Verification.exact
-                        ? 'Exact match'
-                        : 'Close match',
+                        ? 'Khớp chính xác'
+                        : 'Khớp gần đúng',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: colors.sage,
                       fontSize: AppType.micro,
@@ -913,32 +908,33 @@ class _FindingCard extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                finding.suggestion,
+                workspaceMessage(finding.suggestion),
                 style: theme.textTheme.bodySmall?.copyWith(color: colors.muted),
               ),
               const SizedBox(height: AppSpacing.sm),
-              Row(
+              Wrap(
+                spacing: AppSpacing.xs,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
-                    'View in source',
+                    'Xem bản gốc',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: colors.sage,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   Icon(Icons.arrow_forward, size: 13, color: colors.sage),
-                  const Spacer(),
                   if (status != FindingStatus.open)
                     WBadge(
-                      label: status.label,
+                      label: workspaceLabel(status.label),
                       tint: status == FindingStatus.fixed
                           ? WBadgeTint.purple
                           : WBadgeTint.neutral,
                     ),
                   IconButton(
                     tooltip: status == FindingStatus.fixed
-                        ? 'Undo accept'
-                        : 'Accept — worth fixing',
+                        ? 'Hoàn tác chấp nhận'
+                        : 'Chấp nhận — cần sửa',
                     icon: Icon(
                       status == FindingStatus.fixed
                           ? Icons.check_circle
@@ -952,8 +948,8 @@ class _FindingCard extends StatelessWidget {
                   ),
                   IconButton(
                     tooltip: status == FindingStatus.disputed
-                        ? 'Undo dismiss'
-                        : 'Dismiss — not a real issue',
+                        ? 'Hoàn tác bác bỏ'
+                        : 'Bác bỏ — không phải lỗi',
                     icon: Icon(
                       status == FindingStatus.disputed
                           ? Icons.remove_circle

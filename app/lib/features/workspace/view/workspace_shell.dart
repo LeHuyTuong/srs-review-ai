@@ -41,9 +41,9 @@ class WorkspaceDestination {
 /// A `route` field used to live here. It was never read, and it held
 /// `/workspace` while the actual route is `/` — wrong data is worse than none.
 const List<WorkspaceDestination> kWorkspaceDestinations = [
-  WorkspaceDestination('Document review', Icons.description_outlined),
-  WorkspaceDestination('Review history', Icons.history),
-  WorkspaceDestination('Syllabus & rubric', Icons.menu_book_outlined),
+  WorkspaceDestination('Đánh giá tài liệu', Icons.description_outlined),
+  WorkspaceDestination('Lịch sử đánh giá', Icons.history),
+  WorkspaceDestination('Chuẩn Syllabus & Thang điểm', Icons.menu_book_outlined),
 ];
 
 /// Height of the floating top bar. Named because the scrolling views have to
@@ -91,7 +91,7 @@ class WorkspaceShell extends ConsumerWidget {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(next),
+            content: Text(workspaceMessage(next)),
             duration: const Duration(seconds: 4),
             behavior: SnackBarBehavior.floating,
           ),
@@ -110,7 +110,7 @@ class WorkspaceShell extends ConsumerWidget {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(next),
+            content: Text(workspaceMessage(next)),
             duration: const Duration(seconds: 6),
             behavior: SnackBarBehavior.floating,
           ),
@@ -397,7 +397,7 @@ class _TopBar extends ConsumerWidget {
               // because they had no built-in label to begin with.
               Builder(
                 builder: (drawerContext) => IconButton(
-                  tooltip: 'Open navigation',
+                  tooltip: 'Mở điều hướng',
                   icon: const Icon(Icons.menu),
                   onPressed: () => Scaffold.of(drawerContext).openDrawer(),
                 ),
@@ -414,13 +414,13 @@ class _TopBar extends ConsumerWidget {
               // in docs/uiux/audit-2026-09-11.md §10.
               child: Semantics(
                 header: true,
-                label: 'Workspace / ${current.label}',
+                label: 'Không gian làm việc / ${current.label}',
                 excludeSemantics: true,
                 child: Text.rich(
                   TextSpan(
                     children: [
                       TextSpan(
-                        text: 'Workspace',
+                        text: 'Không gian làm việc',
                         style: TextStyle(color: colors.muted),
                       ),
                       TextSpan(
@@ -450,7 +450,7 @@ class _TopBar extends ConsumerWidget {
               child: Semantics(
                 button: true,
                 label:
-                    'Connection status: ${connectionStatus.label}. Double tap to recheck.',
+                    'Kết nối: ${connectionStatus.label}. Nhấn đúp để kiểm tra lại.',
                 excludeSemantics: true,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
@@ -464,13 +464,15 @@ class _TopBar extends ConsumerWidget {
                         size: 16,
                         color: connectionStatus.color,
                       ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        connectionStatus.label,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: connectionStatus.color,
+                      if (!showMenuButton) ...[
+                        const SizedBox(width: AppSpacing.sm),
+                        Text(
+                          connectionStatus.label,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: connectionStatus.color,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -479,17 +481,17 @@ class _TopBar extends ConsumerWidget {
             const SizedBox(width: AppSpacing.md),
             // Desktop-only, and a NEW node rather than an edit of the Help
             // button's tooltip: `workspace_shell_test.dart` asserts
-            // 'Help & getting started' appears on exactly one semantics node,
+            // 'Trợ giúp & hướng dẫn' appears on exactly one semantics node,
             // so appending a shortcut hint to it would break that count.
             if (AppPlatform.isDesktop)
               IconButton(
-                tooltip: 'Keyboard shortcuts',
+                tooltip: 'Phím tắt',
                 icon: const Icon(Icons.keyboard_command_key),
                 color: colors.muted,
                 onPressed: () => showShortcutsModal(context, ref),
               ),
             IconButton(
-              tooltip: 'Help & getting started',
+              tooltip: 'Trợ giúp & hướng dẫn',
               icon: const Icon(Icons.help_outline),
               color: colors.muted,
               onPressed: () => showHelpModal(context, ref),
@@ -534,7 +536,7 @@ class ReviewProgressBar extends ConsumerWidget {
     if (elapsed != null && progress.completed > 0 && remaining > 0) {
       final per = elapsed.inMilliseconds / progress.completed;
       eta =
-          '~${formatElapsed(Duration(milliseconds: (per * remaining).round()))} left';
+          'Còn ~${formatElapsed(Duration(milliseconds: (per * remaining).round()))}';
     }
 
     return Semantics(
@@ -546,13 +548,13 @@ class ReviewProgressBar extends ConsumerWidget {
       // `tester.getSemantics` — Cancel went from one node to none). The
       // remaining accessibility gap here is NOT local to this widget: the whole
       // shell chrome outside `navigationShell` is missing from the semantics
-      // tree. Confirmed both in a widget test and in the browser — 'Workspace',
-      // 'Online', 'Help & getting started' and this bar are all absent, while
-      // 'Review overview' from the branch content is present. See
+      // tree. Confirmed both in a widget test and in the browser — 'Không gian làm việc',
+      // 'Trực tuyến', 'Trợ giúp & hướng dẫn' and this bar are all absent, while
+      // 'Tổng quan đánh giá' from the branch content is present. See
       // docs/uiux/audit-2026-09-11.md §6c.
       container: true,
       liveRegion: true,
-      label: 'Review in progress. ${progress.label}',
+      label: 'Đang đánh giá. ${workspaceProgressLabel(progress)}',
       child: GlassSurface(
         key: const Key('review-progress-bar'),
         // Control layer, not content: this is exactly the surface Apple's
@@ -577,7 +579,7 @@ class ReviewProgressBar extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(
-                    progress.label,
+                    workspaceProgressLabel(progress),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.labelMedium?.copyWith(
@@ -609,7 +611,7 @@ class ReviewProgressBar extends ConsumerWidget {
                   height: 48,
                   child: TextButton(
                     onPressed: viewModel.cancelReview,
-                    child: const Text('Cancel'),
+                    child: const Text('Hủy'),
                   ),
                 ),
               ],
@@ -620,9 +622,7 @@ class ReviewProgressBar extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(top: AppSpacing.sm),
                 child: Text(
-                  '${progress.skipped} units in this document are outside this '
-                  'run — the per-run limit is ${AppConfig.maxRequirementsPerRun}. '
-                  'Nothing is dropped from your inventory.',
+                  '${progress.skipped} mục chưa được chấm do giới hạn ${AppConfig.maxRequirementsPerRun} mục/lượt. Tất cả vẫn được giữ trong danh sách.',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: colors.amber,
                   ),
@@ -695,7 +695,7 @@ class _Sidebar extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
             child: Text(
-              'WORKSPACE',
+              'KHÔNG GIAN LÀM VIỆC',
               style: theme.textTheme.labelSmall?.copyWith(
                 color: colors.muted,
                 letterSpacing: 1.4,
@@ -719,7 +719,7 @@ class _Sidebar extends ConsumerWidget {
           const SizedBox(height: AppSpacing.lg),
           _NavItem(
             destination: const WorkspaceDestination(
-              'Settings',
+              'Cài đặt',
               Icons.settings_outlined,
             ),
             active: false,
@@ -853,7 +853,7 @@ class _OfflineCard extends ConsumerWidget {
               const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: Text(
-                  'Built to work offline',
+                  'Dùng được ngoại tuyến',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: colors.ink,
                     fontWeight: FontWeight.w600,
@@ -871,16 +871,11 @@ class _OfflineCard extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.sm),
-          Text(
-            'Your next great submission doesn\'t need a connection.',
-            style: theme.textTheme.labelSmall?.copyWith(color: colors.muted),
-          ),
-          const SizedBox(height: AppSpacing.sm),
           // A tappable row of text + arrow is invisible to a screen reader as
           // a control: it arrives as two loose labels with no button role.
           Semantics(
             button: true,
-            label: 'Explore mock mode',
+            label: 'Thử chế độ mô phỏng',
             excludeSemantics: true,
             child: AppInkWell(
               onTap: () => showSettingsModal(context, ref),
@@ -894,7 +889,7 @@ class _OfflineCard extends ConsumerWidget {
                   // ellipsize instead, keeping the arrow pinned right.
                   Expanded(
                     child: Text(
-                      'Explore mock mode',
+                      'Thử chế độ mô phỏng',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelSmall?.copyWith(
@@ -1072,7 +1067,7 @@ class _AppDrawer extends ConsumerWidget {
             const Divider(),
             _NavItem(
               destination: const WorkspaceDestination(
-                'Settings',
+                'Cài đặt',
                 Icons.settings_outlined,
               ),
               active: false,
@@ -1083,7 +1078,7 @@ class _AppDrawer extends ConsumerWidget {
             ),
             _NavItem(
               destination: const WorkspaceDestination(
-                'Help & getting started',
+                'Trợ giúp & hướng dẫn',
                 Icons.help_outline,
               ),
               active: false,
@@ -1125,7 +1120,7 @@ _ConnectionStatus _connectionStatusFor({
   if (mockMode) {
     return _ConnectionStatus(
       icon: Icons.cloud_off_outlined,
-      label: 'Offline mock',
+      label: 'Mô phỏng ngoại tuyến',
       color: colors.muted,
     );
   }
@@ -1133,30 +1128,30 @@ _ConnectionStatus _connectionStatusFor({
     data: (reachable) => switch (reachable) {
       true => _ConnectionStatus(
         icon: Icons.cloud_outlined,
-        label: 'Online',
+        label: 'Trực tuyến',
         color: colors.sage,
       ),
       false => _ConnectionStatus(
         icon: Icons.cloud_off_outlined,
-        label: 'Proxy unreachable',
+        label: 'Không kết nối được máy chủ',
         color: colors.amber,
       ),
       // Mock mode reports null; the toggle already covered it above, so this
       // is only reachable when the mode flips mid-frame.
       null => _ConnectionStatus(
         icon: Icons.cloud_off_outlined,
-        label: 'Offline mock',
+        label: 'Mô phỏng ngoại tuyến',
         color: colors.muted,
       ),
     },
     loading: () => _ConnectionStatus(
       icon: Icons.cloud_queue_outlined,
-      label: 'Checking…',
+      label: 'Đang kiểm tra…',
       color: colors.muted,
     ),
     error: (_, _) => _ConnectionStatus(
       icon: Icons.cloud_off_outlined,
-      label: 'Proxy unreachable',
+      label: 'Không kết nối được máy chủ',
       color: colors.amber,
     ),
   );

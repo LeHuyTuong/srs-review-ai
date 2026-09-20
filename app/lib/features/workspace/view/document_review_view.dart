@@ -51,9 +51,10 @@ class DocumentReviewView extends ConsumerWidget {
         child: Column(
           children: [
             const PageHeading(
-              kicker: 'Your pre-submission companion',
-              title: 'Document review',
-              subtitle: 'A clearer SRS. A more confident submission.',
+              kicker: 'Đồng hành trước khi nộp bài',
+              title: 'Đánh giá tài liệu SRS',
+              subtitle:
+                  'Kiểm tra & chấm điểm chi tiết theo chuẩn FPTU Capstone',
             ),
             const SizedBox(height: AppSpacing.xxl),
             // While a file is being read/parsed, replace the empty-state card
@@ -72,7 +73,7 @@ class DocumentReviewView extends ConsumerWidget {
                     const SizedBox(width: AppSpacing.md),
                     Flexible(
                       child: Text(
-                        state.importStatus!,
+                        workspaceMessage(state.importStatus!),
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ),
@@ -82,22 +83,21 @@ class DocumentReviewView extends ConsumerWidget {
             else
               WEmptyState(
                 icon: Icons.description_outlined,
-                title: 'A second look, backed by evidence.',
+                title: 'Kiểm tra tài liệu dựa trên bằng chứng',
                 message:
-                    'Import your SRS to build the inventory, or explore with '
-                    'the synthetic sample — no file needed.',
+                    'Tải tài liệu SRS để lập danh sách yêu cầu, hoặc dùng tài liệu mẫu để trải nghiệm.',
                 action: Wrap(
                   spacing: AppSpacing.sm,
                   runSpacing: AppSpacing.sm,
                   alignment: WrapAlignment.center,
                   children: [
                     WButton.primary(
-                      label: 'Import document',
+                      label: 'Tải file mới',
                       icon: Icons.add,
                       onPressed: () => showImportModal(context, ref),
                     ),
                     WButton.secondary(
-                      label: 'Load the sample document',
+                      label: 'Mở tài liệu mẫu',
                       icon: Icons.play_arrow,
                       onPressed: () => ref
                           .read(workspaceViewModelProvider.notifier)
@@ -123,17 +123,17 @@ class DocumentReviewView extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           PageHeading(
-            kicker: 'Your pre-submission companion',
-            title: 'Document review',
-            subtitle: 'A clearer SRS. A more confident submission.',
+            kicker: 'Đồng hành trước khi nộp bài',
+            title: 'Đánh giá tài liệu SRS',
+            subtitle: 'Kiểm tra & chấm điểm chi tiết theo chuẩn FPTU Capstone',
             actions: [
               WButton.secondary(
-                label: 'Export report',
+                label: 'Xuất báo cáo',
                 icon: Icons.download_outlined,
                 onPressed: () => showExportModal(context, ref),
               ),
               WButton.primary(
-                label: 'Import document',
+                label: 'Tải file mới',
                 icon: Icons.add,
                 onPressed: () => showImportModal(context, ref),
               ),
@@ -208,33 +208,33 @@ class DocumentReviewView extends ConsumerWidget {
                 runSpacing: gap,
                 children: [
                   metric(
-                    'Total units',
+                    'Tổng số mục',
                     state.units.length,
-                    'Extracted from your document',
+                    'Trích xuất từ tài liệu',
                     Icons.layers_outlined,
                     colors.sage,
                     colors.sageBg,
                   ),
                   metric(
-                    'Use cases',
+                    'Số Use Case',
                     state.useCaseCount,
-                    'Whole use-case context preserved',
+                    'Giữ đầy đủ ngữ cảnh',
                     Icons.description_outlined,
                     colors.blue,
                     colors.blueBg,
                   ),
                   metric(
-                    'Other requirements',
+                    'Yêu cầu khác',
                     state.otherRequirementsCount,
-                    'Business rules · Non-functional · Functional',
+                    'Nghiệp vụ, chức năng và phi chức năng',
                     Icons.menu_book_outlined,
                     colors.purple,
                     colors.purpleBg,
                   ),
                   metric(
-                    'Needs attention',
+                    'Cần kiểm tra',
                     state.attentionCount,
-                    'Malformed IDs · nothing discarded',
+                    'Mã ID cần kiểm tra',
                     Icons.warning_amber_outlined,
                     colors.amber,
                     colors.amberBg,
@@ -361,20 +361,20 @@ class _DocumentCard extends StatelessWidget {
                   ),
                   if (isDemo) ...[
                     const SizedBox(width: AppSpacing.sm),
-                    WBadge(label: 'Sample document'),
+                    WBadge(label: 'Tài liệu mẫu'),
                   ],
                 ],
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'Software Requirements Specification · Report 3',
+                'Đặc tả yêu cầu phần mềm (SRS)',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: colors.muted,
                 ),
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                '$pageCount pages · $sizeLabel · Extraction complete',
+                '$pageCount trang · $sizeLabel · Đã trích xuất',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.labelSmall?.copyWith(
@@ -388,7 +388,7 @@ class _DocumentCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               WBadge(
-                label: 'Ready for review',
+                label: 'Sẵn sàng đánh giá',
                 tint: WBadgeTint.green,
                 leading: Icon(Icons.circle, size: 4, color: colors.sage),
               ),
@@ -400,7 +400,7 @@ class _DocumentCard extends StatelessWidget {
                   // measured in the phone-viewport audit
                   // (docs/uiux/audit-2026-09-11.md P1-1).
                   IconButton(
-                    tooltip: 'Document information',
+                    tooltip: 'Thông tin tài liệu',
                     icon: const Icon(Icons.more_horiz),
                     iconSize: 18,
                     padding: const EdgeInsets.all(8),
@@ -412,7 +412,7 @@ class _DocumentCard extends StatelessWidget {
                     onPressed: onInfo,
                   ),
                   IconButton(
-                    tooltip: 'Replace document',
+                    tooltip: 'Thay tài liệu',
                     icon: const Icon(Icons.swap_horiz),
                     iconSize: 18,
                     padding: const EdgeInsets.all(8),
@@ -488,9 +488,9 @@ class _TabbedPanel extends ConsumerWidget {
                     child: Row(
                       children: [
                         for (final entry in const [
-                          (WorkspaceTab.inventory, 'Inventory'),
-                          (WorkspaceTab.findings, 'Findings'),
-                          (WorkspaceTab.syllabus, 'Syllabus checks'),
+                          (WorkspaceTab.inventory, 'Danh sách yêu cầu'),
+                          (WorkspaceTab.findings, 'Kết quả & Lỗi'),
+                          (WorkspaceTab.syllabus, 'Kiểm tra Syllabus'),
                         ])
                           Padding(
                             padding: const EdgeInsets.only(
@@ -562,7 +562,7 @@ class _TabbedPanel extends ConsumerWidget {
                 ),
                 const SizedBox(width: AppSpacing.xs),
                 IconButton(
-                  tooltip: 'Ask document',
+                  tooltip: 'Hỏi về tài liệu',
                   icon: const Icon(Icons.chat_bubble_outline, size: 17),
                   color: colors.muted,
                   onPressed: () => showAskModal(context, ref),
