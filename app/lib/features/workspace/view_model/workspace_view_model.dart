@@ -227,7 +227,8 @@ class WorkspaceState {
         (u) =>
             u.kind == UnitKind.businessRule ||
             u.kind == UnitKind.nonFunctional ||
-            u.kind == UnitKind.functional,
+            u.kind == UnitKind.functional ||
+            u.kind == UnitKind.section,
       )
       .length;
 

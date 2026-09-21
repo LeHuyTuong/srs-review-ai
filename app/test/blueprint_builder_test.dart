@@ -68,6 +68,37 @@ void main() {
     });
   });
 
+  group('standalone SRS index', () {
+    test('roman-numbered front matter counts as chapter entries', () {
+      // The official SRS template: `I.`/`II.` for the front matter, then
+      // `1.` … `5.` for the body. The roman lines are entries too, so the
+      // front matter gets section ranges and the index page still qualifies
+      // when the body outline alone is shorter than `minEntriesPerTocPage`.
+      final pages = [
+        'I.\tRecord of Changes\t2\n'
+            'II.\tTable of Contents\t3\n'
+            '1.\tProduct Overview\t4\n'
+            '2.\tUser Requirements\t5\n'
+            '3.\tFunctional Requirements\t6',
+        'Record of Changes',
+        'Table of Contents',
+        '1. Product Overview\nThe system helps lecturers.',
+        '2. User Requirements\nUC-01 Login',
+        '3. Functional Requirements\nScreens.',
+      ];
+      final toc = TableOfContents.parse(pages);
+
+      expect(toc.pageIndexes, {0});
+      expect(toc.chapters.map((c) => c.title), [
+        'Record of Changes',
+        'Table of Contents',
+        'Product Overview',
+        'User Requirements',
+        'Functional Requirements',
+      ]);
+    });
+  });
+
   group('aligned index (offset 0)', () {
     late DocumentBlueprint blueprint;
     setUpAll(() => blueprint = build(capstonePages()));

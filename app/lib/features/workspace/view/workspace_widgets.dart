@@ -39,6 +39,7 @@ String workspaceLabel(String label) => switch (label) {
   'Business rule' => 'Quy tắc nghiệp vụ',
   'Non-functional' => 'Phi chức năng',
   'Functional' => 'Chức năng',
+  'Section' => 'Mục tài liệu',
   'Unknown' => 'Chưa phân loại',
   'Open' => 'Chưa xử lý',
   'Fixed' => 'Đã sửa',

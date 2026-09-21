@@ -52,9 +52,11 @@ class ReferenceChecks {
     final grouped = <String, int>{};
     for (final item in document.requirements) {
       // We only care about explicit ids (UC-xx, FR-xx, etc.). Bare-modal
-      // statements are given synthetic ids by the splitter and are not the
-      // reuse signal we are looking for.
-      if (item.kind == RequirementKind.statement) continue;
+      // statements and section units are given synthetic ids by the
+      // splitter and are not the reuse signal we are looking for.
+      if (item.kind == RequirementKind.statement || item.hasSyntheticId) {
+        continue;
+      }
       grouped.update(item.id, (n) => n + 1, ifAbsent: () => 1);
     }
     final findings = <DeterministicFinding>[];

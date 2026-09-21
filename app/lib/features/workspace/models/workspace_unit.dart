@@ -9,12 +9,15 @@ library;
 
 import '../../../data/models/srs_document.dart';
 
-/// The five buckets the brief's inventory table shows.
+/// The buckets the brief's inventory table shows — the brief's five, plus
+/// [section] for the parts of an SRS that are prose under a heading rather
+/// than an id'd row (product overview, actors, application messages…).
 enum UnitKind {
   useCase('Use case'),
   businessRule('Business rule'),
   nonFunctional('Non-functional'),
   functional('Functional'),
+  section('Section'),
   unknown('Unknown');
 
   const UnitKind(this.label);
@@ -149,36 +152,56 @@ String deriveTitle(String id, String text) {
   return collapsed.length <= 80 ? collapsed : '${collapsed.substring(0, 77)}…';
 }
 
+/// The bucket an explicit id prefix announces, or null when the id carries
+/// no known prefix (a parser-synthesised `ST-3` / `SEC-4.2`).
+///
+/// `F-`/`NF-` are the codes a real VN capstone SRS uses; the splitter has
+/// recognised them since 1.2.0 but this mapping did not, so every one of
+/// them landed in `unknown`, was flagged malformed and — because malformed
+/// rows start deselected — was never reviewed.
+UnitKind? _kindFromPrefix(String id) {
+  if (id.startsWith('UC')) return UnitKind.useCase;
+  if (id.startsWith('BR')) return UnitKind.businessRule;
+  if (id.startsWith('NF')) return UnitKind.nonFunctional; // NFR-, NF-
+  if (id.startsWith('FR') || id.startsWith('SR') || id.startsWith('F-')) {
+    return UnitKind.functional;
+  }
+  return null;
+}
+
+/// The bucket for an id with no known prefix: what the parser decided from
+/// the heading the text sits under. A bare statement with no such context
+/// stays unknown — the "needs attention" queue.
+UnitKind _kindFromParser(RequirementKind kind) => switch (kind) {
+  RequirementKind.useCase => UnitKind.useCase,
+  RequirementKind.functional => UnitKind.functional,
+  RequirementKind.nonFunctional => UnitKind.nonFunctional,
+  RequirementKind.businessRule => UnitKind.businessRule,
+  RequirementKind.section => UnitKind.section,
+  RequirementKind.statement => UnitKind.unknown,
+};
+
 /// Maps parsed requirements onto inventory rows.
 ///
-/// Kind rules: the id prefix decides (UC/BR/NFR/FR/SR), free "shall/must"
-/// statements land in `unknown` — they are the "needs attention" queue the
-/// brief describes as *Unclassified requirements, kept, not dropped*.
-/// Malformed rule, ported verbatim from the brief: an id whose digit part
-/// runs past three digits (e.g. `UC0134`) is flagged so a human can confirm
-/// the intended identifier. The app's splitter canonicalises `UC0134` →
-/// `UC-134` for real documents, so the rule mostly fires on raw fixtures —
-/// still the same "check me by hand" signal.
+/// Kind rules: the id prefix decides when there is one (UC/BR/NFR/NF/FR/SR/
+/// F-); otherwise the parser's own classification does — a section unit or
+/// a `shall` sentence typed by the heading it sits under. Free statements
+/// with no heading context land in `unknown` — they are the "needs
+/// attention" queue the brief describes as *Unclassified requirements, kept,
+/// not dropped*. Malformed rule, ported verbatim from the brief: an id whose
+/// digit part runs past three digits (e.g. `UC0134`) is flagged so a human
+/// can confirm the intended identifier. The app's splitter keeps `UC0134`
+/// verbatim for real documents, so the rule fires on exactly those ids —
+/// the same "check me by hand" signal.
 WorkspaceUnit unitFromRequirement(RequirementItem item, {required int index}) {
   final id = item.id.toUpperCase();
-  final UnitKind kind;
-  if (id.startsWith('UC')) {
-    kind = UnitKind.useCase;
-  } else if (id.startsWith('BR')) {
-    kind = UnitKind.businessRule;
-  } else if (id.startsWith('NFR')) {
-    kind = UnitKind.nonFunctional;
-  } else if (id.startsWith('FR') || id.startsWith('SR')) {
-    kind = UnitKind.functional;
-  } else {
-    kind = UnitKind.unknown;
-  }
+  final kind = _kindFromPrefix(id) ?? _kindFromParser(item.kind);
   final digits = RegExp(r'\d+').firstMatch(id)?.group(0) ?? '';
   final malformed = kind == UnitKind.unknown || digits.length > 3;
   return WorkspaceUnit(
     key: 'u$index-${item.id}',
     id: item.id,
-    title: deriveTitle(item.id, item.text),
+    title: item.title ?? deriveTitle(item.id, item.text),
     text: item.text,
     kind: malformed ? UnitKind.unknown : kind,
     section: item.section,

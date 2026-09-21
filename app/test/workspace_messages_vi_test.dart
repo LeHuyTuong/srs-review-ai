@@ -77,6 +77,7 @@ void main() {
       expect(document.pageTexts.single, 'Original evidence');
       expect(document.requirements.first.id, 'UC01');
       expect(workspaceLabel('Business rule'), 'Quy tắc nghiệp vụ');
+      expect(workspaceLabel('Section'), 'Mục tài liệu');
     },
   );
 

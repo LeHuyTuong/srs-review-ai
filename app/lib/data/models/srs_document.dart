@@ -23,17 +23,42 @@ const Set<String> kSupportedDocumentExtensions = {'pdf', 'docx'};
 /// 1.3.0 — the trusted-TOC path now MERGES body-scan units (FR/NFR prose and
 /// statements) into the TOC units instead of returning TOC units alone, so an
 /// indexed document yields strictly more units than 1.2.0 did.
-const String kParserVersion = '1.3.0';
+/// 1.4.0 — the body scan reads the WHOLE report, not only id-carrying rows:
+/// prose under a numbered heading with no requirement id becomes a
+/// [RequirementKind.section] unit (`SEC-4.2.3`), numbered flow steps no
+/// longer cut a use case in half, a labelled id (`Use Case ID: UC-01`) opens
+/// a unit, and NFR-/NF-/BR- ids carry their own kind. An official capstone
+/// SRS (Product Overview → Use Cases → Functional → Non-Functional →
+/// Appendix) used to yield use cases only; it now yields every part.
+const String kParserVersion = '1.4.0';
 
 enum RequirementKind {
-  /// FR-xx / NFR-xx style functional or non-functional statement.
+  /// FR-xx / F-xx / SR-xx style functional statement — and, until 1.3.0, the
+  /// bucket every non-UC id landed in. A `shall` sentence found under a
+  /// heading that names functional requirements is typed this way too.
   functional,
 
   /// UC-xx style use case (counted by the F7/F9 syllabus checks).
   useCase,
 
-  /// A "shall / must / hệ thống phải" sentence with no explicit id.
+  /// A "shall / must / hệ thống phải" sentence with no explicit id AND no
+  /// heading that says what kind of requirement it is. Kept visible as the
+  /// "needs attention" queue, never reviewed by default.
   statement,
+
+  /// NFR-xx / NF-xx ids, or prose under a heading that names a quality
+  /// attribute (performance, security, usability, external interfaces…).
+  nonFunctional,
+
+  /// BR-xx ids, or prose under a "Business Rules" heading.
+  businessRule,
+
+  /// Prose under a numbered heading that carries no requirement id and whose
+  /// heading names no requirement family (Product Overview, Actors,
+  /// Application Messages…). One unit per leaf section, so the parts of a
+  /// report that are not written as id'd rows are still reviewable instead
+  /// of silently dropped.
+  section,
 }
 
 class RequirementItem {
@@ -43,19 +68,34 @@ class RequirementItem {
     required this.kind,
     this.section,
     this.pageIndex,
+    this.title,
   });
 
   final String id;
   final String text;
   final RequirementKind kind;
 
-  /// Section heading the item was found under, e.g. `3.2`.
+  /// Section heading the item was found under, e.g. `3.2`. Section units
+  /// carry the heading text as well (`4.2.3 Performance`) so the review
+  /// prompt and the findings tab know what the prose is about.
   final String? section;
 
   /// 0-based page the item was found on — powers jump-to-page (F4).
   final int? pageIndex;
 
+  /// Display title when the source states one — the heading text of a
+  /// [RequirementKind.section] unit. Null for id'd rows, whose title is
+  /// derived from the text.
+  final String? title;
+
   bool get isUseCase => kind == RequirementKind.useCase;
+
+  /// True when the id was minted by the parser (`ST-3` for a bare
+  /// statement, `UC-T2` for a `Use case name:` row, `SEC-4.2.3` for a
+  /// heading's prose) rather than written in the document. Checks that
+  /// judge the AUTHOR's identifiers — duplicate ids above all — skip these.
+  bool get hasSyntheticId =>
+      id.startsWith('ST-') || id.startsWith('SEC-') || id.startsWith('UC-T');
 
   @override
   String toString() => '$id (${kind.name})';

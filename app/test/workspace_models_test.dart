@@ -99,6 +99,60 @@ void main() {
       expect(unit.selected, isFalse);
     });
 
+    test('F- and NF- ids are real requirements, not malformed', () {
+      // The splitter has read these since 1.2.0; this mapping did not, so a
+      // VN capstone SRS coded F-01…F-40 imported as 40 deselected unknowns.
+      final functional = unitFromRequirement(item('F-01'), index: 0);
+      expect(functional.kind, UnitKind.functional);
+      expect(functional.malformed, isFalse);
+      expect(functional.selected, isTrue);
+      final nonFunctional = unitFromRequirement(
+        item('NF-02', kind: RequirementKind.nonFunctional),
+        index: 1,
+      );
+      expect(nonFunctional.kind, UnitKind.nonFunctional);
+      expect(nonFunctional.selected, isTrue);
+    });
+
+    test('the parser kind decides when the id has no known prefix', () {
+      final typedStatement = unitFromRequirement(
+        item('ST-4', kind: RequirementKind.functional),
+        index: 2,
+      );
+      expect(typedStatement.kind, UnitKind.functional);
+      expect(typedStatement.selected, isTrue);
+
+      final nfrSection = unitFromRequirement(
+        const RequirementItem(
+          id: 'SEC-4.2.3',
+          text: 'Every page loads within 3 seconds under a load of 200 users.',
+          kind: RequirementKind.nonFunctional,
+          section: '4.2.3 Performance',
+          pageIndex: 15,
+          title: 'Performance',
+        ),
+        index: 3,
+      );
+      expect(nfrSection.kind, UnitKind.nonFunctional);
+      expect(nfrSection.title, 'Performance');
+      expect(nfrSection.malformed, isFalse, reason: '"4" is the digit run');
+      expect(nfrSection.selected, isTrue);
+
+      final overview = unitFromRequirement(
+        const RequirementItem(
+          id: 'SEC-1',
+          text: 'The system helps lecturers publish courses to students.',
+          kind: RequirementKind.section,
+          section: '1 Product Overview',
+          title: 'Product Overview',
+        ),
+        index: 4,
+      );
+      expect(overview.kind, UnitKind.section);
+      expect(overview.selected, isTrue);
+      expect(UnitKind.fromLabel('Section'), UnitKind.section);
+    });
+
     test('classifying to unknown keeps the unit out of the review', () {
       final unit = unitFromRequirement(item('UC-01'), index: 0);
       final unknown = unit.classified(UnitKind.unknown);
