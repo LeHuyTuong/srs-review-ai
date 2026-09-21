@@ -33,7 +33,8 @@ from .schemas import Strict
 
 #: Diagram prompts version — bumped independently of the review prompt
 #: version; both go into the cache key (diagram_cache_key).
-DIAGRAM_PROMPT_VERSION = "d1"
+#: d2 (2026-09-21): ACTIVITY type + judge question added (policy §9).
+DIAGRAM_PROMPT_VERSION = "d2"
 
 
 class DiagramType(StrEnum):
@@ -45,6 +46,7 @@ class DiagramType(StrEnum):
     CLASS = "class"
     USE_CASE = "use_case"
     COMPONENT = "component"
+    ACTIVITY = "activity"
     UNKNOWN = "unknown"
 
 
@@ -57,6 +59,7 @@ ID_FAMILY_BY_TYPE: dict[DiagramType, str] = {
     DiagramType.CLASS: "SEQ-CLS",
     DiagramType.USE_CASE: "UC",
     DiagramType.COMPONENT: "PKG",
+    DiagramType.ACTIVITY: "ACT",
     DiagramType.UNKNOWN: "DOC",
 }
 
@@ -111,6 +114,17 @@ _JUDGE_QUESTIONS: dict[DiagramType, str] = {
         "Mọi box + MỌI mũi tên: from→to, nhãn. Box nào không mũi tên nào "
         "(orphan)? Mũi tên nào đi qua vùng package khác?"
     ),
+    # Ported from review-rules/references/uml25-diagram-policy.md §9 (2026-09-21).
+    DiagramType.ACTIVITY: (
+        "List mọi node: initial/final, action (cụm động từ như 'Validate "
+        "payment', KHÔNG phải danh từ), decision với guard trên MỌI cạnh ra "
+        "([yes]/[no] loại trừ nhau và đủ — guard chồng là red), fork/join có "
+        "cân bằng không. Có cạnh treo hay action không đường vào không? "
+        "Swimlane có đặt tên theo actor/component không? Và quan trọng nhất: "
+        "đây có thật là Activity diagram không, hay là FLOWCHART (hình thoi "
+        "ghi Yes/No ngoài ngoặc, hình bình hành I/O, hình trụ database) — "
+        "flowchart là red (G6a)."
+    ),
     DiagramType.UNKNOWN: (
         "Chỉ liệt kê các phần tử và quan hệ có thể đọc chắc chắn từ JSON mô "
         "tả; nếu JSON mô tả rỗng hoặc toàn unreadable, trả về findings rỗng "
@@ -120,7 +134,7 @@ _JUDGE_QUESTIONS: dict[DiagramType, str] = {
 
 _JUDGE_CONTRACT = (
     "\nMỗi lỗi tìm được là một finding: family = mã mục (ERD/SM/SEQ-CLS/UC/"
-    "PKG/DOC), entity = tên nguyên văn trong JSON mô tả, evidence = câu mô "
+    "PKG/ACT/DOC), entity = tên nguyên văn trong JSON mô tả, evidence = câu mô "
     "tả lỗi bằng tiếng Việt ngắn gọn dựa TRÊN JSON mô tả + ảnh, severity = "
     "'red' (đảo cardinality, FK không đường nối, state không đường ra) hoặc "
     "'amber' (thiếu nhãn, nghi ngờ). Không bịa lỗi không thấy trong ảnh. "

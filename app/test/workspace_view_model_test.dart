@@ -29,6 +29,8 @@ import 'package:srs_review_ai/features/workspace/models/workspace_findings.dart'
 import 'package:srs_review_ai/features/workspace/models/workspace_unit.dart';
 import 'package:srs_review_ai/features/workspace/view_model/workspace_view_model.dart';
 
+import 'support/srs_fixtures.dart';
+
 ProviderContainer _container(
   InMemorySessionStore store, {
   DocumentRepository? documentRepository,
@@ -614,7 +616,12 @@ void main() {
     'runReview rejects an empty selection and clamps an over-cap one',
     () async {
       final store = InMemorySessionStore();
-      final container = _container(store);
+      final container = _container(
+        store,
+        documentRepository: StubDocumentRepository(
+          oversizedSrsDocument(AppConfig.maxRequirementsPerRun + 1),
+        ),
+      );
       addTearDown(container.dispose);
       final vm = container.read(workspaceViewModelProvider.notifier);
       await vm.loadDemo();
@@ -633,11 +640,17 @@ void main() {
         contains('No units selected'),
       );
 
-      // Nothing was deselected, so selecting all 63 exceeds the cap of 40.
-      // The run must PROCEED on the first 40 and report the shortfall rather
-      // than refuse — refusing was the bug: it aborted after the modal had
-      // already closed, leaving the user with a frozen screen and no message
-      // (docs/uiux/audit-2026-09-11.md P0-2, P0-4).
+      // Nothing was deselected, so the selection provably exceeds the cap.
+      // The run must PROCEED on the first `maxRequirementsPerRun` and report
+      // the shortfall rather than refuse — refusing was the bug: it aborted
+      // after the modal had already closed, leaving the user with a frozen
+      // screen and no message (docs/uiux/audit-2026-09-11.md P0-2, P0-4).
+      //
+      // The cap is a compile-time constant, so a demo-sized document can no
+      // longer guarantee an overflow (it did while the cap was 40–50). Import
+      // a synthetic document one unit past the cap instead: the overflow then
+      // holds for ANY cap value (test/support/srs_fixtures.dart).
+      await vm.importDocument();
       vm.setSelectedAll(
         container
             .read(workspaceViewModelProvider)
@@ -650,7 +663,9 @@ void main() {
       expect(selected, greaterThan(AppConfig.maxRequirementsPerRun));
 
       unawaited(vm.runReview());
-      await Future<void>.delayed(const Duration(milliseconds: 300));
+      await _pumpUntil(
+        () => container.read(workspaceViewModelProvider).result != null,
+      );
       final after = container.read(workspaceViewModelProvider);
       expect(after.error, isNull);
       expect(

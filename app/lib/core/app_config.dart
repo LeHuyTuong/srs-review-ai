@@ -50,7 +50,12 @@ class AppConfig {
   /// the run died, and the user was left with "Thất bại" on every row and no
   /// reason anywhere on screen. The client must never promise more units per
   /// run than the server will actually serve.
-  static const int maxRequirementsPerRun = 50;
+  ///
+  /// TESTING OVERRIDE (2026-09-21, local dev only): raised to 250 to match a
+  /// temporarily raised server quota (RATE_LIMIT_PER_DAY=2000) so a full
+  /// OTES import (~235 units incl. section units) fits one run. Restore 50
+  /// before shipping — the Gemini free tier throttles hard under bursts.
+  static const int maxRequirementsPerRun = 250;
 
   /// How many requirements are reviewed at once.
   ///

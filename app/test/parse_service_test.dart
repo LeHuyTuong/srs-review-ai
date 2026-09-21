@@ -84,4 +84,45 @@ void main() {
       );
     });
   });
+
+  group('PdfParser.joinVisualLines', () {
+    // Regression for the OTES report (parser 1.4.1): Word's PDF export makes
+    // `extractText` emit one word per line, which hid every prose section
+    // from the splitter. The fix rebuilds lines from text-run coordinates;
+    // these cases pin the regrouping rules without needing a real PDF.
+
+    test('merges runs on the same visual row, ordered left to right', () {
+      // Measured on the real report: the heading "3.2 Reliability" arrives as
+      // two runs whose tops differ by one pixel (93 vs 92).
+      final text = PdfParser.joinVisualLines([
+        (top: 93, left: 40, text: '3.2'),
+        (top: 92, left: 70, text: 'Reliability'),
+      ]);
+      expect(text, '3.2 Reliability');
+    });
+
+    test('keeps rows further apart than the tolerance on separate lines', () {
+      final text = PdfParser.joinVisualLines([
+        (top: 74, left: 40, text: '● 90% users feel comfortable'),
+        (top: 110, left: 40, text: '3.3 Availability'),
+      ]);
+      expect(text, '● 90% users feel comfortable\n3.3 Availability');
+    });
+
+    test('orders rows top to bottom even when the input is unordered', () {
+      final text = PdfParser.joinVisualLines([
+        (top: 200, left: 40, text: 'second'),
+        (top: 100, left: 40, text: 'first'),
+      ]);
+      expect(text, 'first\nsecond');
+    });
+
+    test('drops empty runs', () {
+      final text = PdfParser.joinVisualLines([
+        (top: 10, left: 40, text: ''),
+        (top: 10, left: 80, text: 'kept'),
+      ]);
+      expect(text, 'kept');
+    });
+  });
 }

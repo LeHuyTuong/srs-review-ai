@@ -49,8 +49,9 @@ class Settings(BaseSettings):
     """When true the proxy answers from server/app/mock/*.json — no network at all.
     This is the demo safety net (research 05, day 3 / AC4)."""
 
-    prompt_version: str = "p1"
-    """Part of the cache key: bumping it invalidates cached reviews."""
+    prompt_version: str = "p2"
+    """Part of the cache key: bumping it invalidates cached reviews.
+    p2 (2026-09-21): unit-type briefings added to the review user prompt."""
 
     # --- Limits ---
     rate_limit_per_day: int = 50

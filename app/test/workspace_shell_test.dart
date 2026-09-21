@@ -25,6 +25,8 @@ import 'package:srs_review_ai/features/workspace/view/workspace_shell.dart';
 import 'package:srs_review_ai/features/workspace/view/workspace_widgets.dart';
 import 'package:srs_review_ai/features/workspace/view_model/workspace_view_model.dart';
 
+import 'support/srs_fixtures.dart';
+
 /// Repository stub whose "pick" always succeeds after emitting the progress
 /// phases a real large-file import produces, so the progress card can be
 /// asserted in widget tests without a platform file picker.
@@ -56,12 +58,17 @@ class _StubProgressRepository extends DocumentRepository {
   }
 }
 
-ProviderContainer _container(InMemorySessionStore store) => ProviderContainer(
+ProviderContainer _container(
+  InMemorySessionStore store, {
+  DocumentRepository? documentRepository,
+}) => ProviderContainer(
   overrides: [
     sessionStoreProvider.overrideWithValue(store),
     reviewApiProvider.overrideWithValue(
       const MockReviewApi(latency: Duration.zero),
     ),
+    if (documentRepository != null)
+      documentRepositoryProvider.overrideWithValue(documentRepository),
   ],
 );
 
@@ -847,6 +854,11 @@ void main() {
         reviewApiProvider.overrideWithValue(
           const MockReviewApi(latency: Duration(milliseconds: 900)),
         ),
+        documentRepositoryProvider.overrideWithValue(
+          StubDocumentRepository(
+            oversizedSrsDocument(AppConfig.maxRequirementsPerRun + 5),
+          ),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -858,11 +870,12 @@ void main() {
       ),
     );
     await tester.pump(const Duration(milliseconds: 100));
-    // The demo is capped at 40 units per run, so it exercises the cap message.
-    await tester.tap(find.text('Mở tài liệu mẫu'));
+    // A synthetic document past the cap — the demo no longer overflows it at
+    // 250, and the shortfall line is exactly what this test exists to see.
+    final vm = container.read(workspaceViewModelProvider.notifier);
+    await vm.importDocument();
     await tester.pump(const Duration(milliseconds: 400));
 
-    final vm = container.read(workspaceViewModelProvider.notifier);
     unawaited(vm.runReview());
     await tester.pump(const Duration(milliseconds: 200));
 
@@ -870,7 +883,7 @@ void main() {
     expect(find.text('Hủy'), findsWidgets);
     expect(find.byType(LinearProgressIndicator), findsWidgets);
 
-    // The demo holds 65 units and the cap is 40, so the shortfall is stated.
+    // The document exceeds the cap, so the shortfall is stated.
     expect(find.textContaining('mục chưa được chấm'), findsOneWidget);
 
     // Elapsed time appears and ticks.
@@ -1275,10 +1288,18 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    final container = _container(InMemorySessionStore());
+    final container = _container(
+      InMemorySessionStore(),
+      documentRepository: StubDocumentRepository(
+        oversizedSrsDocument(AppConfig.maxRequirementsPerRun + 5),
+      ),
+    );
     addTearDown(container.dispose);
     final viewModel = container.read(workspaceViewModelProvider.notifier);
-    await viewModel.loadDemo();
+    // A synthetic document past the cap, not the demo: the demo only
+    // overflows while the cap sits below its size, which stopped being true
+    // at cap 250 (test/support/srs_fixtures.dart).
+    await viewModel.importDocument();
 
     // A minimal harness that opens the real sheet. Reaching it through the
     // inventory would mean scrolling a 390px page to a button below the fold,

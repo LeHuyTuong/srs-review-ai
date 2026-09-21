@@ -36,7 +36,7 @@ App hiện **chấm SRS**; SDS mới có vision chain (steps 5–7). Port SDS te
 | templates/adr — ≥ 2 option | ❌ | Dart | đếm hàng bảng Options |
 | RTM FR↔element | ❌ | Dart `rtmOrphan` (chung) | app hiện null vĩnh viễn cột test → giữ; FR↔element làm được nếu parse bảng §7.1 |
 | **7 chain** cross-artifact (scoring §5) | 🟡 1/7 `crossArtifactName` | Dart + vision | chain 2 (FK matrix) đã có probe r20; **chain 3 thuần text — port bước 2**; chain 4–7 cần element list từ vision `DiagramDescribe.elements/relations` → so tên. Chain 7 (seq ↔ kiến trúc khai báo) cần thêm bộ nhận diện style theo `architecture-patterns.md` §4 |
-| Thang 5+2+2+1 | 🟡 `document_verdict.dart` — cùng hình dạng, **còn lệch 2 chỗ** (`scoring.md` §9): sàn 7 bucket all-or-nothing, trừ theo row không theo finding. ~~prefix `FLOW-`~~ **đã sửa 2026-09-15** → `deductingFamilies = ERD- / SM- / SEQ-CLS-` | Dart | sàn về **5 tiêu chí tỉ lệ** (`scoring.md` §3); traceability tính thật khi có `rtmOrphan`. **Không thêm `ACT-`**: `DiagramKind.activity.family` là `DOC`, không phải `ACT` — thêm vào là dựng lại đúng lỗi `FLOW-` (một luật không bao giờ chạy được) và test mới sẽ bắt |
+| Thang 5+2+2+1 | 🟡 `document_verdict.dart` — cùng hình dạng, **còn lệch 2 chỗ** (`scoring.md` §9): sàn 7 bucket all-or-nothing, trừ theo row không theo finding. ~~prefix `FLOW-`~~ **đã sửa 2026-09-15** → `deductingFamilies = ERD- / SM- / SEQ-CLS-` | Dart | sàn về **5 tiêu chí tỉ lệ** (`scoring.md` §3); traceability tính thật khi có `rtmOrphan`. `ACT-` **không** thêm vào `deductingFamilies`: family `ACT` giờ đã tồn tại thật (d2, 2026-09-21) nên hết lý do "không bao giờ chạy", nhưng đây là quyết định phạm vi scoring (rulebook chỉ trừ ở hard rule 9/10 — hợp nhất ở port bước 3), không tự ý thêm |
 | Severity | 🟡 app `high/medium/low`, `placeholderTbd` = medium | Dart `review_models.dart`, `quality_checks.dart` | map high→red, medium→amber, low→info; nâng `placeholderTbd` lên high (hard rule) |
 
 ## 3. Chính sách UML 2.5 → `server/app/diagram.py`
@@ -51,7 +51,7 @@ App hiện **chấm SRS**; SDS mới có vision chain (steps 5–7). Port SDS te
 | **Deployment** | `component` (gộp) | **DEP mới** | ❌ | **thêm `DEPLOYMENT` + family `DEP`**: node stereotype, artifact, protocol, ↔ C4 L2 |
 | Profile | — | DOC | ❌ | `unknown`; đủ |
 | Use Case | `use_case` | UC | ✅ | thêm "System/Database as actor" |
-| **Activity** | `unknown` | **ACT mới** | ❌ | **thêm `ACTIVITY` + family `ACT`**: initial/final, guard đủ+loại trừ, fork/join, swimlane, **flowchart detector** (G6a) |
+| **Activity** | `activity` | ACT | ✅ | **port 2026-09-21 (prompt d2)**: `DiagramKind.activity` wire `activity`, family `ACT`, judge question §9 (initial/final, guard đủ+loại trừ, fork/join, swimlane, flowchart→G6a red) — còn thiếu **flowchart detector phía text** |
 | State machine | `state_machine` | SM | ✅ | |
 | Sequence | `sequence` | SEQ-CLS | ✅ | thêm sync/async/reply arrow check |
 | Communication | — | SEQ-CLS | ❌ | classifier keyword "communication diagram" → `sequence` + câu hỏi numbering |
@@ -76,7 +76,7 @@ Thứ tự này đổi ở **v0.2** sau lần chạy thật trên OTES: chain 3 
    **Bài học**: hai trong ba check "thuần text, dễ" của plan 7 thực ra chặn ở tầng parser. Plan 7 §7 ước lượng sai vì nó nhìn luật, không nhìn dữ liệu mà luật sẽ chạy trên. Check tiếp theo: xem parser cấp gì trước khi xếp độ khó.
 2. **Chain 3 (sequence ↔ class)** — `CheckId.seqClassOrphan`. Không cần vision: lifeline và message name lấy từ text quanh hình + `DiagramDescribe.elements/relations` nếu đã có; danh sách class/operation lấy từ bảng §4.2. So tên, xuất hai tỉ lệ. **Bằng chứng ưu tiên: trên OTES ra 0/40 message và 6/26 lifeline — phát hiện nặng nhất của cả lần chạy.**
 3. **Thang điểm liên tục** (`scoring.md` §2–§6) — sửa `document_verdict.dart`: sàn 7 bucket all-or-nothing → 5 tiêu chí tỉ lệ; bỏ trừ theo row, thay bằng phạt hard-rule tối đa −2.
-4. `DEPLOYMENT` + `ACTIVITY` DiagramType + family `DEP`/`ACT` + flowchart detector + **G8** (trùng số hiệu / hình dùng lại — thuần text, so caption).
+4. `DEPLOYMENT` DiagramType + family `DEP` + ~~`ACTIVITY`~~ (**ACTIVITY xong 2026-09-21**, prompt d2) + flowchart detector phía text + **G8** (trùng số hiệu / hình dùng lại — thuần text, so caption).
 5. `techWithoutAdr` + `missingSection` (SDS outline) + **luật N/A hàng loạt** (`quality-rules.md` §E — đếm theo trường, thuần text).
 6. `rtmOrphan` (parse bảng RTM) → bật cột traceability trong `document_verdict.dart`.
 7. Chain 2, 4, 5, 6 cross-artifact từ `DiagramDescribe` — cần vision quota, làm sau.

@@ -94,7 +94,7 @@ void main() {
       );
     });
 
-    test('activity diagrams are named, and travel as unknown', () {
+    test('activity diagrams are named, and travel as activity', () {
       // Figure 78/79 of the real OTES, verbatim caption wording.
       expect(
         c.classify(
@@ -110,10 +110,12 @@ void main() {
         c.classify('Luu do quy trinh tiep nhan hoc vien.'),
         DiagramKind.activity,
       );
-      // server/app/diagram.py has no ACTIVITY DiagramType and no ACT ID
-      // family: the pair below is the describe-only path, not a 422.
-      expect(DiagramKind.activity.wire, 'unknown');
-      expect(DiagramKind.activity.family, 'DOC');
+      // Server has a real ACTIVITY DiagramType and ACT family since
+      // 2026-09-21 (diagram prompt d2) — the page gets the activity judge
+      // (initial/final, guards, fork/join, flowchart confusion), not the
+      // generic describe-only path.
+      expect(DiagramKind.activity.wire, 'activity');
+      expect(DiagramKind.activity.family, 'ACT');
     });
 
     test('architecture / C4 views land on the component judge', () {
@@ -210,7 +212,8 @@ void main() {
       // ID_FAMILY_BY_TYPE / LLM_DIAGRAM_JUDGE_SCHEMA family whitelist.
       // Literal here on purpose — this test is the guard against a
       // client-only kind whose wire would 422 at /diagram, or whose family
-      // would mint ledger IDs the rubric does not have.
+      // would mint ledger IDs the rubric does not have. `activity` joined
+      // both lists on 2026-09-21 (diagram prompt d2, ACT family).
       const diagramTypes = {
         'erd',
         'state_machine',
@@ -218,9 +221,10 @@ void main() {
         'class',
         'use_case',
         'component',
+        'activity',
         'unknown',
       };
-      const idFamilies = {'ERD', 'SM', 'SEQ-CLS', 'UC', 'PKG', 'DOC'};
+      const idFamilies = {'ERD', 'SM', 'SEQ-CLS', 'UC', 'PKG', 'ACT', 'DOC'};
       expect(
         DiagramKind.values.map((k) => k.wire).toSet(),
         equals(diagramTypes),
@@ -301,11 +305,12 @@ void main() {
     });
 
     test(
-      'an activity page earns a slot and audits via the generic judge',
+      'an activity page earns a slot and audits with the activity judge',
       () async {
         // OTES's activity figures are vector drawings with no embedded image
         // object, so the classifier's name is the only thing that finds them.
-        // The page must be selected AND must not send a wire the server lacks.
+        // Since diagram prompt d2 the page sends wire `activity` and its
+        // findings file under ACT (uml25-diagram-policy §9).
         final doc = _doc([
           _req(
             'UC-01',
@@ -334,8 +339,8 @@ void main() {
         );
         expect(svc.candidates(doc).single.kind, DiagramKind.activity);
         final outcome = await svc.audit(doc);
-        expect(sentTypes, ['unknown']);
-        expect(outcome.findings.single.subject, 'DOC-01');
+        expect(sentTypes, ['activity']);
+        expect(outcome.findings.single.subject, 'ACT-01');
       },
     );
 

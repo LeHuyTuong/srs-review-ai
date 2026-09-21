@@ -1,6 +1,34 @@
 # Review: "chỉ nhận mỗi use case, các phần SRS khác không nhận gì" — 2026-09-21
 
-Trạng thái: **đã vá trong working tree, chưa chạy `flutter analyze` / `flutter test`**
+## Addendum 1.4.1 (cùng ngày, sau khi chạy trên PDF OTES thật)
+
+Chạy parser 1.4.0 lên `D:\Download\SRS.pdf` (217 trang, bản OTES thật) cho thấy
+fix 1.4.0 **chưa đủ**: vẫn 85/85 unit là use case. Nguyên nhân: Syncfusion
+`extractText` trả **mỗi từ một dòng** trên toàn bộ trang thân (đo: avg 1.0
+từ/dòng), nên `3.3 Availability` vỡ thành `3.3` / `Availability` hai dòng →
+`_NumberedLine` không bao giờ khớp heading → không section nào được mở. Đây
+đúng bẫy "token-per-line" đã ghi ở `docs/tech-lead-brief.md` (commit 5d05f3a),
+nhưng 1.4.0 chỉ kiểm trên SRS tổng hợp có dòng thật nên không lộ.
+
+**Fix (parser 1.4.1):** `PdfParser` dựng lại text trang từ
+`extractTextLines` — gom các text-run theo vạch ngang (chênh `bounds.top` ≤ 3
+px, trong hàng sắp theo `bounds.left`), fallback `extractText` khi trang không
+có line nào. Hàm gom `PdfParser.joinVisualLines` là hàm thuần, có test riêng
+trong `parse_service_test.dart`. Đo lại trên OTES thật: **235 unit** —
+`useCase: 63` (đúng số bảng), `section: 162`, `functional: 5`,
+`nonFunctional: 4`, `statement: 1`; NFR (p.153), conceptual dictionary,
+toàn bộ SDS (architecture, class dictionary, UI fields, ERD p.181–185) đều
+thành unit. Nhiễu còn lại: heading rác từ header/footer (`SEC-14-p141`),
+đuôi bảng UC thành section — người dùng lọc/bỏ chọn trong inventory; nên lọc
+kind trước khi chấm để không đốt quota vào section thuộc front-matter.
+`kParserVersion` bump 1.4.0 → 1.4.1 (snapshot cũ không tái dùng).
+
+Trạng thái: **đã vá và xác minh 2026-09-21** — `flutter analyze --fatal-infos
+--fatal-warnings` sạch (đã sửa thêm 1 lint `prefer_null_aware_operators` ở
+`requirement_splitter.dart`), `flutter test` **681/681 pass**. Một expectation
+test phải đổi theo hành vi mới đúng thiết kế: `import_run_review_modal_test`
+fixture `XX-1` (kind `useCase`, prefix lạ) nay được chọn → modal "Chấm 3 mục"
+thay vì 2.
 (sandbox không có Dart/Flutter toolchain; xem mục 6). File "report chính thống" mà
 người dùng nhắc tới **chưa được đính kèm** — toàn bộ chẩn đoán dưới đây dựa trên đọc
 code + tái hiện bằng một SRS tổng hợp viết đúng theo mẫu SRS đồ án FPT (Record of
@@ -132,8 +160,16 @@ mirror, không phải Dart.
 - Bước Title Case 1 từ hoặc flow chỉ có một bước (`1. Logout`) vẫn có thể bị đọc
   thành heading (hành vi cũ, không tệ hơn).
 - Unit `section` gửi cho LLM với prompt ISO 29148 hiện tại — prompt chưa biết đó là
-  "một mục tài liệu" chứ không phải một requirement; nên thêm hint theo `kind` ở
-  `server/app/prompt.py` sau khi có kết quả thật (follow-up, không đổi contract).
+  "một mục tài liệu" chứ không phải một requirement; ~~nên thêm hint theo `kind` ở
+  `server/app/prompt.py` sau khi có kết quả thật~~ **ĐÃ LÀM (2026-09-21, prompt
+  p2):** `_unit_brief(requirement_id, section)` chọn briefing chuyên biệt — bảng UC
+  (Cockburn: actor/pre/post Success+Fail/main flow 3–7 bước/exception khớp
+  `[Exception N]`/cite BR), mục NFR (định lượng: số + đơn vị + điều kiện đo, theo
+  quality-rules §B), mục SDS (dictionary đủ thuộc tính/kiểu/visibility, tên nhất
+  quán, design nói HOW không lặp WHAT — viewpoints.md), BR, section văn xuôi.
+  Không đổi contract; an toàn cache vì brief suy ra từ `requirement_id`+`section`
+  (đã nằm trong cache key) và `prompt_version` bump p1→p2. Test:
+  `server/tests/test_prompt.py` (8 case).
 - Unit theo mục được chọn review mặc định → SRS lớn dễ chạm trần 40 unit/lượt; người
   dùng bỏ chọn được trong inventory (lọc `Mục tài liệu`).
 - Frame SRS chỉ chấm khi ≥ 2 phần khớp, vẫn có thể im lặng với mục lục đặt tên rất

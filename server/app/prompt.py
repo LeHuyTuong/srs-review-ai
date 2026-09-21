@@ -56,6 +56,106 @@ Use ONLY the provided context. If the context does not contain the answer, set
 Every quote you return must be a verbatim excerpt of the context.
 """
 
+# ---------------------------------------------------------------------------
+# Unit-type briefings (2026-09-21, prompt_version p2)
+#
+# The generic ISO 29148 checklist above is wrong-shaped for half the units a
+# real capstone report produces: a Cockburn use-case table, an NFR prose
+# section and an SDS dictionary page fail in DIFFERENT ways, and reviewing all
+# of them as "one requirement sentence" produced shallow, generic feedback.
+# Each briefing below compresses the matching rule set from review-rules/
+# (source cited in the brief) — the rules themselves live there, not here.
+#
+# Cache safety: the briefing is derived from the request's own
+# `requirement_id` and `section`, both already hashed into the review cache
+# key, and the template change itself is covered by the prompt_version bump
+# (p1 -> p2). No contract change.
+# ---------------------------------------------------------------------------
+
+_UC_BRIEF = """unit_type: use case specification table
+Review it as a Cockburn-style use case (review-rules/references/use-case-guide.md),
+NOT as one requirement sentence. Check EACH of these and report every miss:
+actor named; goal stated; preconditions present; post-conditions distinguish
+Success AND Fail; main success scenario is numbered with 3-7 transactions and
+each step says who does what; every [Exception N] marker in the flow has a
+matching numbered exception entry; business rules are cited by id."""
+
+_NFR_BRIEF = """unit_type: non-functional requirements section
+Judge every quality claim by quantification (review-rules/references/quality-rules.md
+section B): a claim passes only with a number, a unit and the measurement
+condition ("available 24/7", "responds in under 2s at 100 concurrent users").
+Adjectives without a metric ("fast", "easy to use", "high security") are
+verifiability/high issues. Flag claims no black-box test could observe."""
+
+_SDS_BRIEF = """unit_type: design description section (SDS)
+Review it as design documentation (review-rules/references/viewpoints.md):
+dictionaries must be complete (every class/entity lists attributes with type
+and visibility; every UI field lists control type and validation); names must
+stay consistent between tables and any diagram or caption mentioned; and the
+section must say HOW the system is built — a design section that merely
+restates WHAT the system shall do is a completeness issue."""
+
+_BR_BRIEF = """unit_type: business rule
+A business rule must be one normative statement a use case can cite by id.
+Flag rules that embed UI flow, contradict the citing unit's scope, or are
+phrased too loosely to enforce."""
+
+_SECTION_BRIEF = """unit_type: document section (prose without its own requirement id)
+Review the prose as a specification section: every claim must be verifiable,
+lists must be closed (no "etc."), and the content must actually specify
+something about its heading rather than narrate project history."""
+
+_NFR_HINTS = (
+    "non-functional",
+    "nonfunctional",
+    "usability",
+    "reliability",
+    "availability",
+    "security",
+    "maintainability",
+    "portability",
+    "performance",
+    "system attribute",
+)
+
+_SDS_HINTS = (
+    "design",
+    "architecture",
+    "component",
+    "class diagram",
+    "sequence",
+    "interaction",
+    "erd",
+    "entity relationship",
+    "database",
+    "user interface",
+    "mockup",
+    "wireframe",
+    "dictionary",
+    "deployment",
+)
+
+
+def _unit_brief(requirement_id: str, section: str | None) -> str:
+    """Pick the specialist briefing for this unit, or "" for a plain atomic
+    requirement (the generic checklist already fits those)."""
+    rid = requirement_id.upper()
+    if rid.startswith("UC"):
+        return _UC_BRIEF
+    if rid.startswith("BR"):
+        return _BR_BRIEF
+    if rid.startswith(("NFR", "NF-")):
+        return _NFR_BRIEF
+    sec = (section or "").lower()
+    if any(hint in sec for hint in _NFR_HINTS):
+        return _NFR_BRIEF
+    if any(hint in sec for hint in _SDS_HINTS):
+        return _SDS_BRIEF
+    if rid.startswith("SEC"):
+        return _SECTION_BRIEF
+    return ""
+
+
 
 def review_system_prompt(rubric: dict[str, Any]) -> str:
     return _REVIEW_SYSTEM.format(criteria=criteria_lines(rubric))
@@ -72,6 +172,9 @@ def review_user_prompt(
         header += f"\nsection: {section}"
     if page_index is not None:
         header += f"\npage_index: {page_index}"
+    brief = _unit_brief(requirement_id, section)
+    if brief:
+        header += f"\n\n{brief}"
     return f'{header}\ntext:\n"""\n{text}\n"""'
 
 

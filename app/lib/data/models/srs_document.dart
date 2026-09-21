@@ -30,7 +30,7 @@ const Set<String> kSupportedDocumentExtensions = {'pdf', 'docx'};
 /// a unit, and NFR-/NF-/BR- ids carry their own kind. An official capstone
 /// SRS (Product Overview → Use Cases → Functional → Non-Functional →
 /// Appendix) used to yield use cases only; it now yields every part.
-const String kParserVersion = '1.4.0';
+const String kParserVersion = '1.4.1';
 
 enum RequirementKind {
   /// FR-xx / F-xx / SR-xx style functional statement — and, until 1.3.0, the

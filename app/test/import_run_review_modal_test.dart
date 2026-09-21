@@ -111,8 +111,11 @@ void main() {
       await tester.tap(find.text('Bắt đầu chấm điểm AI'));
       await tester.pumpAndSettle();
 
+      // Parser 1.4.0: an id with no known prefix (XX-1) now takes the kind
+      // the parser assigned (`useCase` in this fixture) instead of landing in
+      // `unknown`, so it is selected too — 3 units, not 2.
       expect(
-        find.text('Chấm 2 mục', skipOffstage: false),
+        find.text('Chấm 3 mục', skipOffstage: false),
         findsOneWidget,
         reason:
             'the review modal must open with its run action after a real import',

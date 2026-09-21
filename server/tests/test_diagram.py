@@ -143,6 +143,22 @@ def test_nonempty_inventory_still_binds_to_requested_type(client, monkeypatch):
     assert all(f["family"] == "ERD" for f in r.json()["verdict"]["findings"])
 
 
+def test_activity_type_gets_act_family_and_its_own_judge_question(client, monkeypatch):
+    """uml25-diagram-policy §9, diagram prompt d2 (2026-09-21): activity
+    diagrams no longer travel as unknown/DOC — they get the guard/fork-join/
+    flowchart judge question and file under the ACT family."""
+    provider = RecordingProvider()
+    _patch_provider(monkeypatch, provider)
+    r = client.post("/diagram", json=_req(diagram_type="activity"))
+    assert r.status_code == 200
+    body = r.json()
+    assert body["diagram_type"] == "activity"
+    assert all(f["family"] == "ACT" for f in body["verdict"]["findings"])
+    judge = next(c for c in provider.calls if c["kind"] == "judge")
+    assert "FLOWCHART" in judge["system"]
+    assert "guard" in judge["system"]
+
+
 def _patch_provider(monkeypatch, provider):
     import app.main as main
 
@@ -269,6 +285,7 @@ class TestPureLogic:
             "class",
             "use_case",
             "component",
+            "activity",
             "unknown",
         }
 

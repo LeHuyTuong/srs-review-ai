@@ -37,17 +37,17 @@ enum DiagramKind {
   /// the right question for a C4 container/component diagram too.
   component('component', 'PKG'),
 
-  /// Activity diagrams / flowcharts. server/app/diagram.py has no
-  /// ACTIVITY `DiagramType` and no `ACT` ID family (the judge schema
-  /// whitelists only ERD/SM/SEQ-CLS/UC/PKG/DOC), so this kind travels as
-  /// `unknown` and files under `DOC`: the describe-only judge, which is
-  /// honest — nobody grades activity notation on the server yet. Naming
-  /// the kind still buys something: [unknown] does not earn an
-  /// audit slot for a text-only page (VisionReviewService.candidates),
-  /// while a page that says "activity diagram" does — OTES's real
-  /// activity figures (Fig. 78/79) are vector drawings with no embedded
-  /// image object, so the name is the only thing that finds them.
-  activity('unknown', 'DOC'),
+  /// Activity diagrams / flowcharts. Since 2026-09-21 (diagram prompt d2)
+  /// the server has a real ACTIVITY `DiagramType` and `ACT` ID family with a
+  /// judge question ported from uml25-diagram-policy.md §9 (initial/final,
+  /// decision guards, fork/join balance, flowchart confusion), so this kind
+  /// now travels as `activity` and files under `ACT`. Naming the kind was
+  /// already load-bearing before the wire existed: [unknown] does not earn an
+  /// audit slot for a text-only page (VisionReviewService.candidates), while
+  /// a page that says "activity diagram" does — OTES's real activity figures
+  /// (Fig. 78/79) are vector drawings with no embedded image object, so the
+  /// name is the only thing that finds them.
+  activity('activity', 'ACT'),
   unknown('unknown', 'DOC');
 
   const DiagramKind(this.wire, this.family);

@@ -21,7 +21,7 @@ Nguyên tắc chung cho **mọi** diagram, bất kể loại:
 
 **G8a — cách đếm khi tài liệu KHÔNG có hệ đánh số hình nào** *(1.6, chỗ mơ hồ A4)*. Bản trước chỉ viết "số hiệu duy nhất", và một tài liệu **không đánh số gì cả** thoả "duy nhất" theo nghĩa rỗng — hai người chấm đọc ra `0/21` và `21/21`, chênh 0.37 điểm trên thang 10. Từ 1.6: điều kiện (i) đứng trước, nên **không có số hiệu = trượt**. Tử số của G8a = số hình vừa có số hiệu vừa duy nhất; tài liệu không đánh số nào → `0/N`, không phải `N/N`. Luật chung rút ra, áp cho mọi tiêu chí sau này: **"duy nhất" không bao giờ tự nó là một tiêu chí — luôn phải đi kèm "có tồn tại".**
 
-Family (ledger) theo loại: `UC` `ACT` `SM` `SEQ-CLS` `PKG` `DEP` `ERD` `DOC`. Server hiện không có `ACT` (Activity đi đường `unknown`/`DOC`) và không có `DEP` (Deployment tạm gộp vào `component`/`PKG`); xem `adapters/app-port-map.md`.
+Family (ledger) theo loại: `UC` `ACT` `SM` `SEQ-CLS` `PKG` `DEP` `ERD` `DOC`. Server **đã có `ACT`** (diagram prompt d2, 2026-09-21 — judge question port từ §9 xuống `server/app/diagram.py`, app gửi wire `activity`); vẫn chưa có `DEP` (Deployment tạm gộp vào `component`/`PKG`); xem `adapters/app-port-map.md`.
 
 ---
 
@@ -88,7 +88,7 @@ Câu hỏi chấm (kế thừa server USE_CASE):
 - Cross-artifact: mỗi oval ↔ đúng 1 `UC-NNN` có bảng đặc tả; số oval ≈ `ucCount` ≥ 20 (bỏ trần 25 từ v0.2; kích thước 3–7 transaction là tiêu chí điểm riêng).
 - **include/extend đúng nghĩa** (1.2 — `use-case-guide.md` §1): «include» chỉ khi base **không hoàn chỉnh** nếu thiếu; «extend» chỉ khi có **condition + extension point** ghi ra; UC được include chỉ có 1 base và < 3 transaction → amber "inline"; UC có ≥ 3 cạnh trỏ vào mà không có bảng đặc tả → **red hub giả**; Login được include ở ≥ 3 UC → amber, chuyển thành precondition.
 
-### 9. Activity diagram — family `ACT` (mới, hiện đi đường DOC)
+### 9. Activity diagram — family `ACT` (đã port vào server 2026-09-21, prompt d2)
 Dùng cho UC có ≥ 2 nhánh alternative (RULEBOOK Q2) hoặc business process.
 Câu hỏi chấm:
 - Có ≥ 1 initial node và ≥ 1 activity final. (UML 2.5 cho phép nhiều initial node; **house style** của rulebook: > 1 initial → amber, phải giải thích trong G2.) Flow final chỉ khi kết thúc một nhánh song song.

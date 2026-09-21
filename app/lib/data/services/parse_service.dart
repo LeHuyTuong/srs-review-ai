@@ -153,9 +153,7 @@ class PdfParser implements DocumentParser {
           onStatus('Extracting text (page ${page + 1}/$pageCount)…');
           await Future<void>.delayed(Duration.zero);
         }
-        pageTexts.add(
-          extractor.extractText(startPageIndex: page, endPageIndex: page),
-        );
+        pageTexts.add(_extractPageText(extractor, page));
       }
 
       if (pageTexts.every((text) => text.trim().isEmpty)) {
@@ -185,6 +183,74 @@ class PdfParser implements DocumentParser {
     } finally {
       document.dispose();
     }
+  }
+
+  /// Two text runs whose tops differ by at most this many pixels are the same
+  /// visual row. Word's PDF export splits one printed line into several runs
+  /// whose baselines differ by a pixel or two (the OTES report puts a
+  /// heading's number at top=93 and its title at top=92).
+  static const double _sameRowTolerance = 3;
+
+  /// Rebuilds a page's text from `extractTextLines` instead of `extractText`.
+  ///
+  /// Why: on Word-exported PDFs `extractText` emits **one word per line**
+  /// (measured on the 217-page OTES report: every body page averages 1.0
+  /// words/line, so `3.3 Availability` arrives as `3.3` / `Availability` on
+  /// separate lines). Every downstream pattern — `_sectionHeading`, modal
+  /// sentences, numbered use-case steps — expects real lines, so with the raw
+  /// extraction the entire prose of the document was invisible and only the
+  /// TOC-driven use-case tables survived. Grouping the extractor's text lines
+  /// by vertical position restores real lines ("3.3 Availability",
+  /// "● The system must be available at any time 24/7").
+  static String _extractPageText(PdfTextExtractor extractor, int page) {
+    final lines = extractor.extractTextLines(
+      startPageIndex: page,
+      endPageIndex: page,
+    );
+    if (lines.isEmpty) {
+      return extractor.extractText(startPageIndex: page, endPageIndex: page);
+    }
+    return joinVisualLines([
+      for (final line in lines)
+        (
+          top: line.bounds.top,
+          left: line.bounds.left,
+          text: line.text.trim(),
+        ),
+    ]);
+  }
+
+  /// Groups text runs into visual rows (same `top` within
+  /// [_sameRowTolerance]), orders rows top-to-bottom and runs inside a row
+  /// left-to-right, then joins runs with a single space and rows with a
+  /// newline. Pure function so the regrouping is unit-testable without a PDF.
+  @visibleForTesting
+  static String joinVisualLines(
+    List<({double top, double left, String text})> runs,
+  ) {
+    final sorted = [...runs]
+      ..sort((a, b) {
+        final byTop = a.top.compareTo(b.top);
+        return byTop != 0 ? byTop : a.left.compareTo(b.left);
+      });
+    final rows = <List<({double left, String text})>>[];
+    var rowTop = double.nan;
+    for (final run in sorted) {
+      if (run.text.isEmpty) continue;
+      if (rows.isEmpty || (run.top - rowTop).abs() > _sameRowTolerance) {
+        rows.add([(left: run.left, text: run.text)]);
+        rowTop = run.top;
+      } else {
+        rows.last.add((left: run.left, text: run.text));
+      }
+    }
+    return rows
+        .map(
+          (row) => (row..sort((a, b) => a.left.compareTo(b.left)))
+              .map((run) => run.text)
+              .join(' '),
+        )
+        .join('\n');
   }
 
   /// Heuristic stand-in for real image extraction (the package has no API for
