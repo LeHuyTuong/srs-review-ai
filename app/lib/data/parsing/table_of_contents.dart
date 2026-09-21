@@ -123,9 +123,11 @@ class TableOfContents {
   /// some files whose whole outline is numeric. The numeric form only survives
   /// [minEntriesPerTocPage] lines on one page, which is what keeps a body
   /// heading (`3.2 Functional Requirements 12`, appearing once) from being read
-  /// as an index entry.
+  /// as an index entry. Roman numerals (`II. Table of Contents … 3`) are the
+  /// third shape: the official standalone-SRS template numbers its front
+  /// matter that way before switching to `1.`, `2.` for the body.
   static final RegExp _chapter = RegExp(
-    r'^([A-Z]|\d+(?:\.\d+)*)[.)]\s+(\S.*?)\s*[\s.\u00b7]*\s(\d{1,4})\s*$',
+    r'^([A-Z]|[IVX]{2,4}|\d+(?:\.\d+)*)[.)]\s+(\S.*?)\s*[\s.\u00b7]*\s(\d{1,4})\s*$',
   );
 
   /// Dot leaders (`.....`) — runs of two or more dots. A single dot must

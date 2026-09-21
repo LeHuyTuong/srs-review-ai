@@ -423,6 +423,69 @@ void main() {
     test('an unreadable outline is not judged at all', () {
       expect(checks.missingSections(_blueprint(sections: [])), isEmpty);
     });
+
+    SectionRange section(String id, String title, int start) => SectionRange(
+      id: id,
+      title: title,
+      printedStart: start,
+      printedEnd: start + 4,
+      pdfStartIndex: start - 1,
+      pdfEndIndex: start + 3,
+    );
+
+    test('a standalone SRS is judged against the SRS frame', () {
+      // The official capstone SRS template speaks none of the five-part
+      // report frame, so this outline used to go unjudged: a missing
+      // non-functional chapter was invisible.
+      final findings = checks.missingSections(
+        _blueprint(
+          sections: [
+            section('A', 'Record of Changes', 1),
+            section('B', 'Product Overview', 4),
+            section('C', 'User Requirements', 6),
+            section('D', 'Functional Requirements', 11),
+            section('E', 'Requirement Appendix', 17),
+          ],
+        ),
+      );
+
+      expect(findings, hasLength(1));
+      expect(findings.single.subject, 'Non-Functional Requirements');
+      expect(findings.single.severity, Severity.high);
+    });
+
+    test('the non-functional chapter does not satisfy "functional"', () {
+      final findings = checks.missingSections(
+        _blueprint(
+          sections: [
+            section('A', 'Tổng quan sản phẩm', 1),
+            section('B', 'Yêu cầu người dùng', 4),
+            section('C', 'Yêu cầu phi chức năng', 9),
+          ],
+        ),
+      );
+
+      expect(
+        findings.map((f) => f.subject),
+        containsAll(['Functional Requirements', 'Requirement Appendix']),
+      );
+      expect(
+        findings.map((f) => f.subject),
+        isNot(contains('Non-Functional Requirements')),
+      );
+    });
+
+    test('a five-part report is still judged by the report frame', () {
+      // Both frames match "Introduction"; only the report frame matches the
+      // rest — the tie-break must not drag a full report onto the SRS frame.
+      final findings = checks.missingSections(
+        _blueprint(sections: [_fullOutline[0], _fullOutline[2]]),
+      );
+      expect(
+        findings.map((f) => f.subject),
+        containsAll(['Project Management Plan', 'Software Design Description']),
+      );
+    });
   });
 
   group('unclassified figures', () {

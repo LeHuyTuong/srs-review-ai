@@ -18,6 +18,7 @@ import '../models/deterministic_finding.dart';
 import '../models/document_blueprint.dart';
 import '../models/review_models.dart' show Severity;
 import 'diagram_type_classifier.dart' show DiagramKind;
+import 'text_fold.dart';
 
 /// A report part a frame expects, matched against the chapter TITLE — never a
 /// page number or a letter. Reports divide themselves by page and letter their
@@ -48,11 +49,20 @@ class BlueprintChecks {
   /// as a missing number rather than a new run (see [BlueprintChecks.numberingGaps]).
   const BlueprintChecks({
     this.expectedSections = defaultExpectedSections,
+    this.alternativeFrames = const [srsReportExpectedSections],
     this.maxGap = 3,
   });
 
-  /// The frame this instance judges against.
+  /// The frame this instance judges against first.
   final List<ExpectedSection> expectedSections;
+
+  /// Frames tried when the document speaks a different outline. A standalone
+  /// SRS (the official capstone template: Product Overview → User
+  /// Requirements → Functional → Non-Functional → Appendix) matches none of
+  /// the five-part report frame, so with only [expectedSections] the check
+  /// went silent on exactly the document type most students upload. The
+  /// frame with the most declared parts wins; ties go to [expectedSections].
+  final List<List<ExpectedSection>> alternativeFrames;
 
   /// A gap wider than this counts as "the index started a new run" rather than
   /// a missing artifact. Verified against a real capstone LoT/LoF: the genuine
@@ -84,6 +94,39 @@ class BlueprintChecks {
       'System Implementation & Test',
       r'implementation|system test|test plan|testing',
       Severity.medium,
+    ),
+  ];
+
+  /// The official standalone-SRS outline (FPT capstone template), for a
+  /// document that is the SRS rather than the five-part report around it.
+  /// Patterns are matched on folded titles, hence the accent-less Vietnamese.
+  /// "Functional Requirements" must not be satisfied by the non-functional
+  /// chapter, so that pattern refuses any title that says `non-functional`.
+  static const List<ExpectedSection> srsReportExpectedSections = [
+    ExpectedSection(
+      'Product Overview',
+      r'product overview|overview|introduction|tong quan|gioi thieu',
+      Severity.medium,
+    ),
+    ExpectedSection(
+      'User Requirements',
+      r'user requirement|use case|yeu cau nguoi dung',
+      Severity.high,
+    ),
+    ExpectedSection(
+      'Functional Requirements',
+      r'^(?!.*non[\s-]?functional).*functional requirement|yeu cau chuc nang',
+      Severity.high,
+    ),
+    ExpectedSection(
+      'Non-Functional Requirements',
+      r'non[\s-]?functional|quality attribute|phi chuc nang',
+      Severity.high,
+    ),
+    ExpectedSection(
+      'Requirement Appendix',
+      r'appendix|business rule|phu luc',
+      Severity.low,
     ),
   ];
 
@@ -204,23 +247,28 @@ class BlueprintChecks {
   /// ignore the check — the failure direction that kills a checker.
   List<DeterministicFinding> missingSections(DocumentBlueprint blueprint) {
     if (blueprint.sections.isEmpty) return const [];
-    final declared = <ExpectedSection>{};
-    for (final expected in expectedSections) {
-      final found = blueprint.sections.any(
-        (section) => section.matchesTitle(expected.pattern),
-      );
-      if (found) declared.add(expected);
+    // The frame the document speaks most of. Strictly more matches to switch
+    // away from the primary frame, so an outline that fits both equally is
+    // still judged as the report it was configured as.
+    var frame = expectedSections;
+    var declared = _declaredParts(blueprint, frame);
+    for (final alternative in alternativeFrames) {
+      final alternativeDeclared = _declaredParts(blueprint, alternative);
+      if (alternativeDeclared.length > declared.length) {
+        frame = alternative;
+        declared = alternativeDeclared;
+      }
     }
     // The frame applies when enough of it shows up. `minFrameMatches` for a
     // full-size frame (one "Introduction" alone proves nothing); half the parts
     // for a small one (a 2-part frame can only ever be half missing, and that
     // half is exactly what the check must catch).
-    final halfFrame = (expectedSections.length + 1) ~/ 2;
+    final halfFrame = (frame.length + 1) ~/ 2;
     final threshold = minFrameMatches < halfFrame ? minFrameMatches : halfFrame;
     if (declared.length < threshold) return const [];
 
     final findings = <DeterministicFinding>[];
-    for (final expected in expectedSections) {
+    for (final expected in frame) {
       if (declared.contains(expected)) continue;
       findings.add(
         DeterministicFinding(
@@ -235,6 +283,24 @@ class BlueprintChecks {
       );
     }
     return findings;
+  }
+
+  /// Matched on FOLDED titles (lowercase, ASCII — see text_fold.dart), so a
+  /// frame names `yeu cau phi chuc nang` once and matches `Yêu cầu phi chức
+  /// năng` however the PDF encoded its diacritics. English is unaffected.
+  Set<ExpectedSection> _declaredParts(
+    DocumentBlueprint blueprint,
+    List<ExpectedSection> frame,
+  ) {
+    final declared = <ExpectedSection>{};
+    for (final expected in frame) {
+      final pattern = expected.pattern;
+      final found = blueprint.sections.any(
+        (section) => pattern.hasMatch(foldVietnamese(section.title)),
+      );
+      if (found) declared.add(expected);
+    }
+    return declared;
   }
 
   // ---------------------------------------------------- unclassified figures

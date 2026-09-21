@@ -222,7 +222,11 @@ class QualityChecks {
   /// target, and charging it a high-severity "unquantified NFR" is exactly
   /// the false positive that gets a whole checker ignored (see this file's
   /// header: recall is traded for precision, deliberately).
+  /// Parser-typed NFRs first (an `NF-01` row, prose under `4.2.3
+  /// Performance`), then the legacy id/section-word fallbacks for documents
+  /// parsed before 1.4.0 typed them.
   bool _looksNonFunctional(RequirementItem item) =>
+      item.kind == RequirementKind.nonFunctional ||
       _nfrPrefix.hasMatch(item.id.trim()) ||
       (item.kind != RequirementKind.useCase &&
           _nfrSectionWord.hasMatch(foldVietnamese(item.text)));
