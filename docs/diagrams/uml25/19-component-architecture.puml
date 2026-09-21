@@ -1,0 +1,75 @@
+@startuml
+!include /Volumes/SSD/Dev/active/PRM392_FlutterMobile/diagrams-agent/style.iuml
+
+rectangle "Flutter app" as App {
+  component "Workspace UI" as UI
+  component "WorkspaceViewModel" as VM
+  component "DocumentRepository" as Doc
+  component "ReviewRepository" as Repo
+  component "VisionReviewService" as Vision
+  component "AskDocument" as Ask
+  component "ReportExporter" as Export
+  component "SessionStore" as Store
+  component "PageImageSelector" as Selector
+  component "PageImageRenderer" as Renderer
+  component "UploadService" as Upload
+  interface "ReviewApi" as IApi
+  component "ApiService" as Api
+  component "MockReviewApi" as Mock
+}
+
+rectangle "FastAPI proxy" as Proxy {
+  component "REST routes" as Routes
+  component "Auth + bounds" as Guard
+  database "Review cache" as ReviewCache
+  database "Diagram cache" as DiagramCache
+  component "RateLimiter" as Limit
+  component "QuoteVerifier" as Verify
+  component "ProviderRouter" as Router
+  database "ShareStore" as Share
+  database "UploadStore" as UploadStore
+}
+
+component "Gemini API" as Gemini
+database "SharedPreferences" as Prefs
+database "server/.shares" as Shares
+database "server/.uploads" as Uploads
+
+UI ..> VM : commands + state
+VM ..> Doc : import
+VM ..> Repo : review
+VM ..> Vision : audit
+VM ..> Ask : hỏi
+VM ..> Export : xuất
+VM ..> Store : lưu
+Repo ..> Selector : lập kế hoạch ảnh
+Repo ..> Renderer : render
+Vision ..> Renderer : render
+Vision ..> IApi : diagramAudit
+Ask ..> IApi : ask
+Repo ..> IApi : uses
+Api ..|> IApi : implements
+Mock ..|> IApi : implements
+Api --> Routes : HTTPS
+Mock ..> Routes : không gọi
+Routes ..> Guard : auth + bounds
+ReviewCache ..> Guard : lookup trước
+DiagramCache ..> Guard : lookup trước
+ReviewCache ..> Limit : miss
+DiagramCache ..> Limit : miss
+Limit ..> Router : 50/ngày
+Router ..> Gemini : primary + fallback
+Routes ..> Verify : review/ask
+Routes ..> Share : /share
+Routes ..> UploadStore : groundwork
+Upload ..> Routes : presign + PUT
+Share --> Shares : HTML
+UploadStore --> Uploads : raw bytes
+Store --> Prefs : snapshot + history
+Upload ..> VM : chưa có caller
+
+note bottom of App
+  MockReviewApi là client offline;
+  server MockProvider chỉ chạy nếu request tới proxy.
+end note
+@enduml

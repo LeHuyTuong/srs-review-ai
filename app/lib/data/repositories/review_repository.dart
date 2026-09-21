@@ -109,7 +109,16 @@ class ReviewRepository {
         .take(AppConfig.maxRequirementsPerRun)
         .toList(growable: false);
     final candidatePages = imageReviewEnabled
-        ? document.imagePageIndexes.toSet()
+        ? {
+            ...document.imagePageIndexes,
+            // Pages the document's own index says hold a figure. An embedded
+            // image is only half the evidence — the OTES diagrams are vector
+            // drawings with no image object, so the index is the only way
+            // they ever become attachable.
+            if (document.blueprint != null)
+              for (final figure in document.blueprint!.figures)
+                if (figure.isResolved) figure.pdfPageIndex!,
+          }
         : const <int>{};
     final pageImageSelector = imageReviewEnabled
         ? PageImageSelector(budget: ImageBudget())
@@ -151,6 +160,7 @@ class ReviewRepository {
           text: items[index].text,
           pageIndex: items[index].pageIndex,
           candidatePages: candidatePages,
+          blueprint: document.blueprint,
         );
         plans[occurrenceKey] = plan;
         decisionCounts[plan.decision.name] =

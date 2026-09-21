@@ -1,0 +1,37 @@
+@startuml
+!include /Volumes/SSD/Dev/active/PRM392_FlutterMobile/diagrams-agent/style.iuml
+left to right direction
+
+actor "Sinh viên" as Student
+actor "Giám khảo" as Supervisor
+
+rectangle "SRS Review AI" as SYS {
+  usecase "Nhập PDF/DOCX" as UC1
+  usecase "Phân loại unit" as UC2
+  usecase "Review trực tuyến" as UC3
+  usecase "Review ngoại tuyến" as UC4
+  usecase "Audit sơ đồ" as UC5
+  usecase "Hỏi tài liệu" as UC6
+  usecase "Xuất báo cáo" as UC7
+  usecase "Chia sẻ liên kết" as UC8
+
+  Student --> UC1
+  Student --> UC2
+  Student --> UC3
+  Student --> UC4
+  Student --> UC5
+  Student --> UC6
+  Student --> UC7
+  Supervisor --> UC8
+
+  UC1 ..> UC2 : <<include>>
+  UC5 ..> UC3 : <<extend>>
+  UC8 ..> UC7 : <<extend>>
+}
+
+note bottom of SYS
+  Review trực tuyến dùng FastAPI + Gemini.
+  Review ngoại tuyến dùng MockReviewApi, không gọi mạng.
+  Audit sơ đồ là luồng riêng, tối đa 10 trang.
+end note
+@enduml

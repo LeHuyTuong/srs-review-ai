@@ -75,7 +75,38 @@ enum CheckId {
   /// "available 99.5% of the time, measured monthly" does not, even though
   /// neither contains a listed vague phrase. The rulebook grades this red;
   /// the app was silent on it until now.
-  nfrUnquantified;
+  nfrUnquantified,
+
+  // ------------------------------------------------ document index (blueprint)
+  // These five read the document's own `List of Tables` / `List of Figures` /
+  // chapter list (see `DocumentBlueprint`). They exist because the index is the
+  // cheapest place to catch structural damage: a duplicated use-case caption or
+  // a figure number that skips costs zero tokens to find, and no AI pass can
+  // see it at all, because the AI only ever reads requirement text.
+
+  /// Two or more tables in `List of Tables` share a caption. The classic
+  /// copy-paste defect: three use cases in one real capstone LoT were all
+  /// still called "Save student's video".
+  duplicateCaption,
+
+  /// A figure/table number is missing inside a section's run — the index jumps
+  /// from 39 to 41. Not proof of a missing artifact (authors renumber), which
+  /// is why it stays [Severity.low].
+  numberingGap,
+
+  /// A part a capstone report is expected to declare (Introduction, Project
+  /// Management Plan, SRS, Design Description, Implementation & Test) is absent
+  /// from the chapter list.
+  missingSection,
+
+  /// A figure caption names no recognisable diagram kind, so the vision pass
+  /// cannot pick a judge for it from the index alone.
+  unclassifiedFigure,
+
+  /// The index points at a page where its caption is not: the page numbers are
+  /// stale (usually because the file was edited but the index was not
+  /// refreshed). Only reported when the blueprint's page mapping is trusted.
+  captionPageMismatch;
 
   // NOT here, deliberately: `idFormat` (rulebook 1.5 §4, id shape).
   // `requirement_splitter._canonicalId` rewrites every parsed id to
@@ -100,6 +131,11 @@ enum CheckId {
     CheckId.missingPriority => 'missing_priority',
     CheckId.diagramAudit => 'diagram_audit',
     CheckId.nfrUnquantified => 'nfr_unquantified',
+    CheckId.duplicateCaption => 'duplicate_caption',
+    CheckId.numberingGap => 'numbering_gap',
+    CheckId.missingSection => 'missing_section',
+    CheckId.unclassifiedFigure => 'unclassified_figure',
+    CheckId.captionPageMismatch => 'caption_page_mismatch',
   };
 
   String get label => switch (this) {
@@ -115,6 +151,24 @@ enum CheckId {
     CheckId.missingPriority => 'Priority field',
     CheckId.diagramAudit => 'Diagram audit',
     CheckId.nfrUnquantified => 'Unquantified NFR',
+    CheckId.duplicateCaption => 'Duplicate caption in index',
+    CheckId.numberingGap => 'Index numbering gap',
+    CheckId.missingSection => 'Missing report part',
+    CheckId.unclassifiedFigure => 'Unclassified figure',
+    CheckId.captionPageMismatch => 'Index page out of date',
+  };
+
+  /// True for the document-index (blueprint) checks. They read the table of
+  /// contents rather than the requirement text, so the dashboard groups them
+  /// separately from both F7/F8/F9 and the M2 reference checks — their fixes
+  /// live in the index/artifacts, not in a requirement sentence.
+  bool get isBlueprintCheck => switch (this) {
+    CheckId.duplicateCaption ||
+    CheckId.numberingGap ||
+    CheckId.missingSection ||
+    CheckId.unclassifiedFigure ||
+    CheckId.captionPageMismatch => true,
+    _ => false,
   };
 
   /// True for M2 reference checks; they live next to F7/F8/F9 in the

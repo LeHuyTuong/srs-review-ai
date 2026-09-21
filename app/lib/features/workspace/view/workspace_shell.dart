@@ -99,23 +99,18 @@ class WorkspaceShell extends ConsumerWidget {
         );
     });
 
-    // Errors must reach the shell too. A run used to be started from a modal
-    // that popped itself immediately, so any error it produced was written
-    // into a widget tree that no longer existed — the user saw nothing at all.
+    // No snackbar for errors any more: a 6-second bar is gone before it has
+    // been read, and a failed AI run leaves nothing else behind — every unit
+    // just sits there marked failed with no reason attached. The error rides
+    // in the chrome as [_ErrorBanner] instead and stays until the user closes
+    // it. This listener only keeps the two channels from talking over each
+    // other: a fresh error dismisses any toast still on screen.
     ref.listen(workspaceViewModelProvider.select((state) => state.error), (
       previous,
       next,
     ) {
       if (next == null || next.isEmpty) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(workspaceMessage(next)),
-            duration: const Duration(seconds: 6),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
     });
 
     // The chrome FLOATS OVER the content, which is what makes the glass glass.
@@ -209,6 +204,7 @@ class WorkspaceShell extends ConsumerWidget {
                       mockMode: mockMode,
                     ),
                     const ReviewProgressBar(),
+                    const _ErrorBanner(),
                   ],
                 ),
               ),
@@ -629,6 +625,116 @@ class ReviewProgressBar extends ConsumerWidget {
                   ),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The error banner — the only surface that reports a failure, and the only
+/// one that waits to be read.
+///
+/// Errors used to be a 6-second snack bar. A failed AI run produces no other
+/// trace: the units stay marked failed, the findings list stays empty, and the
+/// verdict still reads 0/10, so once the bar slid away the user had nothing
+/// left to explain any of it. This banner therefore has no timer at all — it
+/// shows [WorkspaceState.error] until [WorkspaceViewModel.dismissError] is
+/// called, and it sits in the chrome so it survives every tab switch and
+/// every route pushed inside the shell.
+///
+/// It is also where the cause has to be readable: "Chấm điểm thất bại: …"
+/// carries the proxy's own message, so a dead server, a spent daily quota and
+/// a rejected payload are three different sentences rather than one shrug.
+class _ErrorBanner extends ConsumerWidget {
+  const _ErrorBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final error = ref.watch(
+      workspaceViewModelProvider.select((state) => state.error),
+    );
+    if (error == null || error.isEmpty) return const SizedBox.shrink();
+
+    final viewModel = ref.read(workspaceViewModelProvider.notifier);
+    final colors = context.workspaceColors;
+    final theme = Theme.of(context);
+    final errorFg = theme.colorScheme.error;
+    final errorBg = Color.alphaBlend(
+      errorFg.withValues(alpha: 0.10),
+      colors.surface,
+    );
+
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: 'Lỗi: ${workspaceMessage(error)}',
+      child: GlassSurface(
+        key: const Key('error-banner'),
+        compact: true,
+        radius: 0,
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.sm,
+          AppSpacing.xs,
+          AppSpacing.sm,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Icon(Icons.error_outline, size: 18, color: errorFg),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Có lỗi xảy ra',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: errorFg,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  // Not clipped to one line: the whole point of this surface is
+                  // that the reason can actually be read.
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: errorBg,
+                      borderRadius: AppRadius.boxSm,
+                    ),
+                    child: Text(
+                      workspaceMessage(error),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colors.ink,
+                        height: 1.6,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // 48 px target, like the progress bar's Cancel: this is the only
+            // control on the surface and it must be reachable on touch.
+            SizedBox(
+              height: 48,
+              child: IconButton(
+                key: const Key('error-banner-dismiss'),
+                tooltip: 'Đóng thông báo lỗi',
+                icon: const Icon(Icons.close, size: 18),
+                color: colors.muted,
+                onPressed: viewModel.dismissError,
+              ),
+            ),
           ],
         ),
       ),

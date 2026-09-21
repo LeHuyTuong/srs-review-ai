@@ -30,9 +30,26 @@ class SyllabusChecks {
     ...const QualityChecks().run(document),
   ];
 
+  /// What F7/F9 are actually measuring. When the document's index declares an
+  /// SRS chapter, only the requirements that live INSIDE it count — the design
+  /// and test chapters carry their own tables, and counting those as use cases
+  /// is how a report's requirement count inflates past what it can defend.
+  /// Requirements without a page index (DOCX flattening) stay in: undercounting
+  /// is the dangerous failure direction, not overcounting. No index at all
+  /// (DOCX, TOC-less PDF) → the whole document, exactly as before.
+  Iterable<RequirementItem> srsScopedRequirements(SrsDocument document) {
+    final section = document.blueprint?.srsSection;
+    if (section == null) return document.requirements;
+    return document.requirements.where(
+      (r) => r.pageIndex == null || section.containsIndex(r.pageIndex!),
+    );
+  }
+
   // ---------------------------------------------------------------- F7
   DeterministicFinding useCaseCount(SrsDocument document) {
-    final count = document.useCaseCount;
+    final count = srsScopedRequirements(
+      document,
+    ).where((r) => r.isUseCase).length;
     final min = rubric.ucCountMin;
     final max = rubric.ucCountMax;
 
@@ -116,7 +133,9 @@ class SyllabusChecks {
     final min = rubric.ucMinTransactions;
     final max = rubric.ucMaxTransactions;
 
-    for (final uc in document.requirements.where((r) => r.isUseCase)) {
+    for (final uc in srsScopedRequirements(document).where(
+      (r) => r.isUseCase,
+    )) {
       final count = TransactionCounter.count(uc.text);
       if (count < min) {
         findings.add(

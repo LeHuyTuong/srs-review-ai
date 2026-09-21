@@ -1,0 +1,67 @@
+@startuml
+!include /Volumes/SSD/Dev/active/PRM392_FlutterMobile/diagrams-agent/style.iuml
+
+|Người dùng|
+start
+:Chọn PDF/DOCX;
+|Flutter UI|
+:gửi importDocument;
+|DocumentRepository|
+:đọc bytes;
+:parse PDF/DOCX;
+:tách requirement;
+|ViewModel|
+:chạy kiểm tra tất định;
+:hiện inventory;
+if (Có unit được chọn?) then (có)
+  |ViewModel|
+  :kẹp tối đa 60 unit;
+  fork
+    |ReviewRepository|
+    :worker 1;
+  fork again
+    :worker 2;
+  fork again
+    :worker 3;
+  fork again
+    :worker 4;
+  end fork
+  |FastAPI|
+  :POST /review;
+  |Gemini/Mock|
+  :generate_json;
+  |FastAPI|
+  :QuoteVerifier;
+  |ViewModel|
+  :tổng hợp kết quả;
+else (không)
+  |ViewModel|
+  :không gọi proxy;
+endif
+|Người dùng|
+if (Audit sơ đồ?) then (có)
+  |ViewModel|
+  :auditDiagrams;
+  |VisionReviewService|
+  :named-first + visual-only, tối đa 10 trang;
+  :render từng trang;
+  |FastAPI|
+  :POST /diagram;
+  |Gemini|
+  :Describe;
+  :Judge;
+  |ViewModel|
+  :cập nhật ledger diagram;
+endif
+|Người dùng|
+:Export Markdown/JSON/HTML;
+if (Chia sẻ liên kết?) then (online)
+  |ViewModel|
+  :mintShareLink;
+  |FastAPI|
+  :POST /share;
+  |ShareStore|
+  :lưu HTML;
+endif
+stop
+@enduml

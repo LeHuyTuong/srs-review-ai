@@ -14,9 +14,15 @@
 /// false "no diagram" silently downgrades the review.
 library;
 
+import '../models/document_blueprint.dart';
+
 /// What [DiagramDetector] decided about one requirement's text.
 class DiagramSignal {
-  const DiagramSignal({required this.mentionsDiagram, this.matchedTerm});
+  const DiagramSignal({
+    required this.mentionsDiagram,
+    this.matchedTerm,
+    this.resolvedPageIndex,
+  });
 
   /// True when the text carries direct diagram evidence.
   final bool mentionsDiagram;
@@ -24,6 +30,12 @@ class DiagramSignal {
   /// The first keyword that fired — shown in findings so a user can audit
   /// why the app treated their requirement as diagram-bearing.
   final String? matchedTerm;
+
+  /// When the text names a figure ("Figure 12") and the document's own index
+  /// knows that figure, this is the 0-based page the figure actually lives on
+  /// — resolved by the blueprint, not guessed from where the requirement sits.
+  /// Null for every keyword-only signal.
+  final int? resolvedPageIndex;
 
   /// Alias used by the callers that think in terms of "diagram intent"
   /// (e.g. `PageImageDecision.skippedNoDiagramIntent`). Reads better at those
@@ -34,15 +46,18 @@ class DiagramSignal {
   bool operator ==(Object other) =>
       other is DiagramSignal &&
       other.mentionsDiagram == mentionsDiagram &&
-      other.matchedTerm == matchedTerm;
+      other.matchedTerm == matchedTerm &&
+      other.resolvedPageIndex == resolvedPageIndex;
 
   @override
-  int get hashCode => Object.hash(mentionsDiagram, matchedTerm);
+  int get hashCode =>
+      Object.hash(mentionsDiagram, matchedTerm, resolvedPageIndex);
 
   @override
   String toString() => matchedTerm == null
       ? 'DiagramSignal(mentionsDiagram: $mentionsDiagram)'
-      : 'DiagramSignal(mentionsDiagram: $mentionsDiagram, matched: $matchedTerm)';
+      : 'DiagramSignal(mentionsDiagram: $mentionsDiagram, matched: $matchedTerm'
+            '${resolvedPageIndex == null ? '' : ', page: $resolvedPageIndex'})';
 }
 
 /// Keyword-driven classifier over requirement text. Pure and stateless, so
@@ -81,5 +96,44 @@ class DiagramDetector {
       }
     }
     return const DiagramSignal(mentionsDiagram: false);
+  }
+
+  /// An explicit figure reference: "Figure 12", "fig. 3", "hình 4". These name
+  /// a NUMBER, which the document's index can resolve — keyword recall cannot.
+  static final RegExp _figureReference = RegExp(
+    r'\b(?:figure|fig\.|hình|hinh)\s*(\d{1,3})\b',
+    caseSensitive: false,
+  );
+
+  /// [detect] plus index resolution. When the requirement names a figure that
+  /// the document's own List of Figures declares, the returned signal carries
+  /// the page that figure was resolved to — so the image attach no longer
+  /// relies on the requirement sitting on the same page as the diagram.
+  ///
+  /// A named-but-unknown figure (index has no such number, or its page never
+  /// resolved) degrades to the keyword result, never to "no diagram".
+  DiagramSignal detectWithBlueprint(
+    String text,
+    DocumentBlueprint? blueprint,
+  ) {
+    if (blueprint == null) return detect(text);
+
+    final reference = _figureReference.firstMatch(text);
+    if (reference != null) {
+      final number = int.tryParse(reference.group(1)!);
+      if (number != null) {
+        for (final figure in blueprint.figures) {
+          if (figure.number != number) continue;
+          final page = figure.pdfPageIndex;
+          if (page == null) break; // declared but unlocated: keyword fallback
+          return DiagramSignal(
+            mentionsDiagram: true,
+            matchedTerm: reference.group(0),
+            resolvedPageIndex: page,
+          );
+        }
+      }
+    }
+    return detect(text);
   }
 }

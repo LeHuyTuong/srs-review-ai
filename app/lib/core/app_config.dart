@@ -43,7 +43,14 @@ class AppConfig {
   static const Duration connectTimeout = Duration(seconds: 10);
 
   /// Client-side guard so a stray loop cannot burn the free-tier quota.
-  static const int maxRequirementsPerRun = 60;
+  ///
+  /// Kept EQUAL to the proxy's `rate_limit_per_day`
+  /// (`server/app/config.py`, 50). It was 60 for a while and every run of
+  /// more than 50 units then hit 429 part-way through: the quota was spent,
+  /// the run died, and the user was left with "Thất bại" on every row and no
+  /// reason anywhere on screen. The client must never promise more units per
+  /// run than the server will actually serve.
+  static const int maxRequirementsPerRun = 50;
 
   /// How many requirements are reviewed at once.
   ///

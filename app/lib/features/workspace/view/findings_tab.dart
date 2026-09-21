@@ -718,10 +718,21 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
         if (findings.isEmpty)
           WEmptyState(
             icon: Icons.check_circle_outline,
-            title: query.isEmpty && _filter == _StatusFilter.all
+            // An empty list after a run that reviewed nothing is a FAILURE,
+            // not a clean document: saying "no issues found" there is exactly
+            // the wrong conclusion, and it is the one the user drew when a
+            // 100%-failed run rendered an empty findings tab under a 0/10
+            // verdict.
+            title: result != null && result.reviewed == 0
+                ? 'Chưa có mục nào được AI chấm'
+                : query.isEmpty && _filter == _StatusFilter.all
                 ? 'Chưa phát hiện lỗi qua các kiểm tra'
                 : 'Không tìm thấy lỗi phù hợp',
-            message: query.isEmpty && _filter == _StatusFilter.all
+            message: result != null && result.reviewed == 0
+                ? 'Lượt chấm gần nhất không chấm được mục nào — máy chủ từ chối '
+                    'hoặc mất kết nối. Xem thông báo lỗi ở đầu trang, kiểm tra '
+                    'máy chủ và lượt chấm trong ngày rồi thử lại.'
+                : query.isEmpty && _filter == _StatusFilter.all
                 ? 'Kết quả này chưa khẳng định tài liệu SRS đã đầy đủ.'
                 : 'Thử từ khóa hoặc bộ lọc khác.',
           )

@@ -1544,6 +1544,16 @@ class _SyllabusCheckDetail extends StatelessWidget {
       'AI kiểm tra ký pháp trên trang sơ đồ: hướng quan hệ, bội số, khóa ngoại và phần tử rời rạc. Chữ nhỏ có thể không đọc được; kết quả chỉ phản ánh bằng chứng nhìn thấy.',
     CheckId.nfrUnquantified =>
       'Quy tắc 6, mục 1.5: yêu cầu phi chức năng phải có cả chỉ số và điều kiện đo. Chỉ ghi “dưới 2 giây” vẫn thiếu tải và phân vị. Kiểm tra này phát hiện thiếu sót, không đánh giá mức chỉ tiêu có phù hợp hay không.',
+    CheckId.duplicateCaption =>
+      'Mục lục đặt cùng một tên cho nhiều bảng. Hai Use Case trùng tên thì không phân biệt được trong mọi bảng truy vết và không ai kiểm tra được cái nào đã làm.',
+    CheckId.numberingGap =>
+      'Mục lục nhảy số giữa hai bảng/hình cùng một phần. Thường là bảng bị xoá nhưng quên cập nhật mục lục, hoặc đánh số sai.',
+    CheckId.missingSection =>
+      'Mục lục không khai báo phần này. Báo cáo đồ án phải có đủ các phần chuẩn; thiếu phần Yêu cầu thì không còn gì để chấm.',
+    CheckId.unclassifiedFigure =>
+      'Caption của hình không nói đây là loại sơ đồ gì, nên hệ thống không chọn được bộ tiêu chí chấm phù hợp cho hình đó.',
+    CheckId.captionPageMismatch =>
+      'Mục lục ghi một số trang nhưng không tìm thấy caption ở quanh trang đó — số trang trong mục lục đã cũ so với nội dung.',
   };
 
   String get _fix => switch (finding.check) {
@@ -1571,6 +1581,16 @@ class _SyllabusCheckDetail extends StatelessWidget {
       'Đối chiếu từng lỗi với sơ đồ gốc. Mức nghiêm trọng chỉ ký pháp sai; mức cảnh báo chỉ nội dung thiếu hoặc mơ hồ. Xác nhận bằng mắt trước khi sửa.',
     CheckId.nfrUnquantified =>
       'Bổ sung chỉ số và điều kiện đo, ví dụ: trang tìm kiếm phản hồi dưới 2 giây ở phân vị 95 với 200 người dùng đồng thời. Nếu chưa thể đo, cần làm rõ hoặc chuyển sang mục mục tiêu.',
+    CheckId.duplicateCaption =>
+      'Đặt lại tên riêng cho từng bảng/Use Case theo mục tiêu nghiệp vụ, rồi cập nhật lại List of Tables (Word: bấm chuột phải vào mục lục → Update Field).',
+    CheckId.numberingGap =>
+      'Kiểm tra bảng/hình bị thiếu số có thật sự bị xoá không; nếu có, cập nhật lại mục lục và đánh số lại cho liên tục.',
+    CheckId.missingSection =>
+      'Bổ sung phần còn thiếu vào báo cáo và khai báo trong mục lục. Phần Yêu cầu (SRS) là bắt buộc trước khi nộp.',
+    CheckId.unclassifiedFigure =>
+      'Ghi rõ loại sơ đồ trong caption, ví dụ: “Figure 12. Class Diagram of the booking module”.',
+    CheckId.captionPageMismatch =>
+      'Cập nhật lại mục lục sau khi sửa nội dung: chọn mục lục trong Word rồi bấm Update Field, hoặc xuất lại PDF từ file Word đã cập nhật.',
   };
 
   @override

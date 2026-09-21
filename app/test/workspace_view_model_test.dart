@@ -665,7 +665,9 @@ void main() {
 
   /// Regression: a run where every unit failed (dead proxy) used to summarise
   /// as "0 units reviewed · 0 verified findings" — indistinguishable from a
-  /// clean run that simply found nothing.
+  /// clean run that simply found nothing. It now reports a blocking error
+  /// banner instead of a success toast, and no result: there is nothing to
+  /// show a score for.
   test('a run whose units all failed reports the failures, not zero', () async {
     final store = InMemorySessionStore();
     final container = ProviderContainer(
@@ -685,11 +687,13 @@ void main() {
 
     await vm.runReview();
     await _pumpUntil(
-      () => container.read(workspaceViewModelProvider).result != null,
+      () => container.read(workspaceViewModelProvider).error != null,
     );
     final after = container.read(workspaceViewModelProvider);
-    expect(after.result!.failed, 1);
-    expect(after.toast, contains('failed and were NOT reviewed'));
+    // The honest signal is the blocking error banner, NOT a success toast: a
+    // 100%-failed run must never read as "the document has no issues".
+    expect(after.error, contains('Không mục nào được chấm'));
+    expect(after.toast, isNot(contains('failed and were NOT reviewed')));
     // A unit whose review errored is `failed`, never `reviewed`.
     expect(
       after.units.where((u) => u.selected).map((u) => u.status),

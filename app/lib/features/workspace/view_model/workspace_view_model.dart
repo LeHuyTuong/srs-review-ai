@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/app_config.dart';
 import '../../../core/providers.dart';
+import '../../../data/checks/blueprint_checks.dart';
 import '../../../data/checks/reference_checks.dart';
 import '../../../data/checks/rubric_config.dart';
 import '../../../data/checks/syllabus_checks.dart';
@@ -51,6 +52,7 @@ class WorkspaceState {
     this.units = const [],
     this.syllabusFindings = const [],
     this.referenceFindings = const [],
+    this.blueprintFindings = const [],
     this.result,
     this.progress,
     this.error,
@@ -90,6 +92,11 @@ class WorkspaceState {
   /// data so the ViewModel is the only place that needs new wiring when that
   /// happens.
   final List<DeterministicFinding> referenceFindings;
+
+  /// Document-index (blueprint) findings — computed once at load time like the
+  /// families above, rendered under their own "Mục lục" heading because their
+  /// fix lives in the table of contents, not in a requirement sentence.
+  final List<DeterministicFinding> blueprintFindings;
   final WorkspaceReviewResult? result;
 
   /// Non-null while a review is running or has just finished.
@@ -239,6 +246,7 @@ class WorkspaceState {
     List<WorkspaceUnit>? units,
     List<DeterministicFinding>? syllabusFindings,
     List<DeterministicFinding>? referenceFindings,
+    List<DeterministicFinding>? blueprintFindings,
     WorkspaceReviewResult? result,
     bool clearResult = false,
     ReviewProgress? progress,
@@ -276,6 +284,7 @@ class WorkspaceState {
     units: units ?? this.units,
     syllabusFindings: syllabusFindings ?? this.syllabusFindings,
     referenceFindings: referenceFindings ?? this.referenceFindings,
+    blueprintFindings: blueprintFindings ?? this.blueprintFindings,
     result: clearResult ? null : (result ?? this.result),
     progress: clearProgress ? null : (progress ?? this.progress),
     error: clearError ? null : (error ?? this.error),
@@ -370,6 +379,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       units: units,
       syllabusFindings: SyllabusChecks(RubricConfig.fallback).runAll(document),
       referenceFindings: const ReferenceChecks().runAll(document),
+      blueprintFindings: const BlueprintChecks().runAll(document.blueprint),
       diagramPageCount: document.imagePageIndexes.length,
       imageReviewAvailable: false,
       imageReviewedCount: 0,
@@ -411,6 +421,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         units: unitsFromDocument(loaded.document),
         syllabusFindings: loaded.findings,
         referenceFindings: loaded.referenceFindings,
+        blueprintFindings: loaded.blueprintFindings,
         // How many pages look like diagrams. Recorded at import so the report
         // can distinguish diagram detection from actual image review.
         diagramPageCount: loaded.document.imagePageIndexes.length,
@@ -493,6 +504,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       previousStatuses: previous,
       syllabusFindings: state.syllabusFindings,
       referenceFindings: state.referenceFindings,
+      blueprintFindings: state.blueprintFindings,
     );
     if (_statusMapEquals(next, previous)) {
       return const VerifyDiff();
@@ -684,9 +696,14 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
             }
           },
           onError: (Object error) {
+            // The stream's own error text, not a generic sentence. A run that
+            // died on a refused connection used to report "Review failed." and
+            // nothing else, so the user had no way to tell a dead server from
+            // a spent quota from a bad file.
             state = state.copyWith(
               clearProgress: true,
-              error: 'Review failed. Your selection is preserved.',
+              error: 'Chấm điểm thất bại: $error. Danh sách chọn của bạn '
+                  'được giữ nguyên.',
             );
           },
         );
@@ -826,6 +843,25 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       final reviewed = result?.reviewed ?? 0;
       final findings = result?.findings.length ?? 0;
       final failed = result?.failed ?? 0;
+      // "Done" with nothing reviewed is not a clean run — it is a run where
+      // every request was refused, and the only honest thing to show is an
+      // error the user cannot miss. Reporting it as a success toast is what
+      // made a 100%-failed run look like the document had no issues at all.
+      if (reviewed == 0 && progress.total > 0) {
+        state = state.copyWith(
+          clearProgress: true,
+          runStartedAt: DateTime.now(),
+          runReviewed: 0,
+          runSkipped: skipped,
+          error:
+              'Không mục nào được chấm (${progress.total} mục đã chọn). '
+              'Máy chủ chấm điểm từ chối hoặc mất kết nối — kiểm tra máy chủ '
+              'và lượt chấm trong ngày rồi thử lại. Danh sách chọn được giữ '
+              'nguyên.',
+        );
+        await _saveSnapshot();
+        return;
+      }
       // "0 units reviewed · 0 findings" is indistinguishable from a clean run
       // with nothing to report. If units failed — a dead proxy, a bad payload
       // — say so, or the user draws exactly the wrong conclusion from it.
@@ -890,6 +926,17 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   /// ("View findings", "Export") are the actions a finished run implies.
   void dismissRunSummary() {
     state = state.copyWith(runSummaryDismissed: true);
+  }
+
+  /// Closes the error banner.
+  ///
+  /// The only way [WorkspaceState.error] stops being shown. Nothing clears it
+  /// on a timer: an error that vanishes after a few seconds cannot be read,
+  /// copied or acted on, and a failed AI run has no other trace — the units
+  /// just sit there marked failed with no reason attached.
+  void dismissError() {
+    if (state.error == null) return;
+    state = state.copyWith(clearError: true);
   }
 
   // ------------------------------------------------------------- ask
@@ -1034,6 +1081,17 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
               )
               .toList(growable: false) ??
           const <DeterministicFinding>[];
+      // Sessions written before the index family existed carry no such key;
+      // they round-trip as an empty list like the M2 family did at Round 5.
+      final blueprintFindings =
+          (payload['blueprintFindings'] as List<dynamic>?)
+              ?.map(
+                (entry) => DeterministicFinding.fromJson(
+                  entry as Map<String, dynamic>,
+                ),
+              )
+              .toList(growable: false) ??
+          const <DeterministicFinding>[];
       // Sessions written before triage existed carry no such key; every id
       // then reads back as open, which is how they always behaved.
       final findingStatus = <String, FindingStatus>{
@@ -1057,6 +1115,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         units: units,
         syllabusFindings: syllabusFindings,
         referenceFindings: referenceFindings,
+        blueprintFindings: blueprintFindings,
         findingStatus: findingStatus,
         diagramPageCount: (payload['diagramPageCount'] as int?) ?? 0,
         imageReviewAvailable: false,
@@ -1104,6 +1163,8 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     // M2 family must reach the report too — the OTES pattern (63/63 use
     // cases without a Postcondition) lives here, not in the syllabus list.
     referenceFindings: state.referenceFindings,
+    // Document-index family: same offline evidence, its own family label.
+    blueprintFindings: state.blueprintFindings,
     diagramPageCount: state.diagramPageCount,
     imageReviewAvailable: state.imageReviewAvailable,
     imageReviewedCount: state.imageReviewedCount,
@@ -1159,6 +1220,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     units: state.units,
     syllabusFindings: state.syllabusFindings,
     referenceFindings: state.referenceFindings,
+    blueprintFindings: state.blueprintFindings,
     diagramPageCount: state.diagramPageCount,
     imageReviewAvailable: state.imageReviewAvailable,
     imageReviewedCount: state.imageReviewedCount,
@@ -1223,6 +1285,11 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
           .map((finding) => finding.toJson())
           .toList(growable: false),
       'referenceFindings': state.referenceFindings
+          .map((finding) => finding.toJson())
+          .toList(growable: false),
+      // Blueprint findings persist like the other two families so older
+      // snapshots (no such key) restore an empty list instead of breaking.
+      'blueprintFindings': state.blueprintFindings
           .map((finding) => finding.toJson())
           .toList(growable: false),
       'findingStatus': state.findingStatus.map(
@@ -1300,6 +1367,17 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
               )
               .toList(growable: false) ??
           const <DeterministicFinding>[];
+      // Sessions written before the index family existed carry no such key;
+      // they round-trip as an empty list like the M2 family did at Round 5.
+      final blueprintFindings =
+          (payload['blueprintFindings'] as List<dynamic>?)
+              ?.map(
+                (entry) => DeterministicFinding.fromJson(
+                  entry as Map<String, dynamic>,
+                ),
+              )
+              .toList(growable: false) ??
+          const <DeterministicFinding>[];
       final findingStatus = <String, FindingStatus>{
         for (final entry
             in (payload['findingStatus'] as Map<dynamic, dynamic>?)?.entries ??
@@ -1317,6 +1395,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         units: units,
         syllabusFindings: syllabusFindings,
         referenceFindings: referenceFindings,
+        blueprintFindings: blueprintFindings,
         findingStatus: findingStatus,
         diagramPageCount: (payload['diagramPageCount'] as int?) ?? 0,
         result: resultJson == null
@@ -1342,6 +1421,11 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
           .map((finding) => finding.toJson())
           .toList(growable: false),
       'referenceFindings': state.referenceFindings
+          .map((finding) => finding.toJson())
+          .toList(growable: false),
+      // Blueprint findings persist like the other two families so older
+      // snapshots (no such key) restore an empty list instead of breaking.
+      'blueprintFindings': state.blueprintFindings
           .map((finding) => finding.toJson())
           .toList(growable: false),
       'findingStatus': state.findingStatus.map(

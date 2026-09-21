@@ -1,0 +1,128 @@
+erDiagram
+    SrsDocument ||--o{ RequirementItem : contains
+    SrsDocument ||--o{ WorkspaceUnit : inventory
+    WorkspaceUnit ||--|| RequirementItem : maps
+    SrsDocument ||--o{ DeterministicFinding : yields
+    ReviewRun ||--o{ ReviewResult : results
+    ReviewRun ||--|| PageImageCoverage : coverage
+    ReviewResult ||--o{ ReviewIssue : issues
+    SrsDocument ||--o{ DiagramAuditResult : audits
+    AskOutcome ||--o{ WorkspaceUnit : passages
+    AskOutcome ||--o{ Citation : citations
+    SessionStore ||--o{ SavedSession : history
+    SavedSession ||--|| SrsDocument : snapshot fingerprint
+
+    SrsDocument {
+        string fileName
+        int pageCount
+        string[] pageTexts
+        string[] occurrenceKeys
+        int[] imagePageIndexes
+        string documentFingerprint
+        string parserVersion
+    }
+    RequirementItem {
+        string id
+        string text
+        RequirementKind kind
+        string section
+        int pageIndex
+        boolean isUseCase
+    }
+    WorkspaceUnit {
+        string key PK
+        string id
+        string title
+        string text
+        UnitKind kind
+        string section
+        int pageIndex
+        boolean malformed
+        boolean selected
+        UnitStatus status
+    }
+    DeterministicFinding {
+        string ledgerKey PK
+        CheckId check
+        boolean passed
+        Severity severity
+        string message
+        string subject
+        num actual
+        num expectedMin
+        num expectedMax
+        boolean requiresVisionEvidence
+    }
+    ReviewRun {
+        string stage
+        int skipped
+        Map results
+        Map failures
+        PageImageCoverage imageCoverage
+    }
+    ReviewResult {
+        string requirementId PK
+        int score
+        List issues
+        string model
+        string contextNote
+        int droppedIssueCount
+        boolean cached
+        boolean mock
+    }
+    ReviewIssue {
+        IssueType type
+        Severity severity
+        string quote
+        string suggestion
+        Verification verification
+        double similarity
+    }
+    PageImageCoverage {
+        int candidates
+        int extracted
+        int reviewed
+        int skipped
+        int failed
+        json reasons
+        json decisions
+        string[] reviewedOccurrenceKeys
+    }
+    DiagramAuditResult {
+        int pageIndex PK
+        DiagramType diagramType
+        string[] elements
+        json relations
+        string[] unreadable
+        boolean clean
+        json findings
+        string model
+        boolean cached
+        boolean mock
+    }
+    AskOutcome {
+        AskEngine engine
+        string answer
+        boolean grounded
+        string model
+        string note
+    }
+    Citation {
+        string quote PK
+        Verification verification
+        int pageIndex
+    }
+    SavedSession {
+        string id PK
+        string fileName
+        string payloadJson
+        datetime createdAt
+        string fingerprint
+        string parserVersion
+    }
+    SessionStore {
+        int maxSessions
+    }
+
+    %% DiagramRelationData và DiagramFindingData là value objects lồng trong DiagramAuditResult,
+    %% không phải bảng độc lập. ReviewRun, AskOutcome và DiagramAuditResult là đối tượng phiên.

@@ -10,6 +10,7 @@ library;
 
 import 'dart:typed_data';
 
+import '../checks/blueprint_checks.dart';
 import '../checks/contradiction_pass.dart';
 import '../checks/reference_checks.dart';
 import '../checks/rubric_config.dart';
@@ -89,10 +90,17 @@ class DocumentRepository {
       // ledger without any new plumbing.
       ...const ContradictionPass().detect(document),
     ];
+    // Document-index findings (blueprint, zero token): keep them last and
+    // separate so the other two families never change shape for existing
+    // consumers. Empty when the document carries no usable index (DOCX).
+    final blueprintFindings = const BlueprintChecks().runAll(
+      document.blueprint,
+    );
     return LoadedDocument(
       document: document,
       findings: syllabus,
       referenceFindings: reference,
+      blueprintFindings: blueprintFindings,
       sizeBytes: sizeBytes,
       path: path,
       // Keep source bytes only for PDFs. DOCX has no page rasterizer in this

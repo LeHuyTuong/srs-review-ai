@@ -24,6 +24,12 @@ class LoadedDocument {
     /// reference findings under their own heading via [CheckId.isReferenceCheck].
     this.referenceFindings = const <DeterministicFinding>[],
 
+    /// Document-index (blueprint) findings — duplicated captions, numbering
+    /// gaps, missing report parts. Same offline, zero-token contract, kept
+    /// separate because their fix lives in the table of contents rather than
+    /// in a requirement sentence. Empty when the document has no index (DOCX).
+    this.blueprintFindings = const <DeterministicFinding>[],
+
     /// Original PDF bytes are deliberately transient: the ViewModel may keep
     /// them for the current session's page renderer, but persistence code must
     /// never serialize this field. Null for DOCX and demo documents.
@@ -40,6 +46,12 @@ class LoadedDocument {
   /// section stays visible on its own.
   final List<DeterministicFinding> referenceFindings;
 
+  /// Document-index (blueprint) findings — `blueprint_checks.dart`: duplicated
+  /// captions, numbering gaps, missing report parts. Same offline, zero-token
+  /// contract, carried separately because their fix lives in the table of
+  /// contents rather than in a requirement sentence.
+  final List<DeterministicFinding> blueprintFindings;
+
   final int sizeBytes;
   final String? path;
 
@@ -54,6 +66,7 @@ class LoadedDocument {
   Iterable<DeterministicFinding> get allFindings => <DeterministicFinding>[
     ...findings,
     ...referenceFindings,
+    ...blueprintFindings,
   ];
 
   Iterable<DeterministicFinding> get failedFindings =>

@@ -79,6 +79,12 @@ String buildMarkdownReport({
   /// from the one artefact a supervisor reads.
   List<DeterministicFinding> referenceFindings = const [],
 
+  /// Document-index family: duplicated captions, numbering gaps, missing
+  /// report parts. Offline and free like the rest, rendered and exported under
+  /// their own "document index" family label because their fix lives in the
+  /// table of contents, not in a requirement sentence.
+  List<DeterministicFinding> blueprintFindings = const [],
+
   /// Pages that look like diagrams. This is a page count, not an image-review
   /// coverage count; image review is reported separately below.
   int diagramPageCount = 0,
@@ -306,6 +312,7 @@ String buildMarkdownReport({
             : 'reference (M2)',
         finding,
       ),
+    for (final finding in blueprintFindings) ('document index', finding),
   ];
   if (allDeterministic.isNotEmpty) {
     final failing = allDeterministic
@@ -450,6 +457,7 @@ Map<String, dynamic> buildJsonReport({
   required List<WorkspaceUnit> units,
   List<DeterministicFinding> syllabusFindings = const [],
   List<DeterministicFinding> referenceFindings = const [],
+  List<DeterministicFinding> blueprintFindings = const [],
   int diagramPageCount = 0,
   bool imageReviewAvailable = false,
   int imageReviewedCount = 0,
@@ -563,6 +571,17 @@ Map<String, dynamic> buildJsonReport({
       for (final finding in referenceFindings)
         {
           'family': 'reference',
+          'check': finding.check.wire,
+          'subject': finding.subject,
+          'passed': finding.passed,
+          'severity': finding.severity.name,
+          'message': finding.message,
+          'requires_vision_evidence': finding.requiresVisionEvidence,
+          'status': finding.passed ? null : statusFor(finding.ledgerKey).name,
+        },
+      for (final finding in blueprintFindings)
+        {
+          'family': 'document index',
           'check': finding.check.wire,
           'subject': finding.subject,
           'passed': finding.passed,

@@ -22,6 +22,7 @@ import '../checks/diagram_detector.dart';
 import '../checks/diagram_type_classifier.dart';
 import '../models/deterministic_finding.dart';
 import '../models/diagram_audit.dart';
+import '../models/document_blueprint.dart';
 import '../models/review_models.dart' show Severity;
 import '../models/srs_document.dart';
 
@@ -115,6 +116,15 @@ class VisionReviewService {
   /// An image-bearing page nobody captioned still audits (as `unknown`) —
   /// the orphan figures sds-reviewer step 5 exists to catch.
   List<DiagramPageCandidate> candidates(SrsDocument document) {
+    // The document's own List of Figures outranks every heuristic: it says
+    // exactly which page holds which diagram, and (via the caption) which kind
+    // it is. When the blueprint exists, IT decides; the text-density guesswork
+    // below remains the fallback for documents with no usable index.
+    final blueprint = document.blueprint;
+    if (blueprint != null && blueprint.isNotEmpty) {
+      return _candidatesFromBlueprint(document, blueprint);
+    }
+
     final textByPage = <int, StringBuffer>{};
     void append(int page, String text) {
       textByPage.putIfAbsent(page, () => StringBuffer()).write('$text\n');
@@ -170,6 +180,60 @@ class VisionReviewService {
         .where((c) => c.kind == DiagramKind.unknown)
         .toList();
     return [...named, ...visualOnly];
+  }
+
+  /// Candidates straight from the document's own index.
+  ///
+  /// Every resolved figure is a candidate — including ones whose caption names
+  /// no kind, because the document itself declared a diagram there (the same
+  /// evidence class as the old `namedHere`, but sourced from the index the
+  /// author wrote instead of a keyword scan of page text). Index pages and
+  /// unresolved entries are skipped by construction.
+  ///
+  /// Ordering mirrors the legacy path: known kinds first (they have a judge),
+  /// unknown-kind figures next, then orphan image-bearing pages the index never
+  /// mentioned — each tier in page order so re-runs number pages identically.
+  List<DiagramPageCandidate> _candidatesFromBlueprint(
+    SrsDocument document,
+    DocumentBlueprint blueprint,
+  ) {
+    final resolved =
+        blueprint.figures
+            .where(
+              (f) =>
+                  f.isResolved &&
+                  f.pdfPageIndex! >= 0 &&
+                  f.pdfPageIndex! < document.pageTexts.length,
+            )
+            .toList()
+          ..sort((a, b) => a.pdfPageIndex!.compareTo(b.pdfPageIndex!));
+    final known = resolved
+        .where((f) => f.diagramKind != DiagramKind.unknown)
+        .toList();
+    final unclassified = resolved
+        .where((f) => f.diagramKind == DiagramKind.unknown)
+        .toList();
+
+    final claimed = {for (final f in resolved) f.pdfPageIndex!};
+    final orphans = [
+      for (final page in document.imagePageIndexes)
+        if (!claimed.contains(page) && !blueprint.tocPageIndexes.contains(page))
+          page,
+    ]..sort();
+
+    DiagramPageCandidate candidate(int page, DiagramKind kind) =>
+        DiagramPageCandidate(
+          pageIndex: page,
+          kind: kind,
+          contextText: document.pageTexts[page],
+        );
+
+    return [
+      for (final f in known) candidate(f.pdfPageIndex!, f.diagramKind!),
+      for (final f in unclassified)
+        candidate(f.pdfPageIndex!, DiagramKind.unknown),
+      for (final page in orphans) candidate(page, DiagramKind.unknown),
+    ];
   }
 
   Future<VisionAuditOutcome> audit(SrsDocument document) async {

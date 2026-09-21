@@ -5,6 +5,8 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 
+import 'document_blueprint.dart';
+
 /// The only two formats the app accepts. `.doc` (legacy binary) is refused at
 /// the picker: it cannot be unzipped and would parse to an empty document.
 const Set<String> kSupportedDocumentExtensions = {'pdf', 'docx'};
@@ -15,7 +17,13 @@ const Set<String> kSupportedDocumentExtensions = {'pdf', 'docx'};
 /// and sessions record this separately from the content fingerprint: the same
 /// text parsed by a different parser version may produce different units, so
 /// review results must not be reused across versions.
-const String kParserVersion = '1.1.0';
+/// 1.2.0 — the splitter is table-of-contents driven and no longer pads
+/// identifier digits, so a document can yield different units (and different
+/// ids) than 1.1.0 did. Saved review results must not be reused across it.
+/// 1.3.0 — the trusted-TOC path now MERGES body-scan units (FR/NFR prose and
+/// statements) into the TOC units instead of returning TOC units alone, so an
+/// indexed document yields strictly more units than 1.2.0 did.
+const String kParserVersion = '1.3.0';
 
 enum RequirementKind {
   /// FR-xx / NFR-xx style functional or non-functional statement.
@@ -61,6 +69,7 @@ class SrsDocument {
     required this.requirements,
     this.occurrenceKeys = const [],
     this.imagePageIndexes = const [],
+    this.blueprint,
   });
 
   final String fileName;
@@ -76,6 +85,18 @@ class SrsDocument {
 
   /// Pages that contain at least one embedded image (diagrams, mockups).
   final List<int> imagePageIndexes;
+
+  /// The document's own index, resolved to real pages — chapter ranges, tables
+  /// and figures with the page they live on, and the diagram kind each figure
+  /// caption names. Null for DOCX (no page concept before rendering) and for
+  /// PDFs whose front matter carries no usable index.
+  ///
+  /// Carried on the document rather than rebuilt per consumer: the parser has
+  /// already read these pages, and re-parsing an index in the vision pass, the
+  /// checks and the UI is how the three of them drift apart. Not part of
+  /// [documentFingerprint] — it is derived from the same text, so two documents
+  /// with equal fingerprints have equal blueprints.
+  final DocumentBlueprint? blueprint;
 
   String get fullText => pageTexts.join('\n');
 

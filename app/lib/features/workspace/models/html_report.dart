@@ -81,6 +81,7 @@ String buildHtmlReport({
   required List<WorkspaceUnit> units,
   List<DeterministicFinding> syllabusFindings = const [],
   List<DeterministicFinding> referenceFindings = const [],
+  List<DeterministicFinding> blueprintFindings = const [],
   int diagramPageCount = 0,
   bool imageReviewAvailable = false,
   int imageReviewedCount = 0,
@@ -322,6 +323,7 @@ String buildHtmlReport({
             : 'reference (M2)',
         f,
       ),
+    for (final f in blueprintFindings) ('document index', f),
   ];
   if (allDeterministic.isNotEmpty) {
     final failing = allDeterministic.where((e) => !e.$2.passed).length;

@@ -38,6 +38,9 @@ class Verifier {
   ///   - [syllabusFindings]: fresh F7/F8/F9 results.
   ///   - [referenceFindings]: fresh M2 results (duplicate ids, missing
   ///     postconditions).
+  ///   - [blueprintFindings]: fresh document-index results (duplicate
+  ///     captions, numbering gaps, missing parts). Optional so older callers
+  ///     keep working; their ledger keys are deterministic like the rest.
   ///
   /// Output: id → status, with at minimum every id from
   /// `previousStatuses` carried forward (rule 1) and every fresh
@@ -46,12 +49,14 @@ class Verifier {
     required Map<String, FindingStatus> previousStatuses,
     required List<DeterministicFinding> syllabusFindings,
     required List<DeterministicFinding> referenceFindings,
+    List<DeterministicFinding> blueprintFindings = const [],
   }) {
     // The set of keys that fire in the fresh run. Anything not in this
     // set has either been fixed or was never failing.
     final stillFailing = <String>{
       for (final f in _failingFindings(syllabusFindings)) _keyOf(f),
       for (final f in _failingFindings(referenceFindings)) _keyOf(f),
+      for (final f in _failingFindings(blueprintFindings)) _keyOf(f),
     };
 
     // Promote / demote every previous status by the new evidence, but
@@ -75,9 +80,9 @@ class Verifier {
     // so they begin in the limbo state and the Verifier's transition
     // table promotes them only when the text-only path confirms.
     final visionRequired = <String>{
-      for (final f in _failingFindings(
-        syllabusFindings,
-      ).followedBy(_failingFindings(referenceFindings)))
+      for (final f in _failingFindings(syllabusFindings)
+          .followedBy(_failingFindings(referenceFindings))
+          .followedBy(_failingFindings(blueprintFindings)))
         if (f.requiresVisionEvidence) _keyOf(f),
     };
     for (final key in stillFailing) {

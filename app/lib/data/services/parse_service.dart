@@ -16,7 +16,9 @@ import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:xml/xml.dart';
 
 import '../models/srs_document.dart';
+import '../parsing/blueprint_builder.dart';
 import '../parsing/requirement_splitter.dart';
+import '../parsing/table_of_contents.dart';
 
 abstract interface class DocumentParser {
   Future<SrsDocument> parse({
@@ -164,12 +166,21 @@ class PdfParser implements DocumentParser {
         );
       }
 
+      // Parsed once: the splitter needs the index to pick its strategy, and the
+      // blueprint keeps it (chapter ranges, artifact pages) for every later
+      // pass — vision targeting, index checks, the section tree in the UI.
+      final toc = TableOfContents.parse(pageTexts);
+
       return SrsDocument(
         fileName: fileName,
         pageCount: pageTexts.length,
         pageTexts: pageTexts,
-        requirements: _splitter.split(pageTexts),
+        requirements: _splitter.split(pageTexts, toc: toc),
         imagePageIndexes: _detectImagePages(pageTexts),
+        blueprint: const BlueprintBuilder().build(
+          pageTexts: pageTexts,
+          toc: toc,
+        ),
       );
     } finally {
       document.dispose();

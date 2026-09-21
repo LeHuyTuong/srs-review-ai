@@ -23,6 +23,7 @@
 library;
 
 import '../checks/diagram_detector.dart';
+import '../models/document_blueprint.dart';
 import 'image_budget.dart';
 
 /// What the run would do with a requirement's page image.
@@ -94,13 +95,19 @@ class PageImageSelector {
 
   /// Decides and (on selection) reserves in one step, so a plan can never
   /// claim a page the budget did not record.
+  ///
+  /// [blueprint] lets a requirement that names a figure ("see Figure 12")
+  /// attach the page that figure actually lives on, instead of only the page
+  /// the requirement itself sits on. Without an index, behaviour is unchanged.
   PageImagePlan planFor({
     required String requirementId,
     required String text,
     int? pageIndex,
     required Set<int> candidatePages,
+    DocumentBlueprint? blueprint,
   }) {
-    if (!_detector.detect(text).hasIntent) {
+    final signal = _detector.detectWithBlueprint(text, blueprint);
+    if (!signal.hasIntent) {
       return PageImagePlan._(
         requirementId,
         pageIndex,
@@ -108,25 +115,28 @@ class PageImageSelector {
         'no-diagram-intent',
       );
     }
-    if (pageIndex == null || !candidatePages.contains(pageIndex)) {
+    // A named figure resolves to its own page; that page outranks the page the
+    // requirement happens to be printed on.
+    final effectivePage = signal.resolvedPageIndex ?? pageIndex;
+    if (effectivePage == null || !candidatePages.contains(effectivePage)) {
       return PageImagePlan._(
         requirementId,
-        pageIndex,
+        effectivePage,
         PageImageDecision.skippedNoCandidatePage,
         'no-candidate-page',
       );
     }
-    if (!budget.tryReserve(pageIndex)) {
+    if (!budget.tryReserve(effectivePage)) {
       return PageImagePlan._(
         requirementId,
-        pageIndex,
+        effectivePage,
         PageImageDecision.deferredBudgetSpent,
         'budget-spent',
       );
     }
     return PageImagePlan._(
       requirementId,
-      pageIndex,
+      effectivePage,
       PageImageDecision.selected,
       null,
     );

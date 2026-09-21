@@ -1,0 +1,55 @@
+@startuml
+!include /Volumes/SSD/Dev/active/PRM392_FlutterMobile/diagrams-agent/style.iuml
+
+node "Thiết bị người dùng" as Device {
+  rectangle "Flutter app" as App
+  rectangle "MockReviewApi" as Mock
+  database "SharedPreferences" as Prefs
+  App --- Mock
+  App --- Prefs
+}
+
+node "FastAPI host" as Host {
+  rectangle "FastAPI" as Api
+  database "Review cache" as ReviewCache
+  database "Diagram cache" as DiagramCache
+  rectangle "RateLimiter" as Limit
+  rectangle "QuoteVerifier" as Verify
+  rectangle "ProviderRouter" as Router
+  rectangle "MockProvider" as MockProvider
+  database "ShareStore" as Share
+  database "UploadStore" as Upload
+  Api --- ReviewCache
+  Api --- DiagramCache
+  Api --- Limit
+  Api --- Verify
+  Api --- Router
+  Api --- Share
+  Api --- Upload
+  Api -.-> MockProvider
+}
+
+cloud "Gemini API" as Gemini
+node "Lưu trữ cục bộ" as Local {
+  database "server/.shares" as Shares
+  database "server/.uploads" as Uploads
+}
+
+App --> Api : HTTPS /review /ask /diagram /share
+Api --> Gemini : HTTPS generate_json
+Api --> ReviewCache : lookup trước limiter
+Api --> DiagramCache : lookup trước limiter
+Api --> Verify : review + ask
+Api --> Share : HTML ≤ 4 MiB
+Api -.-> Upload : groundwork, chưa có caller
+Share --> Shares : capability URL
+Upload --> Uploads : raw bytes
+Mock ..> App : offline, không mạng
+MockProvider ..> Api : server mock
+Router --> Gemini : 3.5 Flash-Lite + fallback 3.1
+
+note bottom of Device
+  PDF/DOCX được parse trên thiết bị.
+  PDF bytes chỉ tồn tại trong phiên.
+end note
+@enduml

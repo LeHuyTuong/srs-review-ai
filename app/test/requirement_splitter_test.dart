@@ -5,7 +5,10 @@ import 'package:srs_review_ai/data/parsing/requirement_splitter.dart';
 void main() {
   const splitter = RequirementSplitter();
 
-  test('extracts ids and normalises them to two digits', () {
+  test('keeps the digits the document wrote for every id', () {
+    // Parser 1.2.0 deliberately stopped padding: `FR-1` is the code the
+    // student wrote, and rewriting it to `FR-01` made the report quote an id
+    // that appears nowhere in their file (see `_canonicalId`).
     final items = splitter.split([
       '''
 3.2 Functional Requirements
@@ -14,7 +17,7 @@ FR-02 The system shall display the parsed requirement list.
 ''',
     ]);
 
-    expect(items.map((i) => i.id), ['FR-01', 'FR-02']);
+    expect(items.map((i) => i.id), ['FR-1', 'FR-02']);
     expect(items.first.section, '3.2');
     expect(items.first.kind, RequirementKind.functional);
   });
@@ -256,5 +259,46 @@ F-02: Trang Dịch Vụ
       items.single.text,
       'The system must lock the account after five failed attempts.',
     );
+  });
+
+  test('a trusted TOC still keeps the FR/NFR prose the body carries', () {
+    // The index only declares use-case tables (the capstone "List of use
+    // case"), so a TOC-only inventory was ALL use cases — the functional
+    // requirements in prose silently went unreviewed. Regression for 1.3.0:
+    // the body scan supplements the TOC.
+    final pages = [
+      // page 0 — index: chapter + three table entries (>= 3 => a TOC page)
+      'A.\tIntroduction\t2\n'
+          'C.\tSoftware Requirement Specification\t3\n'
+          'Table 40. USE CASE - Save student video\t3\n'
+          'Table 41. USE CASE - Restore student video\t3\n'
+          'Table 42. USE CASE - Rewind student video\t4',
+      // page 1 — front matter prose
+      'Some introduction prose.',
+      // page 2 — the SRS chapter opens with functional requirements...
+      'C. Software Requirement Specification\n'
+          'FR-1 The system shall let a student upload an SRS file.\n'
+          'The system shall validate the file before parsing.',
+      // page 3 — ...then the first declared use-case table
+      'Table 40. USE CASE - Save student video\n'
+          'UC-01 Save student video\nThe customer presses save. The system '
+          'stores the video.',
+      // page 4 — the second declared use-case table
+      'Table 42. USE CASE - Rewind student video\n'
+          'UC-02 Rewind student video\nThe customer presses rewind. The '
+          'system rewinds.',
+    ];
+    final items = splitter.split(pages);
+
+    final ids = items.map((i) => i.id).toSet();
+    // UC units come from the TOC tables...
+    expect(ids.contains('UC-01'), isTrue, reason: 'declared by the index');
+    // ...and the prose FR survives; the statement "The system shall validate"
+    // becomes a reviewable unit too.
+    expect(ids.contains('FR-1'), isTrue, reason: 'prose FR must not be lost');
+    expect(items.any((i) => i.id.startsWith('ST-')), isTrue);
+    // Document order, not TOC-then-body order.
+    final pageIndexes = items.map((i) => i.pageIndex!).toList();
+    expect(pageIndexes, equals([...pageIndexes]..sort()));
   });
 }

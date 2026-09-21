@@ -45,6 +45,24 @@ class SyllabusTab extends ConsumerWidget {
               _CheckCard(finding: finding),
               const SizedBox(height: AppSpacing.sm),
             ],
+          if (state.blueprintFindings.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'Mục lục (document index)',
+              style: theme.textTheme.titleSmall?.copyWith(color: colors.ink),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            WInfoNote(
+              icon: Icons.format_list_numbered,
+              text:
+                  'Lỗi cấu trúc đọc từ chính mục lục của tài liệu: tên bảng trùng nhau, số bảng/hình bị nhảy, thiếu phần báo cáo. Sửa ở mục lục (Word: Update Field), không sửa ở câu yêu cầu.',
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            for (final finding in state.blueprintFindings) ...[
+              _CheckCard(finding: finding),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+          ],
           const SizedBox(height: AppSpacing.md),
           Text(
             'Yêu cầu trong Syllabus',

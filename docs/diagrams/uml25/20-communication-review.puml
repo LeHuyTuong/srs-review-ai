@@ -1,0 +1,34 @@
+@startuml
+!include /Volumes/SSD/Dev/active/PRM392_FlutterMobile/diagrams-agent/style.iuml
+skinparam linestyle ortho
+
+rectangle "view : WorkspaceViewModel" as V
+rectangle "repo : ReviewRepository" as R
+rectangle "api : ReviewApi" as A
+rectangle "proxy : FastAPI" as P
+rectangle "cache : ReviewCache" as C
+rectangle "limiter : RateLimiter" as L
+rectangle "provider : GeminiProvider" as G
+rectangle "verify : QuoteVerifier" as Q
+rectangle "store : SessionStore" as S
+
+V -right-> R : 1: run(selected)
+R -right-> A : 1.1: review(unit)
+A -right-> P : 1.1.1: POST /review
+P -right-> C : 1.1.2: lookup(key)
+C ..> P : 1.1.3: hit
+C ..> L : 1.1.4: miss
+L -right-> G : 1.1.5: allowed
+G ..> Q : 1.1.6: JSON có quote
+Q ..> P : 1.1.7: giữ quote hợp lệ
+P ..> C : 1.1.8: put
+C ..> A : 1.1.9: ReviewResult
+A ..> R : 1.2: result
+R ..> V : 1.3: progress/result
+V -right-> S : 2: saveSnapshot
+
+note bottom of P
+  Communication diagram (emulated).
+  Cache hit trả về trước RateLimiter; miss mới tính quota.
+end note
+@enduml
