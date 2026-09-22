@@ -85,7 +85,7 @@ class DocumentMapService {
     List<double>? bbox,
     double scale = 3.0,
   }) async {
-    final response = await _dio.post<Uint8List>(
+    final response = await _dio.post<dynamic>(
       '/documents/render',
       data: {
         'uri': uploadUri,
@@ -95,6 +95,10 @@ class DocumentMapService {
       },
       options: Options(responseType: ResponseType.bytes),
     );
-    return response.data!;
+    final data = response.data;
+    if (data is Uint8List) return data;
+    if (data is ByteBuffer) return data.asUint8List();
+    if (data is List<int>) return Uint8List.fromList(data);
+    throw StateError('Unexpected render response type: ${data.runtimeType}');
   }
 }

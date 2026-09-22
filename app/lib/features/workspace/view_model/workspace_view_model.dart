@@ -77,13 +77,20 @@ class WorkspaceState {
     this.runSummaryDismissed = false,
     this.executionLogs = const [],
     this.pageTexts = const [],
+    this.uploadUri,
   });
+
+  /// Server upload URI for document figure rendering and tight crops.
+  final String? uploadUri;
 
   /// Audit trail of AI actions and validation pipeline events.
   final List<String> executionLogs;
 
   /// Text content per page in the document.
   final List<String> pageTexts;
+
+  bool get canRenderPdf =>
+      imageReviewAvailable || (uploadUri != null && uploadUri!.isNotEmpty);
 
   final bool hasDocument;
   final String fileName;
@@ -287,6 +294,8 @@ class WorkspaceState {
     bool? runSummaryDismissed,
     List<String>? executionLogs,
     List<String>? pageTexts,
+    String? uploadUri,
+    bool clearUploadUri = false,
   }) => WorkspaceState(
     hasDocument: hasDocument ?? this.hasDocument,
     fileName: fileName ?? this.fileName,
@@ -326,6 +335,7 @@ class WorkspaceState {
     runSummaryDismissed: runSummaryDismissed ?? this.runSummaryDismissed,
     executionLogs: executionLogs ?? this.executionLogs,
     pageTexts: pageTexts ?? this.pageTexts,
+    uploadUri: clearUploadUri ? null : (uploadUri ?? this.uploadUri),
   );
 }
 
@@ -524,13 +534,19 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       _documentMap = analysis.map;
       _uploadUri = analysis.uploadUri;
       state = state.copyWith(
+        uploadUri: analysis.uploadUri,
+        imageReviewAvailable: true,
         diagramPageCount: analysis.map.figurePages.length,
         toast:
             'Server anatomy: ${analysis.map.figureCount} figure(s) on '
             '${analysis.map.figurePages.length} page(s) detected — the '
             'vision audit will read tight crops.',
       );
+      _log(
+        'Server anatomy: Phân tích tài liệu hoàn tất (${analysis.map.figureCount} sơ đồ, uploadUri: ${analysis.uploadUri})',
+      );
       _scheduleToastClear();
+      await _saveSnapshot();
     } on Object {
       // Heuristic fallback stays. The import already succeeded; a failed
       // anatomy pass must not turn a good import into an error.
@@ -854,21 +870,33 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   bool get hasPdfBytes => _pdfBytes != null && _pdfBytes!.isNotEmpty;
 
   bool get canRenderPdf =>
-      hasPdfBytes || (_uploadUri != null && _uploadUri!.isNotEmpty);
+      state.canRenderPdf ||
+      hasPdfBytes ||
+      (_uploadUri != null && _uploadUri!.isNotEmpty);
 
   /// Renders a single PDF page to PNG bytes for inspection / preview.
-  /// First checks in-memory `_pdfBytes` locally; if absent, falls back to
-  /// the server's `/documents/render` endpoint via [DocumentMapService].
+  /// Prioritizes the server's `/documents/render` endpoint via [DocumentMapService]
+  /// for instant PyMuPDF rasterization; if unavailable or offline, falls back
+  /// to in-memory `_pdfBytes` locally via [reviewRepositoryProvider].
   Future<Uint8List?> renderPageImage(int pageIndex) async {
-    final bytes = _pdfBytes;
-    if (bytes != null && bytes.isNotEmpty) {
-      try {
-        final repository = ref.read(reviewRepositoryProvider);
-        return await repository.renderPageForAudit(bytes, pageIndex);
-      } catch (_) {}
-    }
-    var uploadUri = _uploadUri;
+    var uploadUri = _uploadUri ?? state.uploadUri;
     final mapService = ref.read(documentMapServiceProvider);
+
+    // Fast path: high-fidelity PyMuPDF render from server
+    if (uploadUri != null && mapService != null) {
+      try {
+        final image = await mapService.renderFigure(
+          uploadUri: uploadUri,
+          pageIndex: pageIndex,
+        );
+        if (image.isNotEmpty) return image;
+      } catch (e) {
+        _log('Không thể kết xuất trang ${pageIndex + 1} qua máy chủ: $e');
+      }
+    }
+
+    // If server upload hasn't been completed yet, try uploading in-memory bytes now:
+    final bytes = _pdfBytes;
     if (uploadUri == null &&
         bytes != null &&
         bytes.isNotEmpty &&
@@ -881,16 +909,30 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         _documentMap = analysis.map;
         _uploadUri = analysis.uploadUri;
         uploadUri = analysis.uploadUri;
+        state = state.copyWith(
+          uploadUri: analysis.uploadUri,
+          imageReviewAvailable: true,
+          diagramPageCount: analysis.map.figurePages.length,
+        );
         await _saveSnapshot();
-      } catch (_) {}
-    }
-    if (uploadUri != null && mapService != null) {
-      try {
-        return await mapService.renderFigure(
-          uploadUri: uploadUri,
+        final image = await mapService.renderFigure(
+          uploadUri: analysis.uploadUri,
           pageIndex: pageIndex,
         );
-      } catch (_) {}
+        if (image.isNotEmpty) return image;
+      } catch (e) {
+        _log('Không thể tải trang lên máy chủ để kết xuất: $e');
+      }
+    }
+
+    // Client-side fallback (pdfx)
+    if (bytes != null && bytes.isNotEmpty) {
+      try {
+        final repository = ref.read(reviewRepositoryProvider);
+        return await repository.renderPageForAudit(bytes, pageIndex);
+      } catch (e) {
+        _log('Không thể kết xuất trang ${pageIndex + 1} bằng bộ vẽ nội bộ: $e');
+      }
     }
     return null;
   }
@@ -1318,7 +1360,8 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         blueprintFindings: blueprintFindings,
         findingStatus: findingStatus,
         diagramPageCount: (payload['diagramPageCount'] as int?) ?? 0,
-        imageReviewAvailable: false,
+        uploadUri: _uploadUri,
+        imageReviewAvailable: _uploadUri != null && _uploadUri!.isNotEmpty,
         imageReviewedCount: 0,
         clearImageCoverage: true,
         result: resultJson == null
@@ -1506,7 +1549,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       'result': state.result?.toJson(),
       'documentFingerprint': state.documentFingerprint,
       'parserVersion': state.parserVersion,
-      'uploadUri': _uploadUri,
+      'uploadUri': _uploadUri ?? state.uploadUri,
       'pageTexts': state.pageTexts,
     });
     try {
@@ -1620,6 +1663,8 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         documentFingerprint: payload['documentFingerprint'] as String? ?? '',
         parserVersion: savedParserVersion ?? '',
         pageTexts: pageTexts,
+        uploadUri: _uploadUri,
+        imageReviewAvailable: _uploadUri != null && _uploadUri!.isNotEmpty,
         restoring: false,
       );
     } on Object {
@@ -1656,7 +1701,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       'result': result.toJson(),
       'documentFingerprint': state.documentFingerprint,
       'parserVersion': state.parserVersion,
-      'uploadUri': _uploadUri,
+      'uploadUri': _uploadUri ?? state.uploadUri,
       'pageTexts': state.pageTexts,
     });
     try {

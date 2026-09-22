@@ -1843,7 +1843,7 @@ class _DocumentPreviewModalState extends ConsumerState<_DocumentPreviewModal> {
   void initState() {
     super.initState();
     _currentPage = widget.initialPage;
-    _showImage = ref.read(workspaceViewModelProvider.notifier).canRenderPdf;
+    _showImage = true;
   }
 
   Widget _buildTextView(
@@ -1931,6 +1931,14 @@ class _DocumentPreviewModalState extends ConsumerState<_DocumentPreviewModal> {
     final theme = Theme.of(context);
     final viewModel = ref.read(workspaceViewModelProvider.notifier);
     final state = ref.watch(workspaceViewModelProvider);
+    ref.listen<String?>(workspaceViewModelProvider.select((s) => s.uploadUri), (
+      prev,
+      next,
+    ) {
+      if (prev != next && next != null) {
+        setState(() {});
+      }
+    });
     final totalPages = state.pageCount > 0 ? state.pageCount : 1;
     final pageIndex = _currentPage.clamp(0, totalPages - 1);
     final pageText = pageIndex < state.pageTexts.length
@@ -1948,7 +1956,7 @@ class _DocumentPreviewModalState extends ConsumerState<_DocumentPreviewModal> {
               u.kind == UnitKind.section,
         );
 
-    final canRenderPdf = viewModel.canRenderPdf;
+    final canRenderPdf = state.canRenderPdf || viewModel.canRenderPdf;
 
     return _ModalScaffold(
       icon: Icons.menu_book_outlined,
@@ -2041,7 +2049,7 @@ class _DocumentPreviewModalState extends ConsumerState<_DocumentPreviewModal> {
         const SizedBox(height: AppSpacing.md),
         if (canRenderPdf && _showImage)
           Container(
-            constraints: const BoxConstraints(maxHeight: 460),
+            constraints: const BoxConstraints(maxHeight: 520),
             width: double.infinity,
             decoration: BoxDecoration(
               color: colors.canvas,
@@ -2084,6 +2092,43 @@ class _DocumentPreviewModalState extends ConsumerState<_DocumentPreviewModal> {
                       minScale: 0.8,
                       child: Center(
                         child: Image.memory(bytes, fit: BoxFit.contain),
+                      ),
+                    ),
+                  );
+                }
+                if (pageText.trim().isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.broken_image_outlined,
+                            size: 36,
+                            color: colors.amber,
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          Text(
+                            'Chưa thể tải bản vẽ trang ${pageIndex + 1}',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: colors.ink,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            'Đang đợi máy chủ xử lý hình ảnh hoặc thử tải lại.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colors.muted,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          WButton.secondary(
+                            label: 'Thử lại',
+                            onPressed: () => setState(() {}),
+                          ),
+                        ],
                       ),
                     ),
                   );

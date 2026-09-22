@@ -386,15 +386,15 @@ class _SourceSheetBody extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  const SizedBox(height: AppSpacing.md),
+                  _SourceSheetPagePreview(pageIndex: current.pageIndex),
                 ],
-                const SizedBox(height: AppSpacing.md),
-                _SourceSheetPagePreview(pageIndex: current.pageIndex),
                 const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
                     Expanded(
                       child: Text(
-                        'Nội dung tài liệu gốc (Trang ${current.pageIndex + 1})',
+                        'Nội dung tài liệu gốc',
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: colors.muted,
                         ),
