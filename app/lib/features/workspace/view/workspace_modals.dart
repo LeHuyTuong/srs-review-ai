@@ -1693,3 +1693,123 @@ class _SyllabusCheckDetail extends StatelessWidget {
     );
   }
 }
+
+Future<void> showExecutionLogsModal(BuildContext context, WidgetRef ref) =>
+    _show<void>(
+      context: context,
+      wide: true,
+      builder: (ctx) => const _ExecutionLogsModal(),
+    );
+
+class _ExecutionLogsModal extends ConsumerWidget {
+  const _ExecutionLogsModal();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.workspaceColors;
+    final theme = Theme.of(context);
+    final logs = ref.watch(
+      workspaceViewModelProvider.select((state) => state.executionLogs),
+    );
+
+    return _ModalScaffold(
+      icon: Icons.terminal,
+      title: 'Nhật ký thực thi AI',
+      description:
+          'Chi tiết các bước trích xuất dữ liệu, phát hiện sơ đồ, kiểm định trích dẫn và tính toán Rubric.',
+      children: [
+        if (logs.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: colors.canvas,
+              borderRadius: AppRadius.boxMd,
+              border: Border.all(color: colors.border),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: colors.muted, size: 20),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(
+                    'Chưa có sự kiện nào được ghi lại trong phiên này. Hãy bắt đầu chấm điểm để theo dõi tiến trình.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.muted,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          Container(
+            constraints: const BoxConstraints(maxHeight: 320),
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: colors.canvas,
+              borderRadius: AppRadius.boxMd,
+              border: Border.all(color: colors.border),
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: logs.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 6),
+              itemBuilder: (context, index) {
+                final line = logs[index];
+                Color lineColor = colors.ink;
+                if (line.contains('Tải') || line.contains('Khởi tạo')) {
+                  lineColor = colors.blue;
+                } else if (line.contains('Multimodal') ||
+                    line.contains('Vision')) {
+                  lineColor = colors.purple;
+                } else if (line.contains('Loại bỏ') ||
+                    line.contains('chưa được')) {
+                  lineColor = colors.amber;
+                } else if (line.contains('Hoàn tất') ||
+                    line.contains('hoàn tất')) {
+                  lineColor = colors.sage;
+                }
+                return SelectableText(
+                  line,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontFamily: 'monospace',
+                    fontSize: AppType.micro,
+                    color: lineColor,
+                    height: 1.4,
+                  ),
+                );
+              },
+            ),
+          ),
+        const SizedBox(height: AppSpacing.lg),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            if (logs.isNotEmpty)
+              WButton.secondary(
+                label: 'Sao chép nhật ký',
+                icon: Icons.copy,
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: logs.join('\n')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Đã sao chép nhật ký thực thi vào clipboard',
+                      ),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+            const SizedBox(width: AppSpacing.sm),
+            WButton.primary(
+              label: 'Đóng',
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}

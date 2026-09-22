@@ -75,7 +75,11 @@ class WorkspaceState {
     this.documentFingerprint = '',
     this.parserVersion = '',
     this.runSummaryDismissed = false,
+    this.executionLogs = const [],
   });
+
+  /// Audit trail of AI actions and validation pipeline events.
+  final List<String> executionLogs;
 
   final bool hasDocument;
   final String fileName;
@@ -277,6 +281,7 @@ class WorkspaceState {
     String? documentFingerprint,
     String? parserVersion,
     bool? runSummaryDismissed,
+    List<String>? executionLogs,
   }) => WorkspaceState(
     hasDocument: hasDocument ?? this.hasDocument,
     fileName: fileName ?? this.fileName,
@@ -314,6 +319,7 @@ class WorkspaceState {
     documentFingerprint: documentFingerprint ?? this.documentFingerprint,
     parserVersion: parserVersion ?? this.parserVersion,
     runSummaryDismissed: runSummaryDismissed ?? this.runSummaryDismissed,
+    executionLogs: executionLogs ?? this.executionLogs,
   );
 }
 
@@ -365,6 +371,15 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     });
   }
 
+  void _log(String message) {
+    final now = DateTime.now();
+    final timeStr =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+    state = state.copyWith(
+      executionLogs: [...state.executionLogs, '[$timeStr] $message'],
+    );
+  }
+
   // ------------------------------------------------------------- demo / import
 
   Future<void> loadDemo() async {
@@ -402,6 +417,10 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
           '${units.length} units extracted. All detected IDs have been preserved.',
     ).copyWith(restoring: false);
     _scheduleToastClear();
+    _log('Tải tài liệu mẫu: $demoFileName ($demoPageCount trang)');
+    _log(
+      'Trích xuất: ${units.length} yêu cầu, ${document.imagePageIndexes.length} trang sơ đồ',
+    );
     await _saveSnapshot();
   }
 
@@ -689,6 +708,15 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       ),
     );
     _startElapsedTicker();
+    _log('Khởi tạo lượt chấm cho ${selectedItems.length} yêu cầu đã chọn');
+    _log(
+      'Chế độ: ${ref.read(mockModeProvider) ? "Mô phỏng ngoại tuyến (Offline Mock)" : "Trực tuyến (LLM Proxy)"}',
+    );
+    if (imageReviewEnabled) {
+      _log(
+        'Kích hoạt Multimodal Vision cho ${_documentMap?.figurePages.length ?? 0} trang sơ đồ',
+      );
+    }
 
     // One read, both uses: the version goes into the result, and the batch
     // ceiling replaces the client's compile-time copy of a server setting when
@@ -740,6 +768,15 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
                   ),
               ],
             );
+            _log('Hoàn tất chấm ${run.results.length} yêu cầu');
+            if (run.totalDropped > 0) {
+              _log(
+                'Loại bỏ ${run.totalDropped} lỗi do không khớp trích dẫn nguyên văn',
+              );
+            }
+            _log(
+              'Tính điểm hoàn tất: ${result.findings.length} lỗi phát hiện trên ${result.reviewed} yêu cầu',
+            );
           },
         )
         .listen(
@@ -759,6 +796,18 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
                 skipped: state.runSkipped,
               ),
             );
+            if (progress.stage == ReviewStage.parsing) {
+              _log('Đang phân tách và chuẩn hóa ngữ cảnh các yêu cầu...');
+            } else if (progress.stage == ReviewStage.reviewing &&
+                progress.currentRequirementId != null) {
+              _log(
+                'Đang chấm điểm AI: ${progress.completed}/${progress.total} (${progress.currentRequirementId})',
+              );
+            } else if (progress.stage == ReviewStage.verifying) {
+              _log(
+                'Đang kiểm tra trích dẫn nguyên văn (Exact Verbatim Verification)...',
+              );
+            }
             if (progress.stage == ReviewStage.done ||
                 progress.stage == ReviewStage.cancelled ||
                 progress.stage == ReviewStage.failed) {

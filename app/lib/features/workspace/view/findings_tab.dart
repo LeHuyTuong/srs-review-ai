@@ -160,6 +160,11 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                   onSelected: (_) =>
                       setState(() => _persona = _Persona.lecturer),
                 ),
+                ActionChip(
+                  label: const Text('Nhật ký AI'),
+                  avatar: const Icon(Icons.terminal, size: 16),
+                  onPressed: () => showExecutionLogsModal(context, ref),
+                ),
               ],
             ),
             const SizedBox(height: AppSpacing.sm),
