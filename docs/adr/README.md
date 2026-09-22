@@ -13,7 +13,9 @@ Mỗi quyết định kỹ thuật có một file, đánh số tăng dần, khô
 | [0007](0007-m3-adaptive-thresholds.md) | M3 window class cho rail; dialog căn giữa miễn trừ trên phone | Accepted |
 | [0008](0008-kiraai-provider-evaluation.md) | Không dùng KiraAI làm provider chính; giữ làm fallback vision có điều kiện | Accepted |
 | [0009](0009-rubric-v3-weights-and-uc-ceiling.md) | Rubric v3: weights `.25/.40/.20/.15`, bỏ trần 25 use case | Accepted — **chưa chạy test** |
+| [0010](0010-provider-pacing-and-batching.md) | Proxy giữ nhịp provider (pacer toàn cục), app gộp 6 unit/call, 502 là "đã retry xong" | Accepted |
+| [0011](0011-persistence-server-cache-and-app-history.md) | Bỏ "không có DB": cache server bằng SQLite (stdlib), lịch sử app bằng sembast sau interface `SessionStore` | Accepted |
 
-**Số tiếp theo: 0010.**
+**Số tiếp theo: 0012.**
 
 Luật chấm SRS/SDS **không** ghi ở đây — chúng nằm ở `review-rules/RULEBOOK.md` với hệ version riêng (§10). ADR chỉ dành cho quyết định về *code* của repo này.

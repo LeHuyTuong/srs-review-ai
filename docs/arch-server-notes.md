@@ -37,9 +37,11 @@
 | `server/tests/` | `test_api.py`, `test_contract.py`, `test_gemini.py`, `test_verify.py` |
 
 ### Database
-- **Không có database, không có ORM.** Server là stateless proxy.
-- State chỉ lưu in-memory: `LruCache` (kết quả review) + `RateLimiter` (quota).
-- Persistence do Flutter app xử lý client-side qua `shared_preferences` (`session_store.dart`).
+- **Cache kết quả review nằm trong SQLite** (`server/app/store.py`, stdlib `sqlite3`, không ORM) tại `$SRS_CACHE_DIR/cache.sqlite3` (mặc định `server/.cache/`, đã gitignore). Trước 2026-09-22 state chỉ nằm in-memory, nên restart proxy là mất sạch một lượt đã trả tiền — xem ADR 0011.
+- Key vẫn là content hash (đã gồm prompt/rubric/model version) nên đổi prompt/rubric tự vô hiệu entry cũ; không cần migration dữ liệu. Trần `cache_max_entries` (10 000) evict LRU; row không decode được coi như miss và bị xoá.
+- **Cache không bao giờ được làm hỏng việc chấm:** không mở/ghi được (FS read-only, hết chỗ, file hỏng) thì tự lùi về `LruCache` in-memory và `/health` báo `cache.degraded: true`.
+- `RateLimiter` (quota/ngày) **vẫn in-memory**: restart proxy là reset quota của user — điều đã biết, chưa cần chính sách cửa sổ.
+- Lịch sử phiên của app do client giữ, từ 2026-09-22 trong database nhúng (`sembast`, `session_database.dart`) sau interface `SessionStore`; `shared_preferences` chỉ còn là fallback và là nguồn migrate một lần (không bị xoá).
 
 ### Endpoints Chính
 | Method | Path | Auth | Mô tả |
@@ -47,6 +49,7 @@
 | `GET` | `/health` | None | Trả về status, contract_version, mock_mode, model, rubric_version |
 | `GET` | `/rubric` | None | Trả về rubric JSON config |
 | `POST` | `/review` | `X-App-Token` | Gửi 1 requirement để AI review, trả về issues + verified quotes |
+| `POST` | `/review/batch` | `X-App-Token` | Chấm 1–8 unit văn bản trong MỘT call provider; trả 200 kèm `results[]` (theo `unit_index`) và `failed[]` |
 | `POST` | `/ask` | `X-App-Token` | Hỏi đáp tự do grounded trong document |
 
 Bảo vệ chung cho POST: `X-App-Token` header (401 nếu sai), giới hạn payload 413 (text > 200KB, image > 4MB), rate limit 429 với header `Retry-After`.
@@ -57,7 +60,7 @@ Bảo vệ chung cho POST: `X-App-Token` header (401 nếu sai), giới hạn pa
 - Model chính: `gemini-3.5-flash-lite`; Fallback: `gemini-3.1-flash-lite`.
 - Auth: header `x-goog-api-key` (không để trong URL).
 - Structured output qua `responseMimeType: application/json` + `responseSchema`.
-- Retry: exponential backoff (1s → 2s → 4s) cho 408/429/500/502/503/504.
+- Retry: xử lý bởi pacer toàn cục (`llm/pacing.py`): token bucket 12 call/phút + burst 4, cooldown theo model đọc từ `RetryInfo.retryDelay`/`Retry-After` của Google, jitter mọi lần chờ, trần 45s cho tổng thời gian chờ của một request — xem ADR 0010.
 - **Anti-hallucination:** `verify_quote()` trong `verify.py` — mỗi issue phải có `quote` khớp source text (exact/fuzzy ≥0.92). Issue không khớp bị DROP, đếm vào `dropped_issue_count`.
 
 ### SRS Algorithm

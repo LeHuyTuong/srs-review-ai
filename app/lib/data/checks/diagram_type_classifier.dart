@@ -7,10 +7,9 @@
 /// so NFC and NFD documents classify identically. Deliberately narrow and
 /// tie-safe: a page whose evidence is ambiguous audits as `unknown` (the
 /// server's generic describe-only judge) rather than getting a confident
-/// wrong question. The one kind the server has NO judge for — [activity] —
-/// is named for selection purposes but sent on the wire as
-/// `unknown`/`DOC`, which is the describe-only path, never a fabricated
-/// enum value the endpoint would reject.
+/// wrong question. Every named kind maps to a wire the server accepts; since
+/// diagram prompt d2 (2026-09-21) [activity] has its own `ACTIVITY` type and
+/// `ACT` family, so no kind borrows `unknown`'s describe-only path any more.
 library;
 
 import 'dart:convert';
@@ -18,11 +17,10 @@ import 'dart:convert';
 import 'text_fold.dart';
 
 /// Exactly one member per value the server accepts at `/diagram`
-/// (`DiagramType` in server/app/diagram.py) — plus [activity], which the
-/// server has NO type for and therefore borrows `unknown`'s wire and `DOC`
-/// family. `diagram_type` is a Pydantic StrEnum: any other string is a 422,
-/// so a new kind may only ever be added with a wire that already exists
-/// here. Guarded by the test 'every kind sends a wire and family the server
+/// (`DiagramType` in server/app/diagram.py). `diagram_type` is a Pydantic
+/// StrEnum: any other string is a 422, so a new kind must be added on BOTH
+/// sides in the same change (the wire cannot be guessed client-side).
+/// Guarded by the test 'every kind sends a wire and family the server
 /// accepts'.
 enum DiagramKind {
   erd('erd', 'ERD'),
