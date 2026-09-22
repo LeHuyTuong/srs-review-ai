@@ -424,6 +424,50 @@ chuyển sang trang chủ của ứng dụng.
       expect(items.single.text, contains('Guest'));
       expect(items.single.text, contains('Lecturer'));
     });
+
+    test('a split page-number footer does not close the use case', () {
+      // Measured on the real OTES report, parser 1.4.1: the printed page
+      // number arrives as two text runs and `joinVisualLines` merges them
+      // into `2 6`, which the heading tracker read as the chapter `2` with
+      // the title `6`. The open use case was flushed at the footer, so its
+      // body became a `SEC-2-p26`-style section (59 of 162 "sections" were
+      // really use-case bodies).
+      final items = splitter.split([
+        '2.3.4.6 <Lecturer>Create exam\n'
+            'UC-01 Create exam\n'
+            'Actor: Lecturer\n'
+            '1. Lecturer opens the create exam view.\n'
+            '2 6\n',
+        'Use Case Name Create exam\n'
+            'Main success scenario:\n'
+            '1. Lecturer sends a create exam command.\n'
+            '2. System shows the exam form.\n',
+      ]);
+
+      expect(items.map((i) => i.id), ['UC-01']);
+      expect(items.single.text, contains('Main success scenario'));
+      expect(items.single.text, contains('System shows the exam form'));
+    });
+
+    test('a banner that only absorbed a footer is not a unit', () {
+      // The banner id and the table id disagree in the source document
+      // (measured on OTES: banner `UC014`, table `Use Case No. UC0114`), so
+      // the banner opens a unit of its own. With footers no longer closing
+      // units it absorbed the merged page number as its whole body — and a
+      // 3-character `5 5` "use case" is not reviewable.
+      final items = splitter.split([
+        '2.3.4.6 <Lecturer>Refresh student\n'
+            'USE CASE – UC014\n'
+            '5 5\n',
+        'Use Case No. UC0114 Use Case Version 2.0\n'
+            'Use Case Name Refresh student\n'
+            'Main success scenario:\n'
+            '1. Lecturer refreshes the student list.\n',
+      ]);
+
+      expect(items.map((i) => i.id), ['UC0114']);
+      expect(items.single.text, contains('Refresh student'));
+    });
   });
 
   group('labelled use-case ids', () {

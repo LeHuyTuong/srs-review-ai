@@ -1,5 +1,45 @@
 # Review: "chỉ nhận mỗi use case, các phần SRS khác không nhận gì" — 2026-09-21
 
+## Addendum 2 (2026-09-22) — footer bị đọc thành heading, thân UC bị cắt
+
+Sau lượt chấm AI thật đầu tiên trên parser 1.4.1 (240 unit), snapshot cho thấy
+unit UC trung bình chỉ ~321 ký tự, ngắn nhất 20. Đo lại bằng probe trên đúng
+file OTES 217 trang:
+
+| | 1.4.0 (extractText) | 1.4.1 (joinVisualLines) | sau fix |
+|---|---|---|---|
+| unit / UC | 85 / 85 | 235 / 63 | **130 / 63** |
+| UC có "Main success scenario" | — | **9/63** | **63/63** |
+| UC dài nhất | 33 825 (nuốt cả tài liệu) | 1 026 | 1 944 |
+| section là thân bảng UC | — | **59/162 (51 227 ký tự)** | **0** |
+| id có hậu tố `-p<page>` | — | 125/235 | 22 (đều là restart số thật) |
+
+**Nguyên nhân.** `joinVisualLines` gộp số trang thành một dòng: trang in 26 →
+`2 6`, trang 135 → `13 5`. `_NumberedLine` đọc `2 6` thành chương `2` với tiêu
+đề `6` → `_HeadingTracker` chấp nhận là heading → `_flush()` đóng UC vừa mở ở
+cuối trang trước; phần còn lại của bảng thành unit `SEC-2-p26`. Mọi UC có bảng
+vắt qua ngã ba trang đều mất flow: model nhận unit UC thiếu precondition /
+flow / post-condition (đúng những gì brief Cockburn ở prompt p2 đi tìm) nên trả
+điểm 0, còn phần đuôi bảng lại bị chấm như "mục tài liệu".
+
+**Fix (trong working tree).** (1) `_NumberedLine.parse` đòi tiêu đề có ít nhất
+một chữ cái — dòng chỉ có số (`2 6`, `13 5`) là page furniture, không vào
+heading detection, `_sectionIn` hay `runMembers`. (2) `_BodyScan._flush` không
+emit unit mà toàn thân không có chữ cái: đo trên OTES, banner `USE CASE –
+UC014` (bảng in `UC0114`) sau fix (1) hút đúng dòng footer thành "use case"
+`5 5` 3 ký tự.
+
+Trạng thái: **đã đo lại trên file thật** — 63/63 UC giữ nguyên flow,
+`SEC-*` không còn thân UC, 0 unit không chữ cái. `flutter analyze --fatal-infos
+--fatal-warnings` sạch, `flutter test` **687/687** (thêm 2 test hồi quy trong
+`requirement_splitter_test.dart`), server `pytest` 99+1 skip pass.
+`kParserVersion` bump 1.4.1 → **1.4.2** (snapshot cũ không tái dùng). Snapshot
+1.4.1 của lượt chấm đêm 2026-09-22 đã được sao lưu nguyên trạng ra
+`reviews/workspace-snapshot-2026-09-22-parser1.4.1.json` trước khi bump để còn
+đối chiếu.
+
+---
+
 ## Addendum 1.4.1 (cùng ngày, sau khi chạy trên PDF OTES thật)
 
 Chạy parser 1.4.0 lên `D:\Download\SRS.pdf` (217 trang, bản OTES thật) cho thấy
@@ -22,6 +62,11 @@ thành unit. Nhiễu còn lại: heading rác từ header/footer (`SEC-14-p141`)
 đuôi bảng UC thành section — người dùng lọc/bỏ chọn trong inventory; nên lọc
 kind trước khi chấm để không đốt quota vào section thuộc front-matter.
 `kParserVersion` bump 1.4.0 → 1.4.1 (snapshot cũ không tái dùng).
+
+> **Đọc tiếp Addendum 2 (2026-09-22):** "nhiễu header/footer" nói trên không
+> phải nhiễu lọc được — nó là **thân bảng UC bị cắt** và là nguyên nhân chính
+> khiến lượt chấm AI thật đầu tiên trả về điểm đồng loạt ~2.0/10. Con số 235
+> unit của 1.4.1 ở trên đã bị thay bằng 130 unit sau fix.
 
 Trạng thái: **đã vá và xác minh 2026-09-21** — `flutter analyze --fatal-infos
 --fatal-warnings` sạch (đã sửa thêm 1 lint `prefer_null_aware_operators` ở

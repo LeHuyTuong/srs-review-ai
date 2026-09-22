@@ -101,6 +101,15 @@ class RequirementSplitter {
     r'^\s*use[\s-]?case\s*(?:name|id)?\s*[:|]\s*(.+)$',
     caseSensitive: false,
   );
+
+  /// At least one letter. A heading title, a reviewable requirement body and
+  /// a use-case flow all have one; a merged page number (`5 5`, `13 5`) or a
+  /// lone punctuation cell never does. Used by [_NumberedLine.parse] to keep
+  /// footers out of heading detection, and by [_BodyScan._flush] so a banner
+  /// that absorbed nothing but page furniture is not reviewed as a unit
+  /// (measured on OTES: the `USE CASE – UC014` banner over a table labelled
+  /// `UC0114` produced a 3-character "use case" whose whole text was `5 5`).
+  static final RegExp _hasLetter = RegExp(r'[A-Za-zÀ-ỹ]');
   static final RegExp _whitespace = RegExp(r'\s+');
 
   /// Minimum share of the body-scan count a TOC-driven result must reach to
@@ -348,6 +357,18 @@ class _NumberedLine {
   /// (or a step label like `1.0.E1`) does not match at all.
   static final RegExp _pattern = RegExp(r'^(\d+(?:\.\d+){0,3})\.?\s+(\S.*)$');
 
+  /// A numbered line whose title is only digits/punctuation is page
+  /// furniture, not a numbered heading — measured on the real OTES report
+  /// (parser 1.4.1): Word's PDF export splits the page number into runs,
+  /// `joinVisualLines` merges them into one line (`2 6` for printed page 26),
+  /// and the tracker read that as the chapter `2` with the title `6`. Every
+  /// use case whose table crossed a page break was flushed at the footer, and
+  /// its body was emitted as a bogus `SEC-2-p26`-style section unit
+  /// (measured: 59 of 162 "sections" were really use-case bodies, 125/235
+  /// ids carried the duplicate-number suffix). Requiring a letter keeps
+  /// footers out of: heading detection (this class), the section number a TOC
+  /// segment reports ([RequirementSplitter._sectionIn]) and numbered-list
+  /// runs ([_HeadingTracker.runMembers]).
   static _NumberedLine? parse(String line) {
     final match = _pattern.firstMatch(line);
     if (match == null) return null;
@@ -359,7 +380,9 @@ class _NumberedLine {
       if (value == null) return null;
       parts.add(value);
     }
-    return _NumberedLine(parts, number, match.group(2)!.trim());
+    final title = match.group(2)!.trim();
+    if (!RequirementSplitter._hasLetter.hasMatch(title)) return null;
+    return _NumberedLine(parts, number, title);
   }
 
   final List<int> parts;
@@ -771,7 +794,7 @@ class _BodyScan {
       return;
     }
     final text = RequirementSplitter._collapse(_buffer.join(' '));
-    if (text.isNotEmpty) {
+    if (text.isNotEmpty && RequirementSplitter._hasLetter.hasMatch(text)) {
       _collected.add(
         RequirementItem(
           id: id,

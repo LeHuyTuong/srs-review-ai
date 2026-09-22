@@ -30,7 +30,14 @@ const Set<String> kSupportedDocumentExtensions = {'pdf', 'docx'};
 /// a unit, and NFR-/NF-/BR- ids carry their own kind. An official capstone
 /// SRS (Product Overview → Use Cases → Functional → Non-Functional →
 /// Appendix) used to yield use cases only; it now yields every part.
-const String kParserVersion = '1.4.1';
+/// 1.4.1 — [PdfParser] rebuilds page lines from `extractTextLines`
+/// coordinates; token-per-line Word exports used to hide every prose section.
+/// 1.4.2 — a numbered line whose title has no letter (`2 6`, the page number
+/// after line reconstruction) is page furniture, not a heading: in 1.4.1 it
+/// closed every use case whose table crossed a page break and the table body
+/// was emitted as a bogus `SEC-2-p26` section (measured on OTES: 59 of 162
+/// "sections" were use-case bodies, only 9/63 use cases kept their flow).
+const String kParserVersion = '1.4.2';
 
 enum RequirementKind {
   /// FR-xx / F-xx / SR-xx style functional statement — and, until 1.3.0, the
