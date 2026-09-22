@@ -1843,7 +1843,7 @@ class _DocumentPreviewModalState extends ConsumerState<_DocumentPreviewModal> {
   void initState() {
     super.initState();
     _currentPage = widget.initialPage;
-    _showImage = ref.read(workspaceViewModelProvider.notifier).hasPdfBytes;
+    _showImage = ref.read(workspaceViewModelProvider.notifier).canRenderPdf;
   }
 
   Widget _buildTextView(
@@ -1948,7 +1948,7 @@ class _DocumentPreviewModalState extends ConsumerState<_DocumentPreviewModal> {
               u.kind == UnitKind.section,
         );
 
-    final canRenderPdf = viewModel.hasPdfBytes;
+    final canRenderPdf = viewModel.canRenderPdf;
 
     return _ModalScaffold(
       icon: Icons.menu_book_outlined,

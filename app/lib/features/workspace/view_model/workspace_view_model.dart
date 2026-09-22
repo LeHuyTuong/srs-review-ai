@@ -853,6 +853,9 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
 
   bool get hasPdfBytes => _pdfBytes != null && _pdfBytes!.isNotEmpty;
 
+  bool get canRenderPdf =>
+      hasPdfBytes || (_uploadUri != null && _uploadUri!.isNotEmpty);
+
   /// Renders a single PDF page to PNG bytes for inspection / preview.
   /// First checks in-memory `_pdfBytes` locally; if absent, falls back to
   /// the server's `/documents/render` endpoint via [DocumentMapService].
@@ -864,8 +867,23 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         return await repository.renderPageForAudit(bytes, pageIndex);
       } catch (_) {}
     }
-    final uploadUri = _uploadUri;
+    var uploadUri = _uploadUri;
     final mapService = ref.read(documentMapServiceProvider);
+    if (uploadUri == null &&
+        bytes != null &&
+        bytes.isNotEmpty &&
+        mapService != null) {
+      try {
+        final analysis = await mapService.analyzeDocument(
+          fileName: state.fileName,
+          bytes: bytes,
+        );
+        _documentMap = analysis.map;
+        _uploadUri = analysis.uploadUri;
+        uploadUri = analysis.uploadUri;
+        await _saveSnapshot();
+      } catch (_) {}
+    }
     if (uploadUri != null && mapService != null) {
       try {
         return await mapService.renderFigure(
@@ -1277,9 +1295,15 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       _document = null; // a restored session reviews no new file
       _pdfBytes = null;
       _documentMap = null;
-      _uploadUri = null;
+      _uploadUri = payload['uploadUri'] as String?;
+      final pageTexts =
+          (payload['pageTexts'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const <String>[];
       state = state.copyWith(
         hasDocument: true,
+        pageTexts: pageTexts,
         // Only `units` is load-bearing; the rest is display metadata. Casting
         // those with `as String` / `as int` used to throw on a payload that was
         // merely missing an optional field, which the catch-all turned into
@@ -1482,6 +1506,8 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       'result': state.result?.toJson(),
       'documentFingerprint': state.documentFingerprint,
       'parserVersion': state.parserVersion,
+      'uploadUri': _uploadUri,
+      'pageTexts': state.pageTexts,
     });
     try {
       await _store.saveSnapshot(payload);
@@ -1570,7 +1596,12 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       _document = null;
       _pdfBytes = null;
       _documentMap = null;
-      _uploadUri = null;
+      _uploadUri = payload['uploadUri'] as String?;
+      final pageTexts =
+          (payload['pageTexts'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const <String>[];
       state = WorkspaceState(
         hasDocument: true,
         fileName: payload['fileName'] as String,
@@ -1588,6 +1619,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
             : WorkspaceReviewResult.fromJson(resultJson),
         documentFingerprint: payload['documentFingerprint'] as String? ?? '',
         parserVersion: savedParserVersion ?? '',
+        pageTexts: pageTexts,
         restoring: false,
       );
     } on Object {
@@ -1624,6 +1656,8 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       'result': result.toJson(),
       'documentFingerprint': state.documentFingerprint,
       'parserVersion': state.parserVersion,
+      'uploadUri': _uploadUri,
+      'pageTexts': state.pageTexts,
     });
     try {
       await _store.save(

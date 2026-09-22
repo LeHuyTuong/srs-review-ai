@@ -146,6 +146,7 @@ class PdfParser implements DocumentParser {
       }
       final extractor = PdfTextExtractor(document);
       final pageTexts = <String>[];
+      final rawPageTexts = <String>[];
       for (var page = 0; page < pageCount; page++) {
         // Large PDFs spend real seconds in text extraction; report per-page
         // progress (throttled to multi-page documents) so the UI shows life.
@@ -153,7 +154,9 @@ class PdfParser implements DocumentParser {
           onStatus('Extracting text (page ${page + 1}/$pageCount)…');
           await Future<void>.delayed(Duration.zero);
         }
-        pageTexts.add(_extractPageText(extractor, page));
+        final rawText = _extractRawPageText(extractor, page);
+        rawPageTexts.add(rawText);
+        pageTexts.add(stripPageNumberFooters(rawText));
       }
 
       if (pageTexts.every((text) => text.trim().isEmpty)) {
@@ -174,7 +177,10 @@ class PdfParser implements DocumentParser {
         pageCount: pageTexts.length,
         pageTexts: pageTexts,
         requirements: _splitter.split(pageTexts, toc: toc),
-        imagePageIndexes: _detectImagePages(pageTexts),
+        imagePageIndexes: detectImagePages(
+          pageTexts,
+          rawPageTexts: rawPageTexts,
+        ),
         blueprint: const BlueprintBuilder().build(
           pageTexts: pageTexts,
           toc: toc,
@@ -202,21 +208,18 @@ class PdfParser implements DocumentParser {
   /// TOC-driven use-case tables survived. Grouping the extractor's text lines
   /// by vertical position restores real lines ("3.3 Availability",
   /// "● The system must be available at any time 24/7").
-  static String _extractPageText(PdfTextExtractor extractor, int page) {
+  static String _extractRawPageText(PdfTextExtractor extractor, int page) {
     final lines = extractor.extractTextLines(
       startPageIndex: page,
       endPageIndex: page,
     );
     if (lines.isEmpty) {
-      return stripPageNumberFooters(
-        extractor.extractText(startPageIndex: page, endPageIndex: page),
-      );
+      return extractor.extractText(startPageIndex: page, endPageIndex: page);
     }
-    final text = joinVisualLines([
+    return joinVisualLines([
       for (final line in lines)
         (top: line.bounds.top, left: line.bounds.left, text: line.text.trim()),
     ]);
-    return stripPageNumberFooters(text);
   }
 
   /// Removes PDF footer rows such as `Page | 1 4 Page | 1 5` before the
@@ -278,7 +281,11 @@ class PdfParser implements DocumentParser {
   /// Heuristic stand-in for real image extraction (the package has no API for
   /// it). Pages that are nearly text-free inside an otherwise text-rich
   /// document are almost always a use case diagram, ERD or UI mockup.
-  static List<int> _detectImagePages(List<String> pageTexts) {
+  @visibleForTesting
+  static List<int> detectImagePages(
+    List<String> pageTexts, {
+    List<String>? rawPageTexts,
+  }) {
     final hasRealText = pageTexts.any(
       (t) => t.trim().length >= _diagramPageTextThreshold,
     );
@@ -286,10 +293,20 @@ class PdfParser implements DocumentParser {
     final pages = <int>[];
     for (var i = 0; i < pageTexts.length; i++) {
       final length = pageTexts[i].trim().length;
-      if (length > 0 && length < _diagramPageTextThreshold) pages.add(i);
+      final footerOnly =
+          length == 0 &&
+          rawPageTexts != null &&
+          i < rawPageTexts.length &&
+          _isPageNumberFooterOnly(rawPageTexts[i]);
+      if ((length > 0 && length < _diagramPageTextThreshold) || footerOnly) {
+        pages.add(i);
+      }
     }
     return pages;
   }
+
+  static bool _isPageNumberFooterOnly(String text) =>
+      text.trim().isNotEmpty && stripPageNumberFooters(text).trim().isEmpty;
 }
 
 class DocxParser implements DocumentParser {

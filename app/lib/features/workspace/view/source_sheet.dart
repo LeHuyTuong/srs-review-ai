@@ -462,23 +462,51 @@ class _SourceSheetBody extends ConsumerWidget {
   }
 }
 
-class _SourceSheetPagePreview extends ConsumerWidget {
+class _SourceSheetPagePreview extends ConsumerStatefulWidget {
   const _SourceSheetPagePreview({required this.pageIndex});
 
   final int pageIndex;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_SourceSheetPagePreview> createState() =>
+      _SourceSheetPagePreviewState();
+}
+
+class _SourceSheetPagePreviewState
+    extends ConsumerState<_SourceSheetPagePreview> {
+  late Future<Uint8List?> _renderFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _renderFuture = _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SourceSheetPagePreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pageIndex != widget.pageIndex) {
+      _renderFuture = _load();
+    }
+  }
+
+  Future<Uint8List?> _load() {
+    return ref
+        .read(workspaceViewModelProvider.notifier)
+        .renderPageImage(widget.pageIndex);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final colors = context.workspaceColors;
     final theme = Theme.of(context);
-    final viewModel = ref.read(workspaceViewModelProvider.notifier);
 
     return FutureBuilder<Uint8List?>(
-      future: viewModel.renderPageImage(pageIndex),
+      future: _renderFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Container(
-            height: 100,
+            height: 90,
             alignment: Alignment.center,
             margin: const EdgeInsets.only(bottom: AppSpacing.md),
             decoration: BoxDecoration(
@@ -496,7 +524,7 @@ class _SourceSheetPagePreview extends ConsumerWidget {
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Text(
-                  'Đang tải bản vẽ trang ${pageIndex + 1}…',
+                  'Đang tải bản vẽ trang ${widget.pageIndex + 1}…',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colors.muted,
                   ),
@@ -506,7 +534,47 @@ class _SourceSheetPagePreview extends ConsumerWidget {
           );
         }
         final bytes = snapshot.data;
-        if (bytes == null || bytes.isEmpty) return const SizedBox.shrink();
+        if (bytes == null || bytes.isEmpty) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: AppSpacing.md),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              color: colors.canvas,
+              borderRadius: AppRadius.boxSm,
+              border: Border.all(color: colors.border),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.image_outlined, size: 18, color: colors.sage),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    'Bản vẽ sơ đồ trang ${widget.pageIndex + 1}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.ink,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  icon: const Icon(Icons.open_in_new, size: 15),
+                  label: const Text('Mở xem bản vẽ'),
+                  onPressed: () => showDocumentPreviewModal(
+                    context,
+                    ref,
+                    initialPage: widget.pageIndex,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
 
         return Container(
           margin: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -528,7 +596,7 @@ class _SourceSheetPagePreview extends ConsumerWidget {
                     Icon(Icons.image_outlined, size: 16, color: colors.muted),
                     const SizedBox(width: AppSpacing.xs),
                     Text(
-                      'Bản xem trước trang ${pageIndex + 1}',
+                      'Bản xem trước trang ${widget.pageIndex + 1}',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: colors.muted,
                         fontWeight: FontWeight.w600,
@@ -544,7 +612,7 @@ class _SourceSheetPagePreview extends ConsumerWidget {
                       onPressed: () => showDocumentPreviewModal(
                         context,
                         ref,
-                        initialPage: pageIndex,
+                        initialPage: widget.pageIndex,
                       ),
                     ),
                   ],

@@ -382,6 +382,19 @@ class _NumberedLine {
     }
     final title = match.group(2)!.trim();
     if (!RequirementSplitter._hasLetter.hasMatch(title)) return null;
+    final normalized = title
+        .replaceAll(RegExp(r'[^a-zA-Z0-9]'), '')
+        .toLowerCase();
+    if (normalized == 'na' ||
+        normalized == 'none' ||
+        normalized == 'null' ||
+        normalized == 'nil' ||
+        normalized == 'tbd' ||
+        normalized == 'tba' ||
+        normalized == 'todo' ||
+        normalized == 'unknown') {
+      return null;
+    }
     return _NumberedLine(parts, number, title);
   }
 

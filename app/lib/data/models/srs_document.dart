@@ -39,7 +39,9 @@ const Set<String> kSupportedDocumentExtensions = {'pdf', 'docx'};
 /// "sections" were use-case bodies, only 9/63 use cases kept their flow).
 /// 1.4.3 — repeated page-number footer rows are removed before splitting, so
 /// diagram pages cannot become requirements containing only `Page | ...`.
-const String kParserVersion = '1.4.3';
+/// 1.4.4 — raw footer-only pages remain image candidates after the footer is
+/// removed from the text used for requirement splitting.
+const String kParserVersion = '1.4.4';
 
 enum RequirementKind {
   /// FR-xx / F-xx / SR-xx style functional statement — and, until 1.3.0, the

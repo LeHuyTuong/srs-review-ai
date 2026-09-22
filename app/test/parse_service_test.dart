@@ -138,5 +138,19 @@ void main() {
       const text = 'The page must show the review result.';
       expect(PdfParser.stripPageNumberFooters(text), text);
     });
+
+    test('keeps footer-only diagram pages as image candidates', () {
+      final realText = List.filled(
+        5,
+        'A real text page with enough content to review.',
+      ).join(' ');
+      expect(
+        PdfParser.detectImagePages(
+          [realText, ''],
+          rawPageTexts: [realText, 'Page | 1 4 Page | 1 5 Page | 1 6'],
+        ),
+        [1],
+      );
+    });
   });
 }

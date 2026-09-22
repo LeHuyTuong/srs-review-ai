@@ -666,5 +666,25 @@ Actor: Student
       expect(items.first.text, contains('store each submitted report'));
       expect(items.last.text, contains('notify the supervisor'));
     });
+
+    test(
+      'rejects placeholder headings such as 2 N/A from becoming section units',
+      () {
+        final items = splitter.split([
+          '''
+3.1 Main Requirements
+FR-01 The system shall log in.
+2 N/A
+FR-02 The system shall log out.
+''',
+        ]);
+
+        expect(items.map((i) => i.id), ['FR-01', 'FR-02']);
+        expect(
+          items.any((i) => i.title == 'N/A' || i.id.contains('SEC-2')),
+          isFalse,
+        );
+      },
+    );
   });
 }
