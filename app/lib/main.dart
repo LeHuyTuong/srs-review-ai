@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/providers.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'data/services/session_database.dart';
 import 'features/workspace/view/workspace_shortcuts.dart';
 
 Future<void> main() async {
@@ -22,9 +23,17 @@ Future<void> main() async {
   // Awaited up front so the workspace can restore its persisted snapshot from
   // the very first build instead of flickering through an empty state.
   final prefs = await SharedPreferences.getInstance();
+  // History lives in a database (one record per session, no whole-list
+  // rewrite, no localStorage ceiling). Chosen here, once, so every reader goes
+  // through the same store — and so a platform without a database location
+  // keeps the old store instead of losing the history.
+  final sessionStore = await openSessionStore(prefs: prefs);
   runApp(
     ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        sessionStoreProvider.overrideWithValue(sessionStore),
+      ],
       child: const SrsReviewApp(),
     ),
   );

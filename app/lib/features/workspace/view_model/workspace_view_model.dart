@@ -835,9 +835,10 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     // Saving only once a run reached `done` meant a 429 at unit 39 of 40 threw
     // away 38 reviewed units: the quota was spent and nothing was kept, so the
     // only recovery was to run — and pay for — the whole thing again.
+    var saved = false;
     if (result != null &&
         (progress.stage == ReviewStage.done || result.reviewed > 0)) {
-      await _saveSession(result);
+      saved = await _saveSession(result);
     }
 
     if (progress.stage == ReviewStage.done) {
@@ -886,7 +887,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         runSummaryDismissed: false,
         toast:
             '$reviewed units reviewed · $findings verified findings'
-            '$failNote$capNote · saved on this device',
+            '$failNote$capNote${saved ? ' · saved on this device' : ''}',
       );
     } else if (progress.stage == ReviewStage.cancelled) {
       final kept = result?.reviewed ?? progress.completed;
@@ -896,13 +897,15 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         runReviewed: kept,
         runSkipped: skipped,
         toast: kept > 0
-            ? 'Review cancelled · $kept unit(s) reviewed and saved on this device.'
+            ? 'Review cancelled · $kept unit(s) reviewed'
+                  '${saved ? ' and saved on this device' : ''}.'
             : 'Review cancelled · nothing had been reviewed yet.',
       );
     } else {
       final kept = result?.reviewed ?? progress.completed;
       final keptNote = kept > 0
-          ? ' $kept unit(s) were reviewed and saved on this device.'
+          ? ' $kept unit(s) were reviewed'
+                '${saved ? ' and saved on this device' : ''}.'
           : '';
       state = state.copyWith(
         clearProgress: true,
@@ -1146,7 +1149,14 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   }
 
   Future<void> deleteSession(String id) async {
-    await _store.delete(id);
+    try {
+      await _store.delete(id);
+    } on Object catch (error) {
+      state = state.copyWith(
+        error: 'Could not delete the saved review: $error',
+      );
+      return;
+    }
     await loadHistory();
   }
 
@@ -1411,7 +1421,11 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     }
   }
 
-  Future<void> _saveSession(WorkspaceReviewResult result) async {
+  /// Returns false when the history write failed, so the caller does not
+  /// claim "saved on this device" over an empty history: `setStringList` can
+  /// refuse (storage full, a blocked web origin) and the old code reported
+  /// success regardless, which made a finished run look like it vanished.
+  Future<bool> _saveSession(WorkspaceReviewResult result) async {
     final payload = jsonEncode({
       'fileName': state.fileName,
       'pageCount': state.pageCount,
@@ -1437,17 +1451,25 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       'documentFingerprint': state.documentFingerprint,
       'parserVersion': state.parserVersion,
     });
-    await _store.save(
-      SavedSession(
-        id: 'sess-${DateTime.now().microsecondsSinceEpoch}',
-        fileName: state.fileName,
-        fingerprint: state.documentFingerprint,
-        parserVersion: state.parserVersion,
-        payloadJson: payload,
-        createdAt: DateTime.now(),
-      ),
-    );
+    try {
+      await _store.save(
+        SavedSession(
+          id: 'sess-${DateTime.now().microsecondsSinceEpoch}',
+          fileName: state.fileName,
+          fingerprint: state.documentFingerprint,
+          parserVersion: state.parserVersion,
+          payloadJson: payload,
+          createdAt: DateTime.now(),
+        ),
+      );
+    } on Object catch (error) {
+      state = state.copyWith(
+        error: 'Review finished, but it could not be saved to history: $error',
+      );
+      return false;
+    }
     await loadHistory();
+    return true;
   }
 }
 

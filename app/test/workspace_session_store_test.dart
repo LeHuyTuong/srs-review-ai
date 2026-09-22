@@ -2,7 +2,10 @@
 /// behaviour the history view and snapshot restore depend on.
 library;
 
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:srs_review_ai/data/services/session_store.dart';
 
 void main() {
@@ -108,5 +111,197 @@ void main() {
       expect(legacy.fingerprint, isEmpty);
       expect(legacy.parserVersion, isEmpty);
     });
+  });
+
+  group('SharedPreferencesSessionStore', () {
+    test('wrongly-shaped rows do not take the whole history down', () async {
+      // The read used to catch only FormatException. A row whose JSON parses
+      // but is wrongly shaped (a bare number where the map belongs, a missing
+      // required key) throws TypeError instead — the whole list() failed and
+      // the history view showed "Could not load history" although every other
+      // row was fine.
+      final good = SavedSession(
+        id: 'ok',
+        fileName: 'a.pdf',
+        payloadJson: '{"units":[]}',
+        createdAt: DateTime(2026, 1, 1),
+      );
+      SharedPreferences.setMockInitialValues({
+        'srs.workspace.sessions': <String>[
+          'not json at all', // FormatException
+          '5', // valid JSON, not a map
+          '{"id": 5, "fileName": "b.pdf"}', // wrong field type
+          '{"fileName": "c.pdf"}', // missing required keys
+          good.encode(),
+        ],
+      });
+      final store = SharedPreferencesSessionStore(
+        await SharedPreferences.getInstance(),
+      );
+
+      final sessions = await store.list();
+      expect(sessions.map((s) => s.id), ['ok']);
+      expect((await store.open('ok'))?.fileName, 'a.pdf');
+    });
+
+    // Key names are literals on purpose: the store keeps them private, and a
+    // rename that breaks recovery must break these tests loudly.
+    const slotA = 'srs.workspace.sessions';
+    const slotB = 'srs.workspace.sessions.b';
+    const snapshotKey = 'srs.workspace.snapshot';
+    const snapshotMirror = 'srs.workspace.snapshot.b';
+
+    SavedSession session(String id, DateTime createdAt) => SavedSession(
+      id: id,
+      fileName: '$id.pdf',
+      payloadJson: '{"units":[]}',
+      createdAt: createdAt,
+    );
+
+    Future<SharedPreferencesSessionStore> freshStore() async {
+      SharedPreferences.setMockInitialValues({});
+      return SharedPreferencesSessionStore(
+        await SharedPreferences.getInstance(),
+      );
+    }
+
+    test('a torn replica is recovered from its mirror and repaired', () async {
+      final store = await freshStore();
+      final prefs = await SharedPreferences.getInstance();
+      await store.save(session('a', DateTime(2026, 1, 1)));
+      await store.save(session('b', DateTime(2026, 1, 2)));
+      expect((await store.list()).map((s) => s.id), ['b', 'a']);
+
+      // The app died in the middle of writing replica A: the key holds a
+      // fragment that cannot parse.
+      await prefs.setString(slotA, '{"generation":9,"sessions":[');
+
+      final recovered = await store.list();
+      expect(
+        recovered.map((s) => s.id),
+        ['b', 'a'],
+        reason: 'the mirror must keep the history readable',
+      );
+
+      // The damaged replica was re-published, so the next read finds two good
+      // copies again — the window with a single copy is closed here.
+      final healed = prefs.getString(slotA);
+      expect(healed, isNotNull);
+      expect(
+        (jsonDecode(healed!) as Map<String, dynamic>)['sessions'],
+        hasLength(2),
+      );
+      expect((await store.list()).map((s) => s.id), ['b', 'a']);
+    });
+
+    test('a generation whose rows all rotted falls back to the mirror', () async {
+      final store = await freshStore();
+      final prefs = await SharedPreferences.getInstance();
+      await store.save(session('a', DateTime(2026, 1, 1)));
+
+      // Replica A still parses and claims a newer generation, but none of its
+      // rows decode — an emptied history would have declared zero rows, so
+      // this must not be read as "the user deleted everything".
+      await prefs.setString(
+        slotA,
+        jsonEncode({
+          'generation': 9,
+          'writtenAt': '2026-01-01T00:00:00.000',
+          'sessions': ['not json', '{"id": 5}'],
+        }),
+      );
+
+      expect((await store.list()).map((s) => s.id), ['a']);
+    });
+
+    test('a legacy List<String> history is upgraded, not lost', () async {
+      SharedPreferences.setMockInitialValues({
+        slotA: <String>[session('old', DateTime(2026, 1, 1)).encode()],
+      });
+      final store = SharedPreferencesSessionStore(
+        await SharedPreferences.getInstance(),
+      );
+
+      await store.save(session('new', DateTime(2026, 1, 2)));
+
+      expect((await store.list()).map((s) => s.id), ['new', 'old']);
+      // Both replicas now hold the envelope, the legacy list is gone.
+      // `getString`/`getStringList` cast internally and throw on the other
+      // type — read the neutral value, then check the shape.
+      final prefs = await SharedPreferences.getInstance();
+      final upgradedA = prefs.get(slotA);
+      final upgradedB = prefs.get(slotB);
+      expect(upgradedA, isA<String>());
+      expect(upgradedB, isA<String>());
+      expect(
+        (jsonDecode(upgradedA! as String) as Map<String, dynamic>)['sessions'],
+        hasLength(2),
+      );
+    });
+
+    test('a delete-all is not undone by a later torn replica', () async {
+      final store = await freshStore();
+      final prefs = await SharedPreferences.getInstance();
+      await store.save(session('a', DateTime(2026, 1, 1)));
+      await store.delete('a');
+      expect(await store.list(), isEmpty);
+
+      await prefs.setString(slotA, '{torn');
+      expect(
+        await store.list(),
+        isEmpty,
+        reason: 'the mirror also holds the empty generation — no resurrection',
+      );
+    });
+
+    test('a truncated snapshot is served from its mirror and repaired', () async {
+      final store = await freshStore();
+      final prefs = await SharedPreferences.getInstance();
+      await store.saveSnapshot('{"units":[]}');
+
+      await prefs.setString(snapshotKey, '{"units":[');
+
+      expect(await store.loadSnapshot(), '{"units":[]}');
+      expect(
+        prefs.getString(snapshotKey),
+        '{"units":[]}',
+        reason: 'the damaged copy is repaired for the next restore',
+      );
+    });
+
+    test('a snapshot written before the mirror existed gets one on read', () async {
+      // Installs that predate the mirror (and installs whose mirror a failed
+      // write dropped) must be protected from the first restore, not from the
+      // next run — measured on the real OTES install: 0.5 MB snapshot with no
+      // mirror at all.
+      SharedPreferences.setMockInitialValues({
+        snapshotKey: '{"units":[]}',
+      });
+      final store = SharedPreferencesSessionStore(
+        await SharedPreferences.getInstance(),
+      );
+
+      expect(await store.loadSnapshot(), '{"units":[]}');
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.get(snapshotMirror), '{"units":[]}');
+    });
+
+    test('clearing the snapshot clears the mirror too', () async {
+      final store = await freshStore();
+      final prefs = await SharedPreferences.getInstance();
+      await store.saveSnapshot('{"units":[]}');
+      expect(prefs.getString(snapshotMirror), isNotNull);
+
+      await store.clearSnapshot();
+      expect(prefs.getString(snapshotKey), isNull);
+      expect(prefs.getString(snapshotMirror), isNull);
+      expect(await store.loadSnapshot(), isNull);
+    });
+
+    // The refusal branch of the write (platform answers `false`) cannot be
+    // exercised here: the mock platform store always accepts writes, and
+    // faking it would need `shared_preferences_platform_interface` as a direct
+    // dependency. The exception type it throws is asserted end-to-end in
+    // workspace_view_model_test.dart ('a refused history write is reported').
   });
 }

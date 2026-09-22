@@ -15,13 +15,14 @@ import 'package:srs_review_ai/data/models/review_models.dart';
 import 'package:srs_review_ai/data/services/api_service.dart';
 import 'package:srs_review_ai/data/services/mock_review_api.dart';
 import 'package:srs_review_ai/data/services/review_api.dart';
+import 'package:srs_review_ai/data/services/session_database.dart';
 import 'package:srs_review_ai/data/services/session_store.dart';
 import 'package:srs_review_ai/features/workspace/models/ask_document.dart';
 import 'package:srs_review_ai/features/workspace/models/report_export.dart';
 import 'package:srs_review_ai/features/workspace/models/workspace_findings.dart';
 import 'package:srs_review_ai/features/workspace/view_model/workspace_view_model.dart';
 
-ProviderContainer _container(InMemorySessionStore store, {ReviewApi? api}) =>
+ProviderContainer _container(SessionStore store, {ReviewApi? api}) =>
     ProviderContainer(
       overrides: [
         sessionStoreProvider.overrideWithValue(store),
@@ -403,6 +404,35 @@ void main() {
         units: const [],
       );
       expect(report, isNot(contains('look like diagrams')));
+    });
+  });
+
+  group('the history lives in a database', () {
+    test('a finished review is written into the database store', () async {
+      // The end-to-end wiring of the store the app actually ships on desktop,
+      // mobile and web: view model -> database -> history list. The filesystem
+      // half is covered by session_database_test.dart; this is the seam that
+      // would break if the provider were wired to the old store only.
+      final database = await SessionDatabaseStore.memory();
+      addTearDown(database.close);
+      final container = _container(database);
+      addTearDown(container.dispose);
+      final vm = container.read(workspaceViewModelProvider.notifier);
+      await vm.loadDemo();
+
+      await vm.runReview();
+      await _pumpUntil(() {
+        final state = container.read(workspaceViewModelProvider);
+        return state.hasResult && !state.isRunning;
+      });
+      await _pumpUntil(
+        () => container.read(workspaceViewModelProvider).history.isNotEmpty,
+      );
+
+      final history = container.read(workspaceViewModelProvider).history;
+      expect(history, hasLength(1));
+      expect(await database.count(), 1);
+      expect((await database.open(history.single.id))?.fileName, isNotEmpty);
     });
   });
 

@@ -197,6 +197,10 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   );
 });
 
+/// The history store. `main()` overrides this with whichever backend the
+/// platform can actually run (`openSessionStore` prefers the embedded database
+/// and falls back to `shared_preferences`); the default below keeps every test
+/// and any bare `ProviderScope` working without a database.
 final sessionStoreProvider = Provider<SessionStore>(
   (ref) => SharedPreferencesSessionStore(ref.watch(sharedPreferencesProvider)),
 );

@@ -82,6 +82,15 @@ class _StubDocumentRepository extends DocumentRepository {
   }
 }
 
+/// A store whose writes are refused the way a full device (or a blocked web
+/// origin) refuses them: the run itself succeeds, only persistence fails.
+class _RefusingSaveStore extends InMemorySessionStore {
+  @override
+  Future<void> save(SavedSession session) async {
+    throw const SessionStoreException('storage is full');
+  }
+}
+
 class _VisionReviewRepository extends ReviewRepository {
   /// Real passthroughs onto the MockReviewApi rule branch; only the PDF
   /// render is faked (test "bytes" are not parseable documents).
@@ -611,6 +620,45 @@ void main() {
     expect(restored.hasResult, isTrue);
     expect(restored.result!.findings, hasLength(state.result!.findings.length));
     expect(restored.syllabusFindings, isNotEmpty);
+  });
+
+  test('a refused history write is reported, not hidden', () async {
+    final container = _container(_RefusingSaveStore());
+    addTearDown(container.dispose);
+    final vm = container.read(workspaceViewModelProvider.notifier);
+    await vm.loadDemo();
+
+    // Trim to the per-run cap, exactly like the save-a-session test above.
+    for (final unit in container
+        .read(workspaceViewModelProvider)
+        .units
+        .where((u) => u.selected)
+        .skip(40)
+        .toList()) {
+      vm.setUnitSelected(unit.key, false);
+    }
+
+    await vm.runReview();
+    await _pumpUntil(() {
+      final state = container.read(workspaceViewModelProvider);
+      return state.hasResult && !state.isRunning;
+    });
+
+    final state = container.read(workspaceViewModelProvider);
+    expect(state.result, isNotNull, reason: 'the run itself succeeded');
+    expect(
+      state.error,
+      contains('could not be saved to history'),
+      reason:
+          'a finished run that was not persisted must say so — swallowing the '
+          'failure is how the history looked like it lost the review',
+    );
+    expect(state.error, contains('storage is full'));
+    expect(
+      state.toast,
+      isNot(contains('saved on this device')),
+      reason: 'the toast must not claim a save the store refused',
+    );
   });
 
   test(
