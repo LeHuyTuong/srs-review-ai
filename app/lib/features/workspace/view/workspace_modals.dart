@@ -420,20 +420,27 @@ String _runButtonLabel(int selectedCount) {
 
 /// Why a run is capped, in terms the app can actually stand behind.
 ///
-/// The cap is a compiled-in constant; the daily quota is deployment config and
-/// arrives with `GET /rubric`. When the quota is unknown — offline, or against a
-/// proxy older than this key — the note states the cap and says nothing about
-/// the quota. A hardcoded "50/day" was a promise the app could not keep: raising
-/// `RATE_LIMIT_PER_DAY` made the sentence contradict the very behaviour it was
-/// explaining, and the number was wrong by a factor of six besides.
+/// Units are batched — up to [AppConfig.reviewBatchSize] text-only units share
+/// one request — so the cap counts UNITS while the quota counts REQUESTS. The
+/// old "50/day" prose was wrong twice over: it counted units as requests, and it
+/// named a figure the app could not know. Converting one to the other is what
+/// lets this note say anything true about whether a full run fits.
 String _runLimitNote(int? reviewsPerDay) {
   const cap = AppConfig.maxRequirementsPerRun;
-  final head = 'Why the $cap-unit limit? Each reviewed unit costs one request';
+  const batch = AppConfig.reviewBatchSize;
+  const fullRunRequests = (cap + batch - 1) ~/ batch;
+  final head =
+      'Why the $cap-unit limit? Up to $batch text-only units share one request '
+      '(a page image costs one of its own), so a full run is roughly '
+      '$fullRunRequests requests.';
   if (reviewsPerDay == null) {
-    return '$head. The cap keeps room for same-day re-runs; already-reviewed '
-        'units are cached and cost nothing.';
+    return '$head Already-reviewed units are cached and cost nothing.';
   }
-  return '$head, and this server allows $reviewsPerDay a day. '
+  if (fullRunRequests > reviewsPerDay) {
+    return '$head This server allows $reviewsPerDay a day, so a run that size '
+        'would be stopped part-way; whatever was reviewed is kept.';
+  }
+  return '$head This server allows $reviewsPerDay a day, so a full run fits. '
       'Already-reviewed units are cached and cost nothing.';
 }
 
@@ -1049,9 +1056,9 @@ Future<void> showHelpModal(BuildContext context, WidgetRef ref) => _show(
             icon: Icons.speed_outlined,
             text:
                 'One run reviews at most ${AppConfig.maxRequirementsPerRun} '
-                'units. Each unit costs one request against the daily review '
-                'quota, and already-reviewed units are served from cache at '
-                'no cost.',
+                'units. Up to ${AppConfig.reviewBatchSize} text-only units '
+                'share one request — a page image costs one of its own — and '
+                'already-reviewed units are served from cache at no cost.',
           ),
           const SizedBox(height: AppSpacing.lg),
           for (final (number, title, body) in steps) ...[
