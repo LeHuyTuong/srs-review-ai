@@ -23,6 +23,7 @@ import '../checks/diagram_type_classifier.dart';
 import '../models/deterministic_finding.dart';
 import '../models/diagram_audit.dart';
 import '../models/document_blueprint.dart';
+import '../models/document_map.dart';
 import '../models/review_models.dart' show Severity;
 import '../models/srs_document.dart';
 
@@ -36,17 +37,29 @@ typedef DiagramAuditor =
 typedef PageImageEncoder =
     Future<String> Function(int pageIndex, String contextText);
 
+/// Encodes one FIGURE REGION (bbox in PDF points, from a [DocumentMap]) as
+/// base64 PNG. Production wiring calls `POST /documents/render` — a tight,
+/// high-DPI crop instead of a full page (sds-reviewer CROP step: reading a
+/// whole page in one shot measurably drops findings).
+typedef RegionImageEncoder =
+    Future<String> Function(int pageIndex, List<double> bbox);
+
 /// One page worth auditing, decided offline before any request leaves.
 class DiagramPageCandidate {
   const DiagramPageCandidate({
     required this.pageIndex,
     required this.kind,
     required this.contextText,
+    this.bbox,
   });
 
   final int pageIndex;
   final DiagramKind kind;
   final String contextText;
+
+  /// Non-null when the candidate came from a server document map: the exact
+  /// figure region to render. Null = render the whole page (legacy path).
+  final List<double>? bbox;
 
   @override
   String toString() => 'DiagramPageCandidate(page: $pageIndex, ${kind.name})';
@@ -79,12 +92,28 @@ class VisionReviewService {
     this.classifier = const DiagramTypeClassifier(),
     this.detector = const DiagramDetector(),
     this.maxPages = 10,
+    this.documentMap,
+    this.renderRegion,
+    this.maxFiguresPerPage = 2,
   });
 
   final DiagramAuditor auditor;
   final PageImageEncoder renderPage;
   final DiagramTypeClassifier classifier;
   final DiagramDetector detector;
+
+  /// Server-side anatomy (`/documents/analyze`). Non-null = figure candidates
+  /// come from REAL image objects / vector clusters with bboxes, not from
+  /// keyword or blueprint guesses.
+  final DocumentMap? documentMap;
+
+  /// Tight-crop renderer for bbox candidates; when null (or a candidate has
+  /// no bbox) the whole-page [renderPage] is used instead.
+  final RegionImageEncoder? renderRegion;
+
+  /// Cost guard for figure-dense pages: a page with 6 small figures must not
+  /// spend 6 of the day's requests. Largest-by-area figures win.
+  final int maxFiguresPerPage;
 
   /// Cap on pages per run: one page = one request (two model calls), so
   /// 10 keeps a 50/day quota intact for the ordinary review.
@@ -116,6 +145,15 @@ class VisionReviewService {
   /// An image-bearing page nobody captioned still audits (as `unknown`) —
   /// the orphan figures sds-reviewer step 5 exists to catch.
   List<DiagramPageCandidate> candidates(SrsDocument document) {
+    // The server document map outranks EVERY client heuristic: it lists real
+    // image objects and vector-drawing clusters with bounding boxes — the
+    // blueprint index and the text-density guess below only run when no map
+    // was fetched (offline, mock mode, or an unparseable file).
+    final map = documentMap;
+    if (map != null && map.hasFigures) {
+      return _candidatesFromMap(document, map);
+    }
+
     // The document's own List of Figures outranks every heuristic: it says
     // exactly which page holds which diagram, and (via the caption) which kind
     // it is. When the blueprint exists, IT decides; the text-density guesswork
@@ -236,6 +274,71 @@ class VisionReviewService {
     ];
   }
 
+  /// Figure-level candidates from a server [DocumentMap]: every figure region
+  /// is ONE candidate with its bbox, so the audit reads a tight crop of the
+  /// exact diagram — including vector UML that neither the raster heuristic
+  /// nor the blueprint could ever see (the OTES SEC-7 case).
+  ///
+  /// The kind is classified from the page text plus the containing section
+  /// title (bookmarks say "4.3 Interaction Diagram" even when the page itself
+  /// only holds the drawing). A figure whose raster carries a decodable
+  /// draw.io source gets that source PREPENDED to its context — the model
+  /// then reads the authoritative node/edge list and uses the crop to verify
+  /// layout, which is the highest-accuracy path the system has.
+  ///
+  /// Ordering mirrors the legacy tiers: named kinds first (they have a
+  /// specialized judge), unknown-kind figures next; each tier in page order,
+  /// and within a page largest-area-first, so re-runs number rows identically.
+  List<DiagramPageCandidate> _candidatesFromMap(
+    SrsDocument document,
+    DocumentMap map,
+  ) {
+    final all = <DiagramPageCandidate>[];
+    for (final page in map.pages) {
+      if (page.figures.isEmpty) continue;
+      final pageText = page.index < document.pageTexts.length
+          ? document.pageTexts[page.index]
+          : '';
+      final section = map.sectionForPage(page.index);
+      final baseContext = [
+        if (section != null) 'Section: ${section.title}',
+        pageText,
+      ].join('\n');
+      final kind = classifier.classify('$baseContext\n');
+      final figures = [...page.figures]
+        ..sort((a, b) => b.area.compareTo(a.area));
+      for (final figure in figures.take(maxFiguresPerPage)) {
+        all.add(
+          DiagramPageCandidate(
+            pageIndex: page.index,
+            kind: kind,
+            contextText: _contextWithSource(baseContext, figure),
+            bbox: figure.bbox,
+          ),
+        );
+      }
+    }
+    final named = all.where((c) => c.kind != DiagramKind.unknown);
+    final unnamed = all.where((c) => c.kind == DiagramKind.unknown);
+    return [...named, ...unnamed];
+  }
+
+  /// Prepends a decodable embedded diagram source (draw.io mxfile) to the
+  /// context. The server truncates `context_text` at 4000 chars, so the
+  /// authoritative part goes FIRST and is itself capped — page text survives
+  /// behind it as the caption hint.
+  static String _contextWithSource(String baseContext, DocumentFigure figure) {
+    final xml = figure.embeddedXml;
+    if (xml == null || xml.isEmpty) return baseContext;
+    const sourceCap = 2400;
+    final source = xml.length <= sourceCap
+        ? xml
+        : '${xml.substring(0, sourceCap)}…';
+    return '[Embedded draw.io source for THIS figure — authoritative node/edge '
+        'list; use the image to verify layout, not to re-read labels]\n'
+        '$source\n[Page text]\n$baseContext';
+  }
+
   Future<VisionAuditOutcome> audit(SrsDocument document) async {
     final candidates = this.candidates(document);
     if (candidates.isEmpty) {
@@ -251,6 +354,7 @@ class VisionReviewService {
     final skipped = candidates
         .skip(maxPages)
         .map((c) => c.pageIndex)
+        .toSet() // figure-level candidates repeat a page; report pages once
         .toList(growable: false);
 
     // Family ordinals assigned in audit order (named tier first, page order
@@ -263,10 +367,13 @@ class VisionReviewService {
     for (final candidate in withinBudget) {
       final tentativeLabel = candidate.kind.family;
       try {
-        final imageB64 = await renderPage(
-          candidate.pageIndex,
-          candidate.contextText,
-        );
+        // A bbox candidate reads its exact figure region (server-rendered
+        // high-DPI crop); anything else falls back to the whole page.
+        final bbox = candidate.bbox;
+        final regionRenderer = renderRegion;
+        final imageB64 = bbox != null && regionRenderer != null
+            ? await regionRenderer(candidate.pageIndex, bbox)
+            : await renderPage(candidate.pageIndex, candidate.contextText);
         final result = await auditor(
           DiagramAuditRequest(
             pageIndex: candidate.pageIndex,

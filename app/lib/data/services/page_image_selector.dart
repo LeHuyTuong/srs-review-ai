@@ -74,6 +74,16 @@ class PageImagePlan {
       'PageImagePlan($requirementId, page: $pageIndex, $decision, reason: $reason)';
 }
 
+/// Text-length ceiling for the thin-image-page intent fallback. Mirrors the
+/// parser's image-page heuristic (`PdfParser._detectImagePages`, 120 chars):
+/// a page the parser flagged as image-bearing whose extracted text fits under
+/// this ceiling is a picture plus page-number artifacts, not prose. The
+/// keyword gate cannot see such a diagram ("Page | 1 4 Page | 1 5…" contains
+/// no "diagram"/"figure"/"sơ đồ"), so intent is inferred from the page
+/// itself — otherwise a Sequence & Class section rendered as images is
+/// reviewed text-only and falsely scored "add the actual diagrams" (0/10).
+const int kThinPageTextThreshold = 120;
+
 /// Plans page-image attachments for one review run.
 ///
 /// Stateful only through [ImageBudget]: reservations accumulate across calls,
@@ -99,14 +109,32 @@ class PageImageSelector {
   /// [blueprint] lets a requirement that names a figure ("see Figure 12")
   /// attach the page that figure actually lives on, instead of only the page
   /// the requirement itself sits on. Without an index, behaviour is unchanged.
+  ///
+  /// [pageText] is the parser's extracted text for [pageIndex] when the
+  /// caller has it. It powers the thin-image-page fallback: when the
+  /// requirement text shows no diagram keyword but its page is a flagged
+  /// image page with essentially no extractable text, intent is inferred
+  /// from the page. Falls back to the requirement's own text when null.
   PageImagePlan planFor({
     required String requirementId,
     required String text,
     int? pageIndex,
     required Set<int> candidatePages,
     DocumentBlueprint? blueprint,
+    String? pageText,
   }) {
-    final signal = _detector.detectWithBlueprint(text, blueprint);
+    var signal = _detector.detectWithBlueprint(text, blueprint);
+    if (!signal.hasIntent &&
+        _isThinImagePage(pageIndex, candidatePages, pageText ?? text)) {
+      // Recall over precision, same trade-off the keyword list already makes:
+      // a false attach costs one budget slot and the image is context-only
+      // server-side; a false skip silently downgrades the review to a
+      // hallucinated "diagram missing" verdict.
+      signal = const DiagramSignal(
+        mentionsDiagram: true,
+        matchedTerm: 'thin-image-page',
+      );
+    }
     if (!signal.hasIntent) {
       return PageImagePlan._(
         requirementId,
@@ -140,5 +168,15 @@ class PageImageSelector {
       PageImageDecision.selected,
       null,
     );
+  }
+
+  /// True when [pageIndex] is a parser-flagged image page whose extracted
+  /// text ([probe]) is below [kThinPageTextThreshold] — i.e. the page's real
+  /// content is visual and the keyword detector had nothing to read.
+  bool _isThinImagePage(int? pageIndex, Set<int> candidatePages, String probe) {
+    if (pageIndex == null || !candidatePages.contains(pageIndex)) {
+      return false;
+    }
+    return probe.trim().length < kThinPageTextThreshold;
   }
 }

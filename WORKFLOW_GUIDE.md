@@ -84,9 +84,13 @@ User mở app
     │
     ▼
 ┌─ [5] CHỌN ƠN TƯỞNG CHO SƠ ĐỒ ─────────────────────────────────────┐
-│  DiagramDetector (keyword, offline) → trang nào có sơ đồ?          │
+│  ONLINE: upload 1 lần → POST /documents/analyze (PyMuPDF server)   │
+│    → DocumentMap: section (bookmark) + figure bbox THẬT            │
+│    (ảnh nhúng + cụm vector — sơ đồ UML do Word export)             │
+│  OFFLINE/mock: DiagramDetector (keyword) + thin-page heuristic     │
 │  → PageImageSelector → ImageBudget (max 12 trang/run)              │
-│  → Preview cho user sửa → PageImageRenderer (PNG base64)           │
+│  → Preview cho user sửa                                            │
+│  → ảnh: /documents/render(bbox, 216 DPI) hoặc PageImageRenderer    │
 └────────────────────────────────────────────────────────────────────┘
     │
     ▼
@@ -347,7 +351,13 @@ PageImageSelector.select()
     └── selected (có intent + trang + budget → reserve)
     │
     ▼
-PageImageRenderer.render(pageIndex) → base64 PNG
+render: có DocumentMap → POST /documents/render(bbox) — crop sát, 216 DPI
+        không có map → PageImageRenderer.render(pageIndex) → base64 PNG
+    │
+    ▼
+VisionReviewService.candidates(): có DocumentMap → 1 candidate / figure bbox
+    (max 2 figure/trang, xếp theo diện tích; tier "named" trước "unknown")
+    không có map → blueprint (List of Figures) hoặc keyword/visual heuristic
     │
     ▼
 VisionReviewService.audit() → POST /diagram (2 calls):
@@ -372,15 +382,43 @@ DiagramAuditResult → finding theo rubric mục D
 - **Coverage**: báo cáo ghi `audited / total` + reason token cho mỗi skipped
 - **Budget**: max 12 trang/run (mặc định, có thể cấu hình)
 
+### 7.2b Document anatomy trên server (độ chính xác cao nhất)
+
+Khi import PDF ở chế độ online, app upload file **một lần** rồi gọi
+`POST /documents/analyze`; server (`server/app/docmap.py`, PyMuPDF) trả về
+`DocumentMap`:
+
+| Trường | Ý nghĩa | Vì sao quan trọng |
+|---|---|---|
+| `sections[]` | bookmark thật → `{title, level, start_page, end_page}` | biết trang nào thuộc mục nào (fallback: heading số ở 6 dòng đầu trang) |
+| `pages[].figures[]` kind=image | ảnh nhúng + `bbox` (points) + xref + kích thước px | biết **ảnh nào, ở đâu trong trang** |
+| `pages[].figures[]` kind=drawing | cụm vector (`drawing_items`) sau khi gom path | sơ đồ UML do Word export — không có image object, heuristic text trước đây mù hoàn toàn |
+| `embedded_xml` + `readable` | mxfile draw.io / SVG text decode được | có source thì model đọc 100% node/edge, không cần "đoán" từ pixel |
+| `toc_source` | `bookmarks` \| `headings` \| `none` | nói rõ độ tin của dải section |
+
+Cách dùng trong audit: mỗi figure = 1 candidate (`VisionReviewService`),
+ảnh gửi đi là **crop sát bbox** render ở 216 DPI qua
+`POST /documents/render` (không phải cả trang 1600px), `kind` lấy từ
+classifier chạy trên page text + tiêu đề section. Kết quả: trang chỉ có hình
+mà không có chữ/caption (ca OTES SEC-7) vẫn được soi và chấm đúng.
+
+Giới hạn đã biết: tối đa 2 figure/trang (hình lớn nhất trước), mỗi lần soi
+10 audit, chưa chia tile cho sơ đồ khổng lồ, và DOCX chưa đi đường này
+(`pdfBytes == null`).
+
 ### 7.3 File liên quan
 
 - `app/lib/data/checks/diagram_detector.dart` — keyword detection
 - `app/lib/data/checks/diagram_type_classifier.dart` — classify UML type
+- `app/lib/data/models/document_map.dart` — DocumentMap/Figure/Section models
+- `app/lib/data/services/document_map_service.dart` — upload + analyze + render bbox
 - `app/lib/data/services/page_image_selector.dart` — selection logic
-- `app/lib/data/services/page_image_renderer.dart` — render to base64
+- `app/lib/data/services/page_image_renderer.dart` — render to base64 (fallback)
 - `app/lib/data/services/image_budget.dart` — budget tracking
-- `app/lib/data/services/vision_review_service.dart` — orchestration
+- `app/lib/data/services/vision_review_service.dart` — orchestration (figure candidates)
 - `app/lib/data/models/diagram_audit.dart` — data models
+- `server/app/docmap.py` — anatomy extraction (PyMuPDF)
+- `server/app/main.py` — `/documents/analyze`, `/documents/render`
 - `server/app/diagram.py` — `/diagram` endpoint (describe + judge)
 
 ---
@@ -514,7 +552,8 @@ srs-review-ai/
 │   │   │   │                       FilePickerService, ReviewApi (interface),
 │   │   │   │                       PageImageRenderer, PageImageSelector,
 │   │   │   │                       ImageBudget, VisionReviewService, ReportExporter,
-│   │   │   │                       SessionStore, UploadService
+│   │   │   │                       SessionStore, UploadService,
+│   │   │   │                       DocumentMapService (analyze + render bbox)
 │   │   │
 │   │   └── features/workspace/
 │   │       ├── view/               WorkspaceShell, InventoryTab, ReviewScreen,
@@ -528,7 +567,10 @@ srs-review-ai/
 │
 ├── server/                       FastAPI (Python)
 │   ├── app/
-│   │   ├── main.py                 Proxy: /health, /rubric, /review, /ask, /diagram, /share
+│   │   ├── main.py                 Proxy: /health, /rubric, /review, /ask, /diagram,
+│   │   │                           /documents/analyze, /documents/render, /share
+│   │   ├── docmap.py               Document anatomy (PyMuPDF): bookmark→section,
+│   │   │                           image bbox, cụm vector, scan mxfile/SVG
 │   │   ├── schemas.py              Pydantic models (khớp contracts)
 │   │   ├── prompt.py               Prompt builder (review + ask)
 │   │   ├── verify.py               Anti-hallucination: verify_quote, review_issues
@@ -582,6 +624,9 @@ srs-review-ai/
 | Vấn đề | Chi tiết |
 |---|---|
 | **Vision not fully implemented** | `/diagram` có trên server, `VisionReviewService` có trong app, nhưng pipeline vision trên OTES chưa hoàn tất |
+| **Document anatomy cần PyMuPDF trên server** | `/documents/analyze` + `/documents/render` cần `pymupdf` (đã pin trong `requirements.txt`). Deploy Vercel cần kiểm tra giới hạn kích thước function (~40 MB wheel) — nếu vượt thì chạy proxy trên host riêng hoặc chuyển sang `pdfimages`/`pdftoppm` (poppler) |
+| **Map chỉ có khi ONLINE và là PDF** | Mock mode, DOCX (`pdfBytes == null`), session restore (không còn bytes) đều không có map → rơi về heuristic cũ. Không phải lỗi: audit chỉ cần map + ảnh cùng phiên |
+| **1 figure/audit, tối đa 10 audit/run** | Page có nhiều hình: chỉ 2 hình lớn nhất được soi (quota discipline); sơ đồ khổng lồ chưa được chia tile — hiện render 1 crop ≤2400px/cạnh |
 | **20 MiB cap** | `file_picker_service.dart` — nâng lên 30 MB nhưng OTES 27.37 MiB có thể gần giới hạn |
 | **Rubric weights provisional** | `review-rules/RULEBOOK.md` v1.6-draft chờ Amy duyệt; `rubric.json` đang dùng weights 0.3/0.3/0.25/0.15 |
 | **Vercel chưa deploy** | Architecture Vercel chỉ là plan; dùng local mock server để test |

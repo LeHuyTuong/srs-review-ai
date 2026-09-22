@@ -21,6 +21,7 @@ import '../../../data/checks/rubric_config.dart';
 import '../../../data/checks/syllabus_checks.dart';
 import '../../../data/checks/verifier.dart';
 import '../../../data/models/deterministic_finding.dart';
+import '../../../data/models/document_map.dart';
 import '../../../data/models/review_progress.dart';
 import '../../../data/models/srs_document.dart';
 import '../../../data/services/report_exporter.dart';
@@ -324,6 +325,14 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
 
   SrsDocument? _document;
   Uint8List? _pdfBytes;
+
+  /// Server-side anatomy of the CURRENT import (`/documents/analyze`) and the
+  /// `upload://` ref render calls need. Both are session-transient like
+  /// [_pdfBytes]: a restored snapshot has no bytes on the server either, so
+  /// the vision audit falls back to the heuristic path there — exactly like
+  /// it does when the analyze call fails.
+  DocumentMap? _documentMap;
+  String? _uploadUri;
   StreamSubscription<ReviewProgress>? _subscription;
   Timer? _toastTimer;
   Timer? _elapsedTimer;
@@ -371,6 +380,8 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     ];
     _document = document;
     _pdfBytes = null;
+    _documentMap = null;
+    _uploadUri = null;
     state = WorkspaceState(
       hasDocument: true,
       fileName: demoFileName,
@@ -413,6 +424,11 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       }
       _document = loaded.document;
       _pdfBytes = loaded.pdfBytes;
+      // A new file invalidates the previous file's server anatomy — reset
+      // BEFORE the analyze attempt so a failed analyze never pairs the old
+      // map with the new document.
+      _documentMap = null;
+      _uploadUri = null;
       state = WorkspaceState(
         hasDocument: true,
         fileName: loaded.document.fileName,
@@ -437,6 +453,10 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       ).copyWith(restoring: false);
       _scheduleToastClear();
       await _saveSnapshot();
+      await _analyzeDocumentOnServer(
+        bytes: loaded.pdfBytes,
+        fileName: loaded.document.fileName,
+      );
     } on ParseException catch (error) {
       state = state.copyWith(error: error.message, clearImportStatus: true);
     } on Object catch (error) {
@@ -444,6 +464,49 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         error: 'Unable to read this document: $error',
         clearImportStatus: true,
       );
+    }
+  }
+
+  /// Server-side anatomy pass (sds-reviewer step 1, EXTRACT) after a
+  /// successful import: upload the bytes once, then `/documents/analyze`
+  /// returns real section spans and every figure region with its bbox —
+  /// including the vector UML the client parser cannot see.
+  ///
+  /// Strictly an upgrade, never a blocker: mock mode, DOCX imports (no page
+  /// bytes), a dead proxy, or an unparseable file all leave [_documentMap]
+  /// null and every consumer silently takes the heuristic path it already
+  /// had. On success the diagram-page count is REPLACED by the truthful
+  /// figure-page count so the UI stops quoting the text-density guess.
+  Future<void> _analyzeDocumentOnServer({
+    required Uint8List? bytes,
+    required String fileName,
+  }) async {
+    if (bytes == null) return; // DOCX/demo: nothing to upload yet
+    try {
+      // Read INSIDE the try: a provider that cannot build (no configured
+      // proxy URL, storage failure) must not turn a good import into an error.
+      final service = ref.read(documentMapServiceProvider);
+      if (service == null) return; // mock mode
+      final analysis = await service.analyzeDocument(
+        fileName: fileName,
+        bytes: bytes,
+      );
+      // The user may have cleared or re-imported while the upload ran —
+      // a stale map must never attach itself to a different document.
+      if (!ref.mounted || _pdfBytes != bytes) return;
+      _documentMap = analysis.map;
+      _uploadUri = analysis.uploadUri;
+      state = state.copyWith(
+        diagramPageCount: analysis.map.figurePages.length,
+        toast:
+            'Server anatomy: ${analysis.map.figureCount} figure(s) on '
+            '${analysis.map.figurePages.length} page(s) detected — the '
+            'vision audit will read tight crops.',
+      );
+      _scheduleToastClear();
+    } on Object {
+      // Heuristic fallback stays. The import already succeeded; a failed
+      // anatomy pass must not turn a good import into an error.
     }
   }
 
@@ -627,9 +690,11 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     );
     _startElapsedTicker();
 
-    final rubricVersion =
-        ref.read(rubricProvider).value?.version ??
-        RubricConfig.fallback.version;
+    // One read, both uses: the version goes into the result, and the batch
+    // ceiling replaces the client's compile-time copy of a server setting when
+    // the proxy published one.
+    final rubric = ref.read(rubricProvider).value;
+    final rubricVersion = rubric?.version ?? RubricConfig.fallback.version;
     final repository = ref.read(reviewRepositoryProvider);
 
     await _subscription?.cancel();
@@ -638,6 +703,10 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
           filtered,
           pdfBytes: imageReviewEnabled ? _pdfBytes : null,
           imageReviewEnabled: imageReviewEnabled,
+          // The server's figure pages (truth) when the anatomy pass ran; null
+          // keeps the heuristic candidate set exactly as it was.
+          figurePages: _documentMap?.figurePages,
+          batchMaxSize: rubric?.maxBatchUnits,
           onComplete: (run) {
             final result = WorkspaceReviewResult.fromRun(
               run: run,
@@ -725,19 +794,36 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
 
   bool get canAuditDiagrams => diagramAuditCount > 0;
 
-  VisionReviewService _visionService(DiagramAuditor auditor) =>
-      VisionReviewService(
-        auditor: auditor,
-        renderPage: (int pageIndex, String _) async {
-          final bytes = _pdfBytes;
-          if (bytes == null) {
-            throw StateError('no file bytes to render page $pageIndex');
-          }
-          final repository = ref.read(reviewRepositoryProvider);
-          final png = await repository.renderPageForAudit(bytes, pageIndex);
-          return base64Encode(png);
-        },
-      );
+  VisionReviewService _visionService(DiagramAuditor auditor) {
+    // Tight-crop rendering needs BOTH the server anatomy (bboxes) and the
+    // upload ref (what /documents/render resolves); missing either one drops
+    // to the legacy whole-page render — same audit, coarser image.
+    final uploadUri = _uploadUri;
+    final mapService = ref.read(documentMapServiceProvider);
+    return VisionReviewService(
+      auditor: auditor,
+      documentMap: _documentMap,
+      renderRegion: uploadUri == null || mapService == null
+          ? null
+          : (int pageIndex, List<double> bbox) async {
+              final png = await mapService.renderFigure(
+                uploadUri: uploadUri,
+                pageIndex: pageIndex,
+                bbox: bbox,
+              );
+              return base64Encode(png);
+            },
+      renderPage: (int pageIndex, String _) async {
+        final bytes = _pdfBytes;
+        if (bytes == null) {
+          throw StateError('no file bytes to render page $pageIndex');
+        }
+        final repository = ref.read(reviewRepositoryProvider);
+        final png = await repository.renderPageForAudit(bytes, pageIndex);
+        return base64Encode(png);
+      },
+    );
+  }
 
   /// sds-reviewer steps 4-6 on-device: render each candidate page, two-call
   /// audit through the proxy, ledger rows into [state.referenceFindings].
@@ -1107,6 +1193,8 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       };
       _document = null; // a restored session reviews no new file
       _pdfBytes = null;
+      _documentMap = null;
+      _uploadUri = null;
       state = state.copyWith(
         hasDocument: true,
         // Only `units` is load-bearing; the rest is display metadata. Casting
@@ -1398,6 +1486,8 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       };
       _document = null;
       _pdfBytes = null;
+      _documentMap = null;
+      _uploadUri = null;
       state = WorkspaceState(
         hasDocument: true,
         fileName: payload['fileName'] as String,

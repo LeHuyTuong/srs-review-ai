@@ -11,6 +11,7 @@ import '../data/checks/rubric_config.dart';
 import '../data/repositories/document_repository.dart';
 import '../data/repositories/review_repository.dart';
 import '../data/services/api_service.dart';
+import '../data/services/document_map_service.dart';
 import '../data/services/mock_review_api.dart';
 import '../data/services/page_image_renderer.dart';
 import '../data/services/review_api.dart';
@@ -187,6 +188,20 @@ final reviewRepositoryProvider = Provider<ReviewRepository>(
     renderer: PageImageRenderer(),
   ),
 );
+
+/// Server document-anatomy client (`/documents/analyze` + `/documents/render`).
+///
+/// Null in mock mode — there is no proxy to upload to, and the heuristic
+/// parse path is exactly what mock mode exists to exercise. Online, the
+/// workspace uploads the imported file once and every figure-aware feature
+/// (vision audit crops, truthful diagram-page counts) reads from the map.
+final documentMapServiceProvider = Provider<DocumentMapService?>((ref) {
+  if (ref.watch(mockModeProvider)) return null;
+  return DocumentMapService(
+    baseUrl: ref.watch(proxyUrlProvider),
+    appToken: ref.watch(appTokenProvider),
+  );
+});
 
 /// Overridden in `main()` with the instance awaited before `runApp`, so the
 /// workspace can restore its snapshot synchronously from the first build.

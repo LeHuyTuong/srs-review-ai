@@ -53,6 +53,42 @@ void main() {
     });
 
     test(
+      'server figure pages attach an image no client heuristic could find',
+      () async {
+        final png = Uint8List.fromList([4, 5, 6]);
+        final renderer = FakePageImageRenderer(pngBytes: png);
+        final api = RecordingReviewApi();
+        final repository = ReviewRepository(api, renderer: renderer);
+
+        // Without the server map: intent exists but the client names no
+        // candidate page → text-only run (the pre-docmap behaviour).
+        final textOnly = await _collectRun(
+          repository,
+          _serverOnlyDiagramDocument(),
+          pdfBytes: Uint8List.fromList([1, 2, 3]),
+          imageReviewEnabled: true,
+        );
+        expect(renderer.calls, 0);
+        expect(api.calls.single.imageB64, isNull);
+        expect(textOnly.imageCoverage.candidates, 0);
+
+        // With the map's figure page: the same document now carries a picture.
+        final withMap = await _collectRun(
+          repository,
+          _serverOnlyDiagramDocument(),
+          pdfBytes: Uint8List.fromList([1, 2, 3]),
+          imageReviewEnabled: true,
+          figurePages: const [2],
+        );
+        expect(renderer.pages, [2]);
+        expect(api.calls.last.imageB64, base64Encode(png));
+        expect(api.calls.last.pageIndex, 2);
+        expect(withMap.imageCoverage.candidates, 1);
+        expect(withMap.imageCoverage.extracted, 1);
+      },
+    );
+
+    test(
       'falls back to text-only after a terminal image request failure',
       () async {
         final png = Uint8List.fromList([7, 8, 9]);
@@ -197,14 +233,19 @@ void main() {
         );
         final api = RecordingReviewApi();
         final repository = ReviewRepository(api, renderer: renderer);
+        // Long, readable prose: no keyword signal and nothing thin about the
+        // page, so the thin-image-page fallback must not fire either.
+        const proseText =
+            'The system shall reject an expired membership card at the gate '
+            'and shall record every rejected attempt in the audit log.';
         final document = SrsDocument(
           fileName: 'plain.pdf',
           pageCount: 1,
-          pageTexts: const ['The system shall reject an expired card.'],
+          pageTexts: const [proseText],
           requirements: const [
             RequirementItem(
               id: 'FR-01',
-              text: 'The system shall reject an expired card.',
+              text: proseText,
               kind: RequirementKind.functional,
               pageIndex: 0,
             ),
@@ -541,6 +582,7 @@ Future<ReviewRun> _collectRun(
   SrsDocument document, {
   Uint8List? pdfBytes,
   bool imageReviewEnabled = false,
+  List<int>? figurePages,
 }) async {
   ReviewRun? completed;
   await repository
@@ -548,12 +590,40 @@ Future<ReviewRun> _collectRun(
         document,
         pdfBytes: pdfBytes,
         imageReviewEnabled: imageReviewEnabled,
+        figurePages: figurePages,
         concurrency: 1,
         onComplete: (run) => completed = run,
       )
       .forEach((_) {});
   return completed!;
 }
+
+/// A document whose ONLY figure evidence is the server map: no embedded-image
+/// page list, no blueprint index. Page 2 carries a diagram caption (so the
+/// unit has diagram intent — the OTES shape: a captioned vector figure), but
+/// the client itself can name no candidate page for it, which is why the
+/// pre-docmap pipeline deferred it as "no candidate page".
+SrsDocument _serverOnlyDiagramDocument() => SrsDocument(
+  fileName: 'server-only.pdf',
+  pageCount: 3,
+  pageTexts: const [
+    'Chapter one is prose about the enrolment process in detail.',
+    'Chapter two lists the participants and their responsibilities.',
+    'Figure 12. Entity relationship diagram of the enrolment '
+        'transaction, with the reference tables that model it.',
+  ],
+  requirements: const [
+    RequirementItem(
+      id: 'UC-07',
+      text:
+          'Figure 12. Entity relationship diagram of the enrolment '
+          'transaction.',
+      kind: RequirementKind.useCase,
+      pageIndex: 2,
+    ),
+  ],
+  occurrenceKeys: const ['u0-UC-07'],
+);
 
 SrsDocument _diagramDocument() => SrsDocument(
   fileName: 'diagram.pdf',

@@ -14,6 +14,7 @@ class RubricConfig {
     required this.minPerPart,
     required this.warnScore,
     this.reviewsPerDay,
+    this.maxBatchUnits,
   });
 
   factory RubricConfig.fromJson(Map<String, dynamic> json) {
@@ -38,6 +39,8 @@ class RubricConfig {
       // "zero" — see [reviewsPerDay].
       reviewsPerDay:
           (json['limits'] as Map<String, dynamic>?)?['reviews_per_day'] as int?,
+      maxBatchUnits:
+          (json['limits'] as Map<String, dynamic>?)?['max_batch_units'] as int?,
     );
   }
 
@@ -80,6 +83,14 @@ class RubricConfig {
   /// and a deployment raising `RATE_LIMIT_PER_DAY` made that prose contradict
   /// its own behaviour.
   final int? reviewsPerDay;
+
+  /// Most units one proxy call will accept (`GET /rubric` → `limits`).
+  ///
+  /// Same reasoning as [reviewsPerDay]: deployment config, so nullable. When it
+  /// is present it replaces the client's compile-time copy
+  /// (`AppConfig.reviewBatchMaxSize`) for clamping a batch — a copy is only right
+  /// for as long as nobody changes the original.
+  final int? maxBatchUnits;
 
   /// Red when a score would drag a report under the retake line.
   bool isCritical(num score) => score < minPerPart;

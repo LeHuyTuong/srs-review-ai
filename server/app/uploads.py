@@ -40,11 +40,11 @@ backend; swap the class for an S3 adapter and drop it behind the same methods
 (``generate_key``, ``create_token``, ``validate_token``, ``persist``, ``resolve``,
 ``meta``) — the routes in ``main.py`` depend on this interface, not on disk.
 """
-# STATUS (self-review 2026-09-14, docs/evidence/self-review-2026-09-14.md
-# F1): /uploads/presign + the upload:// store are live and security-tested,
-# but NO endpoint consumes upload:// refs yet — parsing is client-side.
-# Groundwork for server-side parse / share-by-link; see F1 for the
-# keep-vs-build-vs-remove decision left to the product owner.
+# STATUS (updated 2026-09-16): /uploads/presign + the upload:// store are live
+# AND consumed: /documents/analyze + /documents/render (main.py) resolve
+# upload:// refs for server-side document anatomy (docmap.py). /review itself
+# still receives inline text; diagram sections now reach vision via the
+# render endpoint instead of blind text-only review.
 
 from __future__ import annotations
 

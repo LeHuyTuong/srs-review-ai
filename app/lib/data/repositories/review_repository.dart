@@ -72,13 +72,23 @@ class ReviewRepository {
   /// planning and rasterization run only when [imageReviewEnabled] is true;
   /// live imported-PDF callers opt in explicitly. Selected page rasters are
   /// rendered once, cached by page, and reused across retries.
+  ///
+  /// [figurePages] is the server document map's figure-page list
+  /// (`DocumentMap.figurePages`) — the TRUTH about which pages hold drawn
+  /// content, including the vector UML no client heuristic can see. When
+  /// given, it widens the candidate set; every other step is unchanged.
   Stream<ReviewProgress> run(
     SrsDocument document, {
     required void Function(ReviewRun run) onComplete,
     int concurrency = AppConfig.reviewConcurrency,
     int batchSize = AppConfig.reviewBatchSize,
+    // The proxy's real ceiling when `/rubric` supplied one. The compile-time
+    // constant is a copy of a server setting, so a deployment that moves it
+    // would otherwise be clamped against a number nobody can change.
+    int? batchMaxSize,
     Uint8List? pdfBytes,
     bool imageReviewEnabled = false,
+    List<int>? figurePages,
   }) {
     // The controller is closed by _drive when the run ends; closing it here
     // would end the stream before it ever starts.
@@ -90,9 +100,13 @@ class ReviewRepository {
         controller: controller,
         onComplete: onComplete,
         concurrency: concurrency.clamp(1, 8),
-        batchSize: batchSize.clamp(1, AppConfig.reviewBatchMaxSize),
+        batchSize: batchSize.clamp(
+          1,
+          batchMaxSize ?? AppConfig.reviewBatchMaxSize,
+        ),
         pdfBytes: pdfBytes,
         imageReviewEnabled: imageReviewEnabled,
+        figurePages: figurePages,
       ),
     );
     return controller.stream;
@@ -106,6 +120,7 @@ class ReviewRepository {
     required int batchSize,
     Uint8List? pdfBytes,
     required bool imageReviewEnabled,
+    List<int>? figurePages,
   }) async {
     final all = document.requirements;
     final items = all
@@ -121,6 +136,9 @@ class ReviewRepository {
             if (document.blueprint != null)
               for (final figure in document.blueprint!.figures)
                 if (figure.isResolved) figure.pdfPageIndex!,
+            // Pages the SERVER saw a figure region on. Strongest evidence of
+            // the three: measured objects, not a heuristic or a caption.
+            ...?figurePages,
           }
         : const <int>{};
     final pageImageSelector = imageReviewEnabled
@@ -164,6 +182,11 @@ class ReviewRepository {
           pageIndex: items[index].pageIndex,
           candidatePages: candidatePages,
           blueprint: document.blueprint,
+          // Lets the selector's thin-image-page fallback judge the page's
+          // own extracted text, not just the requirement slice — a diagram
+          // section whose pages render as images ("Page | 1 4 Page | 1 5…")
+          // has no keyword for the detector to fire on.
+          pageText: _pageTextAt(document, items[index].pageIndex),
         );
         plans[occurrenceKey] = plan;
         decisionCounts[plan.decision.name] =
@@ -693,6 +716,18 @@ class ReviewRepository {
     required String question,
     required String context,
   }) => _api.ask(question: question, context: context);
+}
+
+/// Safe lookup of a page's extracted text for the image planner. Out-of-range
+/// and null indexes yield null, in which case the selector falls back to the
+/// requirement's own text.
+String? _pageTextAt(SrsDocument document, int? pageIndex) {
+  if (pageIndex == null ||
+      pageIndex < 0 ||
+      pageIndex >= document.pageTexts.length) {
+    return null;
+  }
+  return document.pageTexts[pageIndex];
 }
 
 /// Groups unit indices into the work items one worker picks up at a time.

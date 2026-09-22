@@ -17,6 +17,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Res
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, ValidationError
 
+from . import docmap
 from .cache import cache_key
 from .config import Settings, get_settings
 from .diagram import (
@@ -65,6 +66,7 @@ from .share import ShareStore
 from .store import SqliteCache
 from .uploads import (
     InvalidTokenError,
+    UploadError,
     UploadNotFoundError,
     UploadStore,
     UploadTooLargeError,
@@ -172,7 +174,14 @@ def rubric(settings: Settings = Depends(get_settings)) -> dict[str, object]:
     """
     return {
         **load_rubric(),
-        "limits": {"reviews_per_day": settings.rate_limit_per_day},
+        "limits": {
+            "reviews_per_day": settings.rate_limit_per_day,
+            # The batch ceiling is deployment config too. The client carries a
+            # compile-time copy of it (`AppConfig.reviewBatchMaxSize`) to clamp
+            # its own batches, and a copy is only right for as long as nobody
+            # changes the original — exactly how "50/day" went wrong.
+            "max_batch_units": settings.max_batch_units,
+        },
     }
 
 
@@ -821,6 +830,91 @@ def upload_meta(key: str) -> dict[str, Any]:
         return _upload_store.meta(key)
     except UploadNotFoundError as exc:
         raise HTTPException(status_code=404, detail=f"Upload not found: {key}") from exc
+
+
+class DocumentAnalyzeRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    uri: str = Field(min_length=1)
+    """``upload://<key>`` of a previously uploaded PDF/DOCX."""
+
+
+class DocumentRenderRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    uri: str = Field(min_length=1)
+    page_index: int = Field(ge=0)
+    bbox: tuple[float, float, float, float] | None = None
+    """Region in PDF points (from ``/documents/analyze``); ``null`` = whole page."""
+    scale: float = Field(default=3.0, ge=1.0, le=6.0)
+
+
+def _resolve_upload(uri: str) -> tuple[Any, str]:
+    """``upload://`` URI → (path, sha256). Shared by both /documents endpoints."""
+    try:
+        path, _ = _upload_store.resolve(uri)
+        meta = _upload_store.meta(uri.removeprefix("upload://"))
+    except UploadNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=f"Upload not found: {uri}") from exc
+    except UploadError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return path, str(meta.get("sha256", ""))
+
+
+@app.post(
+    "/documents/analyze",
+    response_model=docmap.DocumentMap,
+    dependencies=[Depends(require_app_token)],
+)
+def analyze_uploaded_document(payload: DocumentAnalyzeRequest) -> docmap.DocumentMap:
+    """Real document anatomy: sections (bookmarks), figure bboxes, vector regions.
+
+    This is the first endpoint to CONSUME ``upload://`` refs (uploads.py F1).
+    No LLM call, no rate-limit charge — pure local parsing, cached by content
+    hash on disk so re-analyzing the same file is free.
+    """
+    path, sha256 = _resolve_upload(payload.uri)
+    if cached := docmap.load_cached_map(path, sha256):
+        return cached
+    try:
+        result = docmap.analyze_document(path)
+    except Exception as exc:
+        log.warning("document analyze failed for %s: %s", payload.uri, exc)
+        raise HTTPException(
+            status_code=422, detail="Cannot parse document (unsupported or corrupt file)."
+        ) from exc
+    docmap.store_cached_map(path, sha256, result)
+    return result
+
+
+@app.post("/documents/render", dependencies=[Depends(require_app_token)])
+def render_document_region(payload: DocumentRenderRequest) -> Response:
+    """Rasterise one page or one figure bbox to PNG (sds-reviewer CROP step).
+
+    The client asks for the exact region ``/documents/analyze`` reported, at
+    high DPI — the vision model reads a tight crop, not a downscaled page.
+    Renders are cached on disk; the binary body does not count against the
+    daily LLM rate limit.
+    """
+    path, _ = _resolve_upload(payload.uri)
+    cache_path = docmap.render_cache_path(
+        path, page_index=payload.page_index, bbox=payload.bbox, scale=payload.scale
+    )
+    if cache_path.exists():
+        return Response(content=cache_path.read_bytes(), media_type="image/png")
+    try:
+        png = docmap.render_region_png(
+            path, page_index=payload.page_index, bbox=payload.bbox, scale=payload.scale
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        log.warning("document render failed for %s: %s", payload.uri, exc)
+        raise HTTPException(
+            status_code=422, detail="Cannot render document (unsupported or corrupt file)."
+        ) from exc
+    cache_path.write_bytes(png)
+    return Response(content=png, media_type="image/png")
 
 
 def _clamp_score(value: object) -> int:

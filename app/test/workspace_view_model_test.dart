@@ -14,6 +14,7 @@ import 'package:srs_review_ai/core/providers.dart';
 import 'package:srs_review_ai/data/checks/rubric_config.dart';
 import 'package:srs_review_ai/data/models/deterministic_finding.dart';
 import 'package:srs_review_ai/data/models/diagram_audit.dart';
+import 'package:srs_review_ai/data/models/document_map.dart';
 import 'package:srs_review_ai/data/models/loaded_document.dart';
 import 'package:srs_review_ai/data/models/review_models.dart';
 import 'package:srs_review_ai/data/models/review_progress.dart';
@@ -21,6 +22,7 @@ import 'package:srs_review_ai/data/models/srs_document.dart';
 import 'package:srs_review_ai/data/repositories/document_repository.dart';
 import 'package:srs_review_ai/data/repositories/review_repository.dart';
 import 'package:srs_review_ai/data/services/api_service.dart';
+import 'package:srs_review_ai/data/services/document_map_service.dart';
 import 'package:srs_review_ai/data/services/mock_review_api.dart';
 import 'package:srs_review_ai/data/services/review_api.dart';
 import 'package:srs_review_ai/data/services/session_store.dart';
@@ -36,12 +38,18 @@ ProviderContainer _container(
   DocumentRepository? documentRepository,
   ReviewRepository? reviewRepository,
   bool? mockMode,
+  DocumentMapService? documentMapService,
 }) => ProviderContainer(
   overrides: [
     sessionStoreProvider.overrideWithValue(store),
     reviewApiProvider.overrideWithValue(
       const MockReviewApi(latency: Duration.zero),
     ),
+    // Default null = "no server anatomy", which is exactly what mock mode and
+    // every offline test mean. Tests that exercise the figure path inject a
+    // fake; without this override the provider would try to build a real base
+    // URL from preferences that a bare container does not have.
+    documentMapServiceProvider.overrideWithValue(documentMapService),
     if (documentRepository != null)
       documentRepositoryProvider.overrideWithValue(documentRepository),
     if (reviewRepository != null)
@@ -104,6 +112,65 @@ class _VisionReviewRepository extends ReviewRepository {
   ) async => Uint8List.fromList([1, 2, 3]);
 }
 
+/// Fake server anatomy: one figure region on page 0 (the page the vision
+/// fixture's unit lives on). Records both calls so a test can prove the VM
+/// uploaded once and then rendered the BBOX — not the whole page.
+class _FakeDocumentMapService extends DocumentMapService {
+  _FakeDocumentMapService() : super(baseUrl: 'http://proxy.test');
+
+  final analyzedFileNames = <String>[];
+  final regionCalls = <String>[];
+
+  @override
+  Future<DocumentMapAnalysis> analyzeDocument({
+    required String fileName,
+    required Uint8List bytes,
+  }) async {
+    analyzedFileNames.add(fileName);
+    return DocumentMapAnalysis(map: _figureMap(), uploadUri: 'upload://k1');
+  }
+
+  @override
+  Future<Uint8List> renderFigure({
+    required String uploadUri,
+    required int pageIndex,
+    List<double>? bbox,
+    double scale = 3.0,
+  }) async {
+    regionCalls.add('$uploadUri|$pageIndex|$bbox|$scale');
+    return Uint8List.fromList([1, 2, 3]);
+  }
+}
+
+DocumentMap _figureMap() => DocumentMap.fromJson({
+  'version': '1',
+  'page_count': 2,
+  'toc_source': 'bookmarks',
+  'sections': [
+    {'title': '3. Design', 'level': 1, 'start_page': 0, 'end_page': 1},
+  ],
+  'pages': [
+    {
+      'index': 0,
+      'text_length': 60,
+      'figures': [
+        {
+          'kind': 'drawing',
+          'bbox': [10.0, 20.0, 200.0, 300.0],
+          'xref': null,
+          'pixel_width': null,
+          'pixel_height': null,
+          'drawing_items': 37,
+          'embedded_xml': null,
+          'embedded_xml_truncated': false,
+          'readable': 'vision-required',
+        },
+      ],
+    },
+    {'index': 1, 'text_length': 12, 'figures': <Map<String, dynamic>>[]},
+  ],
+});
+
 SrsDocument _diagramDocument() => SrsDocument(
   fileName: 'vision.pdf',
   pageCount: 2,
@@ -158,6 +225,8 @@ class _ControlledReviewRepository extends ReviewRepository {
   int calls = 0;
   Uint8List? passedPdfBytes;
   bool? passedImageReviewEnabled;
+  int? passedBatchMaxSize;
+  List<int>? passedFigurePages;
 
   @override
   Stream<ReviewProgress> run(
@@ -165,12 +234,16 @@ class _ControlledReviewRepository extends ReviewRepository {
     required void Function(ReviewRun run) onComplete,
     int concurrency = AppConfig.reviewConcurrency,
     int batchSize = AppConfig.reviewBatchSize,
+    int? batchMaxSize,
     Uint8List? pdfBytes,
     bool imageReviewEnabled = false,
+    List<int>? figurePages,
   }) {
     calls++;
     passedPdfBytes = pdfBytes;
     passedImageReviewEnabled = imageReviewEnabled;
+    passedBatchMaxSize = batchMaxSize;
+    passedFigurePages = figurePages;
     started.complete();
 
     final controller = StreamController<ReviewProgress>();
@@ -1082,6 +1155,7 @@ void main() {
   group('vision audit wiring', () {
     Future<(WorkspaceViewModel, ProviderContainer)> visionVm({
       Uint8List? pdfBytes,
+      DocumentMapService? documentMapService,
     }) async {
       final store = InMemorySessionStore();
       final container = _container(
@@ -1090,6 +1164,7 @@ void main() {
           _visionLoaded(pdfBytes: pdfBytes),
         ),
         reviewRepository: _VisionReviewRepository(),
+        documentMapService: documentMapService,
       );
       final vm = container.read(workspaceViewModelProvider.notifier);
       await vm.importDocument();
@@ -1153,6 +1228,40 @@ void main() {
           container.read(workspaceViewModelProvider).error,
           contains('needs the original file in memory'),
         );
+      },
+    );
+
+    test(
+      'server anatomy upgrades the count and the audit renders bboxes',
+      () async {
+        final service = _FakeDocumentMapService();
+        final (vm, container) = await visionVm(
+          pdfBytes: Uint8List.fromList([0, 1, 2]),
+          documentMapService: service,
+        );
+        addTearDown(container.dispose);
+
+        // Imported once, analyzed once — never the file twice.
+        expect(service.analyzedFileNames, ['vision.pdf']);
+        final afterImport = container.read(workspaceViewModelProvider);
+        // The truthful figure-page count replaces the heuristic's 1 page…
+        expect(afterImport.diagramPageCount, 1);
+        // …and the user is told where the count came from.
+        expect(afterImport.toast, contains('Server anatomy: 1 figure(s)'));
+
+        await vm.auditDiagrams();
+        // The figure region was rendered through the server, with the bbox
+        // the map reported — not a whole-page render of the local bytes.
+        expect(service.regionCalls, [
+          'upload://k1|0|[10.0, 20.0, 200.0, 300.0]|3.0',
+        ]);
+        final diagram = container
+            .read(workspaceViewModelProvider)
+            .referenceFindings
+            .where((f) => f.check == CheckId.diagramAudit)
+            .toList();
+        expect(diagram, hasLength(1));
+        expect(diagram.single.message, contains('Page 1'));
       },
     );
 

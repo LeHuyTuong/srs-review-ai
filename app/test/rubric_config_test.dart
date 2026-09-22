@@ -40,6 +40,21 @@ void main() {
     );
   });
 
+  test('reads the batch ceiling when the proxy publishes it', () {
+    // The client carries a compile-time copy of this number to clamp its own
+    // batches; a deployment that moves the original must win.
+    final config = RubricConfig.fromJson(
+      _rubricJson(limits: {'max_batch_units': 7}),
+    );
+    expect(config.maxBatchUnits, 7);
+  });
+
+  test('an absent batch ceiling is unknown, not zero', () {
+    // Zero would clamp every batch to nothing and turn the fall-back constant
+    // into the only value that ever applies.
+    expect(RubricConfig.fromJson(_rubricJson()).maxBatchUnits, isNull);
+  });
+
   test('the offline fallback does not invent a quota', () {
     expect(RubricConfig.fallback.reviewsPerDay, isNull);
   });

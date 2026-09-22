@@ -83,7 +83,10 @@ def test_rubric_endpoint_publishes_the_deployment_quota():
     response, not that it happens to match whatever the default is.
     """
     app.dependency_overrides[get_settings] = lambda: Settings(
-        mock_mode=True, gemini_api_key="", rate_limit_per_day=1234
+        mock_mode=True,
+        gemini_api_key="",
+        rate_limit_per_day=1234,
+        max_batch_units=7,
     )
     try:
         with TestClient(app) as c:
@@ -91,6 +94,7 @@ def test_rubric_endpoint_publishes_the_deployment_quota():
     finally:
         app.dependency_overrides.clear()
     assert body["limits"]["reviews_per_day"] == 1234
+    assert body["limits"]["max_batch_units"] == 7
 
 
 def test_review_returns_verified_issues(client):
