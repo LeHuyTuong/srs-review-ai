@@ -75,6 +75,24 @@ def test_rubric_endpoint_serves_the_config(client):
     assert body["thresholds"]["min_per_part"] == 2.0
 
 
+def test_rubric_endpoint_publishes_the_deployment_quota():
+    """The daily cap travels with the rubric so the app stops guessing it.
+
+    A deliberately odd value, and its own client rather than the shared fixture:
+    the assertion has to prove the number is threaded from `Settings` into the
+    response, not that it happens to match whatever the default is.
+    """
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        mock_mode=True, gemini_api_key="", rate_limit_per_day=1234
+    )
+    try:
+        with TestClient(app) as c:
+            body = c.get("/rubric").json()
+    finally:
+        app.dependency_overrides.clear()
+    assert body["limits"]["reviews_per_day"] == 1234
+
+
 def test_review_returns_verified_issues(client):
     body = client.post("/review", json=VAGUE).json()
     assert body["requirement_id"] == "FR-03"
