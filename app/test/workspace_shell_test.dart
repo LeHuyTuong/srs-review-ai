@@ -1344,6 +1344,24 @@ void main() {
       reason: 'the button must not promise the whole selection',
     );
 
+    // The cap note must name the constant, not a number someone typed. It has
+    // been hardcoded as "40" and as "50" while the constant moved 40 → 50 →
+    // 250, and prose is the one thing no other test renders or checks — which is
+    // exactly why it drifted for so long.
+    expect(
+      find.textContaining('${AppConfig.maxRequirementsPerRun}-unit limit?'),
+      findsOneWidget,
+      reason: 'the cap note must state the real cap, not a hardcoded number',
+    );
+    // Units are batched, so the cap counts units while the quota counts
+    // requests; the note has to say the conversion or it is comparing apples to
+    // oranges.
+    expect(
+      find.textContaining('${AppConfig.reviewBatchSize} text-only units'),
+      findsOneWidget,
+      reason: 'the note must state the units-per-request conversion',
+    );
+
     // Trim the selection to the cap: then the plain count is the whole truth.
     Navigator.of(tester.element(find.text('open sheet'))).pop();
     await tester.pumpAndSettle();
