@@ -55,9 +55,13 @@ extension on _StatusFilter {
   };
 }
 
+enum _Persona { student, lecturer }
+
 class _FindingsTabState extends ConsumerState<FindingsTab> {
   String _query = '';
   _StatusFilter _filter = _StatusFilter.all;
+  _Persona _persona = _Persona.student;
+  String? _selectedFindingId;
 
   /// Sections expanded in the scores panel. Names, not indexes: the list is
   /// re-sorted worst-first after every run and indexes would move rows the
@@ -109,13 +113,17 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleSmall?.copyWith(
                       color: colors.ink,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
+                const SizedBox(width: AppSpacing.sm),
                 Text(
                   total == null ? '—/10' : '$total/10',
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: colors.ink,
+                    color: total != null && total >= 7.0
+                        ? colors.brand
+                        : colors.ink,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -133,6 +141,82 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                 height: 1.6,
               ),
             ),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.xs,
+              children: [
+                ChoiceChip(
+                  label: const Text('Góc nhìn Sinh viên'),
+                  avatar: const Icon(Icons.school_outlined, size: 16),
+                  selected: _persona == _Persona.student,
+                  onSelected: (_) =>
+                      setState(() => _persona = _Persona.student),
+                ),
+                ChoiceChip(
+                  label: const Text('Góc nhìn Giảng viên / Hội đồng'),
+                  avatar: const Icon(Icons.assessment_outlined, size: 16),
+                  selected: _persona == _Persona.lecturer,
+                  onSelected: (_) =>
+                      setState(() => _persona = _Persona.lecturer),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            if (_persona == _Persona.student)
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: colors.sageBg.withValues(alpha: 0.5),
+                  borderRadius: AppRadius.boxSm,
+                  border: Border.all(color: colors.border),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.lightbulb_outline, size: 16, color: colors.sage),
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: Text(
+                        'Mục tiêu Capstone FPTU: Cần đạt >= 7.0/10 để bảo vệ an toàn. '
+                        'Ưu tiên sửa các lỗi Nghiêm trọng (High) để tăng điểm nhanh nhất.',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: colors.ink,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: colors.amberBg.withValues(alpha: 0.4),
+                  borderRadius: AppRadius.boxSm,
+                  border: Border.all(color: colors.amberBorder),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.verified_user_outlined,
+                      size: 16,
+                      color: colors.amber,
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: Text(
+                        'Bảng kiểm định Rubric E (SEP490 Capstone). '
+                        'Kết quả dựa trên đối soát trích dẫn nguyên văn 100% minh chứng.',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: colors.ink,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: AppSpacing.sm),
             for (final (label, comp) in [
               ('Nền tảng: 7 tiêu chí chất lượng (5 điểm)', verdict.floor),
@@ -168,10 +252,13 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                 ),
               ),
             if (verdict.deductions > 0)
-              Text(
-                '−${verdict.deductions} điểm do lỗi ERD/SM/SEQ-CLS nghiêm trọng ảnh hưởng dữ liệu thực tế',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colors.amber,
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xs),
+                child: Text(
+                  '−${verdict.deductions} điểm do lỗi ERD/SM/SEQ-CLS nghiêm trọng ảnh hưởng dữ liệu thực tế',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colors.amber,
+                  ),
                 ),
               ),
           ],
@@ -744,64 +831,126 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
               AppSpacing.lg,
               AppSpacing.lg,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Round 29 — the model findings used to render as a bare
-                // list, while the two deterministic families above each
-                // carried a heading explaining what they are and where
-                // they came from. A reader could not tell a paid,
-                // model-scored finding from a free, deterministic one
-                // without opening it. Goal §4 draws that line explicitly
-                // (Checker vs AI layer), so the section now declares
-                // itself the same way the other two do.
-                Text(
-                  'Lỗi do AI phát hiện',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: colors.ink,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'AI đánh giá nội dung đã gửi. Phần này cần kết nối máy chủ và sử dụng lượt chấm.',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colors.muted,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                for (final finding in findings)
-                  _FindingCard(
-                    finding: finding,
-                    status: state.statusOf(finding.id),
-                    // Computed here, where the inventory is in scope: a
-                    // finding whose unit is no longer in the document cannot
-                    // open a source, and the menu has to say so instead of
-                    // silently doing nothing when picked.
-                    canOpenSource: state.units.any(
-                      (u) => u.key == finding.unitKey,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final activeFinding = findings.isEmpty
+                    ? null
+                    : findings.firstWhere(
+                        (f) => f.id == _selectedFindingId,
+                        orElse: () => findings.first,
+                      );
+                final isSplitView =
+                    constraints.maxWidth >= 1080 && activeFinding != null;
+
+                final cardsList = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Lỗi do AI phát hiện',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: colors.ink,
+                      ),
                     ),
-                    onOpenSource: () {
-                      final unit = state.units
-                          .where((u) => u.key == finding.unitKey)
-                          .firstOrNull;
-                      if (unit != null) {
-                        showSourceSheet(context, ref, unit, finding: finding);
-                      }
-                    },
-                    onAccept: () => viewModel.setFindingStatus(
-                      finding.id,
-                      state.statusOf(finding.id) == FindingStatus.fixed
-                          ? FindingStatus.open
-                          : FindingStatus.fixed,
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      'AI đánh giá nội dung đã gửi. Phần này cần kết nối máy chủ và sử dụng lượt chấm.',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colors.muted,
+                      ),
                     ),
-                    onDismiss: () => viewModel.setFindingStatus(
-                      finding.id,
-                      state.statusOf(finding.id) == FindingStatus.disputed
-                          ? FindingStatus.open
-                          : FindingStatus.disputed,
+                    const SizedBox(height: AppSpacing.sm),
+                    for (final finding in findings)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        child: _FindingCard(
+                          finding: finding,
+                          status: state.statusOf(finding.id),
+                          isSelected:
+                              isSplitView && finding.id == activeFinding.id,
+                          onSelect: () =>
+                              setState(() => _selectedFindingId = finding.id),
+                          canOpenSource: state.units.any(
+                            (u) => u.key == finding.unitKey,
+                          ),
+                          onOpenSource: () {
+                            final unit = state.units
+                                .where((u) => u.key == finding.unitKey)
+                                .firstOrNull;
+                            if (unit != null) {
+                              showSourceSheet(
+                                context,
+                                ref,
+                                unit,
+                                finding: finding,
+                              );
+                            }
+                          },
+                          onAccept: () => viewModel.setFindingStatus(
+                            finding.id,
+                            state.statusOf(finding.id) == FindingStatus.fixed
+                                ? FindingStatus.open
+                                : FindingStatus.fixed,
+                          ),
+                          onDismiss: () => viewModel.setFindingStatus(
+                            finding.id,
+                            state.statusOf(finding.id) == FindingStatus.disputed
+                                ? FindingStatus.open
+                                : FindingStatus.disputed,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+
+                if (!isSplitView) {
+                  return cardsList;
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 5, child: cardsList),
+                    const SizedBox(width: AppSpacing.lg),
+                    Expanded(
+                      flex: 5,
+                      child: _FindingInspector(
+                        finding: activeFinding,
+                        status: state.statusOf(activeFinding.id),
+                        canOpenSource: state.units.any(
+                          (u) => u.key == activeFinding.unitKey,
+                        ),
+                        onOpenSource: () {
+                          final unit = state.units
+                              .where((u) => u.key == activeFinding.unitKey)
+                              .firstOrNull;
+                          if (unit != null) {
+                            showSourceSheet(
+                              context,
+                              ref,
+                              unit,
+                              finding: activeFinding,
+                            );
+                          }
+                        },
+                        onAccept: () => viewModel.setFindingStatus(
+                          activeFinding.id,
+                          state.statusOf(activeFinding.id) ==
+                                  FindingStatus.fixed
+                              ? FindingStatus.open
+                              : FindingStatus.fixed,
+                        ),
+                        onDismiss: () => viewModel.setFindingStatus(
+                          activeFinding.id,
+                          state.statusOf(activeFinding.id) ==
+                                  FindingStatus.disputed
+                              ? FindingStatus.open
+                              : FindingStatus.disputed,
+                        ),
+                      ),
                     ),
-                  ),
-              ],
+                  ],
+                );
+              },
             ),
           ),
       ],
@@ -819,16 +968,18 @@ class _FindingCard extends StatelessWidget {
     required this.onOpenSource,
     required this.onAccept,
     required this.onDismiss,
+    this.isSelected = false,
+    this.onSelect,
   });
 
   final FindingRow finding;
   final FindingStatus status;
-
-  /// Whether the finding's unit is still in the inventory. Decides if the
-  /// menu's "Open source" entry is pickable — see the note at the call site.
   final bool canOpenSource;
-
   final VoidCallback onOpenSource;
+  final VoidCallback onAccept;
+  final VoidCallback onDismiss;
+  final bool isSelected;
+  final VoidCallback? onSelect;
 
   /// Opens the card's action menu at [globalPosition] and runs the choice.
   /// Shared by the right-click gesture and the ⋮ button, which exist for the
@@ -855,14 +1006,6 @@ class _FindingCard extends StatelessWidget {
     }
   }
 
-  /// Marks, or un-marks, the finding as worth acting on.
-  final VoidCallback onAccept;
-
-  /// Marks, or un-marks, the finding as not a real issue. Dismissal is never a
-  /// delete: the finding stays visible and still appears in the report, so
-  /// evidence cannot quietly disappear.
-  final VoidCallback onDismiss;
-
   @override
   Widget build(BuildContext context) {
     final colors = context.workspaceColors;
@@ -876,9 +1019,16 @@ class _FindingCard extends StatelessWidget {
     return DesktopContextMenuArea(
       onSecondaryTapUp: (details) => _openMenu(context, details.globalPosition),
       child: WPanel(
+        border: isSelected ? Border.all(color: colors.brand, width: 2) : null,
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: AppInkWell(
-          onTap: onOpenSource,
+          onTap: () {
+            if (onSelect != null) {
+              onSelect!();
+            } else {
+              onOpenSource();
+            }
+          },
           borderRadius: AppRadius.boxMd,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1041,6 +1191,198 @@ class _FindingCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Right-column detailed inspector for Split-View mode on desktop/web.
+class _FindingInspector extends StatelessWidget {
+  const _FindingInspector({
+    required this.finding,
+    required this.status,
+    required this.canOpenSource,
+    required this.onOpenSource,
+    required this.onAccept,
+    required this.onDismiss,
+  });
+
+  final FindingRow finding;
+  final FindingStatus status;
+  final bool canOpenSource;
+  final VoidCallback onOpenSource;
+  final VoidCallback onAccept;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.workspaceColors;
+    final theme = Theme.of(context);
+    final severityFg = context.severityColors.forSeverity(finding.severity);
+    final isFixed = status == FindingStatus.fixed;
+    final isDisputed = status == FindingStatus.disputed;
+
+    return WPanel(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      border: Border.all(
+        color: colors.brand.withValues(alpha: 0.3),
+        width: 1.5,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: severityFg.withValues(alpha: 0.12),
+                  borderRadius: AppRadius.boxSm,
+                ),
+                child: Text(
+                  workspaceLabel(finding.severity.name).toUpperCase(),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: severityFg,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  '${finding.requirementId} · Trang ${finding.pageIndex + 1}',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: colors.muted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              WBadge(
+                label: workspaceLabel(finding.typeLabel),
+                tint: WBadgeTint.neutral,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            finding.title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: colors.ink,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            children: [
+              Icon(Icons.format_quote_rounded, size: 16, color: colors.amber),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                'TRÍCH DẪN ĐỐI SOÁT TỪ TÀI LIỆU',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colors.muted,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: colors.amberBg.withValues(alpha: 0.4),
+              borderRadius: AppRadius.boxSm,
+              border: Border.all(color: colors.amber.withValues(alpha: 0.3)),
+            ),
+            child: SelectableText(
+              '"${finding.quote}"',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colors.ink,
+                fontStyle: FontStyle.italic,
+                height: 1.6,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            children: [
+              Icon(Icons.auto_awesome, size: 16, color: colors.brand),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                'GỢI Ý SỬA BÀI AI (RUBRIC E)',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colors.brand,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: colors.sageBg.withValues(alpha: 0.4),
+              borderRadius: AppRadius.boxSm,
+              border: Border.all(color: colors.sage.withValues(alpha: 0.3)),
+            ),
+            child: SelectableText(
+              finding.suggestion.isNotEmpty
+                  ? workspaceMessage(finding.suggestion)
+                  : 'Chỉnh sửa câu chữ đảm bảo tính đơn nghĩa, đo lường được và nhất quán theo chuẩn Capstone.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colors.ink,
+                height: 1.6,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              WButton.primary(
+                label: 'Sao chép gợi ý',
+                icon: Icons.copy,
+                onPressed: () async {
+                  await Clipboard.setData(
+                    ClipboardData(
+                      text: finding.suggestion.isNotEmpty
+                          ? finding.suggestion
+                          : finding.title,
+                    ),
+                  );
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Đã sao chép gợi ý sửa bài vào bộ nhớ tạm'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+              WButton.secondary(
+                label: isFixed ? 'Mở lại lỗi' : 'Đánh dấu đã sửa',
+                icon: isFixed ? Icons.replay : Icons.check_circle_outline,
+                onPressed: onAccept,
+              ),
+              WButton.secondary(
+                label: isDisputed ? 'Bỏ khiếu nại' : 'Khiếu nại',
+                icon: Icons.flag_outlined,
+                onPressed: onDismiss,
+              ),
+              if (canOpenSource)
+                WButton.secondary(
+                  label: 'Xem ngữ cảnh',
+                  icon: Icons.open_in_new,
+                  onPressed: onOpenSource,
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }

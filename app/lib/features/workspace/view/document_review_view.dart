@@ -98,44 +98,10 @@ class DocumentReviewView extends ConsumerWidget {
                 ),
               )
             else
-              WEmptyState(
-                icon: Icons.description_outlined,
-                title: 'Kiểm tra tài liệu dựa trên bằng chứng',
-                message:
-                    'Tải tài liệu SRS để lập danh sách yêu cầu, hoặc dùng '
-                    'tài liệu mẫu để trải nghiệm.',
-                action: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Wrap(
-                      spacing: AppSpacing.sm,
-                      runSpacing: AppSpacing.sm,
-                      alignment: WrapAlignment.center,
-                      children: [
-                        WButton.primary(
-                          label: 'Tải file mới',
-                          icon: Icons.add,
-                          onPressed: () => showImportModal(context, ref),
-                        ),
-                        WButton.secondary(
-                          label: 'Mở tài liệu mẫu',
-                          icon: Icons.play_arrow,
-                          onPressed: () => ref
-                              .read(workspaceViewModelProvider.notifier)
-                              .loadDemo(),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    // First-run orientation: the workflow stepper above the
-                    // document card only appears AFTER a document exists, so
-                    // a brand-new user had no map of what happens next. These
-                    // three steps mirror the real flow (import → review →
-                    // findings) and define "unit" at the exact moment the
-                    // word first matters.
-                    const _FirstRunChecklist(),
-                  ],
-                ),
+              _HeroDropzone(
+                onImport: () => showImportModal(context, ref),
+                onDemo: () =>
+                    ref.read(workspaceViewModelProvider.notifier).loadDemo(),
               ),
             // Import errors surface AFTER the modal has popped (e.g. the
             // 25 MB size cap), so the empty state itself must carry them —
@@ -176,7 +142,7 @@ class DocumentReviewView extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.sm),
           WorkflowSteps(
             currentStep: _workflowStepFor(tab),
             onStepTap: (step) {
@@ -200,7 +166,7 @@ class DocumentReviewView extends ConsumerWidget {
               }
             },
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.sm),
           _DocumentCard(
             fileName: state.fileName,
             pageCount: state.pageCount,
@@ -209,10 +175,10 @@ class DocumentReviewView extends ConsumerWidget {
             onInfo: () => showDocumentInfoModal(context, ref),
             onReplace: () => showImportModal(context, ref),
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.sm),
           LayoutBuilder(
             builder: (context, constraints) {
-              const gap = AppSpacing.lg;
+              const gap = AppSpacing.sm;
               final columns =
                   constraints.maxWidth >= AppBreakpoints.compactMaxWidth
                   ? 4
@@ -280,7 +246,7 @@ class DocumentReviewView extends ConsumerWidget {
               );
             },
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
           Flex(
             direction: showInnerSplit ? Axis.horizontal : Axis.vertical,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,13 +312,16 @@ class _DocumentCard extends StatelessWidget {
         ? fileName.split('.').last.toUpperCase()
         : 'DOC';
     return WPanel(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final compact = constraints.maxWidth < 560;
           final tile = Container(
-            width: 45,
-            height: 52,
+            width: 42,
+            height: 46,
             decoration: BoxDecoration(
               color: colors.amberBg,
               borderRadius: AppRadius.boxSm,
@@ -361,15 +330,10 @@ class _DocumentCard extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.description_outlined, color: colors.amber, size: 24),
+                Icon(Icons.description_outlined, color: colors.amber, size: 20),
                 Text(
                   extension,
                   maxLines: 1,
-                  // 0.9 left ~0.4px of slack per character at the old 8px; at
-                  // the AppType.micro floor the trailing letter-space pushed a
-                  // 4-glyph extension past the 43px tile and it wrapped.
-                  // maxLines + the tighter tracking keep the tile one line at
-                  // any font the platform resolves.
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: colors.amber,
@@ -383,6 +347,7 @@ class _DocumentCard extends StatelessWidget {
           );
           final heading = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Row(
                 children: [
@@ -393,23 +358,17 @@ class _DocumentCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleSmall?.copyWith(
                         color: colors.ink,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
                   if (isDemo) ...[
                     const SizedBox(width: AppSpacing.sm),
-                    WBadge(label: 'Tài liệu mẫu'),
+                    const WBadge(label: 'Tài liệu mẫu'),
                   ],
                 ],
               ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                'Đặc tả yêu cầu phần mềm (SRS)',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colors.muted,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: 2),
               Text(
                 '$pageCount trang · $sizeLabel · Đã trích xuất',
                 maxLines: 1,
@@ -421,46 +380,32 @@ class _DocumentCard extends StatelessWidget {
               ),
             ],
           );
-          final actions = Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          final actions = Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               WBadge(
                 label: 'Sẵn sàng đánh giá',
                 tint: WBadgeTint.green,
                 leading: Icon(Icons.circle, size: 4, color: colors.sage),
               ),
-              const SizedBox(height: AppSpacing.sm),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // 44x44: the platform minimum tap target. These were 34x34,
-                  // measured in the phone-viewport audit
-                  // (docs/uiux/audit-2026-09-11.md P1-1).
-                  IconButton(
-                    tooltip: 'Thông tin tài liệu',
-                    icon: const Icon(Icons.more_horiz),
-                    iconSize: 18,
-                    padding: const EdgeInsets.all(8),
-                    constraints: const BoxConstraints(
-                      minWidth: 44,
-                      minHeight: 44,
-                    ),
-                    color: colors.muted,
-                    onPressed: onInfo,
-                  ),
-                  IconButton(
-                    tooltip: 'Thay tài liệu',
-                    icon: const Icon(Icons.swap_horiz),
-                    iconSize: 18,
-                    padding: const EdgeInsets.all(8),
-                    constraints: const BoxConstraints(
-                      minWidth: 44,
-                      minHeight: 44,
-                    ),
-                    color: colors.muted,
-                    onPressed: onReplace,
-                  ),
-                ],
+              const SizedBox(width: AppSpacing.xs),
+              IconButton(
+                tooltip: 'Thông tin tài liệu',
+                icon: const Icon(Icons.more_horiz),
+                iconSize: 18,
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                color: colors.muted,
+                onPressed: onInfo,
+              ),
+              IconButton(
+                tooltip: 'Thay tài liệu',
+                icon: const Icon(Icons.swap_horiz),
+                iconSize: 18,
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                color: colors.muted,
+                onPressed: onReplace,
               ),
             ],
           );
@@ -477,7 +422,7 @@ class _DocumentCard extends StatelessWidget {
                     Expanded(child: heading),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: AppSpacing.xs),
                 Align(alignment: Alignment.centerLeft, child: actions),
               ],
             );
@@ -485,7 +430,7 @@ class _DocumentCard extends StatelessWidget {
           return Row(
             children: [
               tile,
-              const SizedBox(width: AppSpacing.lg),
+              const SizedBox(width: AppSpacing.md),
               Expanded(child: heading),
               const SizedBox(width: AppSpacing.sm),
               actions,
@@ -709,6 +654,246 @@ class _FirstRunChecklist extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Elevated hero dropzone container for the empty state.
+class _HeroDropzone extends StatelessWidget {
+  const _HeroDropzone({required this.onImport, required this.onDemo});
+
+  final VoidCallback onImport;
+  final VoidCallback onDemo;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.workspaceColors;
+    final theme = Theme.of(context);
+
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 760),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: AppRadius.boxLg,
+        border: Border.all(
+          color: colors.brand.withValues(alpha: 0.35),
+          width: 1.8,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colors.brand.withValues(alpha: 0.05),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: colors.brand.withValues(alpha: 0.04),
+              borderRadius: AppRadius.boxMd,
+              border: Border.all(color: colors.brand.withValues(alpha: 0.2)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: colors.sageBg,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: colors.border),
+                  ),
+                  child: Icon(
+                    Icons.cloud_upload_outlined,
+                    size: 28,
+                    color: colors.brand,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  'Kiểm tra tài liệu dựa trên bằng chứng',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colors.brand,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Kéo thả tài liệu SRS vào đây hoặc bấm để chọn tệp',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colors.ink,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 500),
+                  child: Text(
+                    'Tải tài liệu SRS để lập danh sách yêu cầu, hoặc dùng '
+                    'tài liệu mẫu để trải nghiệm.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.muted,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                const Wrap(
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xs,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    WBadge(label: '.DOCX', tint: WBadgeTint.neutral),
+                    WBadge(label: '.PDF', tint: WBadgeTint.neutral),
+                    WBadge(
+                      label: 'Tối đa 25 MB / 300 trang',
+                      tint: WBadgeTint.green,
+                    ),
+                    WBadge(
+                      label: 'Chuẩn Capstone SEP490 v3',
+                      tint: WBadgeTint.neutral,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          Wrap(
+            spacing: AppSpacing.md,
+            runSpacing: AppSpacing.sm,
+            alignment: WrapAlignment.center,
+            children: [
+              WButton.primary(
+                label: 'Tải file mới',
+                icon: Icons.upload_file,
+                onPressed: onImport,
+              ),
+              WButton.secondary(
+                label: 'Mở tài liệu mẫu',
+                icon: Icons.play_arrow,
+                onPressed: onDemo,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          const _TrustPillars(),
+          const SizedBox(height: AppSpacing.xl),
+          const _FirstRunChecklist(),
+        ],
+      ),
+    );
+  }
+}
+
+/// Three value-proposition pillars highlighting Capstone Rubric compliance.
+class _TrustPillars extends StatelessWidget {
+  const _TrustPillars();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.workspaceColors;
+    final theme = Theme.of(context);
+
+    Widget pillar(String title, String desc) => Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: colors.canvas,
+        borderRadius: AppRadius.boxMd,
+        border: Border.all(color: colors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.check_circle_outline, size: 16, color: colors.sage),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: colors.ink,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  desc,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.muted,
+                    fontSize: AppType.micro,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 720),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= 580;
+          if (isWide) {
+            return Row(
+              children: [
+                Expanded(
+                  child: pillar(
+                    'Rubric FPTU (Mục E)',
+                    '7 tiêu chí chất lượng SRS & đối chiếu sơ đồ UML.',
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: pillar(
+                    'Bảo toàn bằng chứng',
+                    'Mọi lỗi phát hiện đều kèm câu trích dẫn nguyên văn.',
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: pillar(
+                    'Phân tích ngoại tuyến',
+                    'Tự động phân tích cấu trúc ngay cả khi không có mạng.',
+                  ),
+                ),
+              ],
+            );
+          }
+          return Column(
+            children: [
+              pillar(
+                'Rubric FPTU (Mục E)',
+                '7 tiêu chí chất lượng SRS & đối chiếu sơ đồ UML.',
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              pillar(
+                'Bảo toàn bằng chứng',
+                'Mọi lỗi phát hiện đều kèm câu trích dẫn nguyên văn.',
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              pillar(
+                'Phân tích ngoại tuyến',
+                'Tự động phân tích cấu trúc ngay cả khi không có mạng.',
+              ),
+            ],
+          );
+        },
       ),
     );
   }

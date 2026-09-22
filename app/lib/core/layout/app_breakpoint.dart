@@ -36,18 +36,10 @@ abstract final class AppBreakpoints {
   /// instead of throwing.
   static const double desktopRailMinWidth = 640;
 
-  /// Rail floor for every non-desktop build. Raised 1100 → 840 on 2026-09-14
-  /// to follow the Material 3 window size classes: 840dp is the
-  /// medium→expanded boundary, and M3 prescribes a navigation rail from the
-  /// expanded class up — a 900dp tablet landscape showing hamburger chrome is
-  /// the defect that raised this line. Below it (phones, portrait tablets) the
-  /// floating tab bar and drawer remain.
-  ///
-  /// This partially supersedes ADR 0006 decision 3: `contentMaxWidth` for
-  /// non-desktop and the desktop-only right rail are STILL byte-identical to
-  /// before, and `test/desktop/app_breakpoint_test.dart` still pins that. See
-  /// `docs/adr/0007-m3-adaptive-thresholds.md`.
-  static const double nonDesktopRailMinWidth = 840;
+  /// Rail floor for every non-desktop build. Lowered to 768 to follow standard
+  /// tablet viewports (iPad 10"-11", 768px-1024px) so tablets receive a
+  /// navigation rail like iPadOS rather than falling back to phone drawer/tabbar.
+  static const double nonDesktopRailMinWidth = 768;
 
   /// Where the shell-level right rail (and the wider content column) appear.
   static const double rightRailMinWidth = 1440;

@@ -157,12 +157,10 @@ void main() {
     });
   });
 
-  group('non-desktop rail follows the M3 expanded class', () {
-    // ADR 0007 moved nonDesktopRailMinWidth 1100 → 840. The rest of the
-    // non-desktop numbers did NOT move — pinned by the sibling group below.
-    test('840 shows the rail, 839 keeps the floating tab bar', () {
-      final at = AppViewportData.resolve(width: 840, isDesktop: false);
-      final below = AppViewportData.resolve(width: 839, isDesktop: false);
+  group('non-desktop rail follows tablet breakpoint (768px)', () {
+    test('768 shows the rail, 767 keeps the floating tab bar', () {
+      final at = AppViewportData.resolve(width: 768, isDesktop: false);
+      final below = AppViewportData.resolve(width: 767, isDesktop: false);
       expect(at.showRail, isTrue);
       expect(below.showRail, isFalse);
       // Exactly one navigation affordance, never both, never neither.

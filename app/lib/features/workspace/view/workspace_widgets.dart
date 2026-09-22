@@ -224,11 +224,13 @@ class WPanel extends StatelessWidget {
   const WPanel({
     required this.child,
     this.padding = EdgeInsets.zero,
+    this.border,
     super.key,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
+  final BoxBorder? border;
 
   @override
   Widget build(BuildContext context) {
@@ -237,7 +239,7 @@ class WPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: AppRadius.boxMd,
-        border: Border.all(color: colors.border),
+        border: border ?? Border.all(color: colors.border),
       ),
       child: Padding(padding: padding, child: child),
     );
@@ -404,30 +406,36 @@ class MetricCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: AppRadius.boxMd,
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md + 2,
+            vertical: AppSpacing.md,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Row(
                 children: [
                   Expanded(
                     child: Text(
                       label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelMedium?.copyWith(
                         color: colors.muted,
                       ),
                     ),
                   ),
                   Container(
-                    width: 28,
-                    height: 28,
+                    width: 26,
+                    height: 26,
                     decoration: BoxDecoration(
                       color: background,
                       borderRadius: AppRadius.boxSm,
                     ),
                     child: Tooltip(
                       message: note,
-                      child: Icon(icon, size: 16, color: color),
+                      child: Icon(icon, size: 15, color: color),
                     ),
                   ),
                 ],
@@ -435,7 +443,7 @@ class MetricCard extends StatelessWidget {
               const SizedBox(height: AppSpacing.xs),
               Text(
                 value.toString().padLeft(2, '0'),
-                style: theme.textTheme.displaySmall?.copyWith(
+                style: theme.textTheme.headlineMedium?.copyWith(
                   color: colors.ink,
                   fontWeight: FontWeight.w700,
                 ),
