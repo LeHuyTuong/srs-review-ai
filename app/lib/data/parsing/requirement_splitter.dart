@@ -854,6 +854,13 @@ class _BodyScan {
     _sectionPageIndex = pageIndex;
   }
 
+  static final RegExp _diagramTitleRegex = RegExp(
+    r'diagram|sequence|class|state\s*machine|activity|package|component|'
+    r'deployment|architecture|architech|erd|schema|database|wireframe|mockup|'
+    r'so\s*do|thiet\s*ke|kien\s*truc|mo\s*hinh',
+    caseSensitive: false,
+  );
+
   /// Closes the current section: its prose becomes one unit when nothing
   /// with an id was found under it and there is enough of it to review.
   void _emitSection() {
@@ -861,8 +868,15 @@ class _BodyScan {
     final title = _sectionTitle;
     if (number != null && title != null && !_sectionHadIds) {
       var text = RequirementSplitter._collapse(_sectionBuffer.join(' '));
-      if (text.split(RequirementSplitter._whitespace).length >=
-          minSectionWords) {
+      final wordCount = text
+          .split(RequirementSplitter._whitespace)
+          .where((w) => w.isNotEmpty)
+          .length;
+      final isDiagram = _diagramTitleRegex.hasMatch(title);
+      if (wordCount >= minSectionWords || isDiagram) {
+        if (text.isEmpty && isDiagram) {
+          text = 'Sơ đồ thiết kế: $title';
+        }
         if (text.length > maxSectionChars) {
           text = text.substring(0, maxSectionChars);
         }

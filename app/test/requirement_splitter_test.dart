@@ -686,5 +686,25 @@ FR-02 The system shall log out.
         );
       },
     );
+
+    test(
+      'preserves diagram and visual sections even when prose text is empty',
+      () {
+        final items = splitter.split([
+          '''
+5. State Machine
+6. Architech
+7. Sequence & Class
+''',
+        ]);
+
+        expect(items.map((i) => i.id), ['SEC-5', 'SEC-6', 'SEC-7']);
+        expect(items.map((i) => i.title), [
+          'State Machine',
+          'Architech',
+          'Sequence & Class',
+        ]);
+      },
+    );
   });
 }
