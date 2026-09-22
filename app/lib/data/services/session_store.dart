@@ -237,7 +237,8 @@ class SharedPreferencesSessionStore implements SessionStore {
     if (stored is String) {
       try {
         final json = jsonDecode(stored) as Map<String, dynamic>;
-        final rawRows = (json['sessions'] as List<dynamic>? ?? const <dynamic>[]);
+        final rawRows =
+            (json['sessions'] as List<dynamic>? ?? const <dynamic>[]);
         return _SessionSlot(
           generation: (json['generation'] as int?) ?? 0,
           sessions: _decodeRows(rawRows.whereType<String>()),
@@ -379,7 +380,8 @@ class SharedPreferencesSessionStore implements SessionStore {
 
   @override
   Future<void> delete(String id) async {
-    final sessions = await _readAll()..removeWhere((s) => s.id == id);
+    final sessions = await _readAll()
+      ..removeWhere((s) => s.id == id);
     await _publish(sessions);
   }
 

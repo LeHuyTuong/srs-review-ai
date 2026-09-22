@@ -90,7 +90,10 @@ void main() {
         ),
         isTrue,
       );
-      expect(srsSection.matchesTitle(RegExp('requirement specification')), isFalse);
+      expect(
+        srsSection.matchesTitle(RegExp('requirement specification')),
+        isFalse,
+      );
       expect(srsSection.matchesTitle(RegExp('design')), isFalse);
     });
   });

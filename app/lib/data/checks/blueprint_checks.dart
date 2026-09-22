@@ -198,10 +198,9 @@ class BlueprintChecks {
   List<DeterministicFinding> numberingGaps(DocumentBlueprint blueprint) {
     final findings = <DeterministicFinding>[];
     for (final kind in ArtifactKind.values) {
-      final artifacts = blueprint.artifacts
-          .where((a) => a.kind == kind)
-          .toList()
-        ..sort((a, b) => a.number.compareTo(b.number));
+      final artifacts =
+          blueprint.artifacts.where((a) => a.kind == kind).toList()
+            ..sort((a, b) => a.number.compareTo(b.number));
       for (var i = 1; i < artifacts.length; i++) {
         final previous = artifacts[i - 1];
         final current = artifacts[i];
@@ -225,7 +224,8 @@ class BlueprintChecks {
                 '${current.label} nhảy từ ${previous.label} '
                 '(thiếu ${missing.join(', ')}). Kiểm tra xem bảng/hình đó có bị '
                 'xoá mà quên cập nhật mục lục không.',
-            subject: '${kind == ArtifactKind.figure ? 'figure' : 'table'}'
+            subject:
+                '${kind == ArtifactKind.figure ? 'figure' : 'table'}'
                 ':${previous.number}-${current.number}',
             actual: gap,
           ),

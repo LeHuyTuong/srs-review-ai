@@ -112,10 +112,7 @@ class DiagramDetector {
   ///
   /// A named-but-unknown figure (index has no such number, or its page never
   /// resolved) degrades to the keyword result, never to "no diagram".
-  DiagramSignal detectWithBlueprint(
-    String text,
-    DocumentBlueprint? blueprint,
-  ) {
+  DiagramSignal detectWithBlueprint(String text, DocumentBlueprint? blueprint) {
     if (blueprint == null) return detect(text);
 
     final reference = _figureReference.firstMatch(text);

@@ -153,26 +153,33 @@ void main() {
       );
     });
 
-    test('a 502 from the proxy is final — it already retried upstream', () async {
-      final adapter = _FakeAdapter(
-        Queue<Object>.of(<Object>[
-          _json(const <String, Object?>{}, status: 502),
-        ]),
-      );
+    test(
+      'a 502 from the proxy is final — it already retried upstream',
+      () async {
+        final adapter = _FakeAdapter(
+          Queue<Object>.of(<Object>[
+            _json(const <String, Object?>{}, status: 502),
+          ]),
+        );
 
-      await expectLater(
-        _service(adapter).review(requirementId: 'FR-01', text: 'x'),
-        throwsA(
-          isA<ApiException>()
-              .having((error) => error.statusCode, 'statusCode', 502)
-              .having((error) => error.isRetryable, 'isRetryable', isFalse),
-        ),
-      );
-      // Measured 2026-09-22: 414 app requests for 237 reviewed units, 176 of
-      // them 502s. Each one was retried three times by the app AND up to six
-      // times inside the proxy — the retry storm was built here.
-      expect(adapter.calls, 1, reason: 'the proxy already exhausted its own retries');
-    });
+        await expectLater(
+          _service(adapter).review(requirementId: 'FR-01', text: 'x'),
+          throwsA(
+            isA<ApiException>()
+                .having((error) => error.statusCode, 'statusCode', 502)
+                .having((error) => error.isRetryable, 'isRetryable', isFalse),
+          ),
+        );
+        // Measured 2026-09-22: 414 app requests for 237 reviewed units, 176 of
+        // them 502s. Each one was retried three times by the app AND up to six
+        // times inside the proxy — the retry storm was built here.
+        expect(
+          adapter.calls,
+          1,
+          reason: 'the proxy already exhausted its own retries',
+        );
+      },
+    );
 
     test('a 503 in front of the proxy is still worth one attempt', () async {
       final adapter = _FakeAdapter(
@@ -187,84 +194,94 @@ void main() {
       ).review(requirementId: 'FR-01', text: 'The system shall store reports.');
 
       expect(result.score, 7);
-      expect(adapter.calls, 2, reason: 'nothing was reviewed yet, so it is worth retrying');
-    });
-
-    test('batch review posts every unit and addresses the answers by index', () async {
-      final adapter = _FakeAdapter(
-        Queue<Object>.of(<Object>[
-          _json(const <String, Object?>{
-            'contract_version': '1.0.0',
-            'results': [
-              {
-                'unit_index': 0,
-                'result': {
-                  'contract_version': '1.0.0',
-                  'requirement_id': 'FR-01',
-                  'score': 7,
-                  'issues': <Object>[],
-                  'model': 'test-model',
-                },
-              },
-            ],
-            'failed': [
-              {
-                'unit_index': 1,
-                'requirement_id': 'FR-02',
-                'message': 'AI provider unavailable for this requirement.',
-              },
-            ],
-            'mock': false,
-          }),
-        ]),
-      );
-
-      final outcome = await _service(adapter).reviewBatch(const [
-        BatchReviewUnit(requirementId: 'FR-01', text: 'a', section: '3.2'),
-        BatchReviewUnit(requirementId: 'FR-02', text: 'b'),
-      ]);
-
-      final sent = adapter.requestData.single as Map<String, Object?>;
-      expect(sent['units'], hasLength(2));
       expect(
-        (sent['units']! as List<Object?>).first,
-        containsPair('requirement_id', 'FR-01'),
+        adapter.calls,
+        2,
+        reason: 'nothing was reviewed yet, so it is worth retrying',
       );
-      expect(outcome.resultsByIndex[0]!.score, 7);
-      expect(outcome.failuresByIndex[1], contains('unavailable'));
-      expect(adapter.calls, 1, reason: 'two units, one request');
     });
 
-    test('a batch answer for a unit we never asked about is rejected', () async {
-      final adapter = _FakeAdapter(
-        Queue<Object>.of(<Object>[
-          _json(const <String, Object?>{
-            'contract_version': '1.0.0',
-            'results': [
-              {
-                'unit_index': 5,
-                'result': {
-                  'contract_version': '1.0.0',
-                  'requirement_id': 'FR-09',
-                  'score': 7,
-                  'issues': <Object>[],
-                  'model': 'test-model',
+    test(
+      'batch review posts every unit and addresses the answers by index',
+      () async {
+        final adapter = _FakeAdapter(
+          Queue<Object>.of(<Object>[
+            _json(const <String, Object?>{
+              'contract_version': '1.0.0',
+              'results': [
+                {
+                  'unit_index': 0,
+                  'result': {
+                    'contract_version': '1.0.0',
+                    'requirement_id': 'FR-01',
+                    'score': 7,
+                    'issues': <Object>[],
+                    'model': 'test-model',
+                  },
                 },
-              },
-            ],
-            'failed': <Object>[],
-            'mock': false,
-          }),
-        ]),
-      );
+              ],
+              'failed': [
+                {
+                  'unit_index': 1,
+                  'requirement_id': 'FR-02',
+                  'message': 'AI provider unavailable for this requirement.',
+                },
+              ],
+              'mock': false,
+            }),
+          ]),
+        );
 
-      await expectLater(
-        _service(adapter).reviewBatch(const [
-          BatchReviewUnit(requirementId: 'FR-01', text: 'a'),
-        ]),
-        throwsA(isA<ContractException>()),
-      );
-    });
+        final outcome = await _service(adapter).reviewBatch(const [
+          BatchReviewUnit(requirementId: 'FR-01', text: 'a', section: '3.2'),
+          BatchReviewUnit(requirementId: 'FR-02', text: 'b'),
+        ]);
+
+        final sent = adapter.requestData.single as Map<String, Object?>;
+        expect(sent['units'], hasLength(2));
+        expect(
+          (sent['units']! as List<Object?>).first,
+          containsPair('requirement_id', 'FR-01'),
+        );
+        expect(outcome.resultsByIndex[0]!.score, 7);
+        expect(outcome.failuresByIndex[1], contains('unavailable'));
+        expect(adapter.calls, 1, reason: 'two units, one request');
+      },
+    );
+
+    test(
+      'a batch answer for a unit we never asked about is rejected',
+      () async {
+        final adapter = _FakeAdapter(
+          Queue<Object>.of(<Object>[
+            _json(const <String, Object?>{
+              'contract_version': '1.0.0',
+              'results': [
+                {
+                  'unit_index': 5,
+                  'result': {
+                    'contract_version': '1.0.0',
+                    'requirement_id': 'FR-09',
+                    'score': 7,
+                    'issues': <Object>[],
+                    'model': 'test-model',
+                  },
+                },
+              ],
+              'failed': <Object>[],
+              'mock': false,
+            }),
+          ]),
+        );
+
+        await expectLater(
+          _service(adapter).reviewBatch(const [
+            BatchReviewUnit(requirementId: 'FR-01', text: 'a'),
+          ]),
+          throwsA(isA<ContractException>()),
+        );
+      },
+    );
 
     test('a quota rejection reports the Retry-After window', () async {
       final adapter = _FakeAdapter(

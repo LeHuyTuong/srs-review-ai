@@ -19,5 +19,7 @@ const String sessionDatabaseName = 'srs_review_ai';
 /// Schema version handed to IndexedDB; bump it when the stores change.
 const int sessionDatabaseVersion = 1;
 
-Future<Database> openPlatformDatabase() =>
-    databaseFactoryWeb.openDatabase(sessionDatabaseName, version: sessionDatabaseVersion);
+Future<Database> openPlatformDatabase() => databaseFactoryWeb.openDatabase(
+  sessionDatabaseName,
+  version: sessionDatabaseVersion,
+);

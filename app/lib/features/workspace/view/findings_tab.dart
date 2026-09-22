@@ -730,8 +730,8 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                 : 'Không tìm thấy lỗi phù hợp',
             message: result != null && result.reviewed == 0
                 ? 'Lượt chấm gần nhất không chấm được mục nào — máy chủ từ chối '
-                    'hoặc mất kết nối. Xem thông báo lỗi ở đầu trang, kiểm tra '
-                    'máy chủ và lượt chấm trong ngày rồi thử lại.'
+                      'hoặc mất kết nối. Xem thông báo lỗi ở đầu trang, kiểm tra '
+                      'máy chủ và lượt chấm trong ngày rồi thử lại.'
                 : query.isEmpty && _filter == _StatusFilter.all
                 ? 'Kết quả này chưa khẳng định tài liệu SRS đã đầy đủ.'
                 : 'Thử từ khóa hoặc bộ lọc khác.',

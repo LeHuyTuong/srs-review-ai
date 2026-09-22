@@ -52,7 +52,11 @@ void main() {
     });
 
     test('a batch size of one is the old behaviour, not a bug', () {
-      final tasks = planReviewTasks(3, travelsAlone: (_) => false, batchSize: 1);
+      final tasks = planReviewTasks(
+        3,
+        travelsAlone: (_) => false,
+        batchSize: 1,
+      );
       expect(tasks, [
         [0],
         [1],
@@ -94,11 +98,10 @@ void main() {
     test('per-unit failures from the proxy keep their siblings', () async {
       final api = ScriptedReviewApi(
         onBatch: (callIndex, units) => BatchReviewOutcome(
-          resultsByIndex: {
-            0: _scored(units[0]),
-            2: _scored(units[2]),
+          resultsByIndex: {0: _scored(units[0]), 2: _scored(units[2])},
+          failuresByIndex: const {
+            1: 'AI provider unavailable for this requirement.',
           },
-          failuresByIndex: const {1: 'AI provider unavailable for this requirement.'},
         ),
       );
       final run = await _collectRun(
@@ -112,41 +115,56 @@ void main() {
         'u1-FR-02': 'AI provider unavailable for this requirement.',
       });
       expect(run.failureRequirementIds['u1-FR-02'], 'FR-02');
-      expect(run.stage, ReviewStage.done, reason: 'a failed unit is not a failed run');
+      expect(
+        run.stage,
+        ReviewStage.done,
+        reason: 'a failed unit is not a failed run',
+      );
     });
 
-    test('a batch the proxy never answered is recorded once per unit', () async {
-      final api = ScriptedReviewApi(
-        throwOnBatch: (callIndex) => ApiException('bad request', statusCode: 422),
-      );
-      final run = await _collectRun(
-        ReviewRepository(api),
-        _document(3),
-        batchSize: 6,
-      );
+    test(
+      'a batch the proxy never answered is recorded once per unit',
+      () async {
+        final api = ScriptedReviewApi(
+          throwOnBatch: (callIndex) =>
+              ApiException('bad request', statusCode: 422),
+        );
+        final run = await _collectRun(
+          ReviewRepository(api),
+          _document(3),
+          batchSize: 6,
+        );
 
-      expect(api.batches, hasLength(1), reason: 'a rejected request is not retried');
-      expect(run.results, isEmpty);
-      expect(run.failures.keys, ['u0-FR-01', 'u1-FR-02', 'u2-FR-03']);
-      expect(run.failures.values.toSet(), {'bad request'});
-    });
+        expect(
+          api.batches,
+          hasLength(1),
+          reason: 'a rejected request is not retried',
+        );
+        expect(run.results, isEmpty);
+        expect(run.failures.keys, ['u0-FR-01', 'u1-FR-02', 'u2-FR-03']);
+        expect(run.failures.values.toSet(), {'bad request'});
+      },
+    );
 
-    test('a transient batch failure is retried before the units are lost', () async {
-      final api = ScriptedReviewApi(
-        throwOnBatch: (callIndex) => callIndex == 0
-            ? ApiException('dropped connection', isRetryable: true)
-            : null,
-      );
-      final run = await _collectRun(
-        ReviewRepository(api),
-        _document(3),
-        batchSize: 6,
-      );
+    test(
+      'a transient batch failure is retried before the units are lost',
+      () async {
+        final api = ScriptedReviewApi(
+          throwOnBatch: (callIndex) => callIndex == 0
+              ? ApiException('dropped connection', isRetryable: true)
+              : null,
+        );
+        final run = await _collectRun(
+          ReviewRepository(api),
+          _document(3),
+          batchSize: 6,
+        );
 
-      expect(api.batches, hasLength(2));
-      expect(run.failures, isEmpty);
-      expect(run.results, hasLength(3));
-    });
+        expect(api.batches, hasLength(2));
+        expect(run.failures, isEmpty);
+        expect(run.results, hasLength(3));
+      },
+    );
 
     test('a quota rejection kills the run instead of retrying it', () async {
       final api = ScriptedReviewApi(
@@ -161,67 +179,85 @@ void main() {
         progress: progress,
       );
 
-      expect(api.batches, hasLength(1), reason: 'retrying a 429 burns tomorrow');
+      expect(
+        api.batches,
+        hasLength(1),
+        reason: 'retrying a 429 burns tomorrow',
+      );
       expect(run.stage, ReviewStage.failed);
       expect(progress.last.stage, ReviewStage.failed);
       expect(progress.last.error, 'Daily review quota reached.');
     });
 
-    test('an image unit stays on the single path while its neighbours batch', () async {
-      final api = ScriptedReviewApi();
-      final renderer = _FakeRenderer();
-      final run = await _collectRun(
-        ReviewRepository(api, renderer: renderer),
-        _documentWithDiagramOnLastPage(5),
-        batchSize: 6,
-        pdfBytes: Uint8List.fromList([1, 2, 3]),
-        imageReviewEnabled: true,
-      );
+    test(
+      'an image unit stays on the single path while its neighbours batch',
+      () async {
+        final api = ScriptedReviewApi();
+        final renderer = _FakeRenderer();
+        final run = await _collectRun(
+          ReviewRepository(api, renderer: renderer),
+          _documentWithDiagramOnLastPage(5),
+          batchSize: 6,
+          pdfBytes: Uint8List.fromList([1, 2, 3]),
+          imageReviewEnabled: true,
+        );
 
-      expect(api.batches.map((batch) => batch.length), [4]);
-      expect(
-        api.batches.single.map((unit) => unit.requirementId),
-        ['FR-01', 'FR-02', 'FR-03', 'FR-04'],
-      );
-      // The one unit whose page holds a diagram is asked alone, WITH the image.
-      expect(api.singles.map((call) => call.requirementId), ['FR-05']);
-      expect(api.singles.single.imageB64, isNotNull);
-      expect(run.imageCoverage.reviewed, 1);
-      expect(run.results, hasLength(5));
-      expect(run.stage, ReviewStage.done);
-    });
+        expect(api.batches.map((batch) => batch.length), [4]);
+        expect(api.batches.single.map((unit) => unit.requirementId), [
+          'FR-01',
+          'FR-02',
+          'FR-03',
+          'FR-04',
+        ]);
+        // The one unit whose page holds a diagram is asked alone, WITH the image.
+        expect(api.singles.map((call) => call.requirementId), ['FR-05']);
+        expect(api.singles.single.imageB64, isNotNull);
+        expect(run.imageCoverage.reviewed, 1);
+        expect(run.results, hasLength(5));
+        expect(run.stage, ReviewStage.done);
+      },
+    );
 
-    test('a proxy without /review/batch degrades to one call per unit', () async {
-      // Deployment skew: the app is newer than the proxy it is talking to. The
-      // run must survive it — 404-ing every group would fail every unit.
-      final api = ScriptedReviewApi(
-        throwOnBatch: (callIndex) => ApiException('Not Found', statusCode: 404),
-      );
-      final run = await _collectRun(
-        ReviewRepository(api),
-        _document(5),
-        batchSize: 3,
-      );
+    test(
+      'a proxy without /review/batch degrades to one call per unit',
+      () async {
+        // Deployment skew: the app is newer than the proxy it is talking to. The
+        // run must survive it — 404-ing every group would fail every unit.
+        final api = ScriptedReviewApi(
+          throwOnBatch: (callIndex) =>
+              ApiException('Not Found', statusCode: 404),
+        );
+        final run = await _collectRun(
+          ReviewRepository(api),
+          _document(5),
+          batchSize: 3,
+        );
 
-      expect(api.batches, hasLength(1), reason: 'tried once, then remembered');
-      expect(api.singles.map((call) => call.requirementId), [
-        'FR-01',
-        'FR-02',
-        'FR-03',
-        'FR-04',
-        'FR-05',
-      ]);
-      expect(run.results, hasLength(5));
-      expect(run.failures, isEmpty);
-      expect(run.stage, ReviewStage.done);
-    });
+        expect(
+          api.batches,
+          hasLength(1),
+          reason: 'tried once, then remembered',
+        );
+        expect(api.singles.map((call) => call.requirementId), [
+          'FR-01',
+          'FR-02',
+          'FR-03',
+          'FR-04',
+          'FR-05',
+        ]);
+        expect(run.results, hasLength(5));
+        expect(run.failures, isEmpty);
+        expect(run.stage, ReviewStage.done);
+      },
+    );
 
     test('a batch the proxy refuses to carry degrades the same way', () async {
       // 413 = "too many units" (a lower server cap) or "too much text". Both
       // describe the deployment, so the run drops to one call per unit instead
       // of losing every unit in the group.
       final api = ScriptedReviewApi(
-        throwOnBatch: (callIndex) => ApiException('too many units', statusCode: 413),
+        throwOnBatch: (callIndex) =>
+            ApiException('too many units', statusCode: 413),
       );
       final run = await _collectRun(
         ReviewRepository(api),
@@ -235,85 +271,98 @@ void main() {
       expect(run.stage, ReviewStage.done);
     });
 
-    test('a whitespace-only unit travels alone so it cannot poison a batch', () async {
-      final api = ScriptedReviewApi();
-      final document = _document(5);
-      final withBlank = SrsDocument(
-        fileName: document.fileName,
-        pageCount: document.pageCount,
-        pageTexts: document.pageTexts,
-        requirements: [
-          ...document.requirements,
-          const RequirementItem(
-            id: 'SEC-6',
-            text: '   ',
-            kind: RequirementKind.section,
-            pageIndex: 0,
-          ),
-        ],
-        occurrenceKeys: const [
-          'u0-FR-01',
-          'u1-FR-02',
-          'u2-FR-03',
-          'u3-FR-04',
-          'u4-FR-05',
-          'u5-SEC-6',
-        ],
-      );
+    test(
+      'a whitespace-only unit travels alone so it cannot poison a batch',
+      () async {
+        final api = ScriptedReviewApi();
+        final document = _document(5);
+        final withBlank = SrsDocument(
+          fileName: document.fileName,
+          pageCount: document.pageCount,
+          pageTexts: document.pageTexts,
+          requirements: [
+            ...document.requirements,
+            const RequirementItem(
+              id: 'SEC-6',
+              text: '   ',
+              kind: RequirementKind.section,
+              pageIndex: 0,
+            ),
+          ],
+          occurrenceKeys: const [
+            'u0-FR-01',
+            'u1-FR-02',
+            'u2-FR-03',
+            'u3-FR-04',
+            'u4-FR-05',
+            'u5-SEC-6',
+          ],
+        );
 
-      final run = await _collectRun(ReviewRepository(api), withBlank, batchSize: 6);
+        final run = await _collectRun(
+          ReviewRepository(api),
+          withBlank,
+          batchSize: 6,
+        );
 
-      // The proxy rejects an empty text with a 422 for the whole request, so the
-      // blank unit must never ride with its neighbours — it fails (or not) on its
-      // own instead of taking five good units down with it.
-      expect(api.batches.single, hasLength(5));
-      expect(
-        api.batches.single.map((unit) => unit.requirementId),
-        isNot(contains('SEC-6')),
-      );
-      expect(api.singles.map((call) => call.requirementId), ['SEC-6']);
-      expect(run.results, hasLength(6));
-    });
+        // The proxy rejects an empty text with a 422 for the whole request, so the
+        // blank unit must never ride with its neighbours — it fails (or not) on its
+        // own instead of taking five good units down with it.
+        expect(api.batches.single, hasLength(5));
+        expect(
+          api.batches.single.map((unit) => unit.requirementId),
+          isNot(contains('SEC-6')),
+        );
+        expect(api.singles.map((call) => call.requirementId), ['SEC-6']);
+        expect(run.results, hasLength(6));
+      },
+    );
 
-    test('a cancelled run records nothing against the units in flight', () async {
-      final api = HangingReviewApi();
-      final repository = ReviewRepository(api);
-      ReviewRun? completed;
-      final events = <ReviewProgress>[];
+    test(
+      'a cancelled run records nothing against the units in flight',
+      () async {
+        final api = HangingReviewApi();
+        final repository = ReviewRepository(api);
+        ReviewRun? completed;
+        final events = <ReviewProgress>[];
 
-      final done = repository
-          .run(
-            _document(4),
-            batchSize: 6,
-            concurrency: 1,
-            onComplete: (run) => completed = run,
-          )
-          .forEach(events.add);
+        final done = repository
+            .run(
+              _document(4),
+              batchSize: 6,
+              concurrency: 1,
+              onComplete: (run) => completed = run,
+            )
+            .forEach(events.add);
 
-      await api.started.future;
-      repository.cancel();
-      await done;
+        await api.started.future;
+        repository.cancel();
+        await done;
 
-      expect(completed!.stage, ReviewStage.cancelled);
-      expect(events.last.stage, ReviewStage.cancelled);
-      // The units of the batch in flight were neither reviewed nor failed: a
-      // cancelled run must not write four failures into the user's report.
-      expect(completed!.results, isEmpty);
-      expect(completed!.failures, isEmpty);
-    });
+        expect(completed!.stage, ReviewStage.cancelled);
+        expect(events.last.stage, ReviewStage.cancelled);
+        // The units of the batch in flight were neither reviewed nor failed: a
+        // cancelled run must not write four failures into the user's report.
+        expect(completed!.results, isEmpty);
+        expect(completed!.failures, isEmpty);
+      },
+    );
 
-    test('batching off is still available and still one call per unit', () async {
-      final api = ScriptedReviewApi();
-      final run = await _collectRun(
-        ReviewRepository(api),
-        _document(3),
-        batchSize: 1,
-      );
+    test(
+      'batching off is still available and still one call per unit',
+      () async {
+        final api = ScriptedReviewApi();
+        final run = await _collectRun(
+          ReviewRepository(api),
+          _document(3),
+          batchSize: 1,
+        );
 
-      expect(api.batches, isEmpty);
-      expect(api.singles, hasLength(3));
-      expect(run.results, hasLength(3));
-    });
+        expect(api.batches, isEmpty);
+        expect(api.singles, hasLength(3));
+        expect(run.results, hasLength(3));
+      },
+    );
   });
 }
 
@@ -457,7 +506,8 @@ class ReviewSingleCall {
 }
 
 class _FakeRenderer extends PageImageRenderer {
-  _FakeRenderer() : super(openDocument: (_) async => throw StateError('unused'));
+  _FakeRenderer()
+    : super(openDocument: (_) async => throw StateError('unused'));
 
   @override
   Future<Uint8List> renderPage({
