@@ -73,6 +73,28 @@ class _AnsweringApi implements ReviewApi {
   );
 
   @override
+  Future<BatchReviewOutcome> reviewBatch(
+    List<BatchReviewUnit> units, {
+    CancelToken? cancelToken,
+  }) async {
+    final results = <int, ReviewResult>{};
+    for (var index = 0; index < units.length; index++) {
+      results[index] = await review(
+        requirementId: units[index].requirementId,
+        text: units[index].text,
+        section: units[index].section,
+        pageIndex: units[index].pageIndex,
+        cancelToken: cancelToken,
+      );
+    }
+    return BatchReviewOutcome(
+      resultsByIndex: results,
+      failuresByIndex: const {},
+      mock: true,
+    );
+  }
+
+  @override
   Future<AskResponse> ask({
     required String question,
     required String context,
@@ -162,6 +184,35 @@ class _FailsAfterNApi implements ReviewApi {
     int? pageIndex,
     CancelToken? cancelToken,
   }) async => throw ApiException('Provider quota exhausted.', statusCode: 429);
+
+  /// Counts REQUESTS, not units: that is what the daily quota on the proxy
+  /// counts too, and it is why batching lets a run survive a quota ceiling
+  /// several times longer than it used to. A quota failure kills the request
+  /// that hit it (the proxy answers 429 before doing any work), so the units of
+  /// the successful batches are the ones that survive — which is exactly what
+  /// the "dies mid-flight" test is about.
+  @override
+  Future<BatchReviewOutcome> reviewBatch(
+    List<BatchReviewUnit> units, {
+    CancelToken? cancelToken,
+  }) async {
+    if (++calls > successes) {
+      throw ApiException('Provider quota exhausted.', statusCode: 429);
+    }
+    return BatchReviewOutcome(
+      resultsByIndex: {
+        for (var index = 0; index < units.length; index++)
+          index: ReviewResult(
+            requirementId: units[index].requirementId,
+            score: 8,
+            issues: const [],
+            model: 'fake',
+          ),
+      },
+      failuresByIndex: const {},
+      mock: true,
+    );
+  }
 
   @override
   Future<DiagramAuditResult> diagramAudit(

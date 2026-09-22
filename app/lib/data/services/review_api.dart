@@ -24,6 +24,16 @@ abstract interface class ReviewApi {
     CancelToken? cancelToken,
   });
 
+  /// Review several text-only units in one provider call (`/review/batch`).
+  ///
+  /// Returns an outcome keyed by each unit's index in [units], so a partial
+  /// failure can never shift a score onto the wrong requirement. Callers that
+  /// hold a page image must use [review] instead.
+  Future<BatchReviewOutcome> reviewBatch(
+    List<BatchReviewUnit> units, {
+    CancelToken? cancelToken,
+  });
+
   /// Two-call vision audit of one diagram page (`/diagram`).
   Future<DiagramAuditResult> diagramAudit(
     DiagramAuditRequest request, {

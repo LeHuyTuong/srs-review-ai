@@ -155,6 +155,7 @@ class _ControlledReviewRepository extends ReviewRepository {
     SrsDocument document, {
     required void Function(ReviewRun run) onComplete,
     int concurrency = AppConfig.reviewConcurrency,
+    int batchSize = AppConfig.reviewBatchSize,
     Uint8List? pdfBytes,
     bool imageReviewEnabled = false,
   }) {
@@ -1159,6 +1160,12 @@ class _QuotaKillingApi implements ReviewApi {
   }) async => throw ApiException('Provider quota exhausted.', statusCode: 429);
 
   @override
+  Future<BatchReviewOutcome> reviewBatch(
+    List<BatchReviewUnit> units, {
+    CancelToken? cancelToken,
+  }) async => throw ApiException('Provider quota exhausted.', statusCode: 429);
+
+  @override
   Future<DiagramAuditResult> diagramAudit(
     DiagramAuditRequest request, {
     CancelToken? cancelToken,
@@ -1210,6 +1217,16 @@ class _AlwaysFailingApi implements ReviewApi {
     String? section,
     int? pageIndex,
     String? imageB64,
+    CancelToken? cancelToken,
+  }) async {
+    throw ApiException(
+      'Cannot reach the review proxy at http://localhost:8000.',
+    );
+  }
+
+  @override
+  Future<BatchReviewOutcome> reviewBatch(
+    List<BatchReviewUnit> units, {
     CancelToken? cancelToken,
   }) async {
     throw ApiException(

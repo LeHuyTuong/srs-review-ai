@@ -64,6 +64,32 @@ void main() {
     expect(response.citations.single.pageIndex, 11);
   });
 
+  test('batch_review_response fixture parses into a BatchReviewOutcome', () {
+    final outcome = BatchReviewOutcome.fromJson(
+      _fixture('batch_review_response.json'),
+      requestedUnits: 3,
+    );
+
+    // Addressed by unit_index, NOT by position: unit 1 failed, so the response
+    // array is [0, 2] and zipping by position would misattribute both scores.
+    expect(outcome.resultsByIndex.keys.toList()..sort(), [0, 2]);
+    expect(outcome.resultsByIndex[2]!.requirementId, 'UC-14');
+    expect(outcome.resultsByIndex[2]!.cached, isTrue);
+    expect(
+      outcome.failuresByIndex[1],
+      'AI provider unavailable for this requirement.',
+    );
+  });
+
+  test('an answer for a unit nobody asked about is rejected', () {
+    final payload = _fixture('batch_review_response.json');
+
+    expect(
+      () => BatchReviewOutcome.fromJson(payload, requestedUnits: 2),
+      throwsA(isA<ContractException>()),
+    );
+  });
+
   test('a mismatched contract version is rejected loudly', () {
     final payload = _fixture('review_result.json')
       ..['contract_version'] = '0.9.0';

@@ -76,6 +76,7 @@ class ReviewRepository {
     SrsDocument document, {
     required void Function(ReviewRun run) onComplete,
     int concurrency = AppConfig.reviewConcurrency,
+    int batchSize = AppConfig.reviewBatchSize,
     Uint8List? pdfBytes,
     bool imageReviewEnabled = false,
   }) {
@@ -89,6 +90,7 @@ class ReviewRepository {
         controller: controller,
         onComplete: onComplete,
         concurrency: concurrency.clamp(1, 8),
+        batchSize: batchSize.clamp(1, AppConfig.reviewBatchMaxSize),
         pdfBytes: pdfBytes,
         imageReviewEnabled: imageReviewEnabled,
       ),
@@ -101,6 +103,7 @@ class ReviewRepository {
     required StreamController<ReviewProgress> controller,
     required void Function(ReviewRun run) onComplete,
     required int concurrency,
+    required int batchSize,
     Uint8List? pdfBytes,
     required bool imageReviewEnabled,
   }) async {
@@ -250,6 +253,7 @@ class ReviewRepository {
     var completed = 0;
     var killed = false;
     var cancelled = false;
+    var batchUnsupported = false;
     String? killMessage;
 
     void emit(ReviewProgress progress) {
@@ -264,21 +268,190 @@ class ReviewRepository {
       ),
     );
 
+    /// One unit's page image, when it has one that was actually rendered.
+    ///
+    /// This is also the batching rule: an image can only ride a single-unit
+    /// request, so an image-bearing unit is never packed with its neighbours.
+    String? imageFor(int index) {
+      final plan = plans[occurrenceKeys[index]];
+      return plan != null && plan.decision == PageImageDecision.selected
+          ? imageB64ByPage[plan.pageIndex!]
+          : null;
+    }
+
+    final tasks = planReviewTasks(
+      items.length,
+      // Two reasons a unit must travel alone: an image can only ride a
+      // single-unit request, and the proxy rejects an empty text with a 422 that
+      // would otherwise take a whole group down with it.
+      travelsAlone: (index) =>
+          imageFor(index) != null || items[index].text.trim().isEmpty,
+      batchSize: batchSize,
+    );
+
+    void recordGroupFailure(List<int> task, String message) {
+      // Cancellation wins over attributing a failure to a run the user stopped
+      // — the single path guards exactly the same way.
+      if (token.isCancelled) return;
+      for (final index in task) {
+        final occurrenceKey = occurrenceKeys[index];
+        failures[occurrenceKey] = message;
+        failureRequirementIds[occurrenceKey] = items[index].id;
+      }
+    }
+
+    /// Reads one `/review/batch` response into [results] and [failures].
+    ///
+    /// The proxy answers 200 with a `failed` list rather than failing the whole
+    /// request, so the units it DID review are kept and only the listed ones are
+    /// recorded as failures — throwing the good ones away would mean paying for
+    /// them twice on the next attempt.
+    void recordGroupOutcome(List<int> task, BatchReviewOutcome outcome) {
+      for (var position = 0; position < task.length; position++) {
+        final index = task[position];
+        final occurrenceKey = occurrenceKeys[index];
+        final result = outcome.resultsByIndex[position];
+        if (result != null) {
+          results[occurrenceKey] = result;
+          continue;
+        }
+        failures[occurrenceKey] =
+            outcome.failuresByIndex[position] ??
+            'The proxy returned no result for ${items[index].id}.';
+        failureRequirementIds[occurrenceKey] = items[index].id;
+      }
+    }
+
+    /// Reviews a group one unit at a time — the pre-batching call pattern.
+    ///
+    /// Only reached when the proxy does not know `/review/batch` (404), i.e. an
+    /// app that is newer than the deployment it is talking to. Group units never
+    /// carry a page image, so this is the plain text path with the same retry
+    /// and quota rules as the main single-unit path.
+    Future<void> runGroupAsSingles(List<int> task) async {
+      for (final index in task) {
+        if (killed || token.isCancelled) return;
+        final occurrenceKey = occurrenceKeys[index];
+        final item = items[index];
+        var attempt = 0;
+
+        void record(String message) {
+          if (token.isCancelled) return;
+          failures[occurrenceKey] = message;
+          failureRequirementIds[occurrenceKey] = item.id;
+        }
+
+        while (true) {
+          try {
+            results[occurrenceKey] = await _api.review(
+              requirementId: item.id,
+              text: item.text,
+              section: item.section,
+              pageIndex: item.pageIndex,
+              cancelToken: token,
+            );
+            break;
+          } on ApiException catch (error) {
+            if (error.statusCode == 429 || error.statusCode == 401) {
+              if (token.isCancelled) return;
+              killed = true;
+              killMessage = error.message;
+              return;
+            }
+            if (!error.isRetryable ||
+                attempt + 1 >= AppConfig.maxReviewAttempts) {
+              record(error.message);
+              break;
+            }
+            attempt++;
+            await _backoff(attempt);
+            if (token.isCancelled) return;
+          } on ContractException catch (error) {
+            record(error.message);
+            break;
+          } on Object catch (error) {
+            record('$error');
+            break;
+          }
+        }
+      }
+    }
+
+    /// Reviews a group of text-only units in one provider call.
+    ///
+    /// Same retry policy as the single path: a quota or token rejection kills
+    /// the run (retrying a 429 burns tomorrow's quota for tonight's failure), a
+    /// transient failure is retried up to [AppConfig.maxReviewAttempts], and a
+    /// terminal failure is recorded against every unit in the group.
+    Future<void> runGroup(List<int> task) async {
+      // A proxy without the endpoint is a deployment skew, not a review
+      // failure: drop to one call per unit and keep the run alive.
+      if (batchUnsupported) {
+        await runGroupAsSingles(task);
+        return;
+      }
+      final units = [
+        for (final index in task)
+          BatchReviewUnit(
+            requirementId: items[index].id,
+            text: items[index].text,
+            section: items[index].section,
+            pageIndex: items[index].pageIndex,
+          ),
+      ];
+      var attempt = 0;
+      while (true) {
+        try {
+          recordGroupOutcome(task, await _api.reviewBatch(units, cancelToken: token));
+          return;
+        } on ApiException catch (error) {
+          if (error.statusCode == 429 || error.statusCode == 401) {
+            if (token.isCancelled) return;
+            killed = true;
+            killMessage = error.message;
+            return;
+          }
+          if (error.statusCode == 404 || error.statusCode == 413) {
+            // 404: a proxy older than this build. 413: a batch it will not
+            // carry (fewer units allowed, or a smaller total). Both are
+            // properties of the DEPLOYMENT, not of the units, so the run
+            // drops to one call per unit and stays alive — and remembers it,
+            // because neither answer will change mid-run.
+            batchUnsupported = true;
+            await runGroupAsSingles(task);
+            return;
+          }
+          if (!error.isRetryable ||
+              attempt + 1 >= AppConfig.maxReviewAttempts) {
+            recordGroupFailure(task, error.message);
+            return;
+          }
+          attempt++;
+          await _backoff(attempt);
+          if (token.isCancelled) return;
+        } on ContractException catch (error) {
+          recordGroupFailure(task, error.message);
+          return;
+        } on Object catch (error) {
+          recordGroupFailure(task, '$error');
+          return;
+        }
+      }
+    }
+
     Future<void> worker() async {
       while (true) {
         if (killed || token.isCancelled) {
           cancelled = token.isCancelled;
           return;
         }
-        final index = next++;
-        if (index >= items.length) return;
+        final taskIndex = next++;
+        if (taskIndex >= tasks.length) return;
+        final task = tasks[taskIndex];
+        final index = task.first;
         final occurrenceKey = occurrenceKeys[index];
         final item = items[index];
-        final plan = plans[occurrenceKey];
-        final imageB64 =
-            plan != null && plan.decision == PageImageDecision.selected
-            ? imageB64ByPage[plan.pageIndex!]
-            : null;
+        final imageB64 = task.length == 1 ? imageFor(index) : null;
 
         emit(
           ReviewProgress(
@@ -289,6 +462,24 @@ class ReviewRepository {
             skipped: skippedByCap,
           ),
         );
+
+        if (task.length > 1) {
+          await runGroup(task);
+          if (killed || token.isCancelled) {
+            cancelled = token.isCancelled;
+            return;
+          }
+          completed += task.length;
+          emit(
+            ReviewProgress(
+              stage: ReviewStage.reviewing,
+              completed: completed,
+              total: items.length,
+              skipped: skippedByCap,
+            ),
+          );
+          continue;
+        }
 
         // Retry only what is worth retrying. `isRetryable` has been set on
         // ApiException since day one but nothing ever read it, so a dropped
@@ -411,8 +602,11 @@ class ReviewRepository {
       }
     }
 
+    // One worker per task: a task is now either a single image-bearing unit or
+    // a group of text-only ones, so the pool size bounds in-flight provider
+    // calls, which is what the quota actually cares about.
     final pool = [
-      for (var i = 0; i < concurrency && i < items.length; i++) worker(),
+      for (var i = 0; i < concurrency && i < tasks.length; i++) worker(),
     ];
     await Future.wait(pool);
     cancelled = cancelled || token.isCancelled;
@@ -496,6 +690,44 @@ class ReviewRepository {
     required String question,
     required String context,
   }) => _api.ask(question: question, context: context);
+}
+
+/// Groups unit indices into the work items one worker picks up at a time.
+///
+/// A unit that [travelsAlone] (a page raster is attached, or its text is empty)
+/// is never packed: `/review/batch` is a text call, and one request carrying
+/// several page images would be several MB.
+/// Everything else is packed up to [batchSize], which is what turns a 130-unit
+/// document from 130 provider calls into ~22 — the measured OTES run spent 1109
+/// of its 1347 upstream calls being refused, and most of that load was simply
+/// one call per unit in parallel.
+///
+/// Order is preserved (groups are contiguous runs of the document), so progress
+/// still moves through the document rather than jumping around.
+List<List<int>> planReviewTasks(
+  int count, {
+  required bool Function(int index) travelsAlone,
+  required int batchSize,
+}) {
+  final tasks = <List<int>>[];
+  var pending = <int>[];
+  void flush() {
+    if (pending.isEmpty) return;
+    tasks.add(pending);
+    pending = <int>[];
+  }
+
+  for (var index = 0; index < count; index++) {
+    if (batchSize <= 1 || travelsAlone(index)) {
+      flush();
+      tasks.add([index]);
+      continue;
+    }
+    pending.add(index);
+    if (pending.length >= batchSize) flush();
+  }
+  flush();
+  return tasks;
 }
 
 /// Exponential backoff between attempts at one requirement: 400ms, 800ms…

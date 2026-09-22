@@ -93,6 +93,17 @@ class ApiService implements ReviewApi {
   }
 
   @override
+  Future<BatchReviewOutcome> reviewBatch(
+    List<BatchReviewUnit> units, {
+    CancelToken? cancelToken,
+  }) async {
+    final data = await _post('/review/batch', {
+      'units': [for (final unit in units) unit.toJson()],
+    }, cancelToken: cancelToken);
+    return BatchReviewOutcome.fromJson(data, requestedUnits: units.length);
+  }
+
+  @override
   Future<DiagramAuditResult> diagramAudit(
     DiagramAuditRequest request, {
     CancelToken? cancelToken,
@@ -278,9 +289,23 @@ class ApiService implements ReviewApi {
           quotaMessage(retryAfterSeconds: _retryAfterSeconds(error.response)),
           statusCode: 429,
         ),
-        502 || 503 => ApiException(
-          'The AI provider is unavailable right now. Retry, or run in mock mode for the demo.',
-          statusCode: status,
+        // 502 means the PROXY already retried the provider and gave up (it
+        // paces its own calls and honours the provider's retry window).
+        // Retrying the same unit here would multiply that load by the client
+        // attempt count — measured 2026-09-22: 414 app requests for 238
+        // reviewed units, 176 of them a 502, each one triggering 2-6 upstream
+        // calls the proxy had already decided were hopeless. Fail fast and let
+        // the run report the unit as failed.
+        502 => ApiException(
+          'The AI provider is throttled or unavailable. The proxy already retried; '
+          'wait a moment and re-run the failed requirements.',
+          statusCode: 502,
+        ),
+        // 503 comes from the platform in front of the proxy (cold start,
+        // deploy) and is worth one more attempt — nothing was reviewed yet.
+        503 => ApiException(
+          'The review proxy is temporarily unavailable. Retrying…',
+          statusCode: 503,
           isRetryable: true,
         ),
         _ => ApiException(

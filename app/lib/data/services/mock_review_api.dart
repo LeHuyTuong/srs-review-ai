@@ -52,6 +52,22 @@ class MockReviewApi implements ReviewApi {
     CancelToken? cancelToken,
   }) async {
     await Future<void>.delayed(latency);
+    return score(
+      requirementId: requirementId,
+      text: text,
+      section: section,
+      pageIndex: pageIndex,
+    );
+  }
+
+  /// The rules themselves, with no latency: shared by [review] and
+  /// [reviewBatch] so offline scoring can never differ between the two paths.
+  static ReviewResult score({
+    required String requirementId,
+    required String text,
+    String? section,
+    int? pageIndex,
+  }) {
     final issues = <ReviewIssue>[];
 
     for (final sentence in _sentences(text)) {
@@ -92,6 +108,33 @@ class MockReviewApi implements ReviewApi {
       score: kept.isEmpty ? 9 : (9 - 2 * kept.length).clamp(3, 9),
       issues: kept,
       model: modelId,
+      mock: true,
+    );
+  }
+
+  /// Offline batch review: the same rules, applied unit by unit.
+  ///
+  /// One latency for the whole batch, and the scoring itself comes from the
+  /// same [score] the single path uses — mock mode must exercise the caller's
+  /// batching (one round trip, per-unit results) without inventing a second
+  /// scoring implementation to keep in step with the real one.
+  @override
+  Future<BatchReviewOutcome> reviewBatch(
+    List<BatchReviewUnit> units, {
+    CancelToken? cancelToken,
+  }) async {
+    await Future<void>.delayed(latency);
+    return BatchReviewOutcome(
+      resultsByIndex: {
+        for (var index = 0; index < units.length; index++)
+          index: score(
+            requirementId: units[index].requirementId,
+            text: units[index].text,
+            section: units[index].section,
+            pageIndex: units[index].pageIndex,
+          ),
+      },
+      failuresByIndex: const {},
       mock: true,
     );
   }

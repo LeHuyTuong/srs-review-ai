@@ -160,6 +160,83 @@ class ReviewResult {
   }
 }
 
+/// One requirement inside a `POST /review/batch` call.
+///
+/// Mirrors `$defs/BatchReviewUnit` on the wire, and matches [ReviewResult]'s
+/// request fields MINUS the page image: a batch is a text call, and units whose
+/// page carries a figure stay on the single-unit path.
+class BatchReviewUnit {
+  const BatchReviewUnit({
+    required this.requirementId,
+    required this.text,
+    this.section,
+    this.pageIndex,
+  });
+
+  final String requirementId;
+  final String text;
+  final String? section;
+  final int? pageIndex;
+
+  Map<String, dynamic> toJson() => {
+    'requirement_id': requirementId,
+    'text': text,
+    'section': ?section,
+    'page_index': ?pageIndex,
+  };
+}
+
+/// What the proxy answered for one batch request.
+///
+/// Both maps are keyed by the unit's index in the request, because that is the
+/// only address that stays correct when a unit fails: position in the response
+/// array is not a contract (see `$defs/BatchUnitResult`).
+class BatchReviewOutcome {
+  const BatchReviewOutcome({
+    required this.resultsByIndex,
+    required this.failuresByIndex,
+    this.mock = false,
+  });
+
+  factory BatchReviewOutcome.fromJson(
+    Map<String, dynamic> json, {
+    required int requestedUnits,
+  }) {
+    final version = json['contract_version'] as String?;
+    if (version != kContractVersion) {
+      throw ContractException(
+        'server speaks contract $version, app speaks $kContractVersion',
+      );
+    }
+    final results = <int, ReviewResult>{};
+    for (final entry in (json['results'] as List<dynamic>?) ?? const []) {
+      final map = entry as Map<String, dynamic>;
+      final index = map['unit_index'] as int;
+      if (index < 0 || index >= requestedUnits) {
+        // An index we never asked about would silently overwrite a real unit.
+        throw ContractException('batch answered for unit $index it was not asked about');
+      }
+      results[index] = ReviewResult.fromJson(map['result'] as Map<String, dynamic>);
+    }
+    final failures = <int, String>{};
+    for (final entry in (json['failed'] as List<dynamic>?) ?? const []) {
+      final map = entry as Map<String, dynamic>;
+      failures[map['unit_index'] as int] = map['message'] as String;
+    }
+    return BatchReviewOutcome(
+      resultsByIndex: results,
+      failuresByIndex: failures,
+      mock: (json['mock'] as bool?) ?? false,
+    );
+  }
+
+  final Map<int, ReviewResult> resultsByIndex;
+
+  /// Provider-neutral sentences from the proxy, ready to show the user.
+  final Map<int, String> failuresByIndex;
+  final bool mock;
+}
+
 class Citation {
   const Citation({
     required this.quote,

@@ -699,6 +699,31 @@ class RecordingReviewApi implements ReviewApi {
     );
   }
 
+  /// The production batching path, faked by calling [review] once per unit so
+  /// this file's per-call flags (fail-first, fail-text-only, call log) keep
+  /// meaning what they always meant.
+  @override
+  Future<BatchReviewOutcome> reviewBatch(
+    List<BatchReviewUnit> units, {
+    CancelToken? cancelToken,
+  }) async {
+    final results = <int, ReviewResult>{};
+    for (var index = 0; index < units.length; index++) {
+      results[index] = await review(
+        requirementId: units[index].requirementId,
+        text: units[index].text,
+        section: units[index].section,
+        pageIndex: units[index].pageIndex,
+        cancelToken: cancelToken,
+      );
+    }
+    return BatchReviewOutcome(
+      resultsByIndex: results,
+      failuresByIndex: const {},
+      mock: true,
+    );
+  }
+
   @override
   Future<AskResponse> ask({
     required String question,

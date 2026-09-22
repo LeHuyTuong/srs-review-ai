@@ -62,7 +62,25 @@ class AppConfig {
   /// The old sequential loop made a 40-unit run take minutes during which the
   /// UI had nothing to show; four in flight cuts the wait roughly fourfold
   /// while keeping the proxy and the provider quota comfortable.
+  ///
+  /// Since units are batched (see [reviewBatchSize]) a "requirement in flight"
+  /// is usually a group, so this bounds in-flight PROVIDER CALLS: 4 groups of 6
+  /// is 4 calls, not 24. The proxy paces those to its own ceiling anyway.
   static const int reviewConcurrency = 4;
+
+  /// How many text-only requirements travel in one `/review/batch` call.
+  ///
+  /// Measured on the OTES run of 2026-09-22: 238 reviewed units cost 1347
+  /// upstream calls, 1109 of them refusals. One call per unit is the root of
+  /// that number — batching 6 units per call cuts it roughly sixfold before any
+  /// retry policy is even considered. Six is the tested balance: large enough to
+  /// matter, small enough that the model keeps the units apart (a batch whose
+  /// answer skips units is detected and re-split by the proxy).
+  static const int reviewBatchSize = 6;
+
+  /// The proxy's hard ceiling on units per batch (`Settings.max_batch_units`).
+  /// The client must never ask for more than the server will accept.
+  static const int reviewBatchMaxSize = 8;
 
   /// Attempts per requirement before it is recorded as a failure.
   ///

@@ -52,6 +52,12 @@ class _ShareApi implements ReviewApi {
   }) async => throw UnimplementedError();
 
   @override
+  Future<BatchReviewOutcome> reviewBatch(
+    List<BatchReviewUnit> units, {
+    CancelToken? cancelToken,
+  }) async => throw UnimplementedError();
+
+  @override
   Future<DiagramAuditResult> diagramAudit(
     DiagramAuditRequest request, {
     CancelToken? cancelToken,
