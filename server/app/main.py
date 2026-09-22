@@ -160,9 +160,20 @@ def health(settings: Settings = Depends(get_settings)) -> dict[str, object]:
 
 
 @app.get("/rubric")
-def rubric() -> dict[str, object]:
-    """The app reads thresholds from here — no duplicated constants in Dart."""
-    return load_rubric()
+def rubric(settings: Settings = Depends(get_settings)) -> dict[str, object]:
+    """The app reads thresholds from here — no duplicated constants in Dart.
+
+    `limits` is merged in at the edge rather than written into rubric.json. That
+    file is the marking rubric — how a document is graded, with criteria weights
+    validated to sum to 1.0 — while the daily review cap is how *this deployment*
+    is operated and changes per environment. The app had no way to learn it, so
+    the UI hardcoded "50/day" in prose; a deployment that raises
+    `RATE_LIMIT_PER_DAY` then shows a number that contradicts its own behaviour.
+    """
+    return {
+        **load_rubric(),
+        "limits": {"reviews_per_day": settings.rate_limit_per_day},
+    }
 
 
 def _review_cache_key(

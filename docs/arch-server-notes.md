@@ -28,7 +28,7 @@
 | `server/app/cache.py` | `LruCache` — SHA256-keyed, 512 entries |
 | `server/app/ratelimit.py` | `RateLimiter` — quota mỗi user/ngày, sliding window |
 | `server/app/rubric.py` | Load & validate `rubric.json` (weights phải sum = 1.0) |
-| `server/app/rubric.json` | Dữ liệu rubric (version "v2") |
+| `server/app/rubric.json` | Dữ liệu rubric (version "v3") |
 | `server/app/verify.py` | Anti-hallucination: `verify_quote()` + `review_issues()` |
 | `server/app/llm/base.py` | `LlmProvider` Protocol + `LlmError` |
 | `server/app/llm/gemini.py` | `GeminiProvider` — REST call có retry, fallback model |
@@ -47,7 +47,7 @@
 | Method | Path | Auth | Mô tả |
 |---|---|---|---|
 | `GET` | `/health` | None | Trả về status, contract_version, mock_mode, model, rubric_version |
-| `GET` | `/rubric` | None | Trả về rubric JSON config |
+| `GET` | `/rubric` | None | Trả rubric JSON config, kèm `limits.reviews_per_day` — quota thật của deployment, để app không phải hardcode con số |
 | `POST` | `/review` | `X-App-Token` | Gửi 1 requirement để AI review, trả về issues + verified quotes |
 | `POST` | `/review/batch` | `X-App-Token` | Chấm 1–8 unit văn bản trong MỘT call provider; trả 200 kèm `results[]` (theo `unit_index`) và `failed[]` |
 | `POST` | `/ask` | `X-App-Token` | Hỏi đáp tự do grounded trong document |

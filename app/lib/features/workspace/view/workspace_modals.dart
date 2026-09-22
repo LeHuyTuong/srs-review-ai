@@ -277,6 +277,7 @@ Future<void> showReviewModal(BuildContext context, WidgetRef ref) => _show(
       final state = ref.watch(workspaceViewModelProvider);
       final viewModel = ref.read(workspaceViewModelProvider.notifier);
       final mockMode = ref.watch(mockModeProvider);
+      final rubric = ref.watch(rubricProvider).value ?? RubricConfig.fallback;
       final colors = context.workspaceColors;
       final theme = Theme.of(context);
       return _ModalScaffold(
@@ -311,17 +312,13 @@ Future<void> showReviewModal(BuildContext context, WidgetRef ref) => _show(
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          // The cap exists because the server quota is 50 requests/day per
-          // user; 40 keeps 10 in reserve for same-day re-runs (cache hits are
-          // free). Users hit this ceiling and assumed the app was broken, so
-          // the reason is stated here, next to the number it explains.
+          // The cap is this client's own constant; the daily quota belongs to
+          // the deployment and arrives with `/rubric`. Users hit the ceiling and
+          // assumed the app was broken, so the reason is stated here, next to
+          // the number it explains.
           WInfoNote(
             icon: Icons.speed_outlined,
-            text:
-                'Why the ${AppConfig.maxRequirementsPerRun}-unit limit? Each '
-                'reviewed unit costs one request against a 50/day quota. The '
-                'cap keeps room for same-day re-runs; already-reviewed units '
-                'are cached and cost nothing.',
+            text: _runLimitNote(rubric.reviewsPerDay),
           ),
           const SizedBox(height: AppSpacing.md),
           WInfoNote(
@@ -419,6 +416,25 @@ String _runButtonLabel(int selectedCount) {
   return selectedCount > cap
       ? 'Chấm $cap mục đầu trong $selectedCount mục'
       : 'Chấm $selectedCount mục';
+}
+
+/// Why a run is capped, in terms the app can actually stand behind.
+///
+/// The cap is a compiled-in constant; the daily quota is deployment config and
+/// arrives with `GET /rubric`. When the quota is unknown — offline, or against a
+/// proxy older than this key — the note states the cap and says nothing about
+/// the quota. A hardcoded "50/day" was a promise the app could not keep: raising
+/// `RATE_LIMIT_PER_DAY` made the sentence contradict the very behaviour it was
+/// explaining, and the number was wrong by a factor of six besides.
+String _runLimitNote(int? reviewsPerDay) {
+  const cap = AppConfig.maxRequirementsPerRun;
+  final head = 'Why the $cap-unit limit? Each reviewed unit costs one request';
+  if (reviewsPerDay == null) {
+    return '$head. The cap keeps room for same-day re-runs; already-reviewed '
+        'units are cached and cost nothing.';
+  }
+  return '$head, and this server allows $reviewsPerDay a day. '
+      'Already-reviewed units are cached and cost nothing.';
 }
 
 /// Resolves as soon as the run has emitted its first progress event, so the

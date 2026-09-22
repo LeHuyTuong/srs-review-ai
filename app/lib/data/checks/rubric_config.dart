@@ -13,6 +13,7 @@ class RubricConfig {
     required this.passMark,
     required this.minPerPart,
     required this.warnScore,
+    this.reviewsPerDay,
   });
 
   factory RubricConfig.fromJson(Map<String, dynamic> json) {
@@ -32,6 +33,11 @@ class RubricConfig {
       passMark: (thresholds['pass_mark'] as num).toDouble(),
       minPerPart: (thresholds['min_per_part'] as num).toDouble(),
       warnScore: (thresholds['warn_score'] as num).toDouble(),
+      // Optional on purpose: `limits` is deployment config, and a proxy older
+      // than this client simply will not send it. Absent means "unknown", not
+      // "zero" — see [reviewsPerDay].
+      reviewsPerDay:
+          (json['limits'] as Map<String, dynamic>?)?['reviews_per_day'] as int?,
     );
   }
 
@@ -64,6 +70,16 @@ class RubricConfig {
 
   /// Below this the UI paints the score amber.
   final double warnScore;
+
+  /// Reviews this deployment serves per user per day (`GET /rubric` → `limits`).
+  ///
+  /// Deployment config, not marking data, which is why it is nullable: offline,
+  /// or against a proxy that predates the key, the honest answer is "unknown".
+  /// Callers must say the cap and stay silent about the quota rather than
+  /// repeating a number they cannot check — the UI used to hardcode "50/day"
+  /// and a deployment raising `RATE_LIMIT_PER_DAY` made that prose contradict
+  /// its own behaviour.
+  final int? reviewsPerDay;
 
   /// Red when a score would drag a report under the retake line.
   bool isCritical(num score) => score < minPerPart;

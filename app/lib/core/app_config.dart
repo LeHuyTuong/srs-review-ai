@@ -44,22 +44,29 @@ class AppConfig {
 
   /// Client-side guard so a stray loop cannot burn the free-tier quota.
   ///
-  /// Kept EQUAL to the proxy's `rate_limit_per_day`
-  /// (`server/app/config.py`, 50). It was 60 for a while and every run of
+  /// Intended to be EQUAL to the proxy's `rate_limit_per_day`
+  /// (`server/app/config.py`, default 50). It was 60 for a while and every run of
   /// more than 50 units then hit 429 part-way through: the quota was spent,
   /// the run died, and the user was left with "Thất bại" on every row and no
   /// reason anywhere on screen. The client must never promise more units per
   /// run than the server will actually serve.
   ///
-  /// TESTING OVERRIDE (2026-09-21, local dev only): raised to 250 to match a
-  /// temporarily raised server quota (RATE_LIMIT_PER_DAY=2000) so a full
-  /// OTES import (~235 units incl. section units) fits one run. Restore 50
-  /// before shipping — the Gemini free tier throttles hard under bursts.
+  /// That "never promise more than the server serves" invariant is only a
+  /// comment — nothing checks it, and the two values now differ deliberately.
+  /// `GET /rubric` publishes the deployment's real quota (`limits.reviews_per_day`),
+  /// so the UI can state it instead of assuming this constant describes it.
+  ///
+  /// TESTING OVERRIDE (2026-09-21, local dev only): raised to 250 so a full OTES
+  /// import (~235 units incl. section units) fits one run, paired with a raised
+  /// `RATE_LIMIT_PER_DAY` in `server/.env`. Restore 50 before shipping — the
+  /// Gemini free tier throttles hard under bursts. The exact dev quota is in
+  /// that `.env`, not here: it is deployment config and naming it in two places
+  /// is how the two drifted apart before.
   static const int maxRequirementsPerRun = 250;
 
   /// How many requirements are reviewed at once.
   ///
-  /// The old sequential loop made a 40-unit run take minutes during which the
+  /// The old sequential loop made a full run take minutes during which the
   /// UI had nothing to show; four in flight cuts the wait roughly fourfold
   /// while keeping the proxy and the provider quota comfortable.
   ///
