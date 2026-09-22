@@ -127,47 +127,45 @@ void main() {
   });
 
   group('duplicate captions', () {
-    test('two tables with the same name are reported once, with both numbers',
-        () {
-      final blueprint = _blueprint(
-        artifacts: [
-          _table(
-            number: 22,
-            caption: 'USE CASE – Kick a student out of group',
-            printedPage: 54,
-            pdfPageIndex: 53,
-            sectionId: 'C',
-          ),
-          _table(
-            number: 23,
-            caption: 'Use Case - Kick a Student Out Of Group',
-            printedPage: 56,
-            pdfPageIndex: 55,
-            sectionId: 'C',
-          ),
-        ],
-      );
-      final findings = checks.runAll(blueprint);
+    test(
+      'two tables with the same name are reported once, with both numbers',
+      () {
+        final blueprint = _blueprint(
+          artifacts: [
+            _table(
+              number: 22,
+              caption: 'USE CASE – Kick a student out of group',
+              printedPage: 54,
+              pdfPageIndex: 53,
+              sectionId: 'C',
+            ),
+            _table(
+              number: 23,
+              caption: 'Use Case - Kick a Student Out Of Group',
+              printedPage: 56,
+              pdfPageIndex: 55,
+              sectionId: 'C',
+            ),
+          ],
+        );
+        final findings = checks.runAll(blueprint);
 
-      expect(findings, hasLength(1));
-      final finding = findings.single;
-      expect(finding.check, CheckId.duplicateCaption);
-      expect(finding.severity, Severity.medium);
-      expect(finding.passed, isFalse);
-      expect(finding.actual, 2);
-      expect(finding.message, contains('Table 22'));
-      expect(finding.message, contains('Table 23'));
-      expect(finding.subject, 'kick a student out of group');
-    });
+        expect(findings, hasLength(1));
+        final finding = findings.single;
+        expect(finding.check, CheckId.duplicateCaption);
+        expect(finding.severity, Severity.medium);
+        expect(finding.passed, isFalse);
+        expect(finding.actual, 2);
+        expect(finding.message, contains('Table 22'));
+        expect(finding.message, contains('Table 23'));
+        expect(finding.subject, 'kick a student out of group');
+      },
+    );
 
     test('three tables sharing a caption collapse into one finding', () {
       final blueprint = _blueprint(
         artifacts: [
-          for (final entry in const [
-            (40, 91),
-            (42, 95),
-            (43, 96),
-          ])
+          for (final entry in const [(40, 91), (42, 95), (43, 96)])
             _table(
               number: entry.$1,
               caption: "USE CASE - Save student's video",
@@ -326,9 +324,7 @@ void main() {
     test('the other absent parts are medium severity', () {
       // Frame speaks: Introduction + SRS present, B/D/E absent.
       final findings = checks.missingSections(
-        _blueprint(
-          sections: [_fullOutline[0], _fullOutline[2]],
-        ),
+        _blueprint(sections: [_fullOutline[0], _fullOutline[2]]),
       );
 
       expect(findings, hasLength(3));

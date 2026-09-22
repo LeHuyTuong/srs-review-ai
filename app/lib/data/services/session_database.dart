@@ -49,10 +49,7 @@ Future<SessionStore> openSessionStore({
   SessionDatabaseStore? database;
   try {
     database = factory != null
-        ? await SessionDatabaseStore.openAt(
-            path ?? 'srs_review_ai.db',
-            factory,
-          )
+        ? await SessionDatabaseStore.openAt(path ?? 'srs_review_ai.db', factory)
         : await SessionDatabaseStore.openPlatform();
     await database.importLegacy(legacy);
     return database;
@@ -134,7 +131,9 @@ class SessionDatabaseStore implements SessionStore {
     final sessions = <SavedSession>[];
     for (final snapshot in snapshots) {
       try {
-        sessions.add(SavedSession.fromJson(Map<String, dynamic>.from(snapshot.value)));
+        sessions.add(
+          SavedSession.fromJson(Map<String, dynamic>.from(snapshot.value)),
+        );
       } on Object {
         // One row that no longer decodes must not take the history down: the
         // same rule the mirrored-keys store learned the hard way (a `TypeError`

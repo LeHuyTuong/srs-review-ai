@@ -143,11 +143,8 @@ void main() {
     // Check 2: đứt số Figure/Table
     for (final kind in [TocEntryKind.figure, TocEntryKind.table]) {
       final nums =
-          toc.entries
-              .where((e) => e.kind == kind)
-              .map((e) => e.number)
-              .toList()
-        ..sort();
+          toc.entries.where((e) => e.kind == kind).map((e) => e.number).toList()
+            ..sort();
       for (var i = 1; i < nums.length; i++) {
         if (nums[i] > nums[i - 1] + 1) {
           print(

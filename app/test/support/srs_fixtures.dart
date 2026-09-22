@@ -60,7 +60,11 @@ class StubDocumentRepository extends DocumentRepository {
     void Function(String status)? onStatus,
   }) async {
     onStatus?.call('Reading ${document.fileName}…');
-    return LoadedDocument(document: document, findings: const [], sizeBytes: 1024);
+    return LoadedDocument(
+      document: document,
+      findings: const [],
+      sizeBytes: 1024,
+    );
   }
 }
 

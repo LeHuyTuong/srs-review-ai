@@ -157,7 +157,6 @@ def _unit_brief(requirement_id: str, section: str | None) -> str:
     return ""
 
 
-
 def review_system_prompt(rubric: dict[str, Any]) -> str:
     return _REVIEW_SYSTEM.format(criteria=criteria_lines(rubric))
 
@@ -222,9 +221,7 @@ def review_batch_user_prompt(units: Sequence[tuple[int, PromptUnit]]) -> str:
     ]
     for index, unit in units:
         parts.append(f"{BATCH_UNIT_MARKER}{index}")
-        parts.append(
-            _unit_body(unit.requirement_id, unit.text, unit.section, unit.page_index)
-        )
+        parts.append(_unit_body(unit.requirement_id, unit.text, unit.section, unit.page_index))
     return "\n".join(parts)
 
 

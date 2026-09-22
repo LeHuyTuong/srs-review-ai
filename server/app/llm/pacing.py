@@ -85,14 +85,13 @@ class ProviderPacer:
                 if self._tokens >= 1.0 and now >= ready_at:
                     self._tokens -= 1.0
                     return
-                if now < ready_at:
-                    wait = ready_at - now
-                else:
-                    wait = (1.0 - self._tokens) / self._rate
+                wait = ready_at - now if now < ready_at else (1.0 - self._tokens) / self._rate
             # Jitter is added outside the lock so waiters wake at different
             # instants; without it they all wake on the same tick and the
-            # bucket hands out a fresh burst.
-            await asyncio.sleep(wait + random.uniform(0.0, self._jitter))
+            # bucket hands out a fresh burst. S311 asks for a crypto-grade RNG;
+            # this is the opposite of a secret — a predictable spread is the
+            # whole point, so `secrets` would defeat the purpose.
+            await asyncio.sleep(wait + random.uniform(0.0, self._jitter))  # noqa: S311
 
     def penalize(
         self,

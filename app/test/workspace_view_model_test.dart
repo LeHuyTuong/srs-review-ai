@@ -629,12 +629,13 @@ void main() {
     await vm.loadDemo();
 
     // Trim to the per-run cap, exactly like the save-a-session test above.
-    for (final unit in container
-        .read(workspaceViewModelProvider)
-        .units
-        .where((u) => u.selected)
-        .skip(40)
-        .toList()) {
+    for (final unit
+        in container
+            .read(workspaceViewModelProvider)
+            .units
+            .where((u) => u.selected)
+            .skip(40)
+            .toList()) {
       vm.setUnitSelected(unit.key, false);
     }
 

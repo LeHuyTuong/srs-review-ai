@@ -133,9 +133,9 @@ class SyllabusChecks {
     final min = rubric.ucMinTransactions;
     final max = rubric.ucMaxTransactions;
 
-    for (final uc in srsScopedRequirements(document).where(
-      (r) => r.isUseCase,
-    )) {
+    for (final uc in srsScopedRequirements(
+      document,
+    ).where((r) => r.isUseCase)) {
       final count = TransactionCounter.count(uc.text);
       if (count < min) {
         findings.add(

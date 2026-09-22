@@ -194,25 +194,28 @@ void main() {
       expect((await store.list()).map((s) => s.id), ['b', 'a']);
     });
 
-    test('a generation whose rows all rotted falls back to the mirror', () async {
-      final store = await freshStore();
-      final prefs = await SharedPreferences.getInstance();
-      await store.save(session('a', DateTime(2026, 1, 1)));
+    test(
+      'a generation whose rows all rotted falls back to the mirror',
+      () async {
+        final store = await freshStore();
+        final prefs = await SharedPreferences.getInstance();
+        await store.save(session('a', DateTime(2026, 1, 1)));
 
-      // Replica A still parses and claims a newer generation, but none of its
-      // rows decode — an emptied history would have declared zero rows, so
-      // this must not be read as "the user deleted everything".
-      await prefs.setString(
-        slotA,
-        jsonEncode({
-          'generation': 9,
-          'writtenAt': '2026-01-01T00:00:00.000',
-          'sessions': ['not json', '{"id": 5}'],
-        }),
-      );
+        // Replica A still parses and claims a newer generation, but none of its
+        // rows decode — an emptied history would have declared zero rows, so
+        // this must not be read as "the user deleted everything".
+        await prefs.setString(
+          slotA,
+          jsonEncode({
+            'generation': 9,
+            'writtenAt': '2026-01-01T00:00:00.000',
+            'sessions': ['not json', '{"id": 5}'],
+          }),
+        );
 
-      expect((await store.list()).map((s) => s.id), ['a']);
-    });
+        expect((await store.list()).map((s) => s.id), ['a']);
+      },
+    );
 
     test('a legacy List<String> history is upgraded, not lost', () async {
       SharedPreferences.setMockInitialValues({
@@ -254,37 +257,41 @@ void main() {
       );
     });
 
-    test('a truncated snapshot is served from its mirror and repaired', () async {
-      final store = await freshStore();
-      final prefs = await SharedPreferences.getInstance();
-      await store.saveSnapshot('{"units":[]}');
+    test(
+      'a truncated snapshot is served from its mirror and repaired',
+      () async {
+        final store = await freshStore();
+        final prefs = await SharedPreferences.getInstance();
+        await store.saveSnapshot('{"units":[]}');
 
-      await prefs.setString(snapshotKey, '{"units":[');
+        await prefs.setString(snapshotKey, '{"units":[');
 
-      expect(await store.loadSnapshot(), '{"units":[]}');
-      expect(
-        prefs.getString(snapshotKey),
-        '{"units":[]}',
-        reason: 'the damaged copy is repaired for the next restore',
-      );
-    });
+        expect(await store.loadSnapshot(), '{"units":[]}');
+        expect(
+          prefs.getString(snapshotKey),
+          '{"units":[]}',
+          reason: 'the damaged copy is repaired for the next restore',
+        );
+      },
+    );
 
-    test('a snapshot written before the mirror existed gets one on read', () async {
-      // Installs that predate the mirror (and installs whose mirror a failed
-      // write dropped) must be protected from the first restore, not from the
-      // next run — measured on the real OTES install: 0.5 MB snapshot with no
-      // mirror at all.
-      SharedPreferences.setMockInitialValues({
-        snapshotKey: '{"units":[]}',
-      });
-      final store = SharedPreferencesSessionStore(
-        await SharedPreferences.getInstance(),
-      );
+    test(
+      'a snapshot written before the mirror existed gets one on read',
+      () async {
+        // Installs that predate the mirror (and installs whose mirror a failed
+        // write dropped) must be protected from the first restore, not from the
+        // next run — measured on the real OTES install: 0.5 MB snapshot with no
+        // mirror at all.
+        SharedPreferences.setMockInitialValues({snapshotKey: '{"units":[]}'});
+        final store = SharedPreferencesSessionStore(
+          await SharedPreferences.getInstance(),
+        );
 
-      expect(await store.loadSnapshot(), '{"units":[]}');
-      final prefs = await SharedPreferences.getInstance();
-      expect(prefs.get(snapshotMirror), '{"units":[]}');
-    });
+        expect(await store.loadSnapshot(), '{"units":[]}');
+        final prefs = await SharedPreferences.getInstance();
+        expect(prefs.get(snapshotMirror), '{"units":[]}');
+      },
+    );
 
     test('clearing the snapshot clears the mirror too', () async {
       final store = await freshStore();

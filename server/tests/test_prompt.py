@@ -31,9 +31,7 @@ def test_section_under_nfr_heading_gets_quantification_briefing() -> None:
 
 
 def test_section_under_design_heading_gets_sds_briefing() -> None:
-    prompt = review_user_prompt(
-        "SEC-16", "Class dictionary prose", "4.2 Class diagram explanation"
-    )
+    prompt = review_user_prompt("SEC-16", "Class dictionary prose", "4.2 Class diagram explanation")
     assert "unit_type: design description section" in prompt
 
 

@@ -214,9 +214,13 @@ class BatchReviewOutcome {
       final index = map['unit_index'] as int;
       if (index < 0 || index >= requestedUnits) {
         // An index we never asked about would silently overwrite a real unit.
-        throw ContractException('batch answered for unit $index it was not asked about');
+        throw ContractException(
+          'batch answered for unit $index it was not asked about',
+        );
       }
-      results[index] = ReviewResult.fromJson(map['result'] as Map<String, dynamic>);
+      results[index] = ReviewResult.fromJson(
+        map['result'] as Map<String, dynamic>,
+      );
     }
     final failures = <int, String>{};
     for (final entry in (json['failed'] as List<dynamic>?) ?? const []) {

@@ -17,15 +17,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:srs_review_ai/data/services/session_database.dart';
 import 'package:srs_review_ai/data/services/session_store.dart';
 
-SavedSession _session(String id, {int minute = 0, String fileName = 'srs.pdf'}) =>
-    SavedSession(
-      id: id,
-      fileName: fileName,
-      payloadJson: jsonEncode({'units': <String>[], 'id': id}),
-      createdAt: DateTime(2026, 1, 1).add(Duration(minutes: minute)),
-      fingerprint: 'fp-$id',
-      parserVersion: '1.4.2',
-    );
+SavedSession _session(
+  String id, {
+  int minute = 0,
+  String fileName = 'srs.pdf',
+}) => SavedSession(
+  id: id,
+  fileName: fileName,
+  payloadJson: jsonEncode({'units': <String>[], 'id': id}),
+  createdAt: DateTime(2026, 1, 1).add(Duration(minutes: minute)),
+  fingerprint: 'fp-$id',
+  parserVersion: '1.4.2',
+);
 
 void main() {
   late Directory dir;
@@ -96,17 +99,20 @@ void main() {
       expect(await store.count(), SessionDatabaseStore.maxSessions);
     });
 
-    test('a row that no longer matches the model does not take the list down', () async {
-      final store = await open();
-      addTearDown(store.close);
-      await store.save(_session('good'));
-      await store.putRawRecord('drifted', {'id': 5, 'createdAt': 12345});
-      await store.putRawRecord('halfWritten', {'id': 'x'});
+    test(
+      'a row that no longer matches the model does not take the list down',
+      () async {
+        final store = await open();
+        addTearDown(store.close);
+        await store.save(_session('good'));
+        await store.putRawRecord('drifted', {'id': 5, 'createdAt': 12345});
+        await store.putRawRecord('halfWritten', {'id': 'x'});
 
-      final list = await store.list();
-      expect(list.map((s) => s.id), ['good']);
-      expect(await store.open('drifted'), isNull);
-    });
+        final list = await store.list();
+        expect(list.map((s) => s.id), ['good']);
+        expect(await store.open('drifted'), isNull);
+      },
+    );
 
     test('snapshot round-trip, replace, and clear', () async {
       final store = await open();
@@ -215,19 +221,22 @@ void main() {
       expect((await reopened.list()).map((s) => s.id), ['in-database']);
     });
 
-    test('falls back to shared_preferences when the database cannot open', () async {
-      // A directory is not a database file: this is the shape of a device whose
-      // support directory exists but is not writable.
-      final store = await openSessionStore(
-        prefs: await SharedPreferences.getInstance(),
-        factory: databaseFactoryIo,
-        path: dir.path,
-      );
+    test(
+      'falls back to shared_preferences when the database cannot open',
+      () async {
+        // A directory is not a database file: this is the shape of a device whose
+        // support directory exists but is not writable.
+        final store = await openSessionStore(
+          prefs: await SharedPreferences.getInstance(),
+          factory: databaseFactoryIo,
+          path: dir.path,
+        );
 
-      expect(store, isA<SharedPreferencesSessionStore>());
-      await store.save(_session('degraded'));
-      expect((await store.list()).map((s) => s.id), ['degraded']);
-    });
+        expect(store, isA<SharedPreferencesSessionStore>());
+        await store.save(_session('degraded'));
+        expect((await store.list()).map((s) => s.id), ['degraded']);
+      },
+    );
   });
 }
 
@@ -240,7 +249,8 @@ class _ExplodingStore implements SessionStore {
   Future<SavedSession?> open(String id) async => throw StateError('unreadable');
 
   @override
-  Future<void> save(SavedSession session) async => throw StateError('unreadable');
+  Future<void> save(SavedSession session) async =>
+      throw StateError('unreadable');
 
   @override
   Future<void> delete(String id) async => throw StateError('unreadable');

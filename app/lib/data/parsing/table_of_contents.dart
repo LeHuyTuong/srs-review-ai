@@ -224,8 +224,6 @@ class TableOfContents {
     return null;
   }
 
-  static String _clean(String value) => value
-      .replaceAll(_leaders, ' ')
-      .replaceAll(_spaces, ' ')
-      .trim();
+  static String _clean(String value) =>
+      value.replaceAll(_leaders, ' ').replaceAll(_spaces, ' ').trim();
 }

@@ -212,11 +212,7 @@ class PdfParser implements DocumentParser {
     }
     return joinVisualLines([
       for (final line in lines)
-        (
-          top: line.bounds.top,
-          left: line.bounds.left,
-          text: line.text.trim(),
-        ),
+        (top: line.bounds.top, left: line.bounds.left, text: line.text.trim()),
     ]);
   }
 

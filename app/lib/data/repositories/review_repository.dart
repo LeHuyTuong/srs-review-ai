@@ -402,7 +402,10 @@ class ReviewRepository {
       var attempt = 0;
       while (true) {
         try {
-          recordGroupOutcome(task, await _api.reviewBatch(units, cancelToken: token));
+          recordGroupOutcome(
+            task,
+            await _api.reviewBatch(units, cancelToken: token),
+          );
           return;
         } on ApiException catch (error) {
           if (error.statusCode == 429 || error.statusCode == 401) {
