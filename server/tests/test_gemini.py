@@ -20,6 +20,11 @@ def _settings(**kwargs) -> Settings:
         "gemini_fallback_model": "gemini-3.1-flash-lite",
         "max_retries": 2,
         "request_timeout_s": 5,
+        # Upstream pacing is switched off here on purpose: these tests are about
+        # response handling, and the process-wide bucket would add a 5s wait per
+        # call on top of them. tests/test_pacing.py is where the pacing itself is
+        # measured, with its own pacer instance.
+        "provider_calls_per_minute": 0,
     }
     return Settings(**{**base, **kwargs})
 

@@ -58,10 +58,43 @@ class Settings(BaseSettings):
     max_retries: int = 3
     fuzzy_threshold: float = 0.92
 
+    # --- Upstream pacing (the retry-storm fix, 2026-09-22) ---
+    # A burst of parallel workers plus per-worker in-place retries turned 238
+    # reviewed units into 1347 Gemini calls, 1109 of them refused. The pacer in
+    # llm/pacing.py is the single gate every upstream call passes through.
+    provider_calls_per_minute: float = 12.0
+    """Long-run ceiling on upstream calls. Free tier is per-minute, so this is
+    the number that decides whether the tier throttles us at all. 0 disables
+    pacing entirely (useful in tests and when running a paid tier)."""
+
+    provider_burst: int = 4
+    """How many calls may leave back-to-back before the ceiling applies. A
+    little burst keeps short audits (one page = 2 calls) snappy."""
+
+    provider_cooldown_s: float = 20.0
+    """Hold applied after a 429/503 when the provider gives no retry hint."""
+
+    provider_max_cooldown_s: float = 45.0
+    """Upper bound on one cooldown AND on the total time a single request may
+    spend waiting. Deliberately well under the app's 90s client timeout: the
+    reasoning time of the call itself still has to fit under it, and a client
+    timeout would be retried by the app — adding load on top of a throttle."""
+
+    provider_jitter_s: float = 0.75
+    """Random spread added to every wait so the workers do not retry in lockstep
+    (the old fixed 1s/2s/4s backoff made every retry wave one single spike)."""
+
+    max_batch_units: int = 8
+    """Ceiling on units per /review/batch call. The app asks for 6; the cap
+    exists so a client cannot inflate one request into a whole document."""
+
     max_text_bytes: int = 200_000
     """Experimental policy (roadmap M3): one review unit's text / one ask
-    context is bounded at 200 KB. A requirement that big is a parsing bug, not
-    a review job — fail with 413 instead of shipping a giant prompt."""
+    context is bounded at 200 KB. A requirement that big is a parsing bug, not a
+    review job — fail with 413 instead of shipping a giant prompt.
+
+    For /review/batch the same ceiling applies to the SUM of the batch's texts,
+    so batching cannot smuggle a giant prompt past the single-unit guard."""
 
     max_image_b64_bytes: int = 4_000_000
     """Base64 page image cap (~3 MB PNG). Contract allows images as context

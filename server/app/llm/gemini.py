@@ -7,7 +7,6 @@ temperature 0.2 (research 07 §3.2).
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import re
@@ -17,18 +16,37 @@ import httpx
 
 from ..config import Settings
 from .base import LlmError
+from .pacing import ProviderPacer, pacer_for
 
 log = logging.getLogger(__name__)
 
 _RETRYABLE = {408, 429, 500, 502, 503, 504}
 
+# Statuses that mean "the account or the service is throttled", as opposed to
+# "this one request was unlucky". Only these set a cooldown: a timeout or a
+# single 500 says nothing about the quota, and pausing every worker for it
+# would add latency for nothing.
+_COOLDOWN_STATUS = {429, 503}
+# A 503 is the service talking, not one model's bucket.
+_SERVICE_WIDE_STATUS = {503}
+# Google's RetryInfo detail says e.g. "retryDelay": "7s" (sometimes "1.5s").
+_RETRY_DELAY = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*s?\s*$")
+
 
 class GeminiProvider:
     name = "gemini"
 
-    def __init__(self, settings: Settings, client: httpx.AsyncClient | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        client: httpx.AsyncClient | None = None,
+        pacer: ProviderPacer | None = None,
+    ) -> None:
         self._settings = settings
         self._client = client
+        # Shared with every other provider instance in the process — the pace
+        # must survive build_provider() being called once per HTTP request.
+        self._pacer = pacer if pacer is not None else pacer_for(self.name, settings)
 
     @property
     def models(self) -> list[str]:
@@ -99,20 +117,38 @@ class GeminiProvider:
     async def _post_with_retry(
         self, model: str, payload: dict[str, Any], schema: dict[str, Any]
     ) -> dict[str, Any]:
+        """One model's attempts, paced by the shared pacer.
+
+        Retries no longer sleep on a private 1s/2s/4s ladder. Each attempt waits
+        at the pacer, so a refusal (a) pauses every worker on this model for the
+        provider's own retry window and (b) counts against the process-wide
+        rate. A request also refuses to spend more than `provider_max_cooldown_s`
+        total waiting: past that it fails fast, because the app would time the
+        call out anyway and retry on top of an already throttled provider.
+        """
         url = f"{self._settings.gemini_base_url}/models/{model}:generateContent"
-        delay = 1.0
         attempts = max(1, self._settings.max_retries)
+        budget = max(0.0, self._settings.provider_max_cooldown_s)
+        waited = 0.0
+        last: LlmError | None = None
         for attempt in range(1, attempts + 1):
+            await self._pacer.acquire(model)
             try:
                 data = await self._post(url, payload)
                 return _extract_json(data, schema)
             except LlmError as exc:
+                last = exc
                 if not exc.retryable or attempt == attempts:
-                    raise
-                # exponential backoff 1s -> 2s -> 4s (free tier 429s are routine)
-                await asyncio.sleep(delay)
-                delay *= 2
-        raise LlmError("unreachable", retryable=False)
+                    break
+                if exc.status in _COOLDOWN_STATUS or exc.retry_after_s is not None:
+                    waited += self._pacer.penalize(
+                        model,
+                        exc.retry_after_s,
+                        service_wide=exc.status in _SERVICE_WIDE_STATUS,
+                    )
+                if waited >= budget:
+                    break
+        raise last or LlmError("unreachable", retryable=False)
 
     async def _post(self, url: str, payload: dict[str, Any]) -> dict[str, Any]:
         headers = {
@@ -136,11 +172,53 @@ class GeminiProvider:
                 f"gemini returned HTTP {response.status_code}",
                 status=response.status_code,
                 retryable=response.status_code in _RETRYABLE,
+                retry_after_s=_retry_after_seconds(response),
             )
         try:
             return response.json()
         except ValueError as exc:
             raise LlmError("gemini returned invalid JSON", retryable=True) from exc
+
+
+def _retry_after_seconds(response: httpx.Response) -> float | None:
+    """The wait the provider asked for, from the header or the JSON detail.
+
+    Google answers a quota refusal with `Retry-After` and/or a `RetryInfo`
+    detail (`"retryDelay": "7s"`). Reading it is the whole point: the old code
+    guessed 1s/2s/4s and knocked again into a closed door.
+    """
+    header = response.headers.get("retry-after")
+    if header:
+        try:
+            seconds = float(header.strip())
+            if seconds > 0:
+                return seconds
+        except ValueError:
+            pass
+    try:
+        body = response.json()
+    except ValueError:
+        return None
+    if not isinstance(body, dict):
+        return None
+    error = body.get("error")
+    if not isinstance(error, dict):
+        return None
+    details = error.get("details")
+    if not isinstance(details, list):
+        return None
+    for detail in details:
+        if not isinstance(detail, dict):
+            continue
+        delay = detail.get("retryDelay")
+        if not isinstance(delay, str):
+            continue
+        match = _RETRY_DELAY.match(delay)
+        if match:
+            seconds = float(match.group(1))
+            if seconds > 0:
+                return seconds
+    return None
 
 
 _MODEL_GENERATION = re.compile(r"gemini-(\d+)")
