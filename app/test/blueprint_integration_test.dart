@@ -160,19 +160,21 @@ void main() {
   });
 
   group('PageImageSelector figure resolution', () {
-    test('a requirement naming a figure attaches the figure page, not its own',
-        () {
-      final selector = PageImageSelector(budget: ImageBudget());
-      final plan = selector.planFor(
-        requirementId: 'u0-UC-01',
-        text: 'The flow in Figure 90 must match the ERD.',
-        pageIndex: 2, // the requirement's own page — wrong page for the ERD
-        candidatePages: {3}, // only the figure page is attachable
-        blueprint: indexedDocument().blueprint,
-      );
-      expect(plan.decision, PageImageDecision.selected);
-      expect(plan.pageIndex, 3);
-    });
+    test(
+      'a requirement naming a figure attaches the figure page, not its own',
+      () {
+        final selector = PageImageSelector(budget: ImageBudget());
+        final plan = selector.planFor(
+          requirementId: 'u0-UC-01',
+          text: 'The flow in Figure 90 must match the ERD.',
+          pageIndex: 2, // the requirement's own page — wrong page for the ERD
+          candidatePages: {3}, // only the figure page is attachable
+          blueprint: indexedDocument().blueprint,
+        );
+        expect(plan.decision, PageImageDecision.selected);
+        expect(plan.pageIndex, 3);
+      },
+    );
 
     test('a keyword-only requirement keeps the old page behaviour', () {
       final selector = PageImageSelector(budget: ImageBudget());

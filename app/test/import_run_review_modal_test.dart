@@ -40,6 +40,8 @@ class _StubImportRepository extends DocumentRepository {
             text: 'The app shall start in 2s.',
             kind: RequirementKind.useCase,
           ),
+          // No known id prefix: the parser's own kind decides this row, so it
+          // stays selectable rather than landing in the "needs attention" queue.
           RequirementItem(
             id: 'XX-1',
             text: 'Malformed requirement survives.',
@@ -111,8 +113,14 @@ void main() {
       await tester.tap(find.text('Bắt đầu chấm điểm AI'));
       await tester.pumpAndSettle();
 
+      // The modal offers all three stubbed rows: `XX-1` carries no known id
+      // prefix, so its kind comes from the parser (`useCase`) instead of being
+      // forced to `unknown`/malformed — a no-prefix row the parser read under a
+      // use-case heading IS a use case, and malformed rows are the ones that
+      // start deselected. The assertion names the count the modal really
+      // offers, because "2" here was only ever an artefact of the old mapping.
       expect(
-        find.text('Chấm 2 mục', skipOffstage: false),
+        find.text('Chấm 3 mục', skipOffstage: false),
         findsOneWidget,
         reason:
             'the review modal must open with its run action after a real import',

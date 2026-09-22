@@ -211,7 +211,7 @@ class RequirementSplitter {
       if (match != null) return match.group(1);
     }
     final anywhere = _idAnywhere.firstMatch(text);
-    return anywhere == null ? null : anywhere.group(0);
+    return anywhere?.group(0);
   }
 
   String? _sectionIn(String text) {

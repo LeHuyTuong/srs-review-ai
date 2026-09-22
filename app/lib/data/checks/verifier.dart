@@ -80,9 +80,10 @@ class Verifier {
     // so they begin in the limbo state and the Verifier's transition
     // table promotes them only when the text-only path confirms.
     final visionRequired = <String>{
-      for (final f in _failingFindings(syllabusFindings)
-          .followedBy(_failingFindings(referenceFindings))
-          .followedBy(_failingFindings(blueprintFindings)))
+      for (final f
+          in _failingFindings(syllabusFindings)
+              .followedBy(_failingFindings(referenceFindings))
+              .followedBy(_failingFindings(blueprintFindings)))
         if (f.requiresVisionEvidence) _keyOf(f),
     };
     for (final key in stillFailing) {

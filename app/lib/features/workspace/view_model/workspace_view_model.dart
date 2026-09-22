@@ -703,7 +703,8 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
             // a spent quota from a bad file.
             state = state.copyWith(
               clearProgress: true,
-              error: 'Chấm điểm thất bại: $error. Danh sách chọn của bạn '
+              error:
+                  'Chấm điểm thất bại: $error. Danh sách chọn của bạn '
                   'được giữ nguyên.',
             );
           },

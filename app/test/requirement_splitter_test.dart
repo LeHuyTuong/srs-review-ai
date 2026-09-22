@@ -550,10 +550,7 @@ The system shall send an email when enrollment succeeds.
       ]);
 
       expect(items.map((i) => i.id), ['ST-1', 'ST-2']);
-      expect(
-        items.every((i) => i.kind == RequirementKind.functional),
-        isTrue,
-      );
+      expect(items.every((i) => i.kind == RequirementKind.functional), isTrue);
     });
 
     test('too little prose is not a unit, and headings alone are nothing', () {

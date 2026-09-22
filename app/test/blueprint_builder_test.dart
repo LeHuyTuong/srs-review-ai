@@ -118,20 +118,24 @@ void main() {
       expect(c.pdfEndIndex, 4);
     });
 
-    test('the index pages are recorded so nothing re-reads them as content', () {
-      expect(blueprint.tocPageIndexes, {0, 1});
-    });
+    test(
+      'the index pages are recorded so nothing re-reads them as content',
+      () {
+        expect(blueprint.tocPageIndexes, {0, 1});
+      },
+    );
 
-    test('every artifact lands on the page that really carries its caption', () {
-      final byLabel = {
-        for (final a in blueprint.artifacts) a.label: a,
-      };
-      expect(byLabel['Table 9']!.pdfPageIndex, 4);
-      expect(byLabel['Table 22']!.pdfPageIndex, 5);
-      expect(byLabel['Table 23']!.pdfPageIndex, 6);
-      expect(byLabel['Figure 75']!.pdfPageIndex, 5);
-      expect(byLabel['Figure 90']!.pdfPageIndex, 6);
-    });
+    test(
+      'every artifact lands on the page that really carries its caption',
+      () {
+        final byLabel = {for (final a in blueprint.artifacts) a.label: a};
+        expect(byLabel['Table 9']!.pdfPageIndex, 4);
+        expect(byLabel['Table 22']!.pdfPageIndex, 5);
+        expect(byLabel['Table 23']!.pdfPageIndex, 6);
+        expect(byLabel['Figure 75']!.pdfPageIndex, 5);
+        expect(byLabel['Figure 90']!.pdfPageIndex, 6);
+      },
+    );
 
     test('figures carry the UML kind their caption names', () {
       final figures = {
@@ -178,27 +182,30 @@ void main() {
   });
 
   group('degraded indexes', () {
-    test('an index whose pages cannot be verified is untrusted, not dropped', () {
-      final pages = [
-        'A.\tIntroduction\t2\n'
-            'B.\tSoftware Project Management Plan\t3\n'
-            'C.\tSoftware Requirement Specification\t4\n'
-            'D.\tSoftware Design Description\t6\n'
-            'E.\tSystem Implementation & Test\t7',
-        'Table 9. Unauthorized Login\t5\n'
-            'Table 22. Use Case - Kick a student out of group\t6\n'
-            'Table 23. Use Case - Kick a student out of group\t7\n'
-            'Figure 75. Class Diagram\t6\n'
-            'Figure 90. ERD Diagram\t7',
-        'Body text without a single chapter heading.',
-      ];
-      final blueprint = build(pages);
+    test(
+      'an index whose pages cannot be verified is untrusted, not dropped',
+      () {
+        final pages = [
+          'A.\tIntroduction\t2\n'
+              'B.\tSoftware Project Management Plan\t3\n'
+              'C.\tSoftware Requirement Specification\t4\n'
+              'D.\tSoftware Design Description\t6\n'
+              'E.\tSystem Implementation & Test\t7',
+          'Table 9. Unauthorized Login\t5\n'
+              'Table 22. Use Case - Kick a student out of group\t6\n'
+              'Table 23. Use Case - Kick a student out of group\t7\n'
+              'Figure 75. Class Diagram\t6\n'
+              'Figure 90. ERD Diagram\t7',
+          'Body text without a single chapter heading.',
+        ];
+        final blueprint = build(pages);
 
-      expect(blueprint.trusted, isFalse);
-      expect(blueprint.pageOffset, 0);
-      expect(blueprint.sections, hasLength(5));
-      expect(blueprint.artifacts.every((a) => !a.isResolved), isTrue);
-    });
+        expect(blueprint.trusted, isFalse);
+        expect(blueprint.pageOffset, 0);
+        expect(blueprint.sections, hasLength(5));
+        expect(blueprint.artifacts.every((a) => !a.isResolved), isTrue);
+      },
+    );
 
     test('a caption that is not where the index says stays unresolved', () {
       final pages = capstonePages();
@@ -221,33 +228,35 @@ void main() {
       );
     });
 
-    test('two artifacts sharing one caption still resolve to their own pages',
-        () {
-      // The real defect shape: three use cases called "Save student's video".
-      // Caption text cannot tell them apart; the printed label can.
-      final pages = [
-        'A.\tIntroduction\t1\n'
-            'C.\tSoftware Requirement Specification\t3\n'
-            'D.\tSoftware Design Description\t5',
-        'Table 40. Save student video\t5\n'
-            'Table 42. Save student video\t6\n'
-            'Table 43. Save student video\t7',
-        'A page of prose.',
-        'C. Software Requirement Specification',
-        'Body prose again.',
-        'Table 40. Save student video',
-        'Table 42. Save student video',
-        'Table 43. Save student video',
-      ];
-      final blueprint = build(pages);
+    test(
+      'two artifacts sharing one caption still resolve to their own pages',
+      () {
+        // The real defect shape: three use cases called "Save student's video".
+        // Caption text cannot tell them apart; the printed label can.
+        final pages = [
+          'A.\tIntroduction\t1\n'
+              'C.\tSoftware Requirement Specification\t3\n'
+              'D.\tSoftware Design Description\t5',
+          'Table 40. Save student video\t5\n'
+              'Table 42. Save student video\t6\n'
+              'Table 43. Save student video\t7',
+          'A page of prose.',
+          'C. Software Requirement Specification',
+          'Body prose again.',
+          'Table 40. Save student video',
+          'Table 42. Save student video',
+          'Table 43. Save student video',
+        ];
+        final blueprint = build(pages);
 
-      final byLabel = {
-        for (final a in blueprint.artifacts) a.label: a.pdfPageIndex,
-      };
-      expect(byLabel['Table 40'], 5);
-      expect(byLabel['Table 42'], 6);
-      expect(byLabel['Table 43'], 7);
-    });
+        final byLabel = {
+          for (final a in blueprint.artifacts) a.label: a.pdfPageIndex,
+        };
+        expect(byLabel['Table 40'], 5);
+        expect(byLabel['Table 42'], 6);
+        expect(byLabel['Table 43'], 7);
+      },
+    );
 
     test('an artifact is never resolved to a page of the index itself', () {
       // The caption exists ONLY on the index page here. Reading it as the
@@ -287,9 +296,7 @@ void main() {
       ];
       final blueprint = build(pages);
 
-      final kinds = {
-        for (final f in blueprint.figures) f.label: f.diagramKind,
-      };
+      final kinds = {for (final f in blueprint.figures) f.label: f.diagramKind};
       expect(kinds['Figure 4'], DiagramKind.unknown);
       expect(kinds['Figure 5'], DiagramKind.classDiagram);
       expect(kinds['Figure 6'], DiagramKind.unknown);
