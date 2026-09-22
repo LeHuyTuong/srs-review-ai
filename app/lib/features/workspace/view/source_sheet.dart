@@ -17,6 +17,7 @@ import '../../../data/models/review_models.dart' show Severity;
 import '../models/workspace_findings.dart';
 import '../models/workspace_unit.dart';
 import '../view_model/workspace_view_model.dart';
+import 'workspace_modals.dart' show showDocumentPreviewModal;
 import 'workspace_widgets.dart';
 
 Future<void> showSourceSheet(
@@ -83,6 +84,14 @@ class _SourceSheetBody extends ConsumerWidget {
         }
       }
     }
+    final isDiagramSection =
+        current.text.contains(
+          RegExp(r'Page\s*\|\s*\d+', caseSensitive: false),
+        ) ||
+        current.title.toLowerCase().contains('sequence') ||
+        current.title.toLowerCase().contains('class') ||
+        current.title.toLowerCase().contains('diagram') ||
+        current.kind == UnitKind.section;
 
     return WPanel(
       padding: EdgeInsets.zero,
@@ -127,9 +136,20 @@ class _SourceSheetBody extends ConsumerWidget {
                   runSpacing: AppSpacing.xs,
                   children: [
                     WBadge(label: current.id),
-                    WBadge(
-                      label: 'Trang ${current.pageIndex + 1}',
-                      tint: WBadgeTint.green,
+                    InkWell(
+                      onTap: () => showDocumentPreviewModal(
+                        context,
+                        ref,
+                        initialPage: current.pageIndex,
+                      ),
+                      borderRadius: AppRadius.boxSm,
+                      child: Tooltip(
+                        message: 'Mở xem trang trong tài liệu',
+                        child: WBadge(
+                          label: 'Trang ${current.pageIndex + 1} ↗',
+                          tint: WBadgeTint.green,
+                        ),
+                      ),
                     ),
                     if (current.malformed)
                       WBadge(label: 'ID sai định dạng', tint: WBadgeTint.amber),
@@ -323,15 +343,77 @@ class _SourceSheetBody extends ConsumerWidget {
                         ),
                     ],
                   ),
-                const SizedBox(height: AppSpacing.lg),
+                if (isDiagramSection) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: colors.sageBg,
+                      borderRadius: AppRadius.boxSm,
+                      border: Border.all(color: colors.border),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.schema_outlined,
+                          color: colors.sage,
+                          size: 20,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Mục sơ đồ thiết kế UML / Bảng biểu (Trang ${current.pageIndex + 1})',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: colors.ink,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Nội dung trong tài liệu gốc là hình vẽ sơ đồ (Sequence Diagram / Class Diagram) hoặc bảng biểu. Vì là bản vẽ nên lớp trích xuất văn bản chỉ nhận diện được số trang. Hãy bấm "Xem trang ${current.pageIndex + 1}" để xem trang bản vẽ trong tài liệu.',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colors.muted,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: AppSpacing.md),
+                _SourceSheetPagePreview(pageIndex: current.pageIndex),
+                const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
                     Expanded(
                       child: Text(
-                        'Nội dung tài liệu gốc',
+                        'Nội dung tài liệu gốc (Trang ${current.pageIndex + 1})',
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: colors.muted,
                         ),
+                      ),
+                    ),
+                    TextButton.icon(
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                          vertical: AppSpacing.xs,
+                        ),
+                      ),
+                      icon: const Icon(Icons.menu_book_outlined, size: 16),
+                      label: Text('Xem trang ${current.pageIndex + 1}'),
+                      onPressed: () => showDocumentPreviewModal(
+                        context,
+                        ref,
+                        initialPage: current.pageIndex,
                       ),
                     ),
                     IconButton(
@@ -376,6 +458,111 @@ class _SourceSheetBody extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SourceSheetPagePreview extends ConsumerWidget {
+  const _SourceSheetPagePreview({required this.pageIndex});
+
+  final int pageIndex;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.workspaceColors;
+    final theme = Theme.of(context);
+    final viewModel = ref.read(workspaceViewModelProvider.notifier);
+
+    return FutureBuilder<Uint8List?>(
+      future: viewModel.renderPageImage(pageIndex),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            height: 100,
+            alignment: Alignment.center,
+            margin: const EdgeInsets.only(bottom: AppSpacing.md),
+            decoration: BoxDecoration(
+              color: colors.canvas,
+              borderRadius: AppRadius.boxSm,
+              border: Border.all(color: colors.border),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  'Đang tải bản vẽ trang ${pageIndex + 1}…',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.muted,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        final bytes = snapshot.data;
+        if (bytes == null || bytes.isEmpty) return const SizedBox.shrink();
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: AppSpacing.md),
+          decoration: BoxDecoration(
+            color: colors.canvas,
+            borderRadius: AppRadius.boxSm,
+            border: Border.all(color: colors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.xs,
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.image_outlined, size: 16, color: colors.muted),
+                    const SizedBox(width: AppSpacing.xs),
+                    Text(
+                      'Bản xem trước trang ${pageIndex + 1}',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colors.muted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton.icon(
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      icon: const Icon(Icons.fullscreen_outlined, size: 16),
+                      label: const Text('Phóng to'),
+                      onPressed: () => showDocumentPreviewModal(
+                        context,
+                        ref,
+                        initialPage: pageIndex,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              ClipRRect(
+                borderRadius: AppRadius.boxSm,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 280),
+                  child: Center(
+                    child: Image.memory(bytes, fit: BoxFit.contain),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

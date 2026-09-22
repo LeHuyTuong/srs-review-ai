@@ -37,7 +37,9 @@ const Set<String> kSupportedDocumentExtensions = {'pdf', 'docx'};
 /// closed every use case whose table crossed a page break and the table body
 /// was emitted as a bogus `SEC-2-p26` section (measured on OTES: 59 of 162
 /// "sections" were use-case bodies, only 9/63 use cases kept their flow).
-const String kParserVersion = '1.4.2';
+/// 1.4.3 — repeated page-number footer rows are removed before splitting, so
+/// diagram pages cannot become requirements containing only `Page | ...`.
+const String kParserVersion = '1.4.3';
 
 enum RequirementKind {
   /// FR-xx / F-xx / SR-xx style functional statement — and, until 1.3.0, the

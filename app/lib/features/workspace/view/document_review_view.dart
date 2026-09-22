@@ -124,6 +124,12 @@ class DocumentReviewView extends ConsumerWidget {
             title: 'Đánh giá tài liệu SRS',
             subtitle: 'Kiểm tra & chấm điểm chi tiết theo chuẩn FPTU Capstone',
             actions: [
+              if (state.hasDocument)
+                WButton.secondary(
+                  label: 'Xem trước tài liệu',
+                  icon: Icons.menu_book_outlined,
+                  onPressed: () => showDocumentPreviewModal(context, ref),
+                ),
               WButton.secondary(
                 label: 'Xuất báo cáo',
                 icon: Icons.download_outlined,
@@ -172,6 +178,7 @@ class DocumentReviewView extends ConsumerWidget {
             pageCount: state.pageCount,
             sizeLabel: state.sizeLabel,
             isDemo: state.isDemo,
+            onPreview: () => showDocumentPreviewModal(context, ref),
             onInfo: () => showDocumentInfoModal(context, ref),
             onReplace: () => showImportModal(context, ref),
           ),
@@ -293,6 +300,7 @@ class _DocumentCard extends StatelessWidget {
     required this.pageCount,
     required this.sizeLabel,
     required this.isDemo,
+    required this.onPreview,
     required this.onInfo,
     required this.onReplace,
   });
@@ -301,6 +309,7 @@ class _DocumentCard extends StatelessWidget {
   final int pageCount;
   final String sizeLabel;
   final bool isDemo;
+  final VoidCallback onPreview;
   final VoidCallback onInfo;
   final VoidCallback onReplace;
 
@@ -380,15 +389,25 @@ class _DocumentCard extends StatelessWidget {
               ),
             ],
           );
-          final actions = Row(
-            mainAxisSize: MainAxisSize.min,
+          final actions = Wrap(
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               WBadge(
                 label: 'Sẵn sàng đánh giá',
                 tint: WBadgeTint.green,
                 leading: Icon(Icons.circle, size: 4, color: colors.sage),
               ),
-              const SizedBox(width: AppSpacing.xs),
+              IconButton(
+                tooltip: 'Xem trước tài liệu',
+                icon: const Icon(Icons.menu_book_outlined),
+                iconSize: 18,
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                color: colors.muted,
+                onPressed: onPreview,
+              ),
               IconButton(
                 tooltip: 'Thông tin tài liệu',
                 icon: const Icon(Icons.more_horiz),

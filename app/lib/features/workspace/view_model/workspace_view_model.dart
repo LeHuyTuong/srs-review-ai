@@ -76,10 +76,14 @@ class WorkspaceState {
     this.parserVersion = '',
     this.runSummaryDismissed = false,
     this.executionLogs = const [],
+    this.pageTexts = const [],
   });
 
   /// Audit trail of AI actions and validation pipeline events.
   final List<String> executionLogs;
+
+  /// Text content per page in the document.
+  final List<String> pageTexts;
 
   final bool hasDocument;
   final String fileName;
@@ -282,6 +286,7 @@ class WorkspaceState {
     String? parserVersion,
     bool? runSummaryDismissed,
     List<String>? executionLogs,
+    List<String>? pageTexts,
   }) => WorkspaceState(
     hasDocument: hasDocument ?? this.hasDocument,
     fileName: fileName ?? this.fileName,
@@ -320,6 +325,7 @@ class WorkspaceState {
     parserVersion: parserVersion ?? this.parserVersion,
     runSummaryDismissed: runSummaryDismissed ?? this.runSummaryDismissed,
     executionLogs: executionLogs ?? this.executionLogs,
+    pageTexts: pageTexts ?? this.pageTexts,
   );
 }
 
@@ -413,6 +419,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       imageCoverage: null,
       documentFingerprint: document.documentFingerprint,
       parserVersion: kParserVersion,
+      pageTexts: document.pageTexts,
       toast:
           '${units.length} units extracted. All detected IDs have been preserved.',
     ).copyWith(restoring: false);
@@ -466,6 +473,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         imageCoverage: null,
         documentFingerprint: loaded.document.documentFingerprint,
         parserVersion: kParserVersion,
+        pageTexts: loaded.document.pageTexts,
         toast:
             '${loaded.document.requirements.length} units extracted. '
             'All detected IDs have been preserved.',
@@ -842,6 +850,32 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   }
 
   bool get canAuditDiagrams => diagramAuditCount > 0;
+
+  bool get hasPdfBytes => _pdfBytes != null && _pdfBytes!.isNotEmpty;
+
+  /// Renders a single PDF page to PNG bytes for inspection / preview.
+  /// First checks in-memory `_pdfBytes` locally; if absent, falls back to
+  /// the server's `/documents/render` endpoint via [DocumentMapService].
+  Future<Uint8List?> renderPageImage(int pageIndex) async {
+    final bytes = _pdfBytes;
+    if (bytes != null && bytes.isNotEmpty) {
+      try {
+        final repository = ref.read(reviewRepositoryProvider);
+        return await repository.renderPageForAudit(bytes, pageIndex);
+      } catch (_) {}
+    }
+    final uploadUri = _uploadUri;
+    final mapService = ref.read(documentMapServiceProvider);
+    if (uploadUri != null && mapService != null) {
+      try {
+        return await mapService.renderFigure(
+          uploadUri: uploadUri,
+          pageIndex: pageIndex,
+        );
+      } catch (_) {}
+    }
+    return null;
+  }
 
   VisionReviewService _visionService(DiagramAuditor auditor) {
     // Tight-crop rendering needs BOTH the server anatomy (bboxes) and the

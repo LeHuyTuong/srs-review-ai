@@ -208,12 +208,38 @@ class PdfParser implements DocumentParser {
       endPageIndex: page,
     );
     if (lines.isEmpty) {
-      return extractor.extractText(startPageIndex: page, endPageIndex: page);
+      return stripPageNumberFooters(
+        extractor.extractText(startPageIndex: page, endPageIndex: page),
+      );
     }
-    return joinVisualLines([
+    final text = joinVisualLines([
       for (final line in lines)
         (top: line.bounds.top, left: line.bounds.left, text: line.text.trim()),
     ]);
+    return stripPageNumberFooters(text);
+  }
+
+  /// Removes PDF footer rows such as `Page | 1 4 Page | 1 5` before the
+  /// requirement splitter sees them. These rows are extraction noise, not
+  /// requirements; leaving them in an open section can create a review unit
+  /// containing only page numbers.
+  @visibleForTesting
+  static String stripPageNumberFooters(String text) {
+    final lines = text.split('\n');
+    final pageWord = RegExp(r'page', caseSensitive: false);
+    final digits = RegExp(r'\d');
+    return lines
+        .where((line) {
+          final normalized = line.trim();
+          if (!pageWord.hasMatch(normalized) || !digits.hasMatch(normalized)) {
+            return true;
+          }
+          final remainder = normalized
+              .replaceAll(pageWord, '')
+              .replaceAll(RegExp(r'[0-9|:/\\\s-]'), '');
+          return remainder.isNotEmpty;
+        })
+        .join('\n');
   }
 
   /// Groups text runs into visual rows (same `top` within

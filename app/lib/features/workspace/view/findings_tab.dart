@@ -1202,7 +1202,7 @@ class _FindingCard extends StatelessWidget {
 }
 
 /// Right-column detailed inspector for Split-View mode on desktop/web.
-class _FindingInspector extends StatelessWidget {
+class _FindingInspector extends ConsumerWidget {
   const _FindingInspector({
     required this.finding,
     required this.status,
@@ -1220,7 +1220,7 @@ class _FindingInspector extends StatelessWidget {
   final VoidCallback onDismiss;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.workspaceColors;
     final theme = Theme.of(context);
     final severityFg = context.severityColors.forSeverity(finding.severity);
@@ -1255,11 +1255,29 @@ class _FindingInspector extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: Text(
-                  '${finding.requirementId} · Trang ${finding.pageIndex + 1}',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: colors.muted,
-                    fontWeight: FontWeight.w600,
+                child: InkWell(
+                  onTap: () => showDocumentPreviewModal(
+                    context,
+                    ref,
+                    initialPage: finding.pageIndex,
+                  ),
+                  borderRadius: AppRadius.boxSm,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          '${finding.requirementId} · Trang ${finding.pageIndex + 1}',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: colors.muted,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(Icons.open_in_new, size: 14, color: colors.muted),
+                    ],
                   ),
                 ),
               ),

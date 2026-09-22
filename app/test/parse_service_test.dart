@@ -124,5 +124,19 @@ void main() {
       ]);
       expect(text, 'kept');
     });
+
+    test('drops repeated page-number footer noise', () {
+      expect(
+        PdfParser.stripPageNumberFooters(
+          'Diagram title\nPage | 1 4 Page | 1 5 Page | 1 6',
+        ),
+        'Diagram title',
+      );
+    });
+
+    test('keeps real requirements that mention a page', () {
+      const text = 'The page must show the review result.';
+      expect(PdfParser.stripPageNumberFooters(text), text);
+    });
   });
 }
