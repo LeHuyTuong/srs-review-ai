@@ -1278,9 +1278,9 @@ void main() {
   /// The run button must not promise more units than a run can review.
   ///
   /// It used to read "Review 63 units" while `AppConfig.maxRequirementsPerRun`
-  /// (40) silently dropped 23 of them from that run. The app was never lying —
-  /// the toast after the run discloses the shortfall — but the promise was on
-  /// the button and the correction came later, which is backwards.
+  /// (then 40) silently dropped 23 of them from that run. The app was never
+  /// lying — the toast after the run discloses the shortfall — but the promise
+  /// was on the button and the correction came later, which is backwards.
   testWidgets('the run button promises only what one run can review', (
     tester,
   ) async {
