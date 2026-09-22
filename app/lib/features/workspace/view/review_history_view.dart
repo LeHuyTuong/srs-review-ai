@@ -130,7 +130,14 @@ class _ReviewHistoryViewState extends ConsumerState<ReviewHistoryView> {
                               session.id,
                             );
                             if (opened && context.mounted) {
-                              context.go('/workspace');
+                              // Switch to the workspace branch the way the rail
+                              // and the floating tab bar do. The old literal
+                              // `context.go('/workspace')` matched no route —
+                              // the Đánh giá tab's path is `/` — so GoRouter
+                              // threw GoException AFTER the session had already
+                              // opened: the screen stayed on Lịch sử and the
+                              // open looked like it had failed.
+                              StatefulNavigationShell.of(context).goBranch(0);
                             }
                           },
                           onDelete: () async {
