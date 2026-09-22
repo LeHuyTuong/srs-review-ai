@@ -577,8 +577,7 @@ async def review_batch(
             raise HTTPException(
                 status_code=429,
                 detail=(
-                    f"Daily review limit reached ({settings.rate_limit_per_day}). "
-                    f"Retry after {retry_after}s."
+                    f"Daily review limit reached ({settings.rate_limit_per_day}). Retry after {retry_after}s."
                 ),
                 headers={"Retry-After": str(retry_after)},
             )
@@ -600,9 +599,7 @@ async def review_batch(
             failures[index] = _NO_RESULT
 
     return BatchReviewResponse(
-        results=[
-            BatchUnitResult(unit_index=index, result=results[index]) for index in sorted(results)
-        ],
+        results=[BatchUnitResult(unit_index=index, result=results[index]) for index in sorted(results)],
         failed=[
             BatchUnitFailure(
                 unit_index=index,

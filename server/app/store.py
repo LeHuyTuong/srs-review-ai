@@ -28,6 +28,7 @@ Three properties matter more than speed here:
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import sqlite3
 import threading
@@ -116,9 +117,7 @@ class SqliteCache(Generic[T]):
             if self._conn is None:
                 return
             try:
-                self._conn.execute(
-                    "DELETE FROM cache_entries WHERE namespace = ?", (self._namespace,)
-                )
+                self._conn.execute("DELETE FROM cache_entries WHERE namespace = ?", (self._namespace,))
                 self._conn.commit()
             except sqlite3.Error as exc:
                 self._degrade("clear", exc)
@@ -140,10 +139,10 @@ class SqliteCache(Generic[T]):
     def close(self) -> None:
         with self._lock:
             if self._conn is not None:
-                try:
+                # A failed close leaves nothing to act on, and raising out of
+                # `close()` would turn shutdown into a crash.
+                with contextlib.suppress(sqlite3.Error):
                     self._conn.close()
-                except sqlite3.Error:  # pragma: no cover - close failures are noise
-                    pass
                 self._conn = None
 
     # ------------------------------------------------------------------ #
@@ -294,8 +293,7 @@ class SqliteCache(Generic[T]):
             )
         self._degraded = True
         if self._conn is not None:
-            try:
+            # The connection just failed; closing it is best-effort cleanup.
+            with contextlib.suppress(sqlite3.Error):
                 self._conn.close()
-            except sqlite3.Error:  # pragma: no cover - nothing left to do
-                pass
             self._conn = None

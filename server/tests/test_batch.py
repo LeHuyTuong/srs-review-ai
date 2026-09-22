@@ -14,12 +14,14 @@ import app.main as main_module
 from app.config import Settings, get_settings
 from app.llm.base import LlmError
 from app.main import _limiter, _review_cache, app
-from app.schemas import BatchReviewResponse, LLM_BATCH_REVIEW_SCHEMA
+from app.schemas import LLM_BATCH_REVIEW_SCHEMA, BatchReviewResponse
 
 UNIT_TEXT = {
     "FR-01": "The system shall return search results within 2 seconds for 95% of requests.",
     "FR-02": "The system shall respond quickly to every search request.",
-    "UC-07": "Actor: Student. Preconditions: logged in. Main success scenario: 1. Student opens the schedule.",
+    "UC-07": (
+        "Actor: Student. Preconditions: logged in. Main success scenario: 1. Student opens the schedule."
+    ),
     "SEC-3": "The system shall be user-friendly and support Vietnamese and English.",
     "NFR-2": "Availability shall be high at all times.",
     "BR-4": "The system shall validate input.",
@@ -174,9 +176,7 @@ def test_a_partly_cached_batch_only_pays_for_the_misses(client, monkeypatch):
     provider = ScriptedProvider({"results": [_entry(0, 9)]})
     with _client_with(provider, Settings(mock_mode=True, gemini_api_key=""), monkeypatch) as c:
         c.post("/review/batch", json={"units": [_unit("FR-01")]})
-        body = c.post(
-            "/review/batch", json={"units": [_unit("FR-01"), _unit("FR-02")]}
-        ).json()
+        body = c.post("/review/batch", json={"units": [_unit("FR-01"), _unit("FR-02")]}).json()
 
     assert len(provider.calls) == 2, "one call for the first batch, one for the miss"
     assert "requirement_id: FR-02" in provider.calls[1]
@@ -276,9 +276,7 @@ def test_out_of_order_and_unknown_indexes_are_handled(client, monkeypatch):
 
 
 def test_a_duplicate_index_keeps_the_first_answer(client, monkeypatch):
-    provider = ScriptedProvider(
-        {"results": [_entry(0, 9), _entry(0, 1), _entry(1, 6)]}
-    )
+    provider = ScriptedProvider({"results": [_entry(0, 9), _entry(0, 1), _entry(1, 6)]})
     with _client_with(provider, Settings(mock_mode=True, gemini_api_key=""), monkeypatch) as c:
         body = c.post(
             "/review/batch",
@@ -328,9 +326,12 @@ def test_a_failure_in_one_unit_does_not_lose_its_siblings(client, monkeypatch):
     assert [entry["unit_index"] for entry in body["results"]] == [0]
     assert [entry["unit_index"] for entry in body["failed"]] == [1]
     # The survivor is cached: a re-run pays only for the unit that failed.
-    assert client.post("/review/batch", json={"units": [_unit("FR-01")]}).json()["results"][0][
-        "result"
-    ]["cached"] is True
+    assert (
+        client.post("/review/batch", json={"units": [_unit("FR-01")]}).json()["results"][0]["result"][
+            "cached"
+        ]
+        is True
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -382,9 +383,7 @@ def test_a_single_unit_batch_uses_the_single_unit_contract(client, monkeypatch):
 def test_batch_response_contract_is_strict(client, monkeypatch):
     provider = ScriptedProvider({"results": [_entry(0, 5, quote="quickly"), _entry(1, 9)]})
     with _client_with(provider, Settings(mock_mode=True, gemini_api_key=""), monkeypatch) as c:
-        body = c.post(
-            "/review/batch", json={"units": [_unit("FR-02"), _unit("FR-01")]}
-        ).json()
+        body = c.post("/review/batch", json={"units": [_unit("FR-02"), _unit("FR-01")]}).json()
 
     parsed = BatchReviewResponse.model_validate(body)
     assert parsed.model_dump(mode="json") == body

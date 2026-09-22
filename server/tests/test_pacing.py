@@ -44,9 +44,7 @@ def _quota(seconds: str = "0.2s") -> httpx.Response:
             "error": {
                 "code": 429,
                 "status": "RESOURCE_EXHAUSTED",
-                "details": [
-                    {"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": seconds}
-                ],
+                "details": [{"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": seconds}],
             }
         },
     )
@@ -180,9 +178,7 @@ async def test_one_request_never_waits_past_its_budget():
     pacer = ProviderPacer(calls_per_minute=6000, burst=8, jitter_s=0.0, max_cooldown_s=30.0)
     started = time.monotonic()
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
-        provider = GeminiProvider(
-            _settings(provider_max_cooldown_s=0.1), client=http, pacer=pacer
-        )
+        provider = GeminiProvider(_settings(provider_max_cooldown_s=0.1), client=http, pacer=pacer)
         with pytest.raises(LlmError):
             await provider.generate_json(system="s", user="u", schema=SCHEMA)
     assert time.monotonic() - started < 1.0

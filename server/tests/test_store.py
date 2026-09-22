@@ -230,9 +230,7 @@ def test_health_reports_the_cache_state(client):
 def test_the_cache_file_is_valid_sqlite_with_the_rows_the_endpoint_wrote(client):
     reviewed = client.post("/review", json=REVIEW).json()
     conn = sqlite3.connect(_review_cache.path)
-    rows = conn.execute(
-        "SELECT key, payload FROM cache_entries WHERE namespace = 'review'"
-    ).fetchall()
+    rows = conn.execute("SELECT key, payload FROM cache_entries WHERE namespace = 'review'").fetchall()
     conn.close()
 
     assert rows, "the endpoint must leave the result on disk"
