@@ -12,7 +12,14 @@ from pathlib import Path
 import pytest
 
 from app.rubric import RUBRIC_PATH, load_rubric
-from app.schemas import CONTRACT_VERSION, AskResponse, IssueType, ReviewResult, Severity
+from app.schemas import (
+    CONTRACT_VERSION,
+    AskResponse,
+    BatchReviewResponse,
+    IssueType,
+    ReviewResult,
+    Severity,
+)
 
 CONTRACTS = Path(__file__).resolve().parents[2] / "contracts"
 FIXTURES = CONTRACTS / "fixtures"
@@ -38,6 +45,15 @@ def test_ask_response_fixture_parses():
     payload = json.loads((FIXTURES / "ask_response.json").read_text(encoding="utf-8"))
     response = AskResponse.model_validate(payload)
     assert response.grounded is True
+    assert response.model_dump(mode="json") == payload
+
+
+def test_batch_review_response_fixture_parses():
+    payload = json.loads((FIXTURES / "batch_review_response.json").read_text(encoding="utf-8"))
+    response = BatchReviewResponse.model_validate(payload)
+    assert [entry.unit_index for entry in response.results] == [0, 2]
+    assert response.failed[0].requirement_id == "SEC-3"
+    # round-trips without losing or inventing fields
     assert response.model_dump(mode="json") == payload
 
 

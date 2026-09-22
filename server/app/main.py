@@ -17,7 +17,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Res
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, ValidationError
 
-from .cache import LruCache, cache_key
+from .cache import cache_key
 from .config import Settings, get_settings
 from .diagram import (
     DESCRIBE_SYSTEM,
@@ -36,20 +36,33 @@ from .diagram import (
 )
 from .llm.base import LlmError
 from .llm.router import build_provider
-from .prompt import ask_system_prompt, ask_user_prompt, review_system_prompt, review_user_prompt
+from .prompt import (
+    ask_system_prompt,
+    ask_user_prompt,
+    review_batch_user_prompt,
+    review_system_prompt,
+    review_user_prompt,
+)
 from .ratelimit import RateLimiter
 from .rubric import load_rubric
 from .schemas import (
     CONTRACT_VERSION,
     LLM_ASK_SCHEMA,
+    LLM_BATCH_REVIEW_SCHEMA,
     LLM_REVIEW_SCHEMA,
     AskRequest,
     AskResponse,
+    BatchReviewRequest,
+    BatchReviewResponse,
+    BatchReviewUnit,
+    BatchUnitFailure,
+    BatchUnitResult,
     Citation,
     ReviewRequest,
     ReviewResult,
 )
 from .share import ShareStore
+from .store import SqliteCache
 from .uploads import (
     InvalidTokenError,
     UploadNotFoundError,
@@ -75,8 +88,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-_review_cache: LruCache[ReviewResult] = LruCache()
-_diagram_cache: LruCache[DiagramResponse] = LruCache()
+# Durable, not in-memory: a restart used to discard a whole paid-for run. The
+# key already carries every input that can change a result (prompt/rubric/model
+# versions included), so a code or rubric change invalidates old rows by itself —
+# the database needs no migration for it.
+_cache_path = _settings.cache_dir / "cache.sqlite3"
+_review_cache: SqliteCache[ReviewResult] = SqliteCache(
+    _cache_path,
+    namespace="review",
+    encode=ReviewResult.model_dump_json,
+    decode=ReviewResult.model_validate_json,
+    max_entries=_settings.cache_max_entries,
+)
+_diagram_cache: SqliteCache[DiagramResponse] = SqliteCache(
+    _cache_path,
+    namespace="diagram",
+    encode=DiagramResponse.model_dump_json,
+    decode=DiagramResponse.model_validate_json,
+    max_entries=_settings.cache_max_entries,
+)
 _limiter = RateLimiter()
 
 _upload_store = UploadStore(
@@ -117,6 +147,15 @@ def health(settings: Settings = Depends(get_settings)) -> dict[str, object]:
         "model": settings.gemini_model,
         "rubric_version": rubric["version"],
         "prompt_version": settings.prompt_version,
+        # Cache state, because "did my results survive the restart?" is a
+        # question the app's user asks out loud — and `degraded: true` is how a
+        # silently in-memory cache announces itself instead of looking healthy.
+        "cache": {
+            "engine": "sqlite",
+            "degraded": _review_cache.degraded or _diagram_cache.degraded,
+            "review_entries": len(_review_cache),
+            "diagram_entries": len(_diagram_cache),
+        },
     }
 
 
@@ -126,37 +165,83 @@ def rubric() -> dict[str, object]:
     return load_rubric()
 
 
-def _review_cache_keys(
-    payload: ReviewRequest,
+def _review_cache_key(
+    *,
+    requirement_id: str,
+    text: str,
+    section: str | None,
+    image_b64: str | None,
+    page_index: int | None,
     settings: Settings,
     rubric_cfg: dict[str, object],
     provider: object,
-) -> list[str]:
-    # Cache identity follows the configured model selection even in mock mode.
-    # This prevents switching the selected model from reusing an older result;
-    # provider identity keeps mock and online results isolated.
+) -> str:
+    """One key, used for BOTH the lookup and the store.
+
+    Cache identity follows the configured model selection even in mock mode:
+    switching the selected model must not reuse an older result, and provider
+    identity keeps mock and online results isolated. Primary/fallback order is
+    part of the identity, so swapping them invalidates the old result.
+
+    Lookup and store used to be two hand-copied expressions over the same
+    inputs. They agreed, but only by maintenance — and they disagreed in the
+    one case where no model is configured, where the lookup fell back to the
+    provider id and the store wrote an empty string, so that configuration
+    could never get a cache hit at all. One function, one key.
+    """
     models = [settings.gemini_model, settings.gemini_fallback_model]
     models = [model for model in models if model]
     if not models:
         models = [getattr(provider, "model_id", provider.name)]
-    # Preserve order: primary/fallback selection is part of the result's
-    # identity, so swapping them must invalidate the old result.
-    model_selection = "|".join(models)
-    return [
-        cache_key(
-            payload.requirement_id,
-            payload.text,
-            payload.section or "",
-            payload.image_b64 or "",
-            str(payload.page_index) if payload.page_index is not None else "",
-            provider.name,
-            str(settings.mock_mode),
-            model_selection,
-            settings.prompt_version,
-            str(rubric_cfg["version"]),
-            str(settings.fuzzy_threshold),
-        )
-    ]
+    return cache_key(
+        requirement_id,
+        text,
+        section or "",
+        image_b64 or "",
+        str(page_index) if page_index is not None else "",
+        provider.name,
+        str(settings.mock_mode),
+        "|".join(models),
+        settings.prompt_version,
+        str(rubric_cfg["version"]),
+        str(settings.fuzzy_threshold),
+    )
+
+
+def _cached_review(key: str) -> ReviewResult | None:
+    hit = _review_cache.get(key)
+    return hit.model_copy(update={"cached": True}) if hit else None
+
+
+def _build_result(
+    *,
+    requirement_id: str,
+    text: str,
+    raw: dict[str, Any],
+    model: str,
+    provider: object,
+    settings: Settings,
+) -> ReviewResult:
+    """Turn one provider payload into a verified, contract-shaped result.
+
+    Shared by the single and batch paths so quote verification, score clamping
+    and the `mock` flag can never drift between them.
+    """
+    kept, dropped = review_issues(
+        [i for i in raw.get("issues", []) if isinstance(i, dict)],
+        text,
+        threshold=settings.fuzzy_threshold,
+    )
+    return ReviewResult(
+        requirement_id=requirement_id,  # trust our own id, not the model's
+        score=_clamp_score(raw.get("score")),
+        issues=kept,
+        context_note=raw.get("context_note"),
+        dropped_issue_count=dropped,
+        model=model,
+        cached=False,
+        mock=provider.name == "mock",
+    )
 
 
 def _ensure_bounded(*, text: str, image_b64: str | None, settings: Settings) -> None:
@@ -193,10 +278,18 @@ async def review(
     _ensure_bounded(text=payload.text, image_b64=payload.image_b64, settings=settings)
     rubric_cfg = load_rubric()
     provider = build_provider(settings)
-    cache_keys = _review_cache_keys(payload, settings, rubric_cfg, provider)
-    for key in cache_keys:
-        if hit := _review_cache.get(key):
-            return hit.model_copy(update={"cached": True})
+    key = _review_cache_key(
+        requirement_id=payload.requirement_id,
+        text=payload.text,
+        section=payload.section,
+        image_b64=payload.image_b64,
+        page_index=payload.page_index,
+        settings=settings,
+        rubric_cfg=rubric_cfg,
+        provider=provider,
+    )
+    if hit := _cached_review(key):
+        return hit
 
     allowed, _, retry_after = _limiter.check(user, settings.rate_limit_per_day)
     if not allowed:
@@ -209,13 +302,15 @@ async def review(
         )
 
     try:
-        raw, model = await provider.generate_json(
-            system=review_system_prompt(rubric_cfg),
-            user=review_user_prompt(
-                payload.requirement_id, payload.text, payload.section, payload.page_index
-            ),
-            schema=LLM_REVIEW_SCHEMA,
+        result = await _review_uncached(
+            requirement_id=payload.requirement_id,
+            text=payload.text,
+            section=payload.section,
+            page_index=payload.page_index,
             image_b64=payload.image_b64,
+            settings=settings,
+            rubric_cfg=rubric_cfg,
+            provider=provider,
         )
     except LlmError as exc:
         log.warning("review failed for %s: %s", payload.requirement_id, exc)
@@ -223,42 +318,301 @@ async def review(
             status_code=502, detail="AI provider unavailable. Retry or use mock mode."
         ) from exc
 
-    kept, dropped = review_issues(
-        [i for i in raw.get("issues", []) if isinstance(i, dict)],
-        payload.text,
-        threshold=settings.fuzzy_threshold,
+    _review_cache.put(key, result)
+    return result
+
+
+async def _review_uncached(
+    *,
+    requirement_id: str,
+    text: str,
+    section: str | None,
+    page_index: int | None,
+    image_b64: str | None,
+    settings: Settings,
+    rubric_cfg: dict[str, object],
+    provider: object,
+) -> ReviewResult:
+    """One unit, one provider call — the path that has always worked."""
+    raw, model = await provider.generate_json(
+        system=review_system_prompt(rubric_cfg),
+        user=review_user_prompt(requirement_id, text, section, page_index),
+        schema=LLM_REVIEW_SCHEMA,
+        image_b64=image_b64,
+    )
+    return _build_result(
+        requirement_id=requirement_id,
+        text=text,
+        raw=raw,
+        model=model,
+        provider=provider,
+        settings=settings,
     )
 
-    result = ReviewResult(
-        requirement_id=payload.requirement_id,  # trust our own id, not the model's
-        score=_clamp_score(raw.get("score")),
-        issues=kept,
-        context_note=raw.get("context_note"),
-        dropped_issue_count=dropped,
-        model=model,
-        cached=False,
+
+# --------------------------------------------------------------------------- #
+# Batched review (/review/batch)
+# --------------------------------------------------------------------------- #
+# One call per 6-8 units instead of one call per unit: on the OTES run of
+# 2026-09-22, 238 units meant 238 upstream calls (plus 1109 wasted ones). The
+# prompt carries the SAME per-unit body as the single path, numbered by
+# unit_index, so the specialist briefings still ride along; the response is an
+# array addressed by that index, and every quote is verified against its own
+# unit's text — a batched result is not a cheaper result.
+
+_UNIT_FAILED = "AI provider unavailable for this requirement."
+_BATCH_FAILED = "AI provider unavailable for this batch of requirements."
+_NO_RESULT = "No result was produced for this requirement."
+
+
+def _index_batch_payload(raw: dict[str, Any]) -> dict[int, dict[str, Any]]:
+    """Map `results[]` entries by unit_index, ignoring anything unusable.
+
+    Duplicates keep the first entry: a model that answers twice for one unit has
+    not earned the right to overwrite its own first answer mid-review.
+    """
+    entries = raw.get("results")
+    if not isinstance(entries, list):
+        return {}
+    indexed: dict[int, dict[str, Any]] = {}
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        index = entry.get("unit_index")
+        if isinstance(index, bool) or not isinstance(index, int):
+            continue
+        indexed.setdefault(index, entry)
+    return indexed
+
+
+async def _review_group(
+    units: list[tuple[int, BatchReviewUnit]],
+    *,
+    settings: Settings,
+    rubric_cfg: dict[str, object],
+    provider: object,
+) -> tuple[dict[int, ReviewResult], dict[int, str]]:
+    """Review [units] with as few calls as possible, never fewer results.
+
+    Returns (results by unit_index, failures by unit_index). Every requested
+    unit comes back in exactly one of the two maps.
+
+    Split-on-failure, and deliberately only on STRUCTURAL failure: if the model
+    answered but the payload did not cover every unit, the group is halved (or
+    just the missing tail re-asked) and the units are retried — the model, not
+    the provider, was the problem. If the provider call itself failed (the
+    pacer already gave it the provider's own retry window), the whole group is
+    reported failed rather than fanned out: splitting a dead provider into 8
+    single calls is how 1 failure becomes a storm.
+    """
+    if not units:
+        return {}, {}
+
+    if len(units) == 1:
+        index, unit = units[0]
+        try:
+            result = await _review_uncached(
+                requirement_id=unit.requirement_id,
+                text=unit.text,
+                section=unit.section,
+                page_index=unit.page_index,
+                image_b64=None,
+                settings=settings,
+                rubric_cfg=rubric_cfg,
+                provider=provider,
+            )
+        except LlmError as exc:
+            log.warning("batch unit %s failed: %s", unit.requirement_id, exc)
+            return {}, {index: _UNIT_FAILED}
+        except ValidationError as exc:
+            log.warning("batch unit %s returned an unexpected structure: %s", unit.requirement_id, exc)
+            return {}, {index: _UNIT_FAILED}
+        _store_review(unit, result, settings, rubric_cfg, provider)
+        return {index: result}, {}
+
+    try:
+        raw, model = await provider.generate_json(
+            system=review_system_prompt(rubric_cfg),
+            user=review_batch_user_prompt(units),
+            schema=LLM_BATCH_REVIEW_SCHEMA,
+        )
+    except LlmError as exc:
+        log.warning("batched review of %d units failed: %s", len(units), exc)
+        return {}, {index: _BATCH_FAILED for index, _ in units}
+
+    indexed = _index_batch_payload(raw)
+    results: dict[int, ReviewResult] = {}
+    failures: dict[int, str] = {}
+    unresolved: list[tuple[int, BatchReviewUnit]] = []
+    for index, unit in units:
+        entry = indexed.get(index)
+        if entry is None:
+            unresolved.append((index, unit))
+            continue
+        try:
+            result = _build_result(
+                requirement_id=unit.requirement_id,
+                text=unit.text,
+                raw=entry,
+                model=model,
+                provider=provider,
+                settings=settings,
+            )
+        except ValidationError as exc:
+            log.warning("batched entry for %s was unusable: %s", unit.requirement_id, exc)
+            unresolved.append((index, unit))
+            continue
+        _store_review(unit, result, settings, rubric_cfg, provider)
+        results[index] = result
+
+    if not unresolved:
+        return results, failures
+
+    if len(unresolved) == len(units):
+        # Nothing usable at all: half the group, so the next attempt is a
+        # smaller prompt. Recursion bottoms out at the single-unit path.
+        middle = max(1, len(unresolved) // 2)
+        halves = (unresolved[:middle], unresolved[middle:])
+    else:
+        halves = (unresolved,)
+    for half in halves:
+        sub_results, sub_failures = await _review_group(
+            half, settings=settings, rubric_cfg=rubric_cfg, provider=provider
+        )
+        results.update(sub_results)
+        failures.update(sub_failures)
+    return results, failures
+
+
+def _store_review(
+    unit: BatchReviewUnit,
+    result: ReviewResult,
+    settings: Settings,
+    rubric_cfg: dict[str, object],
+    provider: object,
+) -> None:
+    """Cache per unit, so a re-run (or a partially failed batch) is free."""
+    _review_cache.put(
+        _review_cache_key(
+            requirement_id=unit.requirement_id,
+            text=unit.text,
+            section=unit.section,
+            image_b64=None,
+            page_index=unit.page_index,
+            settings=settings,
+            rubric_cfg=rubric_cfg,
+            provider=provider,
+        ),
+        result,
+    )
+
+
+@app.post(
+    "/review/batch",
+    response_model=BatchReviewResponse,
+    dependencies=[Depends(require_app_token)],
+)
+async def review_batch(
+    payload: BatchReviewRequest,
+    settings: Settings = Depends(get_settings),
+    user: str = Depends(caller_id),
+) -> BatchReviewResponse:
+    """Review several text-only units in one provider call.
+
+    Units with a page image stay on `/review`: a batch is a text call, and one
+    request carrying 8 page rasters would blow past the platform body ceiling.
+
+    Answers 200 even when some units failed, listing them in `failed`. That is
+    the honest shape: the units that were reviewed are already cached and paid
+    for, and a 502 would make the client throw them away.
+    """
+    units = payload.units
+    if len(units) > settings.max_batch_units:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"Batch holds {len(units)} units; the limit is {settings.max_batch_units}. "
+                "Split it into smaller calls."
+            ),
+        )
+    # Per unit AND in total: batching must not become a way around the
+    # single-unit payload guard.
+    for unit in units:
+        _ensure_bounded(text=unit.text, image_b64=None, settings=settings)
+    total_bytes = sum(len(unit.text.encode("utf-8")) for unit in units)
+    if total_bytes > settings.max_text_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"Batch text is {total_bytes} bytes; the limit is {settings.max_text_bytes}. "
+                "Send fewer or shorter units."
+            ),
+        )
+
+    rubric_cfg = load_rubric()
+    provider = build_provider(settings)
+
+    results: dict[int, ReviewResult] = {}
+    pending: list[tuple[int, BatchReviewUnit]] = []
+    for index, unit in enumerate(units):
+        key = _review_cache_key(
+            requirement_id=unit.requirement_id,
+            text=unit.text,
+            section=unit.section,
+            image_b64=None,
+            page_index=unit.page_index,
+            settings=settings,
+            rubric_cfg=rubric_cfg,
+            provider=provider,
+        )
+        if hit := _cached_review(key):
+            results[index] = hit
+        else:
+            pending.append((index, unit))
+
+    failures: dict[int, str] = {}
+    if pending:
+        allowed, _, retry_after = _limiter.check(user, settings.rate_limit_per_day)
+        if not allowed:
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    f"Daily review limit reached ({settings.rate_limit_per_day}). "
+                    f"Retry after {retry_after}s."
+                ),
+                headers={"Retry-After": str(retry_after)},
+            )
+        try:
+            fresh, failures = await _review_group(
+                pending, settings=settings, rubric_cfg=rubric_cfg, provider=provider
+            )
+            results.update(fresh)
+        except LlmError as exc:
+            # _review_group reports provider failures per unit; this is the
+            # safety net that keeps a raw provider error off the wire.
+            log.warning("batched review failed: %s", exc)
+            failures = {index: _BATCH_FAILED for index, _ in pending}
+
+    # Every requested unit is answered exactly once, even if something above
+    # misbehaved: a silently absent unit is a client bug waiting to happen.
+    for index, _unit in enumerate(units):
+        if index not in results and index not in failures:
+            failures[index] = _NO_RESULT
+
+    return BatchReviewResponse(
+        results=[
+            BatchUnitResult(unit_index=index, result=results[index]) for index in sorted(results)
+        ],
+        failed=[
+            BatchUnitFailure(
+                unit_index=index,
+                requirement_id=units[index].requirement_id,
+                message=message,
+            )
+            for index, message in sorted(failures.items())
+        ],
         mock=provider.name == "mock",
     )
-    # Store only under the exact configured selection fingerprint. The lookup
-    # list may contain fallback aliases, but a result from one selected model
-    # must not satisfy a later request whose primary model changed.
-    selected_key = cache_key(
-        payload.requirement_id,
-        payload.text,
-        payload.section or "",
-        payload.image_b64 or "",
-        str(payload.page_index) if payload.page_index is not None else "",
-        provider.name,
-        str(settings.mock_mode),
-        "|".join(
-            model_name for model_name in [settings.gemini_model, settings.gemini_fallback_model] if model_name
-        ),
-        settings.prompt_version,
-        str(rubric_cfg["version"]),
-        str(settings.fuzzy_threshold),
-    )
-    _review_cache.put(selected_key, result)
-    return result
 
 
 @app.post("/ask", response_model=AskResponse, dependencies=[Depends(require_app_token)])

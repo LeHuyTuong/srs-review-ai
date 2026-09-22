@@ -4,7 +4,8 @@ rubric.json so the prompt can never drift from the configured weights.
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Sequence
+from typing import Any, Protocol
 
 from .rubric import criteria_lines
 
@@ -161,11 +162,11 @@ def review_system_prompt(rubric: dict[str, Any]) -> str:
     return _REVIEW_SYSTEM.format(criteria=criteria_lines(rubric))
 
 
-def review_user_prompt(
+def _unit_body(
     requirement_id: str,
     text: str,
     section: str | None,
-    page_index: int | None = None,
+    page_index: int | None,
 ) -> str:
     header = f"requirement_id: {requirement_id}"
     if section:
@@ -176,6 +177,55 @@ def review_user_prompt(
     if brief:
         header += f"\n\n{brief}"
     return f'{header}\ntext:\n"""\n{text}\n"""'
+
+
+def review_user_prompt(
+    requirement_id: str,
+    text: str,
+    section: str | None,
+    page_index: int | None = None,
+) -> str:
+    return _unit_body(requirement_id, text, section, page_index)
+
+
+class PromptUnit(Protocol):
+    """What the batch prompt needs from a unit — satisfied by
+    schemas.BatchReviewUnit, kept as a Protocol so prompt.py stays free of wire
+    concerns."""
+
+    requirement_id: str
+    text: str
+    section: str | None
+    page_index: int | None
+
+
+# The block marker is also how the offline provider splits the prompt back into
+# units, so one regex defines the format for both sides.
+BATCH_UNIT_MARKER = "--- unit_index: "
+
+
+def review_batch_user_prompt(units: Sequence[tuple[int, PromptUnit]]) -> str:
+    """One numbered block per unit, each block identical to the single-unit
+    prompt body.
+
+    Reusing the exact body matters: it is the same text the model is already
+    good at, the specialist briefing rides along per unit, and a batch of one is
+    literally the prompt that has been in production.
+    """
+    count = len(units)
+    parts = [
+        f"batch: {count} independent review unit{'s' if count != 1 else ''}",
+        "Each unit below is a SEPARATE requirement. Review each one on its own",
+        f"and return exactly {count} entries in `results`, one per unit_index, in",
+        "ascending order. Never let one unit's text influence another unit's",
+        "score: a defect in unit 2 costs unit 2 points and nobody else.",
+    ]
+    for index, unit in units:
+        parts.append(f"{BATCH_UNIT_MARKER}{index}")
+        parts.append(
+            _unit_body(unit.requirement_id, unit.text, unit.section, unit.page_index)
+        )
+    return "\n".join(parts)
 
 
 def ask_system_prompt() -> str:

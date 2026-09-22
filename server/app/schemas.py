@@ -7,6 +7,7 @@ models, so a drift on either side turns red in CI.
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -57,6 +58,27 @@ class AskRequest(Strict):
     page_index: int | None = Field(default=None, ge=0)
 
 
+class BatchReviewUnit(Strict):
+    """One requirement inside a /review/batch call.
+
+    Deliberately the same fields as [ReviewRequest] MINUS `image_b64`: a batch is
+    a text call, so a unit whose page carries a figure stays on the single-unit
+    path. Keeping images out is what keeps one request small enough for the
+    platform body ceiling (`max_batch_units` x 200 KB of text is already a lot).
+    """
+
+    requirement_id: str = Field(min_length=1)
+    text: str = Field(min_length=1)
+    section: str | None = None
+    page_index: int | None = Field(default=None, ge=0)
+
+
+class BatchReviewRequest(Strict):
+    units: list[BatchReviewUnit] = Field(min_length=1)
+    """Between 1 and Settings.max_batch_units units. A client asking for 6 gets
+    6; the server caps the list so one request can never become a document."""
+
+
 # --------------------------- responses ---------------------------
 
 
@@ -78,6 +100,33 @@ class ReviewResult(Strict):
     dropped_issue_count: int = Field(default=0, ge=0)
     model: str
     cached: bool = False
+    mock: bool = False
+
+
+class BatchUnitResult(Strict):
+    """One unit's outcome, addressed by its index in the request.
+
+    Position in the array is NOT the contract: the server answers in request
+    order today, but a client that zipped by position would silently attribute
+    scores to the wrong requirement the moment a unit fails and drops out.
+    """
+
+    unit_index: int = Field(ge=0)
+    result: ReviewResult
+
+
+class BatchUnitFailure(Strict):
+    unit_index: int = Field(ge=0)
+    requirement_id: str = Field(min_length=1)
+    message: str = Field(min_length=1)
+    """Provider-neutral sentence for the user. Provider errors never travel
+    (see main.py rule 8)."""
+
+
+class BatchReviewResponse(Strict):
+    contract_version: str = CONTRACT_VERSION
+    results: list[BatchUnitResult] = Field(default_factory=list)
+    failed: list[BatchUnitFailure] = Field(default_factory=list)
     mock: bool = False
 
 
@@ -107,7 +156,7 @@ class AskResponse(Strict):
 # spelling of plain JSON Schema. `propertyOrdering` is a Gemini extension that
 # stabilises field order (and therefore output quality).
 
-LLM_REVIEW_SCHEMA: dict = {
+LLM_REVIEW_SCHEMA: dict[str, Any] = {
     "type": "OBJECT",
     "properties": {
         "requirement_id": {"type": "STRING"},
@@ -132,7 +181,43 @@ LLM_REVIEW_SCHEMA: dict = {
     "propertyOrdering": ["requirement_id", "score", "issues", "context_note"],
 }
 
-LLM_ASK_SCHEMA: dict = {
+LLM_BATCH_REVIEW_SCHEMA: dict[str, Any] = {
+    "type": "OBJECT",
+    "properties": {
+        "results": {
+            "type": "ARRAY",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "unit_index": {"type": "INTEGER", "minimum": 0},
+                    "score": {"type": "INTEGER", "minimum": 0, "maximum": 10},
+                    "context_note": {"type": "STRING"},
+                    "issues": {
+                        "type": "ARRAY",
+                        "items": {
+                            "type": "OBJECT",
+                            "properties": {
+                                "type": {"type": "STRING", "enum": [t.value for t in IssueType]},
+                                "severity": {"type": "STRING", "enum": [s.value for s in Severity]},
+                                "quote": {"type": "STRING"},
+                                "suggestion": {"type": "STRING"},
+                            },
+                            "required": ["type", "severity", "quote", "suggestion"],
+                            "propertyOrdering": ["type", "severity", "quote", "suggestion"],
+                        },
+                    },
+                },
+                "required": ["unit_index", "score", "issues"],
+                "propertyOrdering": ["unit_index", "score", "issues", "context_note"],
+            },
+        }
+    },
+    "required": ["results"],
+    "propertyOrdering": ["results"],
+}
+
+
+LLM_ASK_SCHEMA: dict[str, Any] = {
     "type": "OBJECT",
     "properties": {
         "answer": {"type": "STRING"},

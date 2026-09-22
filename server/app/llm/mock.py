@@ -37,6 +37,10 @@ VAGUE_TERMS = (
 # a parser bug in front of the examiners.
 _SENTENCE = re.compile(r"(?:[^.!?\n]|(?<=\d)\.(?=\d))+[.!?]?")
 
+# Must match prompt.BATCH_UNIT_MARKER — the offline provider reads back the
+# prompt it was handed, the same way a real model reads its input.
+_UNIT_MARKER = re.compile(r"^--- unit_index:\s*(\d+)\s*$", re.MULTILINE)
+
 
 class MockProvider:
     name = "mock"
@@ -57,6 +61,8 @@ class MockProvider:
             return self._describe(user), self.model_id
         if "clean" in props:
             return self._judge(user), self.model_id
+        if "results" in props:
+            return self._review_batch(user), self.model_id
         return self._review(user), self.model_id
 
     # ------------------------------------------------------------------
@@ -105,6 +111,24 @@ class MockProvider:
         if image_context := _field(user, "section"):
             result["context_note"] = f"Offline mode: no diagram analysis for section {image_context}."
         return result
+
+    def _review_batch(self, user: str) -> dict[str, Any]:
+        """Offline batch review: the same rules, once per numbered block.
+
+        This is what keeps mock mode (and every test that runs against it) on the
+        real batch code path instead of a bespoke shortcut — the endpoint, the
+        split-on-failure logic and the per-unit cache all get exercised.
+        """
+        markers = list(_UNIT_MARKER.finditer(user))
+        results: list[dict[str, Any]] = []
+        for position, marker in enumerate(markers):
+            end = markers[position + 1].start() if position + 1 < len(markers) else len(user)
+            block = user[marker.end() : end]
+            reviewed = self._review(block)
+            # The marker owns the index; the block's own text cannot invent one.
+            reviewed["unit_index"] = int(marker.group(1))
+            results.append(reviewed)
+        return {"results": results}
 
     def _describe(self, user: str) -> dict[str, Any]:
         """Offline diagram "reading": deterministic inventory of names in the

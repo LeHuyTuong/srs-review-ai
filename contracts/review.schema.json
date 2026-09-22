@@ -87,6 +87,45 @@
         "mock": { "type": "boolean" }
       }
     },
+    "BatchUnitResult": {
+      "description": "One unit's outcome inside a /review/batch response, addressed by its index in the request's `units` array. Position in the array is NOT the contract: a unit that fails drops out of `results` and lands in `failed`, so a client that zipped by position would attribute scores to the wrong requirement.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit_index", "result"],
+      "properties": {
+        "unit_index": { "type": "integer", "minimum": 0 },
+        "result": { "$ref": "#/$defs/ReviewResult" }
+      }
+    },
+    "BatchUnitFailure": {
+      "description": "A unit the server could not review. The message is provider-neutral (the proxy never forwards a raw provider error) and is shown to the user.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit_index", "requirement_id", "message"],
+      "properties": {
+        "unit_index": { "type": "integer", "minimum": 0 },
+        "requirement_id": { "type": "string", "minLength": 1 },
+        "message": { "type": "string", "minLength": 1 }
+      }
+    },
+    "BatchReviewResponse": {
+      "description": "Answer to POST /review/batch. Always 200 when the request itself was acceptable: the units that WERE reviewed are cached and already paid for, so a 502 would make the client throw them away. Batching is a cost optimisation only — every quote in every result is still verified against that unit's own text.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "results", "mock"],
+      "properties": {
+        "contract_version": { "type": "string", "const": "1.0.0" },
+        "results": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/BatchUnitResult" }
+        },
+        "failed": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/BatchUnitFailure" }
+        },
+        "mock": { "type": "boolean" }
+      }
+    },
     "AskResponse": {
       "type": "object",
       "additionalProperties": false,
@@ -137,6 +176,7 @@
   },
   "oneOf": [
     { "$ref": "#/$defs/ReviewResult" },
-    { "$ref": "#/$defs/AskResponse" }
+    { "$ref": "#/$defs/AskResponse" },
+    { "$ref": "#/$defs/BatchReviewResponse" }
   ]
 }

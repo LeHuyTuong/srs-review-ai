@@ -126,6 +126,26 @@ class Settings(BaseSettings):
     """Hard ceiling on a single PUT body (40 MiB default). Enforced mid-stream
     so a runaway upload never fills the volume — the partial file is deleted."""
 
+    # --- Durable cache (2026-09-22) ---
+    # The proxy used to keep every review result in memory, so a restart threw
+    # away a whole paid-for run (238 units on 2026-09-22) and re-running the
+    # same document paid for it again. Results now live in SQLite under this
+    # directory; the key already carries prompt/rubric/model version, so an
+    # upgrade invalidates entries by itself.
+    cache_dir: Path = Field(
+        default=SERVER_ROOT / ".cache",
+        validation_alias=AliasChoices("SRS_CACHE_DIR"),
+    )
+    """Directory holding `cache.sqlite3`. Overridable per environment: a
+    serverless filesystem is read-only outside /tmp, and the cache degrades to
+    memory (never to an error) when it cannot be written."""
+
+    cache_max_entries: int = 10_000
+    """Rows kept per namespace before the coldest are evicted (LRU). Sized for
+    the real workload: one OTES run is ~240 review units at ~1-3 KB each, so
+    10 000 rows is a few dozen documents (~30 MB) — large enough that reviewing
+    a second document does not evict the first one's results overnight."""
+
     # --- Share-by-link reports (plan 6) ---
     share_dir: Path = Field(
         default=SERVER_ROOT / ".shares",
