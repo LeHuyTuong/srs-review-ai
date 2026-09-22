@@ -6,6 +6,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/app_config.dart';
 import '../../../core/layout/app_breakpoint.dart';
 import '../../../core/layout/app_viewport.dart';
 import '../../../core/theme/app_theme.dart';
@@ -637,7 +638,8 @@ class _FirstRunChecklist extends StatelessWidget {
       Icons.checklist_outlined,
       'Pick units & run a review',
       'A "unit" is one reviewable requirement (use case, rule, or '
-          'statement). Up to 40 per run; progress stays on screen.',
+          'statement). Up to ${AppConfig.maxRequirementsPerRun} per run; '
+          'progress stays on screen.',
     ),
     (
       Icons.fact_check_outlined,

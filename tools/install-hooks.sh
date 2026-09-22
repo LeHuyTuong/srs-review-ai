@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Installs a pre-commit hook that runs the guardrails on every commit.
+# Installs a pre-commit hook that runs the guardrails and both formatters/linters
+# on every commit.
 # Run once per clone:  ./tools/install-hooks.sh
 set -euo pipefail
 
@@ -28,8 +29,25 @@ if command -v dart >/dev/null 2>&1 && [ -d "$REPO_ROOT/app" ]; then
     exit 1
   }
 fi
+
+# The server half of the same gate. CI runs `ruff check` and then
+# `ruff format --check`, both BEFORE pytest — so one lint error stops the job
+# before a single test executes. That is the same "the gate that would have
+# caught it never ran" trap the dart block above closes, and without this block
+# the server had no local warning at all.
+#
+# Skipped rather than failed when the venv is missing: ruff is a dev dependency,
+# and a commit must not be blocked on a machine that never installed it.
+if [ -x "$REPO_ROOT/server/.venv/bin/ruff" ]; then
+  echo "pre-commit: ruff (server)"
+  (cd "$REPO_ROOT/server" && .venv/bin/ruff check . && .venv/bin/ruff format --check .) || {
+    echo "Run: cd server && .venv/bin/ruff check . && .venv/bin/ruff format ."
+    exit 1
+  }
+fi
 HOOK_BODY
 
 chmod +x "$HOOK"
 echo "Installed $HOOK"
+echo "It now checks: guardrails, dart format (app), ruff check + format (server)."
 echo "Test it with: python3 tools/check_guardrails.py"

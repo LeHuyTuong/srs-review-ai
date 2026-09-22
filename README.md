@@ -119,16 +119,23 @@ flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8010
 
 ### 3. Verify everything
 
+Run these in the order CI runs them. The formatter checks come *first* in CI, so
+a formatting slip kills the job before a single test executes — which is how a
+real failing test can sit unnoticed on `main`. Same order locally, no surprise.
+
 ```bash
 python3 tools/check_guardrails.py            # architecture + secret rules
-cd server && ruff check . && pytest          # 36 tests
-cd app && flutter analyze && flutter test    # 33 tests
-./tools/install-hooks.sh                     # run the guardrails on every commit
+cd server && ruff check . && ruff format --check . && pytest
+cd app && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test
+./tools/install-hooks.sh                     # guardrails + both formatters, on every commit
 ```
+
+Test counts are deliberately not written down here — they went stale twice
+("36"/"33" against a real 143 and 731). `pytest` and `flutter test` print them.
 
 ## Guardrails
 
-`tools/check_guardrails.py` fails the build on five classes of mistake. It runs
+`tools/check_guardrails.py` fails the build on six classes of mistake. It runs
 in CI and (once installed) on every commit.
 
 | Rule | What it prevents |
@@ -138,6 +145,7 @@ in CI and (once installed) on every commit.
 | **layering** | Views importing services, ViewModels importing widgets, the data layer importing the UI |
 | **pins** | Silent major upgrades of the five packages whose v-next broke every tutorial |
 | **contract** | The JSON schema, the Pydantic models and the Dart models drifting apart |
+| **design tokens** | `Color(0x…)` and `BorderRadius.circular` outside `core/theme/` |
 
 Try it: break a rule on purpose and watch it fail. The rules are code, so
 change them in their own PR when they are genuinely wrong.

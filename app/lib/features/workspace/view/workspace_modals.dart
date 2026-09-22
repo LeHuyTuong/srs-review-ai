@@ -1018,8 +1018,8 @@ Future<void> showHelpModal(BuildContext context, WidgetRef ref) => _show(
             'Tài liệu gốc là căn cứ đối chiếu. Các bước dưới đây giúp bạn kiểm tra kết quả đánh giá.',
         children: [
           // Two terms the whole UI leans on but never defined — first-time
-          // users met "40 units", "8 mục đã chọn" and "limit per run" with
-          // no way to learn what a unit is or why the limit exists.
+          // users met a bare unit count, "8 mục đã chọn" and "limit per run"
+          // with no way to learn what a unit is or why the limit exists.
           const WInfoNote(
             icon: Icons.layers_outlined,
             text:
@@ -1032,10 +1032,10 @@ Future<void> showHelpModal(BuildContext context, WidgetRef ref) => _show(
           const WInfoNote(
             icon: Icons.speed_outlined,
             text:
-                'One run reviews at most 40 units, because each unit costs '
-                'one request against a 50/day quota. The reserve covers '
-                'same-day re-runs; already-reviewed units are served from '
-                'cache and cost nothing.',
+                'One run reviews at most ${AppConfig.maxRequirementsPerRun} '
+                'units. Each unit costs one request against the daily review '
+                'quota, and already-reviewed units are served from cache at '
+                'no cost.',
           ),
           const SizedBox(height: AppSpacing.lg),
           for (final (number, title, body) in steps) ...[
