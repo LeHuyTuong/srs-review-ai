@@ -11,6 +11,8 @@ import json
 import re
 from typing import Any
 
+from .base import GenerateJsonResult
+
 VAGUE_TERMS = (
     "quickly",
     "fast",
@@ -53,17 +55,24 @@ class MockProvider:
         user: str,
         schema: dict[str, Any],
         image_b64: str | None = None,
-    ) -> tuple[dict[str, Any], str]:
+    ) -> GenerateJsonResult:
         props = schema.get("properties", {})
+        prompt_tok = max(10, (len(system) + len(user)) // 4)
+        comp_tok = 60
+        usage = {
+            "prompt_tokens": prompt_tok,
+            "completion_tokens": comp_tok,
+            "total_tokens": prompt_tok + comp_tok,
+        }
         if "grounded" in props:
-            return self._ask(user), self.model_id
+            return GenerateJsonResult(self._ask(user), self.model_id, usage)
         if "elements" in props:
-            return self._describe(user), self.model_id
+            return GenerateJsonResult(self._describe(user), self.model_id, usage)
         if "clean" in props:
-            return self._judge(user), self.model_id
+            return GenerateJsonResult(self._judge(user), self.model_id, usage)
         if "results" in props:
-            return self._review_batch(user), self.model_id
-        return self._review(user), self.model_id
+            return GenerateJsonResult(self._review_batch(user), self.model_id, usage)
+        return GenerateJsonResult(self._review(user), self.model_id, usage)
 
     # ------------------------------------------------------------------
     def _review(self, user: str) -> dict[str, Any]:

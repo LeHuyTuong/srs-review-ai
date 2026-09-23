@@ -103,12 +103,17 @@ class MockReviewApi implements ReviewApi {
     }
 
     final kept = issues.take(3).toList(growable: false);
+    final promptTok = (text.length / 4).round() + 50;
+    final compTok = 40 + kept.length * 20;
     return ReviewResult(
       requirementId: requirementId,
       score: kept.isEmpty ? 9 : (9 - 2 * kept.length).clamp(3, 9),
       issues: kept,
       model: modelId,
       mock: true,
+      promptTokens: promptTok,
+      completionTokens: compTok,
+      totalTokens: promptTok + compTok,
     );
   }
 

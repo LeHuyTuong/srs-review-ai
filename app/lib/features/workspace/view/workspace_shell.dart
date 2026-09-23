@@ -785,6 +785,7 @@ class _RunSummaryBar extends ConsumerWidget {
               child: Text(
                 'Review finished · ${state.runReviewed} units reviewed · '
                 '$findings findings'
+                '${(state.result?.totalTokens ?? 0) > 0 ? ' · ${state.result!.totalTokens} tokens' : ''}'
                 // A run where units failed must not read as a clean result —
                 // the same honesty rule the toast already follows.
                 '${failed > 0 ? ' · $failed failed' : ''}'

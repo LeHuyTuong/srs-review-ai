@@ -34,6 +34,9 @@ void main() {
     expect(result.issues, hasLength(2));
     expect(result.droppedIssueCount, 1);
     expect(result.contextNote, isNotNull);
+    expect(result.promptTokens, 150);
+    expect(result.completionTokens, 80);
+    expect(result.totalTokens, 230);
   });
 
   test('issues expose their verification state and fuzzy similarity', () {

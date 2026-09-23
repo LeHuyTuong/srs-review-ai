@@ -15,7 +15,7 @@ from typing import Any
 import httpx
 
 from ..config import Settings
-from .base import LlmError
+from .base import GenerateJsonResult, LlmError
 from .pacing import ProviderPacer, pacer_for
 
 log = logging.getLogger(__name__)
@@ -62,7 +62,7 @@ class GeminiProvider:
         user: str,
         schema: dict[str, Any],
         image_b64: str | None = None,
-    ) -> tuple[dict[str, Any], str]:
+    ) -> GenerateJsonResult:
         if not self._settings.gemini_api_key:
             raise LlmError("GEMINI_API_KEY is not configured", retryable=False)
 
@@ -85,10 +85,10 @@ class GeminiProvider:
                 "generationConfig": self._generation_config(model, schema),
             }
             try:
-                raw = await self._post_with_retry(model, payload, schema)
+                raw, usage = await self._post_with_retry(model, payload, schema)
                 if "grounded" in schema.get("properties", {}):
                     _validate_ask_payload(raw)
-                return raw, model
+                return GenerateJsonResult(raw, model, usage)
             except LlmError as exc:
                 last_error = exc
                 if not exc.retryable:
@@ -116,7 +116,7 @@ class GeminiProvider:
 
     async def _post_with_retry(
         self, model: str, payload: dict[str, Any], schema: dict[str, Any]
-    ) -> dict[str, Any]:
+    ) -> tuple[dict[str, Any], dict[str, int]]:
         """One model's attempts, paced by the shared pacer.
 
         Retries no longer sleep on a private 1s/2s/4s ladder. Each attempt waits
@@ -135,7 +135,7 @@ class GeminiProvider:
             await self._pacer.acquire(model)
             try:
                 data = await self._post(url, payload)
-                return _extract_json(data, schema)
+                return _extract_json(data, schema), _extract_usage(data)
             except LlmError as exc:
                 last = exc
                 if not exc.retryable or attempt == attempts:
@@ -270,6 +270,22 @@ def _extract_json(data: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any
         raise LlmError("gemini returned a non-object JSON payload", retryable=True)
     _validate_payload(parsed, schema)
     return parsed
+
+
+def _extract_usage(data: dict[str, Any]) -> dict[str, int]:
+    if not isinstance(data, dict):
+        return {}
+    meta = data.get("usageMetadata")
+    if not isinstance(meta, dict):
+        return {}
+    usage: dict[str, int] = {}
+    if isinstance(meta.get("promptTokenCount"), int):
+        usage["prompt_tokens"] = meta["promptTokenCount"]
+    if isinstance(meta.get("candidatesTokenCount"), int):
+        usage["completion_tokens"] = meta["candidatesTokenCount"]
+    if isinstance(meta.get("totalTokenCount"), int):
+        usage["total_tokens"] = meta["totalTokenCount"]
+    return usage
 
 
 def _validate_payload(value: object, schema: dict[str, Any], path: str = "$") -> None:

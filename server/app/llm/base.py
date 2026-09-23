@@ -26,6 +26,30 @@ class LlmError(RuntimeError):
         self.retry_after_s = retry_after_s
 
 
+class GenerateJsonResult(tuple):
+    """2-tuple (data, model) with optional token usage metadata.
+
+    Subclasses tuple so that `data, model = await provider.generate_json(...)`
+    remains backwards compatible everywhere, while `result.usage` is accessible.
+    """
+
+    data: dict[str, Any]
+    model: str
+    usage: dict[str, int]
+
+    def __new__(
+        cls,
+        data: dict[str, Any],
+        model: str,
+        usage: dict[str, int] | None = None,
+    ):
+        inst = super().__new__(cls, (data, model))
+        inst.data = data
+        inst.model = model
+        inst.usage = usage or {}
+        return inst
+
+
 class LlmProvider(Protocol):
     name: str
 
@@ -36,6 +60,6 @@ class LlmProvider(Protocol):
         user: str,
         schema: dict[str, Any],
         image_b64: str | None = None,
-    ) -> tuple[dict[str, Any], str]:
+    ) -> tuple[dict[str, Any], str] | GenerateJsonResult:
         """Return (parsed JSON, model id actually used)."""
         ...

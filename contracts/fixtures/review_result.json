@@ -24,5 +24,8 @@
   "dropped_issue_count": 1,
   "model": "gemini-2.5-flash-lite",
   "cached": false,
-  "mock": false
+  "mock": false,
+  "prompt_tokens": 150,
+  "completion_tokens": 80,
+  "total_tokens": 230
 }

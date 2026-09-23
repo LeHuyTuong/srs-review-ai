@@ -793,6 +793,11 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
               ],
             );
             _log('Hoàn tất chấm ${run.results.length} yêu cầu');
+            if (result.totalTokens > 0) {
+              _log(
+                'AI token usage: ${result.totalTokens} tokens (${result.promptTokens} prompt · ${result.completionTokens} candidates)',
+              );
+            }
             if (run.totalDropped > 0) {
               _log(
                 'Loại bỏ ${run.totalDropped} lỗi do không khớp trích dẫn nguyên văn',

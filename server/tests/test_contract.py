@@ -37,6 +37,9 @@ def test_review_result_fixture_parses():
     assert result.score == 6
     assert len(result.issues) == 2
     assert result.dropped_issue_count == 1
+    assert result.prompt_tokens == 150
+    assert result.completion_tokens == 80
+    assert result.total_tokens == 230
     # round-trips without losing or inventing fields
     assert result.model_dump(mode="json") == payload
 

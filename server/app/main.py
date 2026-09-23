@@ -241,6 +241,7 @@ def _build_result(
     model: str,
     provider: object,
     settings: Settings,
+    usage: dict[str, Any] | None = None,
 ) -> ReviewResult:
     """Turn one provider payload into a verified, contract-shaped result.
 
@@ -252,6 +253,7 @@ def _build_result(
         text,
         threshold=settings.fuzzy_threshold,
     )
+    usage = usage or {}
     return ReviewResult(
         requirement_id=requirement_id,  # trust our own id, not the model's
         score=_clamp_score(raw.get("score")),
@@ -261,6 +263,9 @@ def _build_result(
         model=model,
         cached=False,
         mock=provider.name == "mock",
+        prompt_tokens=usage.get("prompt_tokens"),
+        completion_tokens=usage.get("completion_tokens"),
+        total_tokens=usage.get("total_tokens"),
     )
 
 
@@ -309,7 +314,14 @@ async def review(
         provider=provider,
     )
     if hit := _cached_review(key):
-        return hit
+        return hit.model_copy(
+            update={
+                "cached": True,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0,
+            }
+        )
 
     allowed, _, retry_after = _limiter.check(user, settings.rate_limit_per_day)
     if not allowed:
@@ -354,12 +366,14 @@ async def _review_uncached(
     provider: object,
 ) -> ReviewResult:
     """One unit, one provider call — the path that has always worked."""
-    raw, model = await provider.generate_json(
+    res = await provider.generate_json(
         system=review_system_prompt(rubric_cfg),
         user=review_user_prompt(requirement_id, text, section, page_index),
         schema=LLM_REVIEW_SCHEMA,
         image_b64=image_b64,
     )
+    raw, model = res[0], res[1]
+    usage = getattr(res, "usage", None) or (res[2] if len(res) > 2 else {})
     return _build_result(
         requirement_id=requirement_id,
         text=text,
@@ -367,6 +381,7 @@ async def _review_uncached(
         model=model,
         provider=provider,
         settings=settings,
+        usage=usage,
     )
 
 
@@ -451,14 +466,26 @@ async def _review_group(
         return {index: result}, {}
 
     try:
-        raw, model = await provider.generate_json(
+        res = await provider.generate_json(
             system=review_system_prompt(rubric_cfg),
             user=review_batch_user_prompt(units),
             schema=LLM_BATCH_REVIEW_SCHEMA,
         )
+        raw, model = res[0], res[1]
+        usage = getattr(res, "usage", None) or (res[2] if len(res) > 2 else {})
     except LlmError as exc:
         log.warning("batched review of %d units failed: %s", len(units), exc)
         return {}, {index: _BATCH_FAILED for index, _ in units}
+
+    prompt_tokens = usage.get("prompt_tokens")
+    completion_tokens = usage.get("completion_tokens")
+    total_tokens = usage.get("total_tokens")
+    n = max(1, len(units))
+    unit_usage = {
+        "prompt_tokens": prompt_tokens // n if prompt_tokens is not None else None,
+        "completion_tokens": completion_tokens // n if completion_tokens is not None else None,
+        "total_tokens": total_tokens // n if total_tokens is not None else None,
+    }
 
     indexed = _index_batch_payload(raw)
     results: dict[int, ReviewResult] = {}
@@ -477,6 +504,7 @@ async def _review_group(
                 model=model,
                 provider=provider,
                 settings=settings,
+                usage=unit_usage,
             )
         except ValidationError as exc:
             log.warning("batched entry for %s was unusable: %s", unit.requirement_id, exc)

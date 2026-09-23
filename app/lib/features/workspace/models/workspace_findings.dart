@@ -212,6 +212,9 @@ class WorkspaceReviewResult {
     required this.createdAt,
     this.outcome = 'done',
     this.scores = const {},
+    this.totalTokens = 0,
+    this.promptTokens = 0,
+    this.completionTokens = 0,
   });
 
   factory WorkspaceReviewResult.fromJson(Map<String, dynamic> json) =>
@@ -234,6 +237,9 @@ class WorkspaceReviewResult {
         scores: (json['scores'] as Map<dynamic, dynamic>? ?? const {}).map(
           (key, value) => MapEntry('$key', (value as num).toInt()),
         ),
+        totalTokens: (json['totalTokens'] as num?)?.toInt() ?? 0,
+        promptTokens: (json['promptTokens'] as num?)?.toInt() ?? 0,
+        completionTokens: (json['completionTokens'] as num?)?.toInt() ?? 0,
       );
 
   final List<FindingRow> findings;
@@ -255,6 +261,11 @@ class WorkspaceReviewResult {
   /// which is why the app could list findings but never say how good any
   /// section is. Units the run failed or skipped are absent, not zero.
   final Map<String, int> scores;
+
+  /// AI token usage across the review run.
+  final int totalTokens;
+  final int promptTokens;
+  final int completionTokens;
 
   static WorkspaceReviewResult fromRun({
     required ReviewRun run,
@@ -304,6 +315,15 @@ class WorkspaceReviewResult {
         );
       }
     }
+    var totalTokens = 0;
+    var promptTokens = 0;
+    var completionTokens = 0;
+    for (final result in run.results.values) {
+      totalTokens += result.totalTokens ?? 0;
+      promptTokens += result.promptTokens ?? 0;
+      completionTokens += result.completionTokens ?? 0;
+    }
+
     return WorkspaceReviewResult(
       findings: rows,
       reviewed: run.results.length,
@@ -325,6 +345,9 @@ class WorkspaceReviewResult {
       scores: {
         for (final entry in run.results.entries) entry.key: entry.value.score,
       },
+      totalTokens: totalTokens,
+      promptTokens: promptTokens,
+      completionTokens: completionTokens,
     );
   }
 
@@ -339,5 +362,8 @@ class WorkspaceReviewResult {
     'createdAt': createdAt.toIso8601String(),
     'outcome': outcome,
     'scores': scores,
+    'totalTokens': totalTokens,
+    'promptTokens': promptTokens,
+    'completionTokens': completionTokens,
   };
 }

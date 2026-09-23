@@ -579,6 +579,13 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                       : 'AI chấm qua máy chủ',
                   tint: result.mock ? WBadgeTint.amber : WBadgeTint.green,
                 ),
+                if (result.totalTokens > 0)
+                  WBadge(
+                    label:
+                        '${result.totalTokens} tokens (${result.promptTokens} in · ${result.completionTokens} out)',
+                    tint: WBadgeTint.neutral,
+                    leading: const Icon(Icons.bolt, size: 12),
+                  ),
               ],
               if (state.fixedCount > 0)
                 WBadge(

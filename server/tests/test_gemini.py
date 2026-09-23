@@ -199,3 +199,30 @@ async def test_the_review_schema_uses_the_uppercase_rest_type_enum():
     for schema in (LLM_REVIEW_SCHEMA, LLM_ASK_SCHEMA):
         for declared in types(schema):
             assert declared.isupper(), f"{declared} must be uppercase"
+
+
+async def test_extracts_token_usage_metadata():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": '{"score": 8}'}]}}],
+                "usageMetadata": {
+                    "promptTokenCount": 245,
+                    "candidatesTokenCount": 112,
+                    "totalTokenCount": 357,
+                },
+            },
+        )
+
+    async with _client(handler) as http:
+        provider = GeminiProvider(_settings(), client=http)
+        res = await provider.generate_json(system="s", user="u", schema=SCHEMA)
+        data, model = res
+        assert data == {"score": 8}
+        assert model == "gemini-3.5-flash-lite"
+        assert res.usage == {
+            "prompt_tokens": 245,
+            "completion_tokens": 112,
+            "total_tokens": 357,
+        }

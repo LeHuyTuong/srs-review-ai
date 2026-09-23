@@ -110,6 +110,9 @@ class ReviewResult {
     this.droppedIssueCount = 0,
     this.cached = false,
     this.mock = false,
+    this.promptTokens,
+    this.completionTokens,
+    this.totalTokens,
   });
 
   factory ReviewResult.fromJson(Map<String, dynamic> json) {
@@ -134,6 +137,9 @@ class ReviewResult {
       model: json['model'] as String,
       cached: (json['cached'] as bool?) ?? false,
       mock: (json['mock'] as bool?) ?? false,
+      promptTokens: json['prompt_tokens'] as int?,
+      completionTokens: json['completion_tokens'] as int?,
+      totalTokens: json['total_tokens'] as int?,
     );
   }
 
@@ -149,6 +155,9 @@ class ReviewResult {
   final String model;
   final bool cached;
   final bool mock;
+  final int? promptTokens;
+  final int? completionTokens;
+  final int? totalTokens;
 
   int countBySeverity(Severity severity) =>
       issues.where((i) => i.severity == severity).length;
