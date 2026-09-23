@@ -26,26 +26,38 @@ const String unassignedProjectLabel = 'Chưa gán project';
 /// (workflow Bước 1→3).
 ///
 /// Group order follows first appearance (the store returns newest first) and
-/// rows inside a group keep that same order. A missing or undecodable
-/// `projectName` lands under [unassignedProjectLabel] instead of being
-/// dropped: losing a paid-for run over a display field would be worse than
-/// showing it ungrouped.
+/// rows inside a group keep that same order. A run with no project at all
+/// lands under [unassignedProjectLabel] instead of being dropped: losing a
+/// paid-for run over a display field would be worse than showing it ungrouped.
 List<MapEntry<String, List<SavedSession>>> groupSessionsByProject(
   List<SavedSession> sessions,
 ) {
   final groups = <String, List<SavedSession>>{};
   for (final session in sessions) {
-    var name = unassignedProjectLabel;
-    try {
-      final payload = jsonDecode(session.payloadJson) as Map<String, dynamic>;
-      final raw = (payload['projectName'] as String?)?.trim() ?? '';
-      if (raw.isNotEmpty) name = raw;
-    } on Object {
-      // Corrupt payload — keep the row under the unassigned bucket.
-    }
+    final name = _projectBucketFor(session);
     (groups[name] ??= <SavedSession>[]).add(session);
   }
   return groups.entries.toList(growable: false);
+}
+
+/// The bucket one history row belongs to.
+///
+/// The row's own `projectName` is read first — it was written from the same
+/// field the payload carries, and this function runs for every row on every
+/// build, so decoding whole payloads (megabytes each on a real SRS) bought
+/// nothing but CPU. Bonus: a row whose payload rotted no longer loses the
+/// project it was reviewed under. Rows written before the field existed fall
+/// back to the payload, then to [unassignedProjectLabel].
+String _projectBucketFor(SavedSession session) {
+  if (session.projectName.isNotEmpty) return session.projectName;
+  try {
+    final payload = jsonDecode(session.payloadJson) as Map<String, dynamic>;
+    final raw = (payload['projectName'] as String?)?.trim() ?? '';
+    if (raw.isNotEmpty) return raw;
+  } on Object {
+    // Corrupt payload — the row still gets a bucket below.
+  }
+  return unassignedProjectLabel;
 }
 
 Widget _projectGroupHeader(
@@ -73,10 +85,7 @@ Widget _projectGroupHeader(
           ),
         ),
       ),
-      WBadge(
-        label: '${group.value.length} phiên',
-        tint: WBadgeTint.neutral,
-      ),
+      WBadge(label: '${group.value.length} phiên', tint: WBadgeTint.neutral),
     ],
   ),
 );
@@ -186,59 +195,61 @@ class _ReviewHistoryViewState extends ConsumerState<ReviewHistoryView> {
                             'Bắt đầu chấm tại màn hình Đánh giá tài liệu. Kết quả sẽ tự động được lưu tại đây.',
                       )
                     else
-                      for (final group
-                          in groupSessionsByProject(state.history)) ...[
+                      for (final group in groupSessionsByProject(
+                        state.history,
+                      )) ...[
                         _projectGroupHeader(group, theme, colors),
                         for (final session in group.value)
                           _HistoryRow(
-                          session: session,
-                          onOpen: () async {
-                            final opened = await viewModel.openSession(
-                              session.id,
-                            );
-                            if (opened && context.mounted) {
-                              // Switch to the workspace branch the way the rail
-                              // and the floating tab bar do. The old literal
-                              // `context.go('/workspace')` matched no route —
-                              // the Đánh giá tab's path is `/` — so GoRouter
-                              // threw GoException AFTER the session had already
-                              // opened: the screen stayed on Lịch sử and the
-                              // open looked like it had failed.
-                              StatefulNavigationShell.of(context).goBranch(0);
-                            }
-                          },
-                          onDelete: () async {
-                            // 1. Hiển thị Dialog xác nhận trước khi xóa
-                            final confirmed = await showDialog<bool>(
-                              context: context,
-                              builder: (dialogContext) {
-                                return AlertDialog(
-                                  title: const Text('Xóa phiên đánh giá?'),
-                                  content: Text(
-                                    'Bạn có chắc chắn muốn xóa phiên đánh giá của tệp "${session.fileName}"? Hành động này không thể hoàn tác.',
-                                  ),
-                                  actions: [
-                                    WButton.secondary(
-                                      label: 'Hủy',
-                                      onPressed: () => Navigator.of(
-                                        dialogContext,
-                                      ).pop(false),
+                            session: session,
+                            onOpen: () async {
+                              final opened = await viewModel.openSession(
+                                session.id,
+                              );
+                              if (opened && context.mounted) {
+                                // Switch to the workspace branch the way the rail
+                                // and the floating tab bar do. The old literal
+                                // `context.go('/workspace')` matched no route —
+                                // the Đánh giá tab's path is `/` — so GoRouter
+                                // threw GoException AFTER the session had already
+                                // opened: the screen stayed on Lịch sử and the
+                                // open looked like it had failed.
+                                StatefulNavigationShell.of(context).goBranch(0);
+                              }
+                            },
+                            onDelete: () async {
+                              // 1. Hiển thị Dialog xác nhận trước khi xóa
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (dialogContext) {
+                                  return AlertDialog(
+                                    title: const Text('Xóa phiên đánh giá?'),
+                                    content: Text(
+                                      'Bạn có chắc chắn muốn xóa phiên đánh giá của tệp "${session.fileName}"? Hành động này không thể hoàn tác.',
                                     ),
-                                    WButton.primary(
-                                      label: 'Xóa',
-                                      onPressed: () =>
-                                          Navigator.of(dialogContext).pop(true),
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
+                                    actions: [
+                                      WButton.secondary(
+                                        label: 'Hủy',
+                                        onPressed: () => Navigator.of(
+                                          dialogContext,
+                                        ).pop(false),
+                                      ),
+                                      WButton.primary(
+                                        label: 'Xóa',
+                                        onPressed: () => Navigator.of(
+                                          dialogContext,
+                                        ).pop(true),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
 
-                            // 2. Chỉ thực hiện xóa khi người dùng chọn bấm nút "Xóa"
-                            if (confirmed == true) {
-                              await viewModel.deleteSession(session.id);
-                            }
-                          },
+                              // 2. Chỉ thực hiện xóa khi người dùng chọn bấm nút "Xóa"
+                              if (confirmed == true) {
+                                await viewModel.deleteSession(session.id);
+                              }
+                            },
                           ),
                       ],
                   ],

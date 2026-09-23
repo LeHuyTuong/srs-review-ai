@@ -1,5 +1,5 @@
-/// Tests for the on-device session store (InMemory implementation) — the
-/// behaviour the history view and snapshot restore depend on.
+/// Tests for the on-device session store — the behaviour the history view,
+/// the landing card's recent list and the workspace draft depend on.
 library;
 
 import 'dart:convert';
@@ -74,13 +74,35 @@ void main() {
       expect(list.single.payloadJson, 'two');
     });
 
-    test('snapshot save / load / clear', () async {
+    test('draft save / load', () async {
       final store = InMemorySessionStore();
-      expect(await store.loadSnapshot(), isNull);
-      await store.saveSnapshot('{"units":[]}');
-      expect(await store.loadSnapshot(), '{"units":[]}');
-      await store.clearSnapshot();
-      expect(await store.loadSnapshot(), isNull);
+      expect(await store.loadDraft(), isNull);
+      await store.saveDraft('{"projectName":"Đợt 1"}');
+      expect(await store.loadDraft(), '{"projectName":"Đợt 1"}');
+    });
+
+    test('listRecent returns only the newest rows asked for', () async {
+      final store = InMemorySessionStore();
+      for (var i = 0; i < 5; i++) {
+        await store.save(
+          SavedSession(
+            id: 's$i',
+            fileName: 'f.pdf',
+            payloadJson: '{}',
+            createdAt: DateTime(2026, 1, 1).add(Duration(minutes: i)),
+          ),
+        );
+      }
+
+      expect((await store.listRecent(2)).map((s) => s.id), ['s4', 's3']);
+      expect(await store.listRecent(0), isEmpty);
+      expect((await store.listRecent(99)).map((s) => s.id), [
+        's4',
+        's3',
+        's2',
+        's1',
+        's0',
+      ]);
     });
 
     test('SavedSession json round trip', () {
@@ -91,6 +113,7 @@ void main() {
         createdAt: DateTime.parse('2026-01-02T03:04:05.000'),
         fingerprint: 'deadbeef',
         parserVersion: '1.0.0',
+        projectName: 'Đợt 1 — OTES',
       );
       final restored = SavedSession.decode(session.encode());
       expect(restored.id, session.id);
@@ -98,6 +121,7 @@ void main() {
       expect(restored.createdAt, session.createdAt);
       expect(restored.fingerprint, 'deadbeef');
       expect(restored.parserVersion, '1.0.0');
+      expect(restored.projectName, 'Đợt 1 — OTES');
     });
 
     test('rows written before fingerprinting read back as unverifiable', () {
@@ -110,6 +134,9 @@ void main() {
       );
       expect(legacy.fingerprint, isEmpty);
       expect(legacy.parserVersion, isEmpty);
+      // Same rule for the project bucket: rows written before it existed must
+      // read back as '' and let the History grouping fall back to the payload.
+      expect(legacy.projectName, isEmpty);
     });
   });
 
@@ -177,11 +204,10 @@ void main() {
       await prefs.setString(slotA, '{"generation":9,"sessions":[');
 
       final recovered = await store.list();
-      expect(
-        recovered.map((s) => s.id),
-        ['b', 'a'],
-        reason: 'the mirror must keep the history readable',
-      );
+      expect(recovered.map((s) => s.id), [
+        'b',
+        'a',
+      ], reason: 'the mirror must keep the history readable');
 
       // The damaged replica was re-published, so the next read finds two good
       // copies again — the window with a single copy is closed here.
@@ -257,52 +283,53 @@ void main() {
       );
     });
 
-    test(
-      'a truncated snapshot is served from its mirror and repaired',
-      () async {
-        final store = await freshStore();
-        final prefs = await SharedPreferences.getInstance();
-        await store.saveSnapshot('{"units":[]}');
-
-        await prefs.setString(snapshotKey, '{"units":[');
-
-        expect(await store.loadSnapshot(), '{"units":[]}');
-        expect(
-          prefs.getString(snapshotKey),
-          '{"units":[]}',
-          reason: 'the damaged copy is repaired for the next restore',
-        );
-      },
-    );
-
-    test(
-      'a snapshot written before the mirror existed gets one on read',
-      () async {
-        // Installs that predate the mirror (and installs whose mirror a failed
-        // write dropped) must be protected from the first restore, not from the
-        // next run — measured on the real OTES install: 0.5 MB snapshot with no
-        // mirror at all.
-        SharedPreferences.setMockInitialValues({snapshotKey: '{"units":[]}'});
-        final store = SharedPreferencesSessionStore(
-          await SharedPreferences.getInstance(),
-        );
-
-        expect(await store.loadSnapshot(), '{"units":[]}');
-        final prefs = await SharedPreferences.getInstance();
-        expect(prefs.get(snapshotMirror), '{"units":[]}');
-      },
-    );
-
-    test('clearing the snapshot clears the mirror too', () async {
+    test('the draft round-trips through the legacy store', () async {
       final store = await freshStore();
-      final prefs = await SharedPreferences.getInstance();
-      await store.saveSnapshot('{"units":[]}');
-      expect(prefs.getString(snapshotMirror), isNotNull);
+      await store.saveDraft('{"projectName":"Đợt 1"}');
 
-      await store.clearSnapshot();
-      expect(prefs.getString(snapshotKey), isNull);
-      expect(prefs.getString(snapshotMirror), isNull);
-      expect(await store.loadSnapshot(), isNull);
+      expect(await store.loadDraft(), '{"projectName":"Đợt 1"}');
+
+      // A second instance over the same storage sees the same draft: this
+      // store is the fallback when the database cannot open, and it still has
+      // to survive a restart.
+      final reopened = SharedPreferencesSessionStore(
+        await SharedPreferences.getInstance(),
+      );
+      expect(await reopened.loadDraft(), '{"projectName":"Đợt 1"}');
+    });
+
+    test('the old workspace snapshot key is never served as a draft', () async {
+      // Builds that predate the draft kept a whole workspace (units + result,
+      // ~1 MB on OTES) under this key. The draft lives at a different key on
+      // purpose: those two shapes must never be confused, and nothing reads
+      // the old one any more.
+      SharedPreferences.setMockInitialValues({
+        snapshotKey: '{"units":[{"key":"uc-1"}],"pageTexts":["…"]}',
+        snapshotMirror: '{"units":[],"result":{"score":9}}',
+      });
+      final store = SharedPreferencesSessionStore(
+        await SharedPreferences.getInstance(),
+      );
+
+      expect(await store.loadDraft(), isNull);
+      // Left untouched on disk so an older build reinstalled over this one
+      // still finds it; what stopped is reading it, not keeping it.
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString(snapshotKey), isNotNull);
+    });
+
+    test('the draft is not mirrored and refuses to throw on read', () async {
+      // The mirror existed for the 1 MB snapshot; a few hundred bytes the user
+      // can retype do not need a second copy, and any read failure must fall
+      // back to "no draft" rather than break startup.
+      SharedPreferences.setMockInitialValues({
+        'srs.workspace.draft': 5, // wrong type on purpose
+      });
+      final store = SharedPreferencesSessionStore(
+        await SharedPreferences.getInstance(),
+      );
+
+      expect(await store.loadDraft(), isNull);
     });
 
     // The refusal branch of the write (platform answers `false`) cannot be

@@ -20,6 +20,7 @@ class SavedSession {
     required this.createdAt,
     this.fingerprint = '',
     this.parserVersion = '',
+    this.projectName = '',
   });
 
   factory SavedSession.fromJson(Map<String, dynamic> json) => SavedSession(
@@ -31,6 +32,12 @@ class SavedSession {
     // back as unverifiable (''), not broken.
     fingerprint: json['fingerprint'] as String? ?? '',
     parserVersion: json['parserVersion'] as String? ?? '',
+    // Denormalized copy of the payload's `projectName`: the History tab groups
+    // rows by it WITHOUT decoding a multi-megabyte payload per row per build,
+    // and a payload too damaged to decode still lands in its own bucket
+    // instead of "unassigned". Rows written before this field existed read
+    // back as '' and fall back to the payload (see groupSessionsByProject).
+    projectName: (json['projectName'] as String?)?.trim() ?? '',
   );
 
   static SavedSession decode(String raw) =>
@@ -48,6 +55,10 @@ class SavedSession {
   final String fingerprint;
   final String parserVersion;
 
+  /// Step-1 project container this run belongs to, '' when it was produced
+  /// outside any project.
+  final String projectName;
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'fileName': fileName,
@@ -55,6 +66,7 @@ class SavedSession {
     'createdAt': createdAt.toIso8601String(),
     'fingerprint': fingerprint,
     'parserVersion': parserVersion,
+    'projectName': projectName,
   };
 
   String encode() => jsonEncode(toJson());
@@ -77,30 +89,45 @@ abstract class SessionStore {
   /// Newest first, capped at [maxSessions].
   Future<List<SavedSession>> list();
 
+  /// The newest [limit] rows, and only those — the landing screen's
+  /// "continue where you left off" card must not pull 30 multi-megabyte
+  /// payloads into memory to show three titles. For the same reason it is not
+  /// a `list()` call plus `take()` in the database-backed store, the one that
+  /// actually serves devices.
+  Future<List<SavedSession>> listRecent(int limit);
+
   Future<void> save(SavedSession session);
 
   Future<SavedSession?> open(String id);
 
   Future<void> delete(String id);
 
-  /// Whole-workspace snapshot (units + result) so a restart restores the
-  /// brief's localStorage behaviour.
-  Future<String?> loadSnapshot();
+  /// The small "where I left off" record: workflow step 1 (project container)
+  /// and step 2 (the declaration), and nothing else.
+  ///
+  /// Deliberately NOT the whole workspace: since 2026-09-23 the app never
+  /// reopens a previous session by itself (that is what History → openSession
+  /// is for), so units, findings and triage have no reader here. Writing them
+  /// anyway was measured I/O with no consumer; the draft exists so work the
+  /// user typed but never ran is not thrown away by a restart.
+  Future<String?> loadDraft();
 
-  Future<void> saveSnapshot(String snapshotJson);
-
-  Future<void> clearSnapshot();
+  Future<void> saveDraft(String draftJson);
 }
 
 class InMemorySessionStore implements SessionStore {
   final List<SavedSession> _sessions = [];
-  String? _snapshot;
+  String? _draft;
 
   static const int maxSessions = 30;
 
   @override
   Future<List<SavedSession>> list() async =>
       [..._sessions]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+  @override
+  Future<List<SavedSession>> listRecent(int limit) async =>
+      (await list()).take(limit).toList(growable: false);
 
   @override
   Future<void> save(SavedSession session) async {
@@ -125,14 +152,10 @@ class InMemorySessionStore implements SessionStore {
       _sessions.removeWhere((s) => s.id == id);
 
   @override
-  Future<String?> loadSnapshot() async => _snapshot;
+  Future<String?> loadDraft() async => _draft;
 
   @override
-  Future<void> saveSnapshot(String snapshotJson) async =>
-      _snapshot = snapshotJson;
-
-  @override
-  Future<void> clearSnapshot() async => _snapshot = null;
+  Future<void> saveDraft(String draftJson) async => _draft = draftJson;
 }
 
 /// One replica's decoded content plus the generation it was stamped with.
@@ -184,8 +207,12 @@ class SharedPreferencesSessionStore implements SessionStore {
   /// `List<String>` of rows — that legacy value is read as generation 0.
   static const String _slotAKey = 'srs.workspace.sessions';
   static const String _slotBKey = 'srs.workspace.sessions.b';
-  static const String _snapshotKey = 'srs.workspace.snapshot';
-  static const String _snapshotMirrorKey = 'srs.workspace.snapshot.b';
+
+  /// The step-1/step-2 draft. A key older builds never wrote, so a legacy
+  /// whole-workspace snapshot (`srs.workspace.snapshot`, left untouched on
+  /// disk) can never be mistaken for one.
+  static const String _draftKey = 'srs.workspace.draft';
+
   static const int maxSessions = 30;
 
   /// Envelopes are written with `generation` first, so ordering two replicas
@@ -349,18 +376,12 @@ class SharedPreferencesSessionStore implements SessionStore {
     }
   }
 
-  /// Cheap completeness check for a snapshot string: it must at least look
-  /// like the whole JSON object. A write cut mid-way loses the tail brace, and
-  /// without this the caller would attempt — and fail — a decode of the
-  /// fragment instead of using the mirror.
-  static bool _looksComplete(String? raw) =>
-      raw != null &&
-      raw.length >= 2 &&
-      raw.startsWith('{') &&
-      raw.endsWith('}');
-
   @override
   Future<List<SavedSession>> list() => _readAll();
+
+  @override
+  Future<List<SavedSession>> listRecent(int limit) async =>
+      (await _readAll()).take(limit).toList(growable: false);
 
   @override
   Future<void> save(SavedSession session) async {
@@ -386,56 +407,22 @@ class SharedPreferencesSessionStore implements SessionStore {
   }
 
   @override
-  Future<String?> loadSnapshot() async {
-    final mainValue = _stored(_snapshotKey);
-    final main = mainValue is String ? mainValue : null;
-    if (_looksComplete(main)) {
-      // Keep both copies good: an install that predates the mirror (or whose
-      // mirror was damaged) gets one here, best-effort — a restore must not
-      // wait for the next run to be protected.
-      if (_stored(_snapshotMirrorKey) != main) {
-        try {
-          await _prefs.setString(_snapshotMirrorKey, main!);
-        } on Object {
-          // A restore never fails because the copy could not be made.
-        }
-      }
-      return main;
-    }
-    final mirrorValue = _stored(_snapshotMirrorKey);
-    final mirror = mirrorValue is String ? mirrorValue : null;
-    if (_looksComplete(mirror)) {
-      // Repair the damaged copy so the next restore reads it directly.
-      try {
-        await _prefs.setString(_snapshotKey, mirror!);
-      } on Object {
-        // Best-effort: the caller still gets the mirrored snapshot.
-      }
-      return mirror;
-    }
-    // Neither copy is complete — hand back whatever exists; the restore path
-    // already degrades to an empty workspace when the payload cannot decode.
-    return main ?? mirror;
+  Future<String?> loadDraft() async {
+    final stored = _stored(_draftKey);
+    return stored is String && stored.isNotEmpty ? stored : null;
   }
 
   @override
-  Future<void> saveSnapshot(String snapshotJson) async {
-    final writtenMain = await _prefs.setString(_snapshotKey, snapshotJson);
-    final writtenMirror = await _prefs.setString(
-      _snapshotMirrorKey,
-      snapshotJson,
-    );
-    if (!writtenMain && !writtenMirror) {
+  Future<void> saveDraft(String draftJson) async {
+    // No mirror: a draft is a few hundred bytes the user can retype, unlike
+    // the 1 MB snapshot this key replaced. A refused write still surfaces so
+    // the caller can decide, matching the history writes above.
+    final written = await _prefs.setString(_draftKey, draftJson);
+    if (!written) {
       throw const SessionStoreException(
-        'The device refused to store the workspace snapshot in either copy — '
-        'the review itself is unaffected.',
+        'The device refused to store the workspace draft — the review itself '
+        'is unaffected.',
       );
     }
-  }
-
-  @override
-  Future<void> clearSnapshot() async {
-    await _prefs.remove(_snapshotKey);
-    await _prefs.remove(_snapshotMirrorKey);
   }
 }

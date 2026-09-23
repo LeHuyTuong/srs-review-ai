@@ -20,8 +20,8 @@ Future<void> main() async {
   if (kIsWeb && Uri.base.queryParameters.containsKey('smoke')) {
     SemanticsBinding.instance.ensureSemantics();
   }
-  // Awaited up front so the workspace can restore its persisted snapshot from
-  // the very first build instead of flickering through an empty state.
+  // Awaited up front so the workspace draft (steps 1–2) is readable from the
+  // very first build instead of flickering through an empty first-run card.
   final prefs = await SharedPreferences.getInstance();
   // History lives in a database (one record per session, no whole-list
   // rewrite, no localStorage ceiling). Chosen here, once, so every reader goes

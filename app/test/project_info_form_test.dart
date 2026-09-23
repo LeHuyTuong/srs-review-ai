@@ -26,16 +26,6 @@ ProviderContainer _container(InMemorySessionStore store) => ProviderContainer(
   ],
 );
 
-Future<void> _settleRestore(
-  WidgetTester tester,
-  ProviderContainer container,
-) async {
-  for (var i = 0; i < 100; i++) {
-    if (!container.read(workspaceViewModelProvider).restoring) return;
-    await tester.pump(const Duration(milliseconds: 10));
-  }
-}
-
 ProjectInfo _sample() => const ProjectInfo(
   projectName: 'OTES',
   students: [StudentMember(fullName: 'Trần B', studentId: 'SE123456')],
@@ -100,7 +90,7 @@ void main() {
         ),
       ),
     );
-    await _settleRestore(tester, container);
+    await tester.pump();
 
     await tester.tap(find.text('mở form'));
     await tester.pumpAndSettle();
@@ -154,7 +144,7 @@ void main() {
         ),
       ),
     );
-    await _settleRestore(tester, container);
+    await tester.pump();
 
     await tester.tap(find.text('mở form'));
     await tester.pumpAndSettle();

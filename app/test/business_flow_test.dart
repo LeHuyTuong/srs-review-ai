@@ -346,11 +346,24 @@ void main() {
       vm.setFindingStatus('f-1', FindingStatus.disputed);
       expect(container.read(workspaceViewModelProvider).fixedCount, 1);
 
+      // Triage rides into the History session when the run finishes — since
+      // auto-restore is off (decision 2026-09-23), that session is what
+      // survives an app restart.
+      await vm.runReview();
+      await _pumpUntil(() {
+        final s = container.read(workspaceViewModelProvider);
+        return s.hasResult && !s.isRunning && s.history.isNotEmpty;
+      });
+
+      // A fresh container simulates the restart: it opens empty, and the way
+      // back to the triage is opening the saved session from History.
       final second = _container(store);
       addTearDown(second.dispose);
-      await _pumpUntil(
-        () => !second.read(workspaceViewModelProvider).restoring,
-      );
+      final secondVm = second.read(workspaceViewModelProvider.notifier);
+      expect(second.read(workspaceViewModelProvider).hasDocument, isFalse);
+      await secondVm.loadHistory();
+      final history = second.read(workspaceViewModelProvider).history;
+      expect(await secondVm.openSession(history.first.id), isTrue);
 
       final restored = second.read(workspaceViewModelProvider);
       expect(restored.statusOf('f-0'), FindingStatus.fixed);

@@ -13,8 +13,8 @@ const Set<String> kSupportedDocumentExtensions = {'pdf', 'docx'};
 
 /// Version of the parsing/splitting behaviour. Bump whenever a change to the
 /// parser could change which units a document yields or how they are keyed
-/// (splitting rules, ID normalisation, occurrence identity). Saved snapshots
-/// and sessions record this separately from the content fingerprint: the same
+/// (splitting rules, ID normalisation, occurrence identity). Saved sessions
+/// record this separately from the content fingerprint: the same
 /// text parsed by a different parser version may produce different units, so
 /// review results must not be reused across versions.
 /// 1.2.0 — the splitter is table-of-contents driven and no longer pads
@@ -152,9 +152,9 @@ class SrsDocument {
   String get fullText => pageTexts.join('\n');
 
   /// sha256 of the parsed text content — a content-only identity: no file
-  /// name, no parser version. Stored in snapshots and sessions (separately
-  /// from [kParserVersion]) so a later run can prove saved results belong to
-  /// this exact content.
+  /// name, no parser version. Stored in saved sessions (separately from
+  /// [kParserVersion]) so a later run can prove saved results belong to this
+  /// exact content.
   ///
   /// Deliberately NOT memoized: a `const` constructor requires every field to
   /// be final, so a cache field would force `const` off and break every

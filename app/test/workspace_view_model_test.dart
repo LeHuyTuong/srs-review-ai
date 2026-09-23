@@ -1,5 +1,5 @@
 /// ViewModel tests for the workspace — the ported command surface: demo load,
-/// selection rules, offline run, history save/open, snapshot restore, export.
+/// selection rules, offline run, history save/open, draft restore, export.
 library;
 
 import 'dart:async';
@@ -89,6 +89,17 @@ class _StubDocumentRepository extends DocumentRepository {
     onStatus?.call('Reading test document…');
     return loaded;
   }
+}
+
+/// A store whose draft read never completes until the test releases it — the
+/// window in which the user can type before the draft lands.
+class _HangingDraftStore extends InMemorySessionStore {
+  final _draft = Completer<String?>();
+
+  void release(String? value) => _draft.complete(value);
+
+  @override
+  Future<String?> loadDraft() => _draft.future;
 }
 
 /// A store whose writes are refused the way a full device (or a blocked web
@@ -337,7 +348,6 @@ void main() {
       final state = container.read(workspaceViewModelProvider);
       expect(state.hasDocument, isTrue);
       expect(state.isDemo, isTrue);
-      expect(state.restoring, isFalse);
       expect(state.units, hasLength(65));
       expect(state.useCaseCount, 50);
       expect(state.otherRequirementsCount, 13);
@@ -395,82 +405,9 @@ void main() {
       .where((f) => f.check == CheckId.projectInfoMismatch)
       .toList(growable: false);
 
-  test('§F.3: declaration vs imported pages, replace-not-append on save', () async {
-    final store = InMemorySessionStore();
-    final container = _container(
-      store,
-      documentRepository: _StubDocumentRepository(coverDocument()),
-    );
-    addTearDown(container.dispose);
-    final vm = container.read(workspaceViewModelProvider.notifier);
-    await vm.importDocument();
-
-    const wrong = ProjectInfo(
-      projectName: 'Quantum Flux Capacitor Examulator',
-      students: [StudentMember(fullName: 'Tran B', studentId: 'SE123456')],
-      supervisor: 'Ghost Advisor',
-    );
-    vm.setProjectInfo(wrong);
-    var state = container.read(workspaceViewModelProvider);
-    expect(mismatchesOf(state), hasLength(2), reason: 'title + supervisor');
-    expect(state.projectInfo?.projectName, wrong.projectName);
-
-    // Re-saving the same declaration must not stack a second copy of the
-    // findings (the class of bug the 40-cap replace pattern exists for).
-    vm.setProjectInfo(wrong);
-    state = container.read(workspaceViewModelProvider);
-    expect(mismatchesOf(state), hasLength(2));
-
-    // Correcting the declaration clears both findings — the check is a
-    // property of (declaration, pages), not an accumulating log.
-    vm.setProjectInfo(
-      const ProjectInfo(
-        projectName: 'Online Tutoring Examination System',
-        students: [StudentMember(fullName: 'Tran B', studentId: 'SE123456')],
-        supervisor: 'Nguyen Van A',
-      ),
-    );
-    state = container.read(workspaceViewModelProvider);
-    expect(mismatchesOf(state), isEmpty);
-  });
-
-  test('§F.3 declaration persists with the snapshot and rechecks on restore', () async {
-    final store = InMemorySessionStore();
-    final containerA = _container(
-      store,
-      documentRepository: _StubDocumentRepository(coverDocument()),
-    );
-    addTearDown(containerA.dispose);
-    final vmA = containerA.read(workspaceViewModelProvider.notifier);
-    await vmA.importDocument();
-    vmA.setProjectInfo(
-      const ProjectInfo(
-        projectName: 'Quantum Flux Capacitor Examulator',
-        students: [StudentMember(fullName: 'Tran B', studentId: 'SE123456')],
-        supervisor: 'Ghost Advisor',
-      ),
-    );
-    // Let the fire-and-forget snapshot write land before reopening the store.
-    await Future<void>.delayed(Duration.zero);
-
-    final containerB = _container(store);
-    addTearDown(containerB.dispose);
-    await _pumpUntil(
-      () => !containerB.read(workspaceViewModelProvider).restoring,
-    );
-    final state = containerB.read(workspaceViewModelProvider);
-    expect(
-      state.projectInfo?.projectName,
-      'Quantum Flux Capacitor Examulator',
-      reason: 'the declaration travels WITH the findings derived from it',
-    );
-    // Restored findings are recomputed against the restored pages — still
-    // exactly two, never the restored pair plus a duplicated recomputed pair.
-    expect(mismatchesOf(state), hasLength(2));
-  });
-
-  group('workflow Bước 1: project container', () {
-    test('createProject sets the name; a different name starts fresh', () async {
+  test(
+    '§F.3: declaration vs imported pages, replace-not-append on save',
+    () async {
       final store = InMemorySessionStore();
       final container = _container(
         store,
@@ -480,51 +417,164 @@ void main() {
       final vm = container.read(workspaceViewModelProvider.notifier);
       await vm.importDocument();
 
-      vm.createProject('  Đợt 1 — OTES  ');
-      expect(
-        container.read(workspaceViewModelProvider).projectName,
-        'Đợt 1 — OTES',
-        reason: 'the container name is stored trimmed',
+      const wrong = ProjectInfo(
+        projectName: 'Quantum Flux Capacitor Examulator',
+        students: [StudentMember(fullName: 'Tran B', studentId: 'SE123456')],
+        supervisor: 'Ghost Advisor',
       );
+      vm.setProjectInfo(wrong);
+      var state = container.read(workspaceViewModelProvider);
+      expect(mismatchesOf(state), hasLength(2), reason: 'title + supervisor');
+      expect(state.projectInfo?.projectName, wrong.projectName);
 
+      // Re-saving the same declaration must not stack a second copy of the
+      // findings (the class of bug the 40-cap replace pattern exists for).
+      vm.setProjectInfo(wrong);
+      state = container.read(workspaceViewModelProvider);
+      expect(mismatchesOf(state), hasLength(2));
+
+      // Correcting the declaration clears both findings — the check is a
+      // property of (declaration, pages), not an accumulating log.
       vm.setProjectInfo(
         const ProjectInfo(
-          projectName: 'Ghost Title',
+          projectName: 'Online Tutoring Examination System',
           students: [StudentMember(fullName: 'Tran B', studentId: 'SE123456')],
-          supervisor: 'Ghost Advisor',
+          supervisor: 'Nguyen Van A',
         ),
       );
-      expect(
-        container
-            .read(workspaceViewModelProvider)
-            .referenceFindings
-            .where((f) => f.check == CheckId.projectInfoMismatch)
-            .length,
-        2,
-        reason: 'title + supervisor mismatches from the declaration',
-      );
+      state = container.read(workspaceViewModelProvider);
+      expect(mismatchesOf(state), isEmpty);
+    },
+  );
 
-      // Same trimmed name = same project: the declaration survives.
-      vm.createProject('Đợt 1 — OTES');
-      expect(
-        container.read(workspaceViewModelProvider).projectInfo,
-        isNotNull,
-      );
+  test('a restart opens the guided flow and keeps the draft', () async {
+    final store = InMemorySessionStore();
+    final containerA = _container(
+      store,
+      documentRepository: _StubDocumentRepository(coverDocument()),
+    );
+    addTearDown(containerA.dispose);
+    final vmA = containerA.read(workspaceViewModelProvider.notifier);
+    vmA.createProject('Đợt 1 — OTES');
+    await vmA.importDocument();
+    vmA.setProjectInfo(
+      const ProjectInfo(
+        projectName: 'Quantum Flux Capacitor Examulator',
+        students: [StudentMember(fullName: 'Tran B', studentId: 'SE123456')],
+        supervisor: 'Ghost Advisor',
+      ),
+    );
+    // Let the fire-and-forget draft write land before reopening the store.
+    await Future<void>.delayed(Duration.zero);
+    expect(
+      await store.loadDraft(),
+      contains('Quantum Flux Capacitor Examulator'),
+    );
 
-      // A DIFFERENT name = a new history bucket: the old declaration and
-      // the §F.3 findings derived from it must not leak into the next round.
-      vm.createProject('Đợt 2 — HisWise');
-      final state = container.read(workspaceViewModelProvider);
-      expect(state.projectName, 'Đợt 2 — HisWise');
-      expect(state.projectInfo, isNull);
-      expect(
-        state.referenceFindings
-            .where((f) => f.check == CheckId.projectInfoMismatch),
-        isEmpty,
-      );
-    });
+    // A fresh container simulates an app restart. The WORKSPACE is not
+    // restored (decision 2026-09-23): no document, no units, no result — the
+    // way back to those is History → openSession, which carries them itself.
+    // What does come back is the draft, so work typed in steps 1–2 is not
+    // thrown away by a restart.
+    final containerB = _container(store);
+    addTearDown(containerB.dispose);
+    await _pumpUntil(
+      () => containerB.read(workspaceViewModelProvider).projectInfo != null,
+    );
+    final state = containerB.read(workspaceViewModelProvider);
+    expect(state.hasDocument, isFalse);
+    expect(state.units, isEmpty);
+    expect(state.projectName, 'Đợt 1 — OTES');
+    expect(state.projectInfo?.projectName, 'Quantum Flux Capacitor Examulator');
+    // §F.3 needs a cover to compare against and there is none before an
+    // import: the restored declaration must not fabricate findings.
+    expect(mismatchesOf(state), isEmpty);
+  });
 
-    test('the name survives import, demo, snapshot restore and sessions', () async {
+  test(
+    'a draft that lands late never overwrites what the user typed',
+    () async {
+      // The draft read is a store hit, but it is still async: whatever the user
+      // typed while it was in flight is live state and must win.
+      final store = _HangingDraftStore();
+      final container = _container(store);
+      addTearDown(container.dispose);
+      final vm = container.read(workspaceViewModelProvider.notifier);
+      await Future<void>.delayed(Duration.zero);
+
+      vm.createProject('Đợt 2 — tự gõ');
+      store.release('{"projectName":"Đợt 1 — cũ"}');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        container.read(workspaceViewModelProvider).projectName,
+        'Đợt 2 — tự gõ',
+      );
+    },
+  );
+
+  group('workflow Bước 1: project container', () {
+    test(
+      'createProject sets the name; a different name starts fresh',
+      () async {
+        final store = InMemorySessionStore();
+        final container = _container(
+          store,
+          documentRepository: _StubDocumentRepository(coverDocument()),
+        );
+        addTearDown(container.dispose);
+        final vm = container.read(workspaceViewModelProvider.notifier);
+        await vm.importDocument();
+
+        vm.createProject('  Đợt 1 — OTES  ');
+        expect(
+          container.read(workspaceViewModelProvider).projectName,
+          'Đợt 1 — OTES',
+          reason: 'the container name is stored trimmed',
+        );
+
+        vm.setProjectInfo(
+          const ProjectInfo(
+            projectName: 'Ghost Title',
+            students: [
+              StudentMember(fullName: 'Tran B', studentId: 'SE123456'),
+            ],
+            supervisor: 'Ghost Advisor',
+          ),
+        );
+        expect(
+          container
+              .read(workspaceViewModelProvider)
+              .referenceFindings
+              .where((f) => f.check == CheckId.projectInfoMismatch)
+              .length,
+          2,
+          reason: 'title + supervisor mismatches from the declaration',
+        );
+
+        // Same trimmed name = same project: the declaration survives.
+        vm.createProject('Đợt 1 — OTES');
+        expect(
+          container.read(workspaceViewModelProvider).projectInfo,
+          isNotNull,
+        );
+
+        // A DIFFERENT name = a new history bucket: the old declaration and
+        // the §F.3 findings derived from it must not leak into the next round.
+        vm.createProject('Đợt 2 — HisWise');
+        final state = container.read(workspaceViewModelProvider);
+        expect(state.projectName, 'Đợt 2 — HisWise');
+        expect(state.projectInfo, isNull);
+        expect(
+          state.referenceFindings.where(
+            (f) => f.check == CheckId.projectInfoMismatch,
+          ),
+          isEmpty,
+        );
+      },
+    );
+
+    test('the name survives import, demo and sessions', () async {
       final store = InMemorySessionStore();
       final containerA = _container(
         store,
@@ -554,18 +604,6 @@ void main() {
       expect(demoState.projectName, 'Đợt 1 — OTES');
       expect(demoState.projectInfo?.supervisor, 'Nguyen Van A');
 
-      // Snapshot restore into a fresh container over the same store.
-      await Future<void>.delayed(Duration.zero);
-      final containerB = _container(store);
-      addTearDown(containerB.dispose);
-      await _pumpUntil(
-        () => !containerB.read(workspaceViewModelProvider).restoring,
-      );
-      expect(
-        containerB.read(workspaceViewModelProvider).projectName,
-        'Đợt 1 — OTES',
-      );
-
       // A finished run stores the container in its session payload; opening
       // the session puts the row back under the same project.
       await vmA.runReview();
@@ -582,41 +620,6 @@ void main() {
       );
     });
   });
-
-  test(
-    'snapshot written by another parser version is refused on restore',
-    () async {
-      final store = InMemorySessionStore();
-      final containerA = _container(store);
-      addTearDown(containerA.dispose);
-      await containerA.read(workspaceViewModelProvider.notifier).loadDemo();
-
-      // Tamper the persisted snapshot the way an older parser build would have
-      // written it: same units, different version stamp.
-      // Parenthesised on purpose: `await store.loadSnapshot()!` would apply `!`
-      // to the Future (never null) and still hand `String?` to jsonDecode.
-      final raw =
-          jsonDecode((await store.loadSnapshot())!) as Map<String, dynamic>;
-      raw['parserVersion'] = '0.9.0';
-      await store.saveSnapshot(jsonEncode(raw));
-
-      final containerB = _container(store);
-      addTearDown(containerB.dispose);
-      await _pumpUntil(
-        () => !containerB.read(workspaceViewModelProvider).restoring,
-      );
-      final state = containerB.read(workspaceViewModelProvider);
-      expect(
-        state.hasDocument,
-        isFalse,
-        reason:
-            'stale-parse units must not silently surface as a restored '
-            'workspace',
-      );
-      expect(state.units, isEmpty);
-      expect(state.toast, contains('0.9.0'));
-    },
-  );
 
   test('openSession refuses a session from another parser version', () async {
     final store = InMemorySessionStore();
@@ -695,10 +698,11 @@ void main() {
       expect(state.imageReviewedCount, 0);
       expect(state.imageCoverage, isNull);
 
-      final snapshot = await store.loadSnapshot();
-      expect(snapshot, isNotNull);
-      expect(snapshot!, isNot(contains('pdfBytes')));
-      expect(snapshot, isNot(contains(base64Encode(pdfBytes))));
+      // Importing persists nothing — neither the bytes nor a workspace (the
+      // snapshot path was removed 2026-09-23). The draft is written only when
+      // steps 1–2 change, so it stays empty here; the session the run below
+      // produces is the persistence a reopen actually reads.
+      expect(await store.loadDraft(), isNull);
 
       vm.state = vm.state.copyWith(
         imageReviewedCount: 9,
@@ -1144,7 +1148,7 @@ void main() {
   );
 
   test(
-    'snapshot restore brings the inventory back on a fresh container',
+    'a restart opens an empty workspace — the snapshot is never auto-restored',
     () async {
       final store = InMemorySessionStore();
       final first = _container(store);
@@ -1152,59 +1156,17 @@ void main() {
       await vm.loadDemo();
       first.dispose();
 
+      // Same store, fresh container = an app restart. Auto-restore is off by
+      // decision (2026-09-23): Bước 1→3 greets the user, and the demo comes
+      // back only through History → openSession.
       final second = _container(store);
       addTearDown(second.dispose);
-      await _pumpUntil(() {
-        final state = second.read(workspaceViewModelProvider);
-        return !state.restoring;
-      });
       final state = second.read(workspaceViewModelProvider);
-      expect(state.hasDocument, isTrue);
-      expect(state.units, hasLength(65));
-      expect(state.fileName, demoFileName);
+      expect(state.hasDocument, isFalse);
+      expect(state.units, isEmpty);
+      expect(state.fileName, isEmpty);
     },
   );
-
-  test('kind override survives snapshot restore', () async {
-    final store = InMemorySessionStore();
-    final first = _container(store);
-    final vm = first.read(workspaceViewModelProvider.notifier);
-    await vm.loadDemo();
-
-    // A human re-classification the parser's id-prefix rule got wrong: the
-    // roadmap forbids silently rewriting the id, not the type the user picks.
-    final unit = first
-        .read(workspaceViewModelProvider)
-        .units
-        .firstWhere((u) => u.kind == UnitKind.useCase);
-    vm.classifyUnit(unit.key, UnitKind.businessRule);
-    final edited = first
-        .read(workspaceViewModelProvider)
-        .units
-        .firstWhere((u) => u.key == unit.key);
-    expect(edited.kind, UnitKind.businessRule);
-    expect(
-      edited.malformed,
-      isFalse,
-      reason: 're-classifying to a concrete kind must clear needs-attention',
-    );
-    first.dispose();
-
-    final second = _container(store);
-    addTearDown(second.dispose);
-    await _pumpUntil(() => !second.read(workspaceViewModelProvider).restoring);
-    final restored = second
-        .read(workspaceViewModelProvider)
-        .units
-        .firstWhere((u) => u.key == unit.key);
-    expect(
-      restored.kind,
-      UnitKind.businessRule,
-      reason:
-          'classifyUnit mutates through _mutateUnit, which saves the '
-          'snapshot — the override must ride along with it',
-    );
-  });
 
   test('kind override survives session reopen', () async {
     final store = InMemorySessionStore();
@@ -1487,19 +1449,26 @@ void main() {
       },
     );
 
-    test('audit rows persist into the saved snapshot', () async {
+    test('audit rows reach the session a reopen reads', () async {
       final (vm, container) = await visionVm(
         pdfBytes: Uint8List.fromList([0, 1, 2]),
       );
       addTearDown(container.dispose);
       await vm.auditDiagrams();
-      // The autosave snapshot (not the explicit-save list) is what a reopen
-      // restores from — that is the persistence the audit must reach.
+
+      // Nothing autosaves a workspace any more (2026-09-23): the rows the
+      // audit writes ride into the SESSION a finished run produces, and that
+      // session is what History → openSession reads back.
+      await vm.runReview();
+      await _pumpUntil(
+        () => container.read(workspaceViewModelProvider).history.isNotEmpty,
+      );
       final raw =
-          await (container.read(sessionStoreProvider) as InMemorySessionStore)
-              .loadSnapshot();
-      expect(raw, isNotNull);
-      final payload = jsonDecode(raw!) as Map<String, dynamic>;
+          (await (container.read(sessionStoreProvider) as InMemorySessionStore)
+                  .list())
+              .single
+              .payloadJson;
+      final payload = jsonDecode(raw) as Map<String, dynamic>;
       final rows = (payload['referenceFindings'] as List<dynamic>? ?? const [])
           .cast<Map<String, dynamic>>()
           .where((r) => r['check'] == 'diagram_audit');

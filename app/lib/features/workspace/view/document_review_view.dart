@@ -45,25 +45,6 @@ class DocumentReviewView extends ConsumerWidget {
     final viewport = AppViewport.of(context);
     final showInnerSplit = viewport.showInnerSplit;
 
-    if (state.restoring) {
-      // A bare spinner was the entire first-launch experience while the
-      // snapshot loaded: no app name, no hint of what was happening. Say it.
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              'Restoring your workspace…',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: colors.muted),
-            ),
-          ],
-        ),
-      );
-    }
     if (!state.hasDocument) {
       return WorkspacePage(
         child: Column(
@@ -345,9 +326,9 @@ class DocumentReviewView extends ConsumerWidget {
                 'Phiên này được khôi phục từ lịch sử — file gốc không còn '
                 'trong bộ nhớ. Nhập lại file để đánh giá tiếp; kết quả cũ '
                 'được giữ nguyên.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: context.workspaceColors.ink),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: context.workspaceColors.ink,
+                ),
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
@@ -865,9 +846,12 @@ class _ProjectWorkflowState extends ConsumerState<_ProjectWorkflow> {
         ],
       );
     }
+
     return Semantics(
       container: true,
-      label: 'Getting started: create project, declare info, submit SRS',
+      label:
+          'Getting started: create project, declare info, submit SRS, or '
+          'reopen a saved run',
       child: Container(
         constraints: const BoxConstraints(maxWidth: 560),
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -977,6 +961,101 @@ class _ProjectWorkflowState extends ConsumerState<_ProjectWorkflow> {
                 ],
               ),
             ),
+            // Saved runs used to be reachable only from the History tab, which
+            // nobody visits until they know it exists — and since auto-restore
+            // was removed (2026-09-23) a restart lands here, empty. The way
+            // back belongs where the user actually stands.
+            if (state.recentSessions.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.lg),
+              Divider(height: 1, color: colors.border),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'Tiếp tục gần đây',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colors.muted,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Mở lại một lượt chấm đã lưu — không phải nộp lại tài liệu, '
+                'không tốn quota.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colors.muted,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              for (final session in state.recentSessions)
+                _RecentSessionRow(
+                  session: session,
+                  onOpen: () => viewModel.openSession(session.id),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One saved run offered from the landing card.
+///
+/// Smaller than a History row on purpose: this is a shortcut back into the
+/// most recent work, not history management (opening, deleting, grouping by
+/// project all still live in the History tab).
+class _RecentSessionRow extends StatelessWidget {
+  const _RecentSessionRow({required this.session, required this.onOpen});
+
+  final SavedSession session;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.workspaceColors;
+    final theme = Theme.of(context);
+    final created = session.createdAt.toLocal();
+    String two(int v) => v.toString().padLeft(2, '0');
+    final stamp =
+        '${two(created.day)}/${two(created.month)} '
+        '${two(created.hour)}:${two(created.minute)}';
+
+    return InkWell(
+      onTap: onOpen,
+      borderRadius: AppRadius.boxSm,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.sm,
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.history, size: 15, color: colors.muted),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    session.fileName,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: colors.ink,
+                    ),
+                  ),
+                  Text(
+                    session.projectName.isEmpty
+                        ? stamp
+                        : '$stamp · ${session.projectName}',
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colors.muted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, size: 17, color: colors.muted),
           ],
         ),
       ),

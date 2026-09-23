@@ -66,7 +66,7 @@ class WorkspaceState {
     this.importStatus,
     this.history = const [],
     this.historyLoading = false,
-    this.restoring = true,
+    this.recentSessions = const [],
     this.runStartedAt,
     this.runReviewed = 0,
     this.runSkipped = 0,
@@ -105,7 +105,7 @@ class WorkspaceState {
   final String projectName;
 
   /// Issues the reviewer typed in by hand (Report tab) — the "con người"
-  /// source next to the AI rows. Travel with snapshots and sessions so the
+  /// source next to the AI rows. Travel with saved sessions so the
   /// merged report survives restarts; carried across re-imports like the
   /// project declaration, because they annotate the project, not the file.
   final List<HumanIssue> humanIssues;
@@ -154,8 +154,14 @@ class WorkspaceState {
   final List<SavedSession> history;
   final bool historyLoading;
 
-  /// True until the persisted snapshot has been restored (or found absent).
-  final bool restoring;
+  /// The newest few sessions, for the landing card ("Tiếp tục gần đây").
+  ///
+  /// Separate from [history] on purpose: the History tab needs all 30 rows and
+  /// their payloads (it groups them by project), while the landing screen
+  /// needs three titles — and pulls only those from the store
+  /// ([SessionStore.listRecent]) instead of loading the whole history to
+  /// render a shortcut.
+  final List<SavedSession> recentSessions;
 
   /// When the current (or most recent) review started, so the progress surface
   /// can show elapsed time.
@@ -195,7 +201,7 @@ class WorkspaceState {
   final bool imageReviewAvailable;
 
   /// Requirements in the latest run whose successful request carried a PDF
-  /// page image. This is not persisted with snapshots or saved sessions.
+  /// page image. This is not persisted with saved sessions.
   final int imageReviewedCount;
 
   /// Round 10 — derived run mode (goal §0 degraded-mode-first).
@@ -221,8 +227,8 @@ class WorkspaceState {
   final PageImageCoverage? imageCoverage;
 
   /// Identity of the reviewed content: the document fingerprint and the
-  /// parser version that produced it. Snapshots and sessions record both so a
-  /// restore can refuse to reuse review results across parser changes.
+  /// parser version that produced it. Saved sessions record both so opening
+  /// one can refuse to reuse review results across parser changes.
   /// '' while no document is loaded.
   final String documentFingerprint;
 
@@ -256,9 +262,10 @@ class WorkspaceState {
   /// Whether the shell should render the "run finished · N reviewed" bar.
   ///
   /// Gated on [runReviewed] > 0 rather than [hasResult]: `result` is persisted
-  /// in snapshots, so a `hasResult` gate would re-open the app onto a summary
-  /// of a run from a previous session. `runReviewed` only ever describes the
-  /// run that just finished in this session.
+  /// in saved sessions, so a `hasResult` gate would re-open the app — or a
+  /// session from History — onto a summary of a run the user never saw here.
+  /// `runReviewed` only ever describes the run that just finished in this
+  /// context.
   bool get showsRunSummary =>
       !isRunning && !runSummaryDismissed && hasResult && runReviewed > 0;
 
@@ -303,7 +310,7 @@ class WorkspaceState {
     bool clearImportStatus = false,
     List<SavedSession>? history,
     bool? historyLoading,
-    bool? restoring,
+    List<SavedSession>? recentSessions,
     DateTime? runStartedAt,
     bool clearRunStartedAt = false,
     int? runReviewed,
@@ -346,7 +353,7 @@ class WorkspaceState {
         : (importStatus ?? this.importStatus),
     history: history ?? this.history,
     historyLoading: historyLoading ?? this.historyLoading,
-    restoring: restoring ?? this.restoring,
+    recentSessions: recentSessions ?? this.recentSessions,
     runStartedAt: clearRunStartedAt
         ? null
         : (runStartedAt ?? this.runStartedAt),
@@ -379,14 +386,18 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   /// review behaviour.
   static const ReportExporter _exporter = ReportExporter();
 
+  /// How many saved runs the landing card offers. Three is a shortcut back
+  /// into the most recent submission round, not a second History tab.
+  static const int _recentSessionCount = 3;
+
   SrsDocument? _document;
   Uint8List? _pdfBytes;
 
   /// Server-side anatomy of the CURRENT import (`/documents/analyze`) and the
   /// `upload://` ref render calls need. Both are session-transient like
-  /// [_pdfBytes]: a restored snapshot has no bytes on the server either, so
-  /// the vision audit falls back to the heuristic path there — exactly like
-  /// it does when the analyze call fails.
+  /// [_pdfBytes]: a session opened from History has no bytes on the server
+  /// either, so the vision audit falls back to the heuristic path there —
+  /// exactly like it does when the analyze call fails.
   DocumentMap? _documentMap;
   String? _uploadUri;
   StreamSubscription<ReviewProgress>? _subscription;
@@ -401,7 +412,18 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       _toastTimer?.cancel();
       _elapsedTimer?.cancel();
     });
-    scheduleMicrotask(_restoreSnapshot);
+    // No auto-restore of a previous workspace on startup (decision
+    // 2026-09-23): opening the app must land on the guided first-run flow
+    // (Bước 1→3), never inside the previous session. Saved runs stay reachable
+    // via History (openSession), which carries units, findings, triage and the
+    // declaration on its own.
+    //
+    // Two small things ARE restored, because a restart used to throw them
+    // away and nobody asked for that: the DRAFT (the project container and the
+    // declaration the user typed in steps 1–2) and the landing card's short
+    // list of recent sessions.
+    scheduleMicrotask(_restoreDraft);
+    scheduleMicrotask(_loadRecentSessions);
     return const WorkspaceState();
   }
 
@@ -438,7 +460,9 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   /// `isValid*` helpers), this method records the result, refreshes the §F.3
   /// findings against it and leaves an audit-log line, so the "Thông tin
   /// chung" review and the exported report read one source of truth.
-  /// Not persisted yet — a saved session keeps findings, not the form.
+  /// Persisted as part of the workspace draft (and, once a run finishes, of
+  /// the session itself) so the declaration and the §F.3 findings derived from
+  /// it survive a restart together.
   void setProjectInfo(ProjectInfo info) {
     state = state.copyWith(projectInfo: info);
     _refreshProjectInfoFindings();
@@ -446,10 +470,10 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       'Lưu thông tin dự án "${info.projectName}" '
       '(${info.students.length} thành viên)',
     );
-    // Fire-and-forget like the other sync mutations: the §F.3 findings just
-    // recomputed must survive a restart next to the declaration they were
-    // derived from (no-op before a document is loaded).
-    _saveSnapshot();
+    // Fire-and-forget: the declaration is step-2 work with no other home — no
+    // session exists until a run finishes, so without the draft a restart
+    // silently eats the form.
+    _saveDraft();
   }
 
   /// Workflow step 1 — creates (or renames) the project container.
@@ -464,15 +488,13 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   void createProject(String name) {
     final trimmed = name.trim();
     if (trimmed.isEmpty || trimmed == state.projectName) return;
-    state = state.copyWith(
-      projectName: trimmed,
-      clearProjectInfo: true,
-    );
+    state = state.copyWith(projectName: trimmed, clearProjectInfo: true);
     _refreshProjectInfoFindings();
     _log('Tạo project "$trimmed"');
-    // Same fire-and-forget contract as setProjectInfo; no-op without a
-    // document, which is also when _restoreSnapshot would drop the name.
-    _saveSnapshot();
+    // Same fire-and-forget contract as setProjectInfo: the container name is
+    // what the landing flow and the History grouping must still show after a
+    // restart, even before any run has finished.
+    _saveDraft();
   }
 
   /// Report tab — records a reviewer-authored issue (the "con người"
@@ -503,18 +525,16 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       ],
     );
     _log('Reviewer added issue "$trimmedTitle" (${severity.name})');
-    _saveSnapshot();
+    _saveDraft();
   }
 
   /// Drops one reviewer-authored issue. Like every other sync mutation it
   /// persists best-effort right away so a restart cannot resurrect the row.
   void removeHumanIssue(String id) {
     state = state.copyWith(
-      humanIssues: state.humanIssues
-          .where((issue) => issue.id != id)
-          .toList(),
+      humanIssues: state.humanIssues.where((issue) => issue.id != id).toList(),
     );
-    _saveSnapshot();
+    _saveDraft();
   }
 
   /// §F.3 (rulebook 1.7-draft) — recompute the declared-vs-cover findings
@@ -591,7 +611,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       pageTexts: document.pageTexts,
       toast:
           '${units.length} units extracted. All detected IDs have been preserved.',
-    ).copyWith(restoring: false);
+    );
     // Fresh page texts — re-verify the carried declaration against them so
     // §F.3 never lags one document behind (same contract as importDocument).
     _refreshProjectInfoFindings();
@@ -600,7 +620,6 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     _log(
       'Trích xuất: ${units.length} yêu cầu, ${document.imagePageIndexes.length} trang sơ đồ',
     );
-    await _saveSnapshot();
   }
 
   Future<void> importDocument() async {
@@ -662,13 +681,12 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         toast:
             '${loaded.document.requirements.length} units extracted. '
             'All detected IDs have been preserved.',
-      ).copyWith(restoring: false);
+      );
       // §F.3 needs BOTH sides of the comparison: the declaration survived the
       // re-import above (projectInfo is carried over), and these are fresh
       // page texts to check it against.
       _refreshProjectInfoFindings();
       _scheduleToastClear();
-      await _saveSnapshot();
       await _analyzeDocumentOnServer(
         bytes: loaded.pdfBytes,
         fileName: loaded.document.fileName,
@@ -725,7 +743,6 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         'Server anatomy: Phân tích tài liệu hoàn tất (${analysis.map.figureCount} sơ đồ, uploadUri: ${analysis.uploadUri})',
       );
       _scheduleToastClear();
-      await _saveSnapshot();
     } on Object {
       // Heuristic fallback stays. The import already succeeded; a failed
       // anatomy pass must not turn a good import into an error.
@@ -757,8 +774,8 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
 
   /// Records what the student decided about one finding.
   ///
-  /// `open` is stored as "absent" so saved snapshots and older sessions stay a
-  /// valid key set — an unseen id simply reads back as open.
+  /// `open` is stored as "absent" so saved sessions stay a valid key set — an
+  /// unseen id simply reads back as open.
   void setFindingStatus(String findingId, FindingStatus status) {
     final next = Map<String, FindingStatus>.from(state.findingStatus);
     if (status == FindingStatus.open) {
@@ -767,7 +784,6 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       next[findingId] = status;
     }
     state = state.copyWith(findingStatus: next);
-    _saveSnapshot();
   }
 
   /// Round 9 — runs the [Verifier] against the current deterministic
@@ -781,8 +797,8 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   /// Returns a [VerifyDiff] describing what changed, so the caller can
   /// surface a meaningful toast ("X promoted to verified, Y
   /// reopened"). No-op when the current parse and the previous
-  /// statuses already agree — the snapshot save is skipped, the state
-  /// is not touched, and the returned diff is empty.
+  /// statuses already agree — the state is not touched and the
+  /// returned diff is empty.
   VerifyDiff verifyStatuses() {
     final previous = state.findingStatus;
     const verifier = Verifier();
@@ -796,13 +812,12 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       return const VerifyDiff();
     }
     state = state.copyWith(findingStatus: next);
-    _saveSnapshot();
     return VerifyDiff.compute(before: previous, after: next);
   }
 
   /// Identity test on a `Map<String, FindingStatus>` — true when both
   // maps hold the same key→status pairs. Used by [verifyStatuses] to
-  // skip a no-op snapshot save.
+  // skip a no-op write.
   static bool _statusMapEquals(
     Map<String, FindingStatus> a,
     Map<String, FindingStatus> b,
@@ -826,7 +841,6 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
           if (unit.key == key) mutate(unit) else unit,
       ],
     );
-    _saveSnapshot();
   }
 
   // ------------------------------------------------------------- review
@@ -1104,7 +1118,6 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
           imageReviewAvailable: true,
           diagramPageCount: analysis.map.figurePages.length,
         );
-        await _saveSnapshot();
         final image = await mapService.renderFigure(
           uploadUri: analysis.uploadUri,
           pageIndex: pageIndex,
@@ -1200,7 +1213,6 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
             : null,
       );
       _scheduleToastClear();
-      await _saveSnapshot();
     } on Object catch (error) {
       state = state.copyWith(
         error: 'Diagram audit stopped: $error',
@@ -1281,7 +1293,6 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
               'và lượt chấm trong ngày rồi thử lại. Danh sách chọn được giữ '
               'nguyên.',
         );
-        await _saveSnapshot();
         return;
       }
       // "0 units reviewed · 0 findings" is indistinguishable from a clean run
@@ -1338,7 +1349,6 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       );
     }
     _scheduleToastClear();
-    await _saveSnapshot();
   }
 
   void cancelReview() {
@@ -1459,6 +1469,22 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     }
   }
 
+  /// Refreshes the landing card's short list ("Tiếp tục gần đây").
+  ///
+  /// Asks the store for the newest rows only — the card shows three titles and
+  /// must not decode thirty payloads to render them. Failure is silent on
+  /// purpose: the landing flow works without the card, so a store hiccup must
+  /// not push an error banner over the steps the user is about to take.
+  Future<void> _loadRecentSessions() async {
+    try {
+      final recent = await _store.listRecent(_recentSessionCount);
+      if (!ref.mounted) return;
+      state = state.copyWith(recentSessions: recent);
+    } on Object {
+      // See above: the shortcut is optional, the flow is not.
+    }
+  }
+
   Future<bool> openSession(String id) async {
     try {
       final session = await _store.open(id);
@@ -1570,12 +1596,16 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         runReviewed: 0,
         runSummaryDismissed: true,
         toast: 'Saved review restored.',
-        restoring: false,
       );
-      // Same contract as the snapshot path: recompute §F.3 against the
-      // restored pages, so a form payload lost to a schema bump drops its
-      // findings together with the declaration that justified them.
+      // Recompute §F.3 against the restored pages, so a form payload lost to a
+      // schema bump drops its findings together with the declaration that
+      // justified them.
       _refreshProjectInfoFindings();
+      // The opened session is now what the app is working on: a restart must
+      // come back to THIS project container and declaration, not to whichever
+      // one the draft was left over from. Awaited because this method is
+      // already async and the lint (rightly) refuses a floating write.
+      await _saveDraft();
       _scheduleToastClear();
       return true;
     } on Object catch (error) {
@@ -1595,6 +1625,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       return;
     }
     await loadHistory();
+    await _loadRecentSessions();
   }
 
   // ------------------------------------------------------------- export
@@ -1753,172 +1784,68 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     }
   }
 
-  Future<void> _saveSnapshot() async {
-    if (!state.hasDocument) return;
+  /// Persists what no run has claimed yet: the step-1 project container, the
+  /// step-2 declaration and the reviewer's own issues.
+  ///
+  /// Deliberately small, and deliberately NOT the workspace. Units, findings,
+  /// triage and the AI result all have a home the moment a run finishes (the
+  /// saved session, reopened through History), and startup never auto-restores
+  /// a previous workspace (decision 2026-09-23). Before this draft existed,
+  /// the old `_saveSnapshot` re-encoded the whole workspace — units plus every
+  /// page of text, ~1 MB on the OTES run — on each of a dozen mutations, for a
+  /// reader that no longer existed. The draft is a few hundred bytes, written
+  /// only when one of those three things actually changes.
+  Future<void> _saveDraft() async {
     final payload = jsonEncode({
-      'fileName': state.fileName,
-      'pageCount': state.pageCount,
-      'sizeLabel': state.sizeLabel,
-      'isDemo': state.isDemo,
-      'units': state.units.map((u) => u.toJson()).toList(),
-      'syllabusFindings': state.syllabusFindings
-          .map((finding) => finding.toJson())
-          .toList(growable: false),
-      'referenceFindings': state.referenceFindings
-          .map((finding) => finding.toJson())
-          .toList(growable: false),
-      // Blueprint findings persist like the other two families so older
-      // snapshots (no such key) restore an empty list instead of breaking.
-      'blueprintFindings': state.blueprintFindings
-          .map((finding) => finding.toJson())
-          .toList(growable: false),
-      'findingStatus': state.findingStatus.map(
-        (id, status) => MapEntry(id, status.name),
-      ),
-      'diagramPageCount': state.diagramPageCount,
-      'result': state.result?.toJson(),
-      'documentFingerprint': state.documentFingerprint,
-      'parserVersion': state.parserVersion,
-      'uploadUri': _uploadUri ?? state.uploadUri,
-      'pageTexts': state.pageTexts,
-      // The declaration persists WITH the §F.3 findings that were derived
-      // from it: a restored finding against an empty form would be a claim
-      // nobody can re-verify. Missing key (older snapshots) restores null.
-      'projectInfo': state.projectInfo?.toJson(),
-      // Step-1 container rides along like the declaration: History grouping
-      // needs it after a restart. Missing key restores ''.
       'projectName': state.projectName,
-      // Reviewer-authored issues ride along for the same reason the merge
-      // in the Report tab must read identically after a restart.
+      'projectInfo': state.projectInfo?.toJson(),
       'humanIssues': state.humanIssues
           .map((issue) => issue.toJson())
           .toList(growable: false),
     });
     try {
-      await _store.saveSnapshot(payload);
+      await _store.saveDraft(payload);
     } on Object {
-      // Persistence is best-effort: losing the snapshot never blocks a review.
+      // Persistence is best-effort: losing the draft never blocks a review.
     }
   }
 
-  Future<void> _restoreSnapshot() async {
+  /// Reads the draft back into the landing flow (steps 1–2 pre-filled).
+  ///
+  /// Two guards, in this order: never clobber live state and never touch a
+  /// disposed provider.
+  ///
+  /// "Live" means anything the user did before this read landed — a document
+  /// loaded, or a step-1/step-2 field already typed (the read is a store hit,
+  /// but it is still async, and overwriting a name typed in that window would
+  /// be the same bug the old restore had to guard against).
+  Future<void> _restoreDraft() async {
     try {
-      final raw = await _store.loadSnapshot();
-      // The user may already have loaded a demo or a document while the
-      // snapshot was being read — never clobber live state, never touch a
-      // disposed provider.
-      if (!ref.mounted) return;
-      if (state.hasDocument) {
-        state = state.copyWith(restoring: false);
-        return;
-      }
-      if (raw == null) {
-        state = state.copyWith(restoring: false);
+      final raw = await _store.loadDraft();
+      if (!ref.mounted || raw == null || state.hasDocument) return;
+      if (state.projectName.isNotEmpty ||
+          state.projectInfo != null ||
+          state.humanIssues.isNotEmpty) {
         return;
       }
       final payload = jsonDecode(raw) as Map<String, dynamic>;
-      // Parser gate: a snapshot written by a different parser version may
-      // yield different units — or different unit keys — for the same text,
-      // so its saved statuses and result must never be reused. Payloads
-      // written before versioning carried no key and restore as always.
-      final savedParserVersion = payload['parserVersion'] as String?;
-      if (savedParserVersion != null && savedParserVersion != kParserVersion) {
-        state = WorkspaceState(
-          restoring: false,
-          toast:
-              'Saved workspace was written by parser $savedParserVersion; '
-              're-import the document to start fresh.',
-        );
-        _scheduleToastClear();
-        return;
-      }
-      final units = (payload['units'] as List<dynamic>)
-          .map((e) => WorkspaceUnit.fromJson(e as Map<String, dynamic>))
-          .toList();
-      if (units.isEmpty) {
-        state = state.copyWith(restoring: false);
-        return;
-      }
-      final resultJson = payload['result'] as Map<String, dynamic>?;
-      final syllabusFindings =
-          (payload['syllabusFindings'] as List<dynamic>?)
-              ?.map(
-                (entry) => DeterministicFinding.fromJson(
-                  entry as Map<String, dynamic>,
-                ),
-              )
-              .toList(growable: false) ??
-          const <DeterministicFinding>[];
-      // M2 reference findings: written by Round 5+ snapshots. Snapshots
-      // without the key (Round ≤4) round-trip as an empty list so the
-      // dashboard renders no M2 rows for older sessions instead of breaking.
-      final referenceFindings =
-          (payload['referenceFindings'] as List<dynamic>?)
-              ?.map(
-                (entry) => DeterministicFinding.fromJson(
-                  entry as Map<String, dynamic>,
-                ),
-              )
-              .toList(growable: false) ??
-          const <DeterministicFinding>[];
-      // Sessions written before the index family existed carry no such key;
-      // they round-trip as an empty list like the M2 family did at Round 5.
-      final blueprintFindings =
-          (payload['blueprintFindings'] as List<dynamic>?)
-              ?.map(
-                (entry) => DeterministicFinding.fromJson(
-                  entry as Map<String, dynamic>,
-                ),
-              )
-              .toList(growable: false) ??
-          const <DeterministicFinding>[];
-      final findingStatus = <String, FindingStatus>{
-        for (final entry
-            in (payload['findingStatus'] as Map<dynamic, dynamic>?)?.entries ??
-                const <MapEntry<dynamic, dynamic>>[])
-          entry.key as String: FindingStatus.fromName(entry.value as String?),
-      };
-      _document = null;
-      _pdfBytes = null;
-      _documentMap = null;
-      _uploadUri = payload['uploadUri'] as String?;
-      final pageTexts =
-          (payload['pageTexts'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          const <String>[];
-      final projectInfo = _decodeProjectInfo(payload);
-      state = WorkspaceState(
-        hasDocument: true,
-        projectName: (payload['projectName'] as String?) ?? '',
-        humanIssues: _decodeHumanIssues(payload),
-        fileName: payload['fileName'] as String,
-        pageCount: payload['pageCount'] as int,
-        sizeLabel: payload['sizeLabel'] as String,
-        isDemo: payload['isDemo'] as bool,
-        units: units,
-        syllabusFindings: syllabusFindings,
-        referenceFindings: referenceFindings,
-        blueprintFindings: blueprintFindings,
-        findingStatus: findingStatus,
-        diagramPageCount: (payload['diagramPageCount'] as int?) ?? 0,
-        projectInfo: projectInfo,
-        result: resultJson == null
-            ? null
-            : WorkspaceReviewResult.fromJson(resultJson),
-        documentFingerprint: payload['documentFingerprint'] as String? ?? '',
-        parserVersion: savedParserVersion ?? '',
-        pageTexts: pageTexts,
-        uploadUri: _uploadUri,
-        imageReviewAvailable: _uploadUri != null && _uploadUri!.isNotEmpty,
-        restoring: false,
+      final name = (payload['projectName'] as String?)?.trim() ?? '';
+      final info = _decodeProjectInfo(payload);
+      final issues = _decodeHumanIssues(payload);
+      if (name.isEmpty && info == null && issues.isEmpty) return;
+      state = state.copyWith(
+        projectName: name,
+        projectInfo: info,
+        clearProjectInfo: info == null,
+        humanIssues: issues,
       );
-      // The declaration and the pages it was checked against both survived;
-      // recompute so a future-schema form payload (decoded as null above)
-      // cannot leave §F.3 findings that nobody can re-verify behind.
+      // §F.3 has no page texts to compare against before a document is loaded;
+      // recomputing keeps the rule "findings always travel with the
+      // declaration that justified them" true even on this path.
       _refreshProjectInfoFindings();
     } on Object {
-      state = state.copyWith(restoring: false);
+      // A draft is a convenience, not a dependency: an unreadable one must
+      // never block the app from starting.
     }
   }
 
@@ -1984,6 +1911,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       return false;
     }
     await loadHistory();
+    await _loadRecentSessions();
     return true;
   }
 }

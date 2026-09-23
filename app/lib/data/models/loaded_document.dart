@@ -20,7 +20,7 @@ class LoadedDocument {
     /// M2 reference-check results — duplicate ids, missing postconditions.
     /// Lives next to `findings` (F7/F8/F9) so a view that already knows the
     /// syllabus family does not need a second parameter to render both.
-    /// Empty list keeps older snapshots valid; the dashboard surfaces
+    /// Empty list keeps older saved sessions valid; the dashboard surfaces
     /// reference findings under their own heading via [CheckId.isReferenceCheck].
     this.referenceFindings = const <DeterministicFinding>[],
 

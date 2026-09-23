@@ -76,13 +76,31 @@ void main() {
     test('the history survives closing and reopening the database', () async {
       final first = await open();
       await first.save(_session('a', minute: 3));
-      await first.saveSnapshot('{"units":[]}');
+      await first.saveDraft('{"projectName":"Đợt 1"}');
       await first.close();
 
       final second = await open();
       addTearDown(second.close);
       expect((await second.list()).map((s) => s.id), ['a']);
-      expect(await second.loadSnapshot(), '{"units":[]}');
+      expect(await second.loadDraft(), '{"projectName":"Đợt 1"}');
+    });
+
+    test('listRecent reads only the newest rows asked for', () async {
+      final store = await open();
+      addTearDown(store.close);
+      for (var index = 0; index < 5; index++) {
+        await store.save(_session('s$index', minute: index));
+      }
+
+      expect((await store.listRecent(2)).map((s) => s.id), ['s4', 's3']);
+      expect(await store.listRecent(0), isEmpty);
+      expect((await store.listRecent(50)).map((s) => s.id), [
+        's4',
+        's3',
+        's2',
+        's1',
+        's0',
+      ]);
     });
 
     test('keeps only the newest 30 sessions, by deleting records', () async {
@@ -114,27 +132,25 @@ void main() {
       },
     );
 
-    test('snapshot round-trip, replace, and clear', () async {
+    test('draft round-trip and replace', () async {
       final store = await open();
       addTearDown(store.close);
-      expect(await store.loadSnapshot(), isNull);
+      expect(await store.loadDraft(), isNull);
 
-      await store.saveSnapshot('{"a":1}');
-      expect(await store.loadSnapshot(), '{"a":1}');
+      await store.saveDraft('{"projectName":"Đợt 1"}');
+      expect(await store.loadDraft(), '{"projectName":"Đợt 1"}');
 
-      await store.saveSnapshot('{"a":2}');
-      expect(await store.loadSnapshot(), '{"a":2}');
-
-      await store.clearSnapshot();
-      expect(await store.loadSnapshot(), isNull);
+      // Step 1 can be re-run with a new name; the draft replaces, never stacks.
+      await store.saveDraft('{"projectName":"Đợt 2"}');
+      expect(await store.loadDraft(), '{"projectName":"Đợt 2"}');
     });
 
-    test('an empty snapshot value is not mistaken for a real one', () async {
+    test('an empty draft value is not mistaken for a real one', () async {
       final store = await open();
       addTearDown(store.close);
       await store.putRawRecord('placeholder', const {});
-      await store.saveSnapshot('');
-      expect(await store.loadSnapshot(), isNull);
+      await store.saveDraft('');
+      expect(await store.loadDraft(), isNull);
     });
   });
 
@@ -143,20 +159,18 @@ void main() {
       SharedPreferences.setMockInitialValues(<String, Object>{});
     });
 
-    test('imports the legacy history and snapshot exactly once', () async {
+    test('imports the legacy history exactly once', () async {
       final legacy = SharedPreferencesSessionStore(
         await SharedPreferences.getInstance(),
       );
       await legacy.save(_session('old-1', minute: 1));
       await legacy.save(_session('old-2', minute: 2));
-      await legacy.saveSnapshot('{"legacy":true}');
 
       final store = await open();
       addTearDown(store.close);
       expect(await store.importLegacy(legacy), isTrue);
 
       expect((await store.list()).map((s) => s.id), ['old-2', 'old-1']);
-      expect(await store.loadSnapshot(), '{"legacy":true}');
       // The legacy copy is left alone: a downgrade still finds its history.
       expect((await legacy.list()).map((s) => s.id), ['old-2', 'old-1']);
 
@@ -165,6 +179,26 @@ void main() {
       await store.delete('old-1');
       expect(await store.importLegacy(legacy), isFalse);
       expect((await store.list()).map((s) => s.id), ['old-2']);
+    });
+
+    test('the legacy workspace snapshot is not imported as a draft', () async {
+      // The old store kept a whole workspace (~1 MB on OTES) at this key so a
+      // restart resumed the last session. Nothing reads one any more (decision
+      // 2026-09-23) — and the draft is a different shape at a different key —
+      // so importing it would persist megabytes no code can use.
+      SharedPreferences.setMockInitialValues({
+        'srs.workspace.snapshot':
+            '{"units":[{"key":"uc-1"}],"projectName":"Đợt 1"}',
+      });
+      final legacy = SharedPreferencesSessionStore(
+        await SharedPreferences.getInstance(),
+      );
+
+      final store = await open();
+      addTearDown(store.close);
+      await store.importLegacy(legacy);
+
+      expect(await store.loadDraft(), isNull);
     });
 
     test('leaves a database that already has sessions untouched', () async {
@@ -246,6 +280,10 @@ class _ExplodingStore implements SessionStore {
   Future<List<SavedSession>> list() async => throw StateError('unreadable');
 
   @override
+  Future<List<SavedSession>> listRecent(int limit) async =>
+      throw StateError('unreadable');
+
+  @override
   Future<SavedSession?> open(String id) async => throw StateError('unreadable');
 
   @override
@@ -256,12 +294,9 @@ class _ExplodingStore implements SessionStore {
   Future<void> delete(String id) async => throw StateError('unreadable');
 
   @override
-  Future<String?> loadSnapshot() async => throw StateError('unreadable');
+  Future<String?> loadDraft() async => throw StateError('unreadable');
 
   @override
-  Future<void> saveSnapshot(String snapshotJson) async =>
+  Future<void> saveDraft(String draftJson) async =>
       throw StateError('unreadable');
-
-  @override
-  Future<void> clearSnapshot() async => throw StateError('unreadable');
 }

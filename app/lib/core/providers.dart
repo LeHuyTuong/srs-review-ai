@@ -204,7 +204,7 @@ final documentMapServiceProvider = Provider<DocumentMapService?>((ref) {
 });
 
 /// Overridden in `main()` with the instance awaited before `runApp`, so the
-/// workspace can restore its snapshot synchronously from the first build.
+/// session store can read the draft synchronously from the first build.
 /// Tests override [sessionStoreProvider] with an in-memory store instead.
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError(

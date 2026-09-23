@@ -139,25 +139,18 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.byKey(const Key('run-summary-bar')), findsOneWidget);
 
-    // Reopening the workspace restores units AND the persisted result. The bar
-    // describes the run that just finished in THIS session, so a restored one
-    // must not resurrect a summary of a run the user cannot see.
-    final reopened = _container(store);
-    addTearDown(reopened.dispose);
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: reopened,
-        child: MaterialApp.router(routerConfig: buildRouter()),
-      ),
-    );
-    await _pumpWhile(
-      tester,
-      () => reopened.read(workspaceViewModelProvider).restoring,
-    );
+    // A restart no longer auto-restores the snapshot (decision 2026-09-23);
+    // reopening the saved session from History is the way back. The bar
+    // describes the run that just finished in THIS context, so a reopened
+    // session must not resurrect a summary of a run the user never saw.
+    final vm = container.read(workspaceViewModelProvider.notifier);
+    final session = container.read(workspaceViewModelProvider).history.first;
+    expect(await vm.openSession(session.id), isTrue);
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(reopened.read(workspaceViewModelProvider).hasDocument, isTrue);
-    expect(reopened.read(workspaceViewModelProvider).hasResult, isTrue);
+    final state = container.read(workspaceViewModelProvider);
+    expect(state.hasDocument, isTrue);
+    expect(state.hasResult, isTrue);
     expect(find.byKey(const Key('run-summary-bar')), findsNothing);
 
     await tester.pump(const Duration(seconds: 5));

@@ -49,10 +49,10 @@ List<String> reportLimitations({required bool offline}) => [
       'pagination.',
   offline
       ? 'Offline mock review sends no model requests; source bytes are '
-            'never saved in snapshots or sessions.'
+            'never saved in a saved session.'
       : 'Online PDF reviews may send bounded page images plus requirement '
-            'text to the proxy; source bytes are never saved in snapshots or '
-            'sessions. DOCX, demo, and restored sessions are text-only.',
+            'text to the proxy; source bytes are never saved in a saved '
+            'session. DOCX, demo, and restored sessions are text-only.',
   'Demo content is synthetic, not measured OTES evidence.',
   'Priority coverage is one document-level verdict (srs-writer criterion '
       '7): it proves the field exists somewhere, never that every '
@@ -100,8 +100,8 @@ String buildMarkdownReport({
   int imageReviewedCount = 0,
 
   /// Full page-image selection, extraction, and request coverage for the latest
-  /// run. This is transient report context and is never persisted with the
-  /// snapshot or saved session.
+  /// run. This is transient report context and is never persisted with a saved
+  /// session.
   PageImageCoverage? imageCoverage,
 
   /// Reviewer-authored issues (Report tab) — the "con người" rows beside the
@@ -440,9 +440,7 @@ String buildMarkdownReport({
 
   lines
     ..add('')
-    ..add(
-      '## Human-reported issues (${humanIssues.length})',
-    )
+    ..add('## Human-reported issues (${humanIssues.length})')
     ..add('')
     ..add('Entered by a reviewer in the app — not model output.')
     ..add('')
@@ -591,9 +589,7 @@ Map<String, dynamic> buildJsonReport({
       ...syllabusFindings,
       ...referenceFindings,
     ]).toJson(),
-    'human_issues': [
-      for (final issue in humanIssues) issue.toJson(),
-    ],
+    'human_issues': [for (final issue in humanIssues) issue.toJson()],
     'deterministic_checks': [
       for (final finding in syllabusFindings)
         {

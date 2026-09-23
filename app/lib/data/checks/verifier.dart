@@ -30,7 +30,7 @@ class Verifier {
   /// Returns the new status map after a deterministic re-run.
   ///
   /// Inputs:
-  ///   - [previousStatuses]: id → status, from the last saved snapshot
+  ///   - [previousStatuses]: id → status, from the last saved session
   ///     or from a fresh import. May contain BOTH deterministic keys
   ///     (`<wire>:<subject>`) and AI finding ids (`SEQ-CLS-01`); the
   ///     AI ids are passed through unchanged because no deterministic

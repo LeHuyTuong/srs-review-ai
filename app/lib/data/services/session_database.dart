@@ -7,8 +7,10 @@
 ///
 ///   * one record per session, keyed by its id — saving one session writes one
 ///     small record, whatever the history weighs;
-///   * the snapshot lives beside it in its own record, so a restore no longer
-///     shares a value with a 30-session list;
+///   * the workspace DRAFT (step-1 project + step-2 declaration) lives beside
+///     it in its own record, so it no longer shares a value with a 30-session
+///     list — and it is small, because since 2026-09-23 the app no longer
+///     reopens a whole previous workspace by itself;
 ///   * the 30-session cap is enforced by deleting the coldest RECORDS instead of
 ///     rewriting a list that silently drops them.
 ///
@@ -82,7 +84,7 @@ class SessionDatabaseStore implements SessionStore {
   );
 
   static const String _createdAtField = 'createdAt';
-  static const String _snapshotRecord = 'workspaceSnapshot';
+  static const String _draftRecord = 'workspaceDraft';
   static const String _legacyImportRecord = 'legacyImportedAt';
 
   final Database _db;
@@ -169,20 +171,42 @@ class SessionDatabaseStore implements SessionStore {
   }
 
   @override
-  Future<String?> loadSnapshot() async {
-    final value = await _meta.record(_snapshotRecord).get(_db);
+  Future<List<SavedSession>> listRecent(int limit) async {
+    if (limit <= 0) return const [];
+    final snapshots = await _sessions.find(
+      _db,
+      // The finder stops at the requested rows: the landing card asks for
+      // three titles and must not read 27 more payloads to do it.
+      finder: Finder(
+        sortOrders: [SortOrder(_createdAtField, false)],
+        limit: limit,
+      ),
+    );
+    final sessions = <SavedSession>[];
+    for (final snapshot in snapshots) {
+      try {
+        sessions.add(
+          SavedSession.fromJson(Map<String, dynamic>.from(snapshot.value)),
+        );
+      } on Object {
+        // Same rule as list(): a row that no longer decodes is skipped, never
+        // allowed to take the card down.
+        continue;
+      }
+    }
+    return sessions;
+  }
+
+  @override
+  Future<String?> loadDraft() async {
+    final value = await _meta.record(_draftRecord).get(_db);
     if (value == null || value.isEmpty) return null;
     return value;
   }
 
   @override
-  Future<void> saveSnapshot(String snapshotJson) async {
-    await _guard(() => _meta.record(_snapshotRecord).put(_db, snapshotJson));
-  }
-
-  @override
-  Future<void> clearSnapshot() async {
-    await _guard(() => _meta.record(_snapshotRecord).delete(_db));
+  Future<void> saveDraft(String draftJson) async {
+    await _guard(() => _meta.record(_draftRecord).put(_db, draftJson));
   }
 
   // ------------------------------------------------------------------ //
@@ -196,6 +220,12 @@ class SessionDatabaseStore implements SessionStore {
   /// idempotent because the flag is written either way. Rows that cannot be
   /// decoded are skipped by `list()` itself, so a damaged legacy copy imports
   /// exactly the rows that were still good.
+  ///
+  /// Sessions only. The old store also kept a whole-workspace snapshot
+  /// (`srs.workspace.snapshot`) so a restart resumed the last session; since
+  /// 2026-09-23 nothing reads one (History → openSession is the way back), so
+  /// importing it would write a megabyte no code can use. What the new build
+  /// keeps from the old one is the paid-for history.
   Future<bool> importLegacy(SessionStore legacy) async {
     if (await _meta.record(_legacyImportRecord).get(_db) != null) return false;
     try {
@@ -203,10 +233,6 @@ class SessionDatabaseStore implements SessionStore {
       if (existing == 0) {
         for (final session in await legacy.list()) {
           await save(session);
-        }
-        final snapshot = await legacy.loadSnapshot();
-        if (snapshot != null && await loadSnapshot() == null) {
-          await saveSnapshot(snapshot);
         }
       }
     } on Object {

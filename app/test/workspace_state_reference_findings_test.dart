@@ -71,11 +71,11 @@ void main() {
       expect(decoded.actual, 7);
     });
 
-    test('snapshot JSON carries referenceFindings when state holds some', () {
-      // The JSON shape `_saveSnapshot` writes for the M2 family. Asserting
-      // the key exists on the wire is the smallest check that future
-      // readers (a future round's restore, a server-side verifier, the
-      // ledger dashboard importer) will see what we mean to send.
+    test('the saved-session JSON carries referenceFindings', () {
+      // The JSON shape `_saveSession` writes for the M2 family. Asserting the
+      // key exists on the wire is the smallest check that future readers (a
+      // reopen through History, a server-side verifier, the ledger dashboard
+      // importer) will see what we mean to send.
       const reference = <DeterministicFinding>[
         DeterministicFinding(
           check: CheckId.duplicateIds,
@@ -94,7 +94,7 @@ void main() {
         referenceFindings: reference,
       );
 
-      // Mirror the exact shape _saveSnapshot writes — Round 5 keeps the
+      // Mirror the exact shape _saveSession writes — Round 5 keeps the
       // existing syllabus block and adds referenceFindings alongside.
       final payload = jsonEncode({
         'fileName': state.fileName,
