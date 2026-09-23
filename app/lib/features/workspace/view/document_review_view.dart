@@ -12,6 +12,7 @@ import '../../../core/layout/app_viewport.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
+import '../../../core/widgets/chrome_insets.dart';
 import '../models/workspace_tab.dart';
 import '../view_model/workspace_tab_controller.dart';
 import '../view_model/workspace_view_model.dart';
@@ -115,73 +116,20 @@ class DocumentReviewView extends ConsumerWidget {
       );
     }
 
+    // Tab "Kết quả & Lỗi" trên layout rộng: danh sách kết quả review là nội
+    // dung chính của màn hình, nên nó lấp đầy phần viewport còn lại và tự
+    // cuộn — thay vì bị đẩy xuống dưới fold của một trang cuộn dài (heading +
+    // metric cards + cột readiness 300px chen ngang). Layout hẹp giữ nguyên
+    // trang cuộn cũ: phone không đủ chỗ cho một vùng kết quả cố định.
+    if (tab == WorkspaceTab.findings && showInnerSplit) {
+      return _findingsFullPage(context, ref, state, tab, viewport);
+    }
+
     return WorkspacePage(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PageHeading(
-            kicker: 'Đồng hành trước khi nộp bài',
-            title: 'Đánh giá tài liệu SRS',
-            subtitle: 'Kiểm tra & chấm điểm chi tiết theo chuẩn FPTU Capstone',
-            actions: [
-              if (state.hasDocument)
-                WButton.secondary(
-                  label: 'Xem trước tài liệu',
-                  icon: Icons.menu_book_outlined,
-                  onPressed: () => showDocumentPreviewModal(context, ref),
-                ),
-              WButton.secondary(
-                label: 'Xuất báo cáo',
-                icon: Icons.download_outlined,
-                // Gated on a finished run, mirroring the Ctrl/Cmd+E shortcut
-                // (workspace_shell.dart) and step 4 of the workflow steps
-                // below: an export with no review behind it used to render an
-                // all-zero report that looked like a real one.
-                onPressed: state.hasResult
-                    ? () => showExportModal(context, ref)
-                    : null,
-              ),
-              WButton.primary(
-                label: 'Tải file mới',
-                icon: Icons.add,
-                onPressed: () => showImportModal(context, ref),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          WorkflowSteps(
-            currentStep: _workflowStepFor(tab),
-            onStepTap: (step) {
-              switch (step) {
-                case 1:
-                  showImportModal(context, ref);
-                case 2:
-                  ref
-                      .read(workspaceTabProvider.notifier)
-                      .select(WorkspaceTab.inventory);
-                case 3:
-                  if (state.hasResult) {
-                    ref
-                        .read(workspaceTabProvider.notifier)
-                        .select(WorkspaceTab.findings);
-                  } else {
-                    showReviewModal(context, ref);
-                  }
-                case 4:
-                  if (state.hasResult) showExportModal(context, ref);
-              }
-            },
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          _DocumentCard(
-            fileName: state.fileName,
-            pageCount: state.pageCount,
-            sizeLabel: state.sizeLabel,
-            isDemo: state.isDemo,
-            onPreview: () => showDocumentPreviewModal(context, ref),
-            onInfo: () => showDocumentInfoModal(context, ref),
-            onReplace: () => showImportModal(context, ref),
-          ),
+          ..._headerChildren(context, ref, state, tab),
           const SizedBox(height: AppSpacing.sm),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -292,6 +240,195 @@ class DocumentReviewView extends ConsumerWidget {
       ),
     );
   }
+
+  /// Header chung của màn review: heading + workflow steps + document card.
+  /// Tách ra để trang full-size của tab Findings dùng lại y hệt — hai đường
+  /// render chỉ khác nhau ở phần THÂN (metric cards + split readiness vs.
+  /// vùng kết quả full-height), header mà lệch nhau là hai màn hình khác
+  /// hẳn nhau.
+  List<Widget> _headerChildren(
+    BuildContext context,
+    WidgetRef ref,
+    WorkspaceState state,
+    WorkspaceTab tab,
+  ) => [
+    PageHeading(
+      kicker: 'Đồng hành trước khi nộp bài',
+      title: 'Đánh giá tài liệu SRS',
+      subtitle: 'Kiểm tra & chấm điểm chi tiết theo chuẩn FPTU Capstone',
+      actions: [
+        if (state.hasDocument)
+          WButton.secondary(
+            label: 'Xem trước tài liệu',
+            icon: Icons.menu_book_outlined,
+            onPressed: () => showDocumentPreviewModal(context, ref),
+          ),
+        WButton.secondary(
+          label: 'Xuất báo cáo',
+          icon: Icons.download_outlined,
+          // Gated on a finished run, mirroring the Ctrl/Cmd+E shortcut
+          // (workspace_shell.dart) and step 4 of the workflow steps
+          // below: an export with no review behind it used to render an
+          // all-zero report that looked like a real one.
+          onPressed: state.hasResult
+              ? () => showExportModal(context, ref)
+              : null,
+        ),
+        WButton.primary(
+          label: 'Tải file mới',
+          icon: Icons.add,
+          onPressed: () => showImportModal(context, ref),
+        ),
+      ],
+    ),
+    const SizedBox(height: AppSpacing.sm),
+    WorkflowSteps(
+      currentStep: _workflowStepFor(tab),
+      onStepTap: (step) {
+        switch (step) {
+          case 1:
+            showImportModal(context, ref);
+          case 2:
+            ref
+                .read(workspaceTabProvider.notifier)
+                .select(WorkspaceTab.inventory);
+          case 3:
+            if (state.hasResult) {
+              ref
+                  .read(workspaceTabProvider.notifier)
+                  .select(WorkspaceTab.findings);
+            } else {
+              showReviewModal(context, ref);
+            }
+          case 4:
+            if (state.hasResult) showExportModal(context, ref);
+        }
+      },
+    ),
+    const SizedBox(height: AppSpacing.sm),
+    _DocumentCard(
+      fileName: state.fileName,
+      pageCount: state.pageCount,
+      sizeLabel: state.sizeLabel,
+      isDemo: state.isDemo,
+      onPreview: () => showDocumentPreviewModal(context, ref),
+      onInfo: () => showDocumentInfoModal(context, ref),
+      onProjectInfo: () => showProjectInfoFormModal(context, ref),
+      onReplace: () => showImportModal(context, ref),
+    ),
+    // Restored sessions keep the paid-for results but not the file bytes.
+    // Say so right under the document card so "đánh giá lại" asks for an
+    // explicit re-import up front, instead of only failing later inside
+    // runReview (task trap: session restore never keeps pdfBytes).
+    if (ref.read(workspaceViewModelProvider.notifier).needsReImport) ...[
+      const SizedBox(height: AppSpacing.sm),
+      Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: context.workspaceColors.amberBg,
+          borderRadius: AppRadius.boxSm,
+          border: Border.all(color: context.workspaceColors.amberBorder),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              size: 17,
+              color: context.workspaceColors.amber,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                'Phiên này được khôi phục từ lịch sử — file gốc không còn '
+                'trong bộ nhớ. Nhập lại file để đánh giá tiếp; kết quả cũ '
+                'được giữ nguyên.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: context.workspaceColors.ink),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            WButton.secondary(
+              label: 'Nhập lại file',
+              icon: Icons.upload_file_outlined,
+              onPressed: () => showImportModal(context, ref),
+            ),
+          ],
+        ),
+      ),
+    ],
+  ];
+
+  /// Trang full-size cho tab "Kết quả & Lỗi" ở layout rộng: header cố định
+  /// ở trên, panel tab chiếm TRỌN phần viewport còn lại và tự cuộn bên trong
+  /// (xem `_TabbedPanel.fillHeight`). Không còn SingleChildScrollView bao cả
+  /// trang — đó chính là thứ khiến danh sách kết quả bị đẩy xuống dưới fold.
+  ///
+  /// Metric cards và cột readiness 300px cố ý vắng mặt ở chế độ này: chúng
+  /// phục vụ tab Inventory, còn readiness đã có rail 360px của shell ở cửa sổ
+  /// đủ rộng. Nhường chỗ cho kết quả là mục đích của màn hình này.
+  Widget _findingsFullPage(
+    BuildContext context,
+    WidgetRef ref,
+    WorkspaceState state,
+    WorkspaceTab tab,
+    AppViewportData viewport,
+  ) {
+    final insets = ChromeInsets.of(context);
+    // KHÔNG dùng ContentShell ở đây: nó chỉ ép minHeight (maxHeight vẫn vô
+    // hạn, xem comment trong content_shell.dart) — Expanded bên trong Column
+    // với maxHeight vô hạn là nổ layout ngay. Trang này cần chiều cao CHẶT,
+    // nên tự LayoutBuilder và SizedBox(height:) khi constraint hữu hạn.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Ngoài shell (test pump widget đứng một mình trong scroll view) không
+        // có chiều cao giới hạn — không thể "chiếm trọn viewport", lùi về
+        // chiều cao tự nhiên đúng như trang cuộn cũ.
+        final bounded = constraints.maxHeight.isFinite;
+        final panel = _TabbedPanel(
+          tab: tab,
+          onTabChanged: (next) =>
+              ref.read(workspaceTabProvider.notifier).select(next),
+          fillHeight: bounded,
+        );
+        final column = Padding(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.lg + insets.top,
+            AppSpacing.lg,
+            AppSpacing.lg + insets.bottom,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ..._headerChildren(context, ref, state, tab),
+              const SizedBox(height: AppSpacing.md),
+              // Column này có crossAxisAlignment.start nên Expanded chỉ siết
+              // chiều cao; SizedBox width infinity để panel lấy trọn chiều ngang.
+              if (bounded)
+                Expanded(
+                  child: SizedBox(width: double.infinity, child: panel),
+                )
+              else
+                panel,
+            ],
+          ),
+        );
+        return Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: viewport.contentMaxWidth),
+            child: bounded
+                ? SizedBox(height: constraints.maxHeight, child: column)
+                : column,
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _DocumentCard extends StatelessWidget {
@@ -302,6 +439,7 @@ class _DocumentCard extends StatelessWidget {
     required this.isDemo,
     required this.onPreview,
     required this.onInfo,
+    required this.onProjectInfo,
     required this.onReplace,
   });
 
@@ -311,6 +449,7 @@ class _DocumentCard extends StatelessWidget {
   final bool isDemo;
   final VoidCallback onPreview;
   final VoidCallback onInfo;
+  final VoidCallback onProjectInfo;
   final VoidCallback onReplace;
 
   @override
@@ -327,7 +466,14 @@ class _DocumentCard extends StatelessWidget {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final compact = constraints.maxWidth < 560;
+          // 720, not the old 560: the actions row grew a FOURTH control
+          // (project-info form) plus the demo badge, and at a ~600px panel
+          // the Expanded(heading) was left with 118px — less than the
+          // "Tài liệu mẫu" badge alone needs (~162px), which overflowed the
+          // filename Row by 44px (first_run_guidance_test regression).
+          // Below the threshold the card stacks filename over actions, so
+          // the heading always gets the full width when it is tight.
+          final compact = constraints.maxWidth < 720;
           final tile = Container(
             width: 42,
             height: 46,
@@ -418,6 +564,15 @@ class _DocumentCard extends StatelessWidget {
                 onPressed: onInfo,
               ),
               IconButton(
+                tooltip: 'Thông tin dự án (form khai báo)',
+                icon: const Icon(Icons.assignment_outlined),
+                iconSize: 18,
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                color: colors.muted,
+                onPressed: onProjectInfo,
+              ),
+              IconButton(
                 tooltip: 'Thay tài liệu',
                 icon: const Icon(Icons.swap_horiz),
                 iconSize: 18,
@@ -462,16 +617,32 @@ class _DocumentCard extends StatelessWidget {
 }
 
 class _TabbedPanel extends ConsumerWidget {
-  const _TabbedPanel({required this.tab, required this.onTabChanged});
+  const _TabbedPanel({
+    required this.tab,
+    required this.onTabChanged,
+    this.fillHeight = false,
+  });
 
   final WorkspaceTab tab;
   final ValueChanged<WorkspaceTab> onTabChanged;
+
+  /// Khi panel đứng trong một vùng có chiều cao CỐ ĐỊNH (trang full-size của
+  /// tab Findings trên desktop), nội dung tab phải tự cuộn trong Expanded —
+  /// để nguyên Column con cao tự nhiên là "unbounded height" trong bounded
+  /// parent và nổ layout ngay.
+  final bool fillHeight;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(workspaceViewModelProvider);
     final colors = context.workspaceColors;
     final theme = Theme.of(context);
+
+    final content = switch (tab) {
+      WorkspaceTab.inventory => const InventoryTab(),
+      WorkspaceTab.findings => const FindingsTab(),
+      WorkspaceTab.syllabus => const SyllabusTab(),
+    };
 
     return WPanel(
       child: Column(
@@ -571,57 +742,134 @@ class _TabbedPanel extends ConsumerWidget {
               ],
             ),
           ),
-          switch (tab) {
-            WorkspaceTab.inventory => const InventoryTab(),
-            WorkspaceTab.findings => const FindingsTab(),
-            WorkspaceTab.syllabus => const SyllabusTab(),
-          },
+          if (fillHeight)
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                child: content,
+              ),
+            )
+          else
+            content,
         ],
       ),
     );
   }
 }
 
-/// Three-step orientation card shown only while no document is loaded.
+/// Guided workflow shown only while no document is loaded — the three
+/// steps the product flow is built on (Bước 1→3): create a project,
+/// declare the project info, submit the SRS.
 ///
-/// The 4-step [WorkflowSteps] stepper lives above the document card, which
-/// means it only renders after `hasDocument` — a first-time user saw the
-/// empty state with two buttons and no story. This card is that story,
-/// phrased as outcomes rather than UI labels.
-class _FirstRunChecklist extends StatelessWidget {
-  const _FirstRunChecklist();
+/// Replaces the old read-only "How it works" checklist: a first-time user
+/// now gets ACTIONS with a visible done/current state, and the container
+/// created in step 1 is what the History tab groups sessions under, so
+/// results from different submission rounds never mix. The 4-step
+/// [WorkflowSteps] stepper still takes over above the document card once
+/// `hasDocument` — this card cannot outlive step 3 by construction.
+class _ProjectWorkflow extends ConsumerStatefulWidget {
+  const _ProjectWorkflow();
 
-  static const _steps = [
-    (
-      Icons.upload_file_outlined,
-      'Import your SRS',
-      'PDF or DOCX, up to 30 MB. We build an inventory of requirement units '
-          '— nothing is reviewed yet.',
-    ),
-    (
-      Icons.checklist_outlined,
-      'Pick units & run a review',
-      'A "unit" is one reviewable requirement (use case, rule, or '
-          'statement). Up to ${AppConfig.maxRequirementsPerRun} per run; '
-          'progress stays on screen.',
-    ),
-    (
-      Icons.fact_check_outlined,
-      'Read findings & export',
-      'Every finding carries an exact quote from your document. Export the '
-          'report once a run has finished.',
-    ),
-  ];
+  @override
+  ConsumerState<_ProjectWorkflow> createState() => _ProjectWorkflowState();
+}
+
+class _ProjectWorkflowState extends ConsumerState<_ProjectWorkflow> {
+  /// Kept across builds: reacting to state changes (the step flipping to
+  /// done) must never wipe the name the user is still typing.
+  final _nameController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.workspaceColors;
     final theme = Theme.of(context);
+    final state = ref.watch(workspaceViewModelProvider);
+    final viewModel = ref.read(workspaceViewModelProvider.notifier);
+
+    final step1Done = state.projectName.isNotEmpty;
+    final step2Done = state.projectInfo != null;
+    // Step 3 completes the moment a document loads — which unmounts this
+    // whole empty state, so it always renders as the remaining action.
+
+    Widget step({
+      required int number,
+      required String title,
+      required String description,
+      required bool done,
+      required bool current,
+      required Widget action,
+    }) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: done
+                  ? colors.sageBg
+                  : current
+                  ? colors.brand.withValues(alpha: 0.12)
+                  : colors.canvas,
+              border: Border.all(
+                color: done
+                    ? colors.sage
+                    : current
+                    ? colors.brand
+                    : colors.border,
+              ),
+            ),
+            child: done
+                ? Icon(Icons.check, size: 14, color: colors.sage)
+                : Text(
+                    '$number',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: current ? colors.brand : colors.muted,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: colors.ink,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  description,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.muted,
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                action,
+              ],
+            ),
+          ),
+        ],
+      );
+    }
     return Semantics(
       container: true,
-      label: 'Getting started: three steps',
+      label: 'Getting started: create project, declare info, submit SRS',
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 520),
+        constraints: const BoxConstraints(maxWidth: 560),
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
           color: colors.canvas,
@@ -633,44 +881,102 @@ class _FirstRunChecklist extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'How it works',
+              'Lần đầu? Làm theo 3 bước',
               style: theme.textTheme.labelMedium?.copyWith(
                 color: colors.muted,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: AppSpacing.sm),
-            for (var i = 0; i < _steps.length; i++) ...[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(height: AppSpacing.md),
+            step(
+              number: 1,
+              title: 'Tạo project mới',
+              description:
+                  'Gom kết quả theo từng đợt nộp — lịch sử đánh giá không '
+                  'lẫn giữa các project.',
+              done: step1Done,
+              current: !step1Done,
+              action: Row(
                 children: [
-                  Icon(_steps[i].$1, size: 16, color: colors.sage),
-                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${i + 1}. ${_steps[i].$2}',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: colors.ink,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          _steps[i].$3,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colors.muted,
-                            height: 1.5,
-                          ),
-                        ),
-                      ],
+                    child: TextField(
+                      controller: _nameController,
+                      onChanged: (_) => setState(() {}),
+                      decoration: InputDecoration(
+                        hintText: 'Tên project, ví dụ: Đợt 1 — OTES',
+                        isDense: true,
+                        border: const OutlineInputBorder(),
+                      ),
                     ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  WButton.primary(
+                    label: step1Done ? 'Cập nhật' : 'Tạo project',
+                    icon: step1Done ? Icons.check : Icons.add,
+                    onPressed: () {
+                      final name = _nameController.text.trim();
+                      if (name.isEmpty) return;
+                      viewModel.createProject(name);
+                      FocusScope.of(context).unfocus();
+                    },
                   ),
                 ],
               ),
-              if (i < _steps.length - 1) const SizedBox(height: AppSpacing.sm),
-            ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            step(
+              number: 2,
+              title: 'Điền thông tin đồ án',
+              description: step2Done
+                  ? 'Khai báo: ${state.projectInfo!.projectName} · GVHD '
+                        '${state.projectInfo!.supervisor}'
+                  : 'Tên đề tài, GVHD, thành viên — đối chiếu với trang bìa '
+                        'của tài liệu (mục §F.3).',
+              done: step2Done,
+              current: step1Done && !step2Done,
+              action: step2Done
+                  ? WButton.secondary(
+                      label: 'Cập nhật thông tin',
+                      icon: Icons.edit_outlined,
+                      onPressed: () => showProjectInfoFormModal(context, ref),
+                    )
+                  : WButton.primary(
+                      label: 'Điền thông tin',
+                      icon: Icons.edit_outlined,
+                      onPressed: () => showProjectInfoFormModal(context, ref),
+                    ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            step(
+              number: 3,
+              title: 'Nộp file SRS đánh giá',
+              description:
+                  'PDF/DOCX tối đa 30 MB. Một "unit" là một yêu cầu có thể '
+                  'chấm (use case, rule, statement) — mỗi lượt tối đa '
+                  '${AppConfig.maxRequirementsPerRun} unit.',
+              done: false,
+              current: step1Done && step2Done,
+              action: Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.xs,
+                children: [
+                  WButton.primary(
+                    label: 'Tải file SRS',
+                    icon: Icons.upload_file,
+                    onPressed: () => showImportModal(context, ref),
+                  ),
+                  WButton.secondary(
+                    // 'Dùng', not 'Mở': the hero dropzone already offers
+                    // 'Mở tài liệu mẫu', and workspace_shell tests tap that
+                    // label through the real tree — a second identical Text
+                    // made find.text ambiguous (4 tests failed on it).
+                    label: 'Dùng tài liệu mẫu',
+                    icon: Icons.play_arrow,
+                    onPressed: () => viewModel.loadDemo(),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -775,7 +1081,10 @@ class _HeroDropzone extends StatelessWidget {
                     WBadge(label: '.DOCX', tint: WBadgeTint.neutral),
                     WBadge(label: '.PDF', tint: WBadgeTint.neutral),
                     WBadge(
-                      label: 'Tối đa 25 MB / 300 trang',
+                      // 30, not 25: the client-side file cap was raised
+                      // 20 → 30 MB on 2026-09-10 (file_picker_service.dart);
+                      // the old number here outlived the change.
+                      label: 'Tối đa 30 MB / 300 trang',
                       tint: WBadgeTint.green,
                     ),
                     WBadge(
@@ -808,7 +1117,7 @@ class _HeroDropzone extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
           const _TrustPillars(),
           const SizedBox(height: AppSpacing.xl),
-          const _FirstRunChecklist(),
+          const _ProjectWorkflow(),
         ],
       ),
     );

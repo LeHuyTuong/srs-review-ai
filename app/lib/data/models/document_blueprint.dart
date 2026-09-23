@@ -37,6 +37,7 @@ class ArtifactRef {
     required this.normalizedCaption,
     required this.printedPage,
     this.pdfPageIndex,
+    this.foundPageIndex,
     this.sectionId,
     this.diagramKind,
   });
@@ -63,6 +64,16 @@ class ArtifactRef {
   /// Null when the caption could not be found near the printed page — the
   /// index is then a hint only and every check that needs a real page skips it.
   final int? pdfPageIndex;
+
+  /// Where the caption was found when the window search failed: 0-based page
+  /// index of a whole-body sweep, null when no body page carries it.
+  /// [pdfPageIndex] stays null either way — the artifact is unresolved
+  /// exactly as before, so every consumer needing a real page still skips
+  /// it. This second channel only tells rulebook §F.6 "moved"
+  /// (`tablePositionDrift`: caption exists far away) apart from `captionPageMismatch`
+  /// ("gone": caption nowhere), and is filled only after the ±window search
+  /// missed — so any non-null value is beyond that window by construction.
+  final int? foundPageIndex;
 
   /// Section letter/title the artifact falls in, e.g. `C`.
   final String? sectionId;

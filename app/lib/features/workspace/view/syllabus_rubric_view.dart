@@ -10,6 +10,7 @@ import '../../../core/providers.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
 import '../../../core/widgets/chrome_insets.dart';
+import '../../../data/checks/criteria_catalog.dart';
 import '../../../data/checks/rubric_config.dart';
 import 'workspace_widgets.dart';
 
@@ -143,6 +144,101 @@ class SyllabusRubricView extends ConsumerWidget {
                         ],
                       ),
                       const SizedBox(height: AppSpacing.lg),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              // The full checklist: every CheckId the app evaluates, grouped
+              // by family. Rendered from the catalog rather than written by
+              // hand here — a new check must appear for the user, and the
+              // catalog test is what forces that (see criteria_catalog.dart).
+              WPanel(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Checklist tiêu chí đánh giá SRS',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: colors.ink,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      'Toàn bộ tiêu chí ứng dụng sẽ chấm cho tài liệu của bạn. Nhóm '
+                      '"0 token" chạy ngay khi mở tài liệu; nhóm AI chỉ chạy khi '
+                      'bạn bấm chấm.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colors.muted,
+                        height: 1.7,
+                      ),
+                    ),
+                    for (final family in CriterionFamily.values) ...[
+                      const SizedBox(height: AppSpacing.lg),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              family.title,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: colors.ink,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sm,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: family == CriterionFamily.vision
+                                  ? colors.amberBg
+                                  : colors.sageBg,
+                              borderRadius: AppRadius.boxSm,
+                            ),
+                            child: Text(
+                              family.cost,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: family == CriterionFamily.vision
+                                    ? colors.amber
+                                    : colors.sage,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      for (final criterion in kCriteriaChecklist)
+                        if (criterion.family == family)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              top: AppSpacing.xs,
+                              left: AppSpacing.xs,
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.check_circle_outline,
+                                  size: 15,
+                                  color: colors.muted,
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: Text(
+                                    criterion.what,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colors.muted,
+                                      height: 1.6,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                     ],
                   ],
                 ),

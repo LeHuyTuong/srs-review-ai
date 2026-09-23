@@ -217,6 +217,11 @@ void main() {
         (a) => a.label == 'Table 9',
       );
       expect(table9.pdfPageIndex, isNull);
+      expect(
+        table9.foundPageIndex,
+        isNull,
+        reason: 'the sweep found it nowhere — gone, not moved',
+      );
       expect(table9.printedPage, 5);
       final table22 = blueprint.artifacts.firstWhere(
         (a) => a.label == 'Table 22',
@@ -226,7 +231,49 @@ void main() {
         5,
         reason: 'unaffected neighbours still resolve',
       );
+      expect(
+        table22.foundPageIndex,
+        isNull,
+        reason: 'resolved artifacts skip the whole-body sweep',
+      );
     });
+
+    test(
+      'a caption moved far beyond the window is located, not resolved',
+      () {
+        final pages = [
+          ...capstonePages(),
+          'Interview notes page one.',
+          'Interview notes page two.',
+          'Interview notes page three.',
+          'Interview notes page four.',
+          'Interview notes page five.',
+          'Appendix B. Moved content\nTable 9. Unauthorized Login',
+        ];
+        pages[4] = 'A paragraph with nothing to index on it.';
+        final blueprint = build(pages);
+
+        expect(blueprint.trusted, isTrue);
+        final table9 = blueprint.artifacts.firstWhere(
+          (a) => a.label == 'Table 9',
+        );
+        expect(
+          table9.pdfPageIndex,
+          isNull,
+          reason: 'the ±3 window missed it — resolution still fails',
+        );
+        expect(
+          table9.foundPageIndex,
+          13,
+          reason: 'the whole-body sweep (rulebook §F.6) located it',
+        );
+        final table22 = blueprint.artifacts.firstWhere(
+          (a) => a.label == 'Table 22',
+        );
+        expect(table22.pdfPageIndex, 5);
+        expect(table22.foundPageIndex, isNull);
+      },
+    );
 
     test(
       'two artifacts sharing one caption still resolve to their own pages',

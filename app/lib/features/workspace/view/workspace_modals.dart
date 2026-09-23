@@ -20,6 +20,7 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
 import '../../../data/checks/rubric_config.dart';
 import '../../../data/models/deterministic_finding.dart';
+import '../../../data/models/project_info.dart';
 import '../../../data/models/review_models.dart' show Verification;
 import '../../../data/models/review_progress.dart';
 import '../models/ask_document.dart';
@@ -1578,6 +1579,20 @@ class _SyllabusCheckDetail extends StatelessWidget {
       'Caption của hình không nói đây là loại sơ đồ gì, nên hệ thống không chọn được bộ tiêu chí chấm phù hợp cho hình đó.',
     CheckId.captionPageMismatch =>
       'Mục lục ghi một số trang nhưng không tìm thấy caption ở quanh trang đó — số trang trong mục lục đã cũ so với nội dung.',
+    CheckId.coverPageInfo =>
+      'Báo cáo nộp phải khai báo trên trang bìa: tên đề tài, giảng viên hướng dẫn và nhóm/thành viên (rulebook §F.1). Kiểm tra chỉ tìm NHÃN trường trong text hai trang đầu: bìa là ảnh scan không có text thì không bị bắt, còn bìa in tên đề tài không nhãn có thể bị báo nhầm.',
+    CheckId.headerFooterConsistency =>
+      'Một dòng lặp lại ở cùng vị trí đầu/cuối trang trên nhiều trang mà đổi nội dung (khác từ, không chỉ khác số) thường là dấu hiệu ráp hai bản tài liệu — sót tên đề tài cũ hoặc header của nhóm khác (rulebook §F.2). Header đổi theo chương có thể bị báo nhầm; đây chỉ là gợi ý để kiểm tra bằng mắt.',
+    CheckId.projectInfoMismatch =>
+      'Người dùng khai báo thông tin đồ án ở form; trang bìa của file không xác nhận đúng khai báo đó — tên đề tài khớp dưới 50% từ khoá hoặc không thấy tên GVHD (rulebook §F.3). Chỉ chạy khi form đã điền; bìa scan không có text thì check im lặng. Heuristic trên text trích xuất — kiểm tra bằng mắt với bản in.',
+    CheckId.sectionOrder =>
+      'Mục lục nói chương này ở dải trang X–Y nhưng chương kế tiếp lại bắt đầu trước khi chương trước kết thúc — mục lục nói dối hoặc chương bị đặt sai chỗ (rulebook §F.4). Chỉ chạy khi mục lục đã được xác thực; check này không phán “đủ khung mẫu” (đó là missingSection).',
+    CheckId.headingNumbering =>
+      'Mục đánh số con tồn tại khi không thấy mục cha (3.1 mà không có 3), hoặc cùng một chuỗi số heading xuất hiện nhiều lần (rulebook §F.5a). So theo TỪNG cấp số (1.10 sau 1.9 là bình thường); heading không đánh số không bị chấm.',
+    CheckId.pageNumbering =>
+      'Không thấy số trang ở dòng cuối của trang nào, hoặc số trang lặp/giảm từ 3 lần trở lên (rulebook §F.5b). Heuristic trên text trích xuất — footer có thể không nằm ở dòng cuối của text layer; kiểm tra bằng mắt với bản in. Tài liệu dưới 6 trang không bị chấm.',
+    CheckId.tablePositionDrift =>
+      'Mục lục khai bảng/hình ở một trang nhưng caption không nằm quanh trang đó (cửa sổ ±3) trong khi tìm thấy ở nơi khác trong tài liệu — bảng bị dời mà mục lục chưa Update Field (rulebook §F.6). Không có List of Tables (DOCX/PDF không mục lục) thì check im lặng; bảng không được đánh caption thì check không nhìn thấy. Chạy khi mục lục đã được xác thực.',
   };
 
   String get _fix => switch (finding.check) {
@@ -1615,6 +1630,20 @@ class _SyllabusCheckDetail extends StatelessWidget {
       'Ghi rõ loại sơ đồ trong caption, ví dụ: “Figure 12. Class Diagram of the booking module”.',
     CheckId.captionPageMismatch =>
       'Cập nhật lại mục lục sau khi sửa nội dung: chọn mục lục trong Word rồi bấm Update Field, hoặc xuất lại PDF từ file Word đã cập nhật.',
+    CheckId.coverPageInfo =>
+      'Mở trang bìa trong file gốc và bổ sung trường còn thiếu theo mẫu bìa của trường: Project name/Tên đề tài, Supervisor/Giảng viên hướng dẫn, và danh sách thành viên nhóm kèm mã sinh viên.',
+    CheckId.headerFooterConsistency =>
+      'Tìm các trang mang biến thể còn lại (dùng chính chuỗi trong thông báo để tìm), sửa header/footer về một nội dung thống nhất qua Insert → Header & Footer của Word, rồi xuất lại PDF.',
+    CheckId.projectInfoMismatch =>
+      'Đối chiếu trang bìa với form khai báo: sửa trang bìa cho đúng tên đề tài và tên GVHD đã chốt, hoặc cập nhật form cho khớp thực tế rồi bấm “Lưu thông tin” để đối chiếu chạy lại.',
+    CheckId.sectionOrder =>
+      'Đặt lại vị trí các chương đúng thứ tự khung mẫu, rồi mở mục lục trong Word và bấm Update Field trước khi xuất lại PDF — mục lục phải phản ánh đúng dải trang của từng chương.',
+    CheckId.headingNumbering =>
+      'Bổ sung mục cha còn thiếu (hoặc bỏ số hiệu cấp con khi mục cha không tồn tại), đánh lại số hiệu cho mỗi chuỗi số là duy nhất, rồi bấm Update Field trên mục lục trước khi xuất PDF.',
+    CheckId.pageNumbering =>
+      'Bật số trang ở footer: Word → Insert → Page Numbers; kiểm tra trang 2..N có hiện số ở dòng cuối rồi xuất lại PDF. Nếu bản in ĐÃ có số thì đây là báo nhầm của text layer — đối chiếu bằng mắt rồi bỏ qua có ghi chú.',
+    CheckId.tablePositionDrift =>
+      'Quyết định vị trí đúng cho bảng/hình: dời bảng về đúng trang mục lục khai báo, hoặc nếu vị trí mới là chủ ý thì mở mục lục trong Word và bấm Update Field rồi xuất lại PDF. Bảng không được đánh caption ("Table N. …") sẽ không bị check này nhìn thấy — thêm caption cho mọi bảng.',
   };
 
   @override
@@ -2148,6 +2177,312 @@ class _DocumentPreviewModalState extends ConsumerState<_DocumentPreviewModal> {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// project info form
+// ---------------------------------------------------------------------------
+
+/// The project-info form — what the document *claims* to be, declared by
+/// the user rather than extracted from the file.
+///
+/// Why a form at all: every deterministic check so far reads the document.
+/// "The cover says one project name, the PDF properties say another" is
+/// unanswerable without a declaration to compare against, and a report's
+/// cover block needs a project name a human vouched for. Validation mirrors
+/// `contracts/project-info.schema.json` through the model's `isValid*`
+/// helpers, so anything saved here round-trips.
+Future<void> showProjectInfoFormModal(BuildContext context, WidgetRef ref) =>
+    _show(
+      context: context,
+      wide: true,
+      builder: (_) => const _ProjectInfoSheet(),
+    );
+
+class _ProjectInfoSheet extends ConsumerStatefulWidget {
+  const _ProjectInfoSheet();
+
+  @override
+  ConsumerState<_ProjectInfoSheet> createState() => _ProjectInfoSheetState();
+}
+
+/// One editable members row: two controllers plus their focus nodes.
+class _MemberFields {
+  _MemberFields(String name, String id)
+    : name = TextEditingController(text: name),
+      id = TextEditingController(text: id);
+
+  final TextEditingController name;
+  final TextEditingController id;
+
+  void dispose() {
+    name.dispose();
+    id.dispose();
+  }
+}
+
+class _ProjectInfoSheetState extends ConsumerState<_ProjectInfoSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _projectName;
+  late final TextEditingController _supervisor;
+  late final TextEditingController _courseCode;
+  late final TextEditingController _className;
+  late final TextEditingController _documentVersion;
+  late final TextEditingController _submissionDate;
+  late final TextEditingController _notes;
+
+  /// Starts from the saved values so reopening the form is an edit, not a
+  /// retype — a half-filled draft is exactly what the model allows.
+  final _members = <_MemberFields>[];
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = ref.read(workspaceViewModelProvider).projectInfo;
+    _projectName = TextEditingController(text: existing?.projectName ?? '');
+    _supervisor = TextEditingController(text: existing?.supervisor ?? '');
+    _courseCode = TextEditingController(text: existing?.courseCode ?? '');
+    _className = TextEditingController(text: existing?.className ?? '');
+    _documentVersion = TextEditingController(
+      text: existing?.documentVersion ?? '',
+    );
+    _submissionDate = TextEditingController(
+      text: existing?.submissionDate ?? '',
+    );
+    _notes = TextEditingController(text: existing?.notes ?? '');
+    for (final student in existing?.students ?? const <StudentMember>[]) {
+      _members.add(_MemberFields(student.fullName, student.studentId));
+    }
+    if (_members.isEmpty) _members.add(_MemberFields('', ''));
+  }
+
+  @override
+  void dispose() {
+    _projectName.dispose();
+    _supervisor.dispose();
+    _courseCode.dispose();
+    _className.dispose();
+    _documentVersion.dispose();
+    _submissionDate.dispose();
+    _notes.dispose();
+    for (final member in _members) {
+      member.dispose();
+    }
+    super.dispose();
+  }
+
+  static String? _nullIfEmpty(String value) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
+  void _save() {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    final submissionDate = _submissionDate.text.trim();
+    final info = ProjectInfo(
+      projectName: _projectName.text.trim(),
+      students: [
+        for (final member in _members)
+          StudentMember(
+            fullName: member.name.text.trim(),
+            studentId: member.id.text.trim(),
+          ),
+      ],
+      supervisor: _nullIfEmpty(_supervisor.text),
+      courseCode: _nullIfEmpty(_courseCode.text),
+      className: _nullIfEmpty(_className.text),
+      documentVersion: _nullIfEmpty(_documentVersion.text),
+      submissionDate: submissionDate.isEmpty ? null : submissionDate,
+      notes: _nullIfEmpty(_notes.text),
+    );
+    ref.read(workspaceViewModelProvider.notifier).setProjectInfo(info);
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(workspaceViewModelProvider);
+    final colors = context.workspaceColors;
+    final theme = Theme.of(context);
+    return _ModalScaffold(
+      icon: Icons.assignment_outlined,
+      title: 'Thông tin dự án',
+      description:
+          'Khai báo thông tin của đồ án — dùng để đối chiếu với trang bìa tài liệu '
+          '(mục Thông tin chung) và hiển thị trên báo cáo.',
+      children: [
+        Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _field(_projectName, 'Tên đề tài *', required: true),
+              _field(_supervisor, 'Giảng viên hướng dẫn'),
+              _field(_courseCode, 'Mã môn học', hint: 'ví dụ: SEP490'),
+              _field(_className, 'Lớp', hint: 'ví dụ: SE1601'),
+              _field(
+                _documentVersion,
+                'Phiên bản tài liệu',
+                hint: 'ví dụ: 0.9-draft',
+              ),
+              _field(
+                _submissionDate,
+                'Ngày nộp (YYYY-MM-DD)',
+                validator: (value) {
+                  final trimmed = (value ?? '').trim();
+                  if (trimmed.isEmpty) return null;
+                  return isValidSubmissionDate(trimmed)
+                      ? null
+                      : 'Ngày phải theo dạng YYYY-MM-DD';
+                },
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Thành viên',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: colors.ink,
+                      ),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () =>
+                        setState(() => _members.add(_MemberFields('', ''))),
+                    icon: const Icon(Icons.person_add_alt, size: 16),
+                    label: const Text('Thêm thành viên'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              for (var index = 0; index < _members.length; index++)
+                _memberRow(index),
+              const SizedBox(height: AppSpacing.sm),
+              _field(_notes, 'Ghi chú'),
+              WInfoNote(
+                icon: Icons.help_outline,
+                text: state.isDemo
+                    ? 'Tài liệu mẫu dùng nội dung minh họa — form vẫn lưu được để bạn thử luồng.'
+                    : 'Thông tin được lưu cùng phiên — mở lại từ lịch sử thì form vẫn còn '
+                          'và được đối chiếu lại với trang bìa. Tệp PDF gốc thì không được '
+                          'lưu; muốn chấm ảnh phải nhập lại file.',
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  WButton.secondary(
+                    label: 'Huỷ',
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  WButton.primary(
+                    label: 'Lưu thông tin',
+                    icon: Icons.save_outlined,
+                    onPressed: _save,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// One labelled form field. The label carries the `*` for required fields;
+  /// the validator is null when the field is optional, so an empty optional
+  /// field never paints red.
+  Widget _field(
+    TextEditingController controller,
+    String label, {
+    bool required = false,
+    String? hint,
+    String? Function(String?)? validator,
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+    child: TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        isDense: true,
+        border: OutlineInputBorder(borderRadius: AppRadius.boxSm),
+      ),
+      validator:
+          validator ??
+          (required
+              ? (value) => (value ?? '').trim().isEmpty ? 'Bắt buộc' : null
+              : null),
+    ),
+  );
+
+  /// One members row: name wide, id narrow, remove button once there is more
+  /// than one row — the submission's minimal identity is one member, so the
+  /// last row cannot be removed.
+  Widget _memberRow(int index) {
+    final member = _members[index];
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 3,
+            child: TextFormField(
+              controller: member.name,
+              decoration: InputDecoration(
+                labelText: 'Họ tên *',
+                isDense: true,
+                border: OutlineInputBorder(borderRadius: AppRadius.boxSm),
+              ),
+              validator: (value) =>
+                  (value ?? '').trim().isEmpty ? 'Nhập họ tên' : null,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            flex: 2,
+            child: TextFormField(
+              controller: member.id,
+              decoration: InputDecoration(
+                labelText: 'MSSV *',
+                hintText: 'SE123456',
+                isDense: true,
+                border: OutlineInputBorder(borderRadius: AppRadius.boxSm),
+              ),
+              validator: (value) {
+                final trimmed = (value ?? '').trim();
+                if (trimmed.isEmpty) return 'Nhập MSSV';
+                return isValidStudentId(trimmed)
+                    ? null
+                    : 'MSSV gồm 4-20 ký tự chữ/số';
+              },
+            ),
+          ),
+          if (_members.length > 1)
+            IconButton(
+              tooltip: 'Xoá thành viên',
+              icon: const Icon(Icons.remove_circle_outline),
+              color: Theme.of(context).colorScheme.error,
+              onPressed: () {
+                final removed = _members.removeAt(index);
+                // Dispose only AFTER the frame that stops rendering the row:
+                // disposing controllers still attached to live text fields
+                // makes the next build throw "used after being disposed".
+                WidgetsBinding.instance.addPostFrameCallback(
+                  (_) => removed.dispose(),
+                );
+                setState(() {});
+              },
+            )
+          else
+            const SizedBox(width: 48),
+        ],
+      ),
     );
   }
 }

@@ -54,6 +54,7 @@ ArtifactRef _table({
   required String caption,
   required int printedPage,
   int? pdfPageIndex,
+  int? foundPageIndex,
   String? sectionId,
 }) => ArtifactRef(
   kind: ArtifactKind.table,
@@ -62,6 +63,7 @@ ArtifactRef _table({
   normalizedCaption: normalizeCaption(caption),
   printedPage: printedPage,
   pdfPageIndex: pdfPageIndex,
+  foundPageIndex: foundPageIndex,
   sectionId: sectionId,
 );
 
@@ -561,6 +563,115 @@ void main() {
         ],
       );
       expect(checks.captionPageMismatches(blueprint), isEmpty);
+    });
+  });
+
+  group('moved artifacts (rulebook §F.6)', () {
+    test('a caption found far from the claimed page is reported', () {
+      final blueprint = _blueprint(
+        artifacts: [
+          _table(
+            number: 9,
+            caption: 'Unauthorized Login',
+            printedPage: 25,
+            foundPageIndex: 190,
+            sectionId: 'C',
+          ),
+        ],
+      );
+      final findings = checks.tablePositionDrift(blueprint);
+
+      expect(findings, hasLength(1));
+      final finding = findings.single;
+      expect(finding.check, CheckId.tablePositionDrift);
+      expect(finding.severity, Severity.medium);
+      expect(finding.passed, isFalse);
+      expect(finding.actual, 190);
+      expect(finding.subject, 'Table 9');
+      expect(finding.message, contains('trang 25'));
+      expect(finding.message, contains('trang 191'));
+      expect(finding.message, contains('+166'));
+      expect(
+        finding.message,
+        contains('"Software Requirement Specification"'),
+        reason: 'the chapter the index implied',
+      );
+      expect(
+        finding.message,
+        contains('"System Implementation & Test"'),
+        reason: 'the chapter the caption really sits in',
+      );
+    });
+
+    test('a drift inside one chapter carries no chapter note', () {
+      final blueprint = _blueprint(
+        artifacts: [
+          _table(
+            number: 9,
+            caption: 'Unauthorized Login',
+            printedPage: 25,
+            foundPageIndex: 150,
+            sectionId: 'C',
+          ),
+        ],
+      );
+      final findings = checks.tablePositionDrift(blueprint);
+
+      expect(findings, hasLength(1));
+      expect(findings.single.message, isNot(contains('thay vì chương')));
+    });
+
+    test('a moved artifact is not also blamed as a stale index', () {
+      final blueprint = _blueprint(
+        artifacts: [
+          _table(
+            number: 9,
+            caption: 'Unauthorized Login',
+            printedPage: 25,
+            foundPageIndex: 190,
+            sectionId: 'C',
+          ),
+        ],
+      );
+      final families = checks.runAll(blueprint).map((f) => f.check);
+
+      expect(families, contains(CheckId.tablePositionDrift));
+      expect(families, isNot(contains(CheckId.captionPageMismatch)));
+    });
+
+    test('an untrusted page mapping is not blamed on the document', () {
+      final blueprint = _blueprint(
+        trusted: false,
+        artifacts: [
+          _table(
+            number: 9,
+            caption: 'Unauthorized Login',
+            printedPage: 25,
+            foundPageIndex: 190,
+            sectionId: 'C',
+          ),
+        ],
+      );
+      expect(checks.tablePositionDrift(blueprint), isEmpty);
+    });
+
+    test('an artifact whose caption is nowhere stays a stale index', () {
+      final blueprint = _blueprint(
+        artifacts: [
+          _table(
+            number: 9,
+            caption: 'Unauthorized Login',
+            printedPage: 25,
+            sectionId: 'C',
+          ),
+        ],
+      );
+      expect(checks.tablePositionDrift(blueprint), isEmpty);
+      expect(
+        checks.captionPageMismatches(blueprint),
+        hasLength(1),
+        reason: 'gone, not moved — the old finding still owns it',
+      );
     });
   });
 

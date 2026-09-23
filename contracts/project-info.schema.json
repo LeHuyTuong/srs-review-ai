@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/LeHuyTuong/srs-review-ai/blob/main/contracts/project-info.schema.json",
+  "title": "SRS Review AI — project / document description",
+  "description": "Document-level metadata the user declares in the project-info form: what the document IS (project, team, course, version) rather than what it CONTAINS. This is the basis for the 'general information' review pass, which compares these declarations against the document's own front matter. Deliberately a separate schema from review.schema.json: it is app-local form state today (never sent to the proxy), so it must NOT bump the wire contract version when it evolves.",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "project_name", "students"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Version of THIS schema, carried in every persisted payload so an older app fails loudly on a newer shape instead of silently dropping fields (same philosophy as contract_version on the wire)."
+    },
+    "project_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Official project title as it should appear on the cover page. Required: it is the primary key the general-information review compares against the document's title page."
+    },
+    "students": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Team members. Required with at least one entry: a submission nobody owns cannot be attributed. Kept as an array from day one even though many forms start with one member — retrofitting plurality breaks saved payloads.",
+      "items": { "$ref": "#/$defs/StudentMember" }
+    },
+    "supervisor": {
+      "type": ["string", "null"],
+      "minLength": 1,
+      "description": "Supervising lecturer's full name. Optional: a draft saved before the group is assigned a supervisor must still persist; the MISSING supervisor is a finding for the review pass, not a schema violation."
+    },
+    "course_code": {
+      "type": ["string", "null"],
+      "minLength": 1,
+      "description": "Course the document is submitted for, e.g. 'PRM393' or 'SEP490'."
+    },
+    "class_name": {
+      "type": ["string", "null"],
+      "minLength": 1,
+      "description": "Class / section identifier, e.g. 'SE1836'. Separate from course_code so the review can check the cover page mentions both."
+    },
+    "document_version": {
+      "type": ["string", "null"],
+      "minLength": 1,
+      "description": "Free-form version label of the document itself ('1.2', 'v2.0-final'). A string, not a number: real teams write '0.9-draft' and any numeric type would reject that."
+    },
+    "submission_date": {
+      "type": ["string", "null"],
+      "format": "date",
+      "description": "Planned or actual submission date, ISO 8601 calendar date (YYYY-MM-DD). Optional; the Dart model validates the format strictly because 'format: date' is annotation-only for most validators."
+    },
+    "notes": {
+      "type": ["string", "null"],
+      "description": "Free-form remarks from the team (context for the reviewer, known gaps). Never reviewed, never sent anywhere — purely informational."
+    }
+  },
+  "$defs": {
+    "StudentMember": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["full_name", "student_id"],
+      "properties": {
+        "full_name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Member's full name as it should appear on the cover page."
+        },
+        "student_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9]{4,20}$",
+          "description": "Roll number / MSSV, e.g. 'SE171234'. Pattern is intentionally loose (4-20 alphanumerics): FPT-style 'SE123456' fits, but so do other institutions' formats — over-constraining here would reject real students, which is worse than accepting a typo the review pass can flag."
+        }
+      }
+    }
+  }
+}

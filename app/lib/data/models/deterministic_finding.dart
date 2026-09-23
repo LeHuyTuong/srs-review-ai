@@ -106,7 +106,64 @@ enum CheckId {
   /// The index points at a page where its caption is not: the page numbers are
   /// stale (usually because the file was edited but the index was not
   /// refreshed). Only reported when the blueprint's page mapping is trusted.
-  captionPageMismatch;
+  captionPageMismatch,
+
+  // ---------------------------------------------------- document furniture (§F)
+  // These two read the page furniture — cover page and running header/footer
+  // — instead of requirement text or the index. A furniture defect is
+  // invisible to every other check: no requirement sentence carries it, the
+  // index does not list it, and the AI pass only ever sees requirement text.
+
+  /// Rulebook §F.1 (1.7-draft) — the cover page declares no label for one of
+  /// the three fields a submitted capstone report must name: project title
+  /// (high), supervisor (medium), group/members (low). Label heuristic over
+  /// the first pages' text: a cover that prints the title big WITHOUT a
+  /// label reads as missing — the documented false-positive direction — and
+  /// a scanned cover (no text layer) stays silent instead (hard rule 3).
+  coverPageInfo,
+
+  /// Rulebook §F.2 (1.7-draft) — a line recurring at the same page edge
+  /// across many pages exists in two variants that differ in a WORD, not
+  /// just a number: the fingerprint of two document versions merged into
+  /// one file (stale project name, last group's header). Pairs differing
+  /// only in digits are numbering and never reported; chapter-varying
+  /// running heads are the known false positive, which is why severity is
+  /// pinned at low and the message says to verify visually.
+  headerFooterConsistency,
+
+  /// Rulebook §F.3 (1.7-draft) — the user's declaration (project title,
+  /// supervisor) is not confirmed by what the cover page prints. Only this
+  /// check can see the mismatch: it is the one place where a human vouched
+  /// for a fact the file cannot state about itself. Silent when nothing was
+  /// declared — the form is optional.
+  projectInfoMismatch,
+
+  /// Rulebook §F.4 (1.7-draft) — chapter ranges from the resolved index do
+  /// not advance monotonically: a chapter starts before its predecessor
+  /// ended. Reported only on a trusted index; "the index is a guess" must
+  /// never become a finding.
+  sectionOrder,
+
+  /// §F.5a — a numbered heading exists without a parent level (3.1 with no
+  /// 3) or the same number string is used twice. Reads parser-split
+  /// `SEC-<n>` units only; unnumbered headings stay silent.
+  headingNumbering,
+
+  /// §F.5b — no page number at the end of any page (or a run that repeats
+  /// / steps backwards), on text-extracted last lines. Heuristic by design:
+  /// the text layer's "last line" is not the printed footer, so severity
+  /// stays low and the message always asks for eyeballing.
+  pageNumbering,
+
+  /// §F.6 — the index claims a page whose caption is not near it, while the
+  /// caption EXISTS elsewhere in the body: the artifact moved (typically
+  /// dragged to the end, index not refreshed), which is a different defect
+  /// from [captionPageMismatch] ("gone" — caption nowhere at all). Filled by
+  /// the builder's whole-body sweep (`ArtifactRef.foundPageIndex`) only
+  /// after the ±window search missed, reported only on a trusted index, and
+  /// it silences [captionPageMismatch] for the same artifact: one artifact,
+  /// one finding.
+  tablePositionDrift;
 
   // NOT here, deliberately: `idFormat` (rulebook 1.5 §4, id shape).
   // `requirement_splitter._canonicalId` rewrites every parsed id to
@@ -136,6 +193,13 @@ enum CheckId {
     CheckId.missingSection => 'missing_section',
     CheckId.unclassifiedFigure => 'unclassified_figure',
     CheckId.captionPageMismatch => 'caption_page_mismatch',
+    CheckId.coverPageInfo => 'cover_page_info',
+    CheckId.headerFooterConsistency => 'header_footer_consistency',
+    CheckId.projectInfoMismatch => 'project_info_mismatch',
+    CheckId.sectionOrder => 'section_order',
+    CheckId.headingNumbering => 'heading_numbering',
+    CheckId.pageNumbering => 'page_numbering',
+    CheckId.tablePositionDrift => 'table_position_drift',
   };
 
   String get label => switch (this) {
@@ -156,7 +220,23 @@ enum CheckId {
     CheckId.missingSection => 'Missing report part',
     CheckId.unclassifiedFigure => 'Unclassified figure',
     CheckId.captionPageMismatch => 'Index page out of date',
+    CheckId.coverPageInfo => 'Cover page info',
+    CheckId.headerFooterConsistency => 'Header/footer consistency',
+    CheckId.projectInfoMismatch => 'Declared info vs cover',
+    CheckId.sectionOrder => 'Chapter order',
+    CheckId.headingNumbering => 'Heading numbering',
+    CheckId.pageNumbering => 'Page numbering',
+    CheckId.tablePositionDrift => 'Artifact moved from index page',
   };
+
+  /// True for the §F.5 format & layout checks. They are STORED in
+  /// `referenceFindings` like the rest of the §F furniture — persistence,
+  /// export and the Verifier already travel that list, no new state field
+  /// needed — but the dashboard gives them their own "Format & Layout"
+  /// section: a heading-hierarchy defect is a presentation problem, not a
+  /// consistency smell.
+  bool get isFormatCheck =>
+      this == CheckId.headingNumbering || this == CheckId.pageNumbering;
 
   /// True for the document-index (blueprint) checks. They read the table of
   /// contents rather than the requirement text, so the dashboard groups them
@@ -167,19 +247,29 @@ enum CheckId {
     CheckId.numberingGap ||
     CheckId.missingSection ||
     CheckId.unclassifiedFigure ||
-    CheckId.captionPageMismatch => true,
+    CheckId.captionPageMismatch ||
+    CheckId.sectionOrder ||
+    CheckId.tablePositionDrift => true,
     _ => false,
   };
 
   /// True for M2 reference checks; they live next to F7/F8/F9 in the
   /// deterministic family but are reported under their own section so the
   /// dashboard can keep "syllabus failures" and "consistency smells"
-  /// visually separate.
+  /// visually separate. The §F document-furniture checks ride the same
+  /// `referenceFindings` list and dashboard section (the ContradictionPass
+  /// round-12 fold): a stale header or a bare cover is a document-wide
+  /// consistency smell, not a syllabus threshold.
   bool get isReferenceCheck => switch (this) {
     CheckId.duplicateIds ||
     CheckId.missingPostcondition ||
     CheckId.crossArtifactName ||
-    CheckId.missingActor => true,
+    CheckId.missingActor ||
+    CheckId.coverPageInfo ||
+    CheckId.headerFooterConsistency ||
+    CheckId.projectInfoMismatch ||
+    CheckId.headingNumbering ||
+    CheckId.pageNumbering => true,
     _ => false,
   };
 }

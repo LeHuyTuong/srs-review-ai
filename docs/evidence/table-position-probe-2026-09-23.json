@@ -1,0 +1,1074 @@
+{
+  "kind": "capability_probe_not_accuracy_score",
+  "date": "2026-09-23",
+  "source": "5935d26a28934c6dae2af51adcb3e381-OTES_officially_document.docx_compressed.pdf",
+  "source_sha256": "317f48a4c5148217e995d35a3da32c675d6019b3bdd88094300ca129d1f4ca2e",
+  "pymupdf": "PyMuPDF 1.26.7",
+  "page_count": 217,
+  "has_bookmarks": false,
+  "counting": {
+    "table_region": "1 phan tu find_tables().tables, strategy mac dinh, khong loai khung/LoT",
+    "caption": "1 dong text khop ^Table\\s+\\d{1,3} ngoai trang LoT",
+    "lot_entry": "dong khop regex LoT tren trang co >=3 dong dang do, dedup (number,title)",
+    "window": 3
+  },
+  "channel_A_table_regions": {
+    "total_regions_raw": 523,
+    "footer_strip_regions": 221,
+    "content_regions": 302,
+    "pages_with_content_tables": 187,
+    "errors": [],
+    "sample_first5": [
+      {
+        "page": 0,
+        "bbox": [
+          66.5,
+          403.5,
+          505.5,
+          625.5
+        ],
+        "rows": 5,
+        "cols": 2,
+        "content_hash": "93b7a0c6bedf03ad",
+        "first_cell": "Group 9 - IS"
+      },
+      {
+        "page": 0,
+        "bbox": [
+          72.2,
+          763.9,
+          540.3,
+          790.9
+        ],
+        "rows": 1,
+        "cols": 3,
+        "content_hash": "3158812f5ff5f9d9",
+        "first_cell": ""
+      },
+      {
+        "page": 1,
+        "bbox": [
+          72.2,
+          763.9,
+          540.3,
+          790.9
+        ],
+        "rows": 1,
+        "cols": 3,
+        "content_hash": "a38213274c49d6ba",
+        "first_cell": ""
+      },
+      {
+        "page": 2,
+        "bbox": [
+          72.2,
+          763.9,
+          540.3,
+          790.9
+        ],
+        "rows": 1,
+        "cols": 3,
+        "content_hash": "7f033d692a692e9d",
+        "first_cell": ""
+      },
+      {
+        "page": 3,
+        "bbox": [
+          72.2,
+          763.9,
+          540.3,
+          790.9
+        ],
+        "rows": 1,
+        "cols": 3,
+        "content_hash": "e5eb091f6b4e578e",
+        "first_cell": ""
+      }
+    ],
+    "sample_content_first5": [
+      {
+        "page": 0,
+        "bbox": [
+          66.5,
+          403.5,
+          505.5,
+          625.5
+        ],
+        "rows": 5,
+        "cols": 2,
+        "content_hash": "93b7a0c6bedf03ad",
+        "first_cell": "Group 9 - IS"
+      },
+      {
+        "page": 13,
+        "bbox": [
+          66.5,
+          430.5,
+          480.5,
+          576.5
+        ],
+        "rows": 7,
+        "cols": 4,
+        "content_hash": "54efdce90e6fe76b",
+        "first_cell": ""
+      },
+      {
+        "page": 16,
+        "bbox": [
+          63.6,
+          504.4,
+          531.3,
+          679.5
+        ],
+        "rows": 6,
+        "cols": 3,
+        "content_hash": "acaf7dc12b2d1d6a",
+        "first_cell": "Server"
+      },
+      {
+        "page": 17,
+        "bbox": [
+          105.6,
+          72.5,
+          489.3,
+          211.5
+        ],
+        "rows": 4,
+        "cols": 3,
+        "content_hash": "e61460da7c73cfb9",
+        "first_cell": "Internet Connection"
+      },
+      {
+        "page": 17,
+        "bbox": [
+          105.6,
+          257.5,
+          489.3,
+          398.5
+        ],
+        "rows": 5,
+        "cols": 3,
+        "content_hash": "7fcfed5bac8e528a",
+        "first_cell": "Server"
+      }
+    ]
+  },
+  "channel_B_captions": {
+    "total_caption_lines": 114,
+    "distinct_numbers": 114,
+    "sample_first5": [
+      {
+        "number": 1,
+        "page": 13,
+        "line_ordinal": 68,
+        "text": "Table 1."
+      },
+      {
+        "number": 2,
+        "page": 16,
+        "line_ordinal": 69,
+        "text": "Table 2."
+      },
+      {
+        "number": 3,
+        "page": 17,
+        "line_ordinal": 18,
+        "text": "Table 3."
+      },
+      {
+        "number": 4,
+        "page": 17,
+        "line_ordinal": 40,
+        "text": "Table 4."
+      },
+      {
+        "number": 5,
+        "page": 17,
+        "line_ordinal": 71,
+        "text": "Table 5."
+      }
+    ]
+  },
+  "channel_C_lot": {
+    "lot_pages_0based": [
+      5,
+      6,
+      7
+    ],
+    "total_entries": 114,
+    "distinct_numbers": 114,
+    "sample_first5": [
+      {
+        "number": 1,
+        "title": "Role and Responsibility",
+        "printed_page": 11,
+        "lot_page": 5
+      },
+      {
+        "number": 2,
+        "title": "Hardware requirements for server",
+        "printed_page": 14,
+        "lot_page": 5
+      },
+      {
+        "number": 3,
+        "title": "Hardware requirements lecturer application",
+        "printed_page": 14,
+        "lot_page": 5
+      },
+      {
+        "number": 4,
+        "title": "Hardware requirements lecturer application",
+        "printed_page": 15,
+        "lot_page": 5
+      },
+      {
+        "number": 5,
+        "title": "Software requirements",
+        "printed_page": 15,
+        "lot_page": 5
+      }
+    ]
+  },
+  "scenario_b_expected_vs_actual_on_original": {
+    "compared_pairs": 114,
+    "offset": 3,
+    "vote_distribution": {
+      "2": 1,
+      "3": 103,
+      "4": 10
+    },
+    "resolved_in_window": [
+      {
+        "number": 1,
+        "printed_page": 11,
+        "found_page": 13,
+        "delta": 0
+      },
+      {
+        "number": 2,
+        "printed_page": 14,
+        "found_page": 16,
+        "delta": 0
+      },
+      {
+        "number": 3,
+        "printed_page": 14,
+        "found_page": 17,
+        "delta": 1
+      },
+      {
+        "number": 4,
+        "printed_page": 15,
+        "found_page": 17,
+        "delta": 0
+      },
+      {
+        "number": 5,
+        "printed_page": 15,
+        "found_page": 17,
+        "delta": 0
+      },
+      {
+        "number": 6,
+        "printed_page": 17,
+        "found_page": 19,
+        "delta": 0
+      },
+      {
+        "number": 7,
+        "printed_page": 17,
+        "found_page": 20,
+        "delta": 1
+      },
+      {
+        "number": 8,
+        "printed_page": 19,
+        "found_page": 21,
+        "delta": 0
+      },
+      {
+        "number": 9,
+        "printed_page": 25,
+        "found_page": 27,
+        "delta": 0
+      },
+      {
+        "number": 10,
+        "printed_page": 27,
+        "found_page": 29,
+        "delta": 0
+      },
+      {
+        "number": 11,
+        "printed_page": 29,
+        "found_page": 31,
+        "delta": 0
+      },
+      {
+        "number": 12,
+        "printed_page": 31,
+        "found_page": 33,
+        "delta": 0
+      },
+      {
+        "number": 13,
+        "printed_page": 33,
+        "found_page": 35,
+        "delta": 0
+      },
+      {
+        "number": 14,
+        "printed_page": 35,
+        "found_page": 37,
+        "delta": 0
+      },
+      {
+        "number": 15,
+        "printed_page": 38,
+        "found_page": 40,
+        "delta": 0
+      },
+      {
+        "number": 16,
+        "printed_page": 41,
+        "found_page": 43,
+        "delta": 0
+      },
+      {
+        "number": 17,
+        "printed_page": 43,
+        "found_page": 45,
+        "delta": 0
+      },
+      {
+        "number": 18,
+        "printed_page": 45,
+        "found_page": 47,
+        "delta": 0
+      },
+      {
+        "number": 19,
+        "printed_page": 47,
+        "found_page": 49,
+        "delta": 0
+      },
+      {
+        "number": 20,
+        "printed_page": 48,
+        "found_page": 50,
+        "delta": 0
+      },
+      {
+        "number": 21,
+        "printed_page": 52,
+        "found_page": 54,
+        "delta": 0
+      },
+      {
+        "number": 22,
+        "printed_page": 54,
+        "found_page": 56,
+        "delta": 0
+      },
+      {
+        "number": 23,
+        "printed_page": 56,
+        "found_page": 58,
+        "delta": 0
+      },
+      {
+        "number": 24,
+        "printed_page": 58,
+        "found_page": 60,
+        "delta": 0
+      },
+      {
+        "number": 25,
+        "printed_page": 60,
+        "found_page": 63,
+        "delta": 1
+      },
+      {
+        "number": 26,
+        "printed_page": 62,
+        "found_page": 64,
+        "delta": 0
+      },
+      {
+        "number": 27,
+        "printed_page": 65,
+        "found_page": 67,
+        "delta": 0
+      },
+      {
+        "number": 28,
+        "printed_page": 66,
+        "found_page": 68,
+        "delta": 0
+      },
+      {
+        "number": 29,
+        "printed_page": 68,
+        "found_page": 70,
+        "delta": 0
+      },
+      {
+        "number": 30,
+        "printed_page": 71,
+        "found_page": 73,
+        "delta": 0
+      },
+      {
+        "number": 31,
+        "printed_page": 73,
+        "found_page": 75,
+        "delta": 0
+      },
+      {
+        "number": 32,
+        "printed_page": 75,
+        "found_page": 77,
+        "delta": 0
+      },
+      {
+        "number": 33,
+        "printed_page": 77,
+        "found_page": 79,
+        "delta": 0
+      },
+      {
+        "number": 34,
+        "printed_page": 79,
+        "found_page": 81,
+        "delta": 0
+      },
+      {
+        "number": 35,
+        "printed_page": 81,
+        "found_page": 83,
+        "delta": 0
+      },
+      {
+        "number": 36,
+        "printed_page": 83,
+        "found_page": 85,
+        "delta": 0
+      },
+      {
+        "number": 37,
+        "printed_page": 85,
+        "found_page": 87,
+        "delta": 0
+      },
+      {
+        "number": 38,
+        "printed_page": 87,
+        "found_page": 89,
+        "delta": 0
+      },
+      {
+        "number": 39,
+        "printed_page": 89,
+        "found_page": 91,
+        "delta": 0
+      },
+      {
+        "number": 40,
+        "printed_page": 91,
+        "found_page": 93,
+        "delta": 0
+      },
+      {
+        "number": 41,
+        "printed_page": 92,
+        "found_page": 95,
+        "delta": 1
+      },
+      {
+        "number": 42,
+        "printed_page": 95,
+        "found_page": 97,
+        "delta": 0
+      },
+      {
+        "number": 43,
+        "printed_page": 96,
+        "found_page": 99,
+        "delta": 1
+      },
+      {
+        "number": 44,
+        "printed_page": 99,
+        "found_page": 101,
+        "delta": 0
+      },
+      {
+        "number": 45,
+        "printed_page": 101,
+        "found_page": 103,
+        "delta": 0
+      },
+      {
+        "number": 46,
+        "printed_page": 103,
+        "found_page": 105,
+        "delta": 0
+      },
+      {
+        "number": 47,
+        "printed_page": 105,
+        "found_page": 107,
+        "delta": 0
+      },
+      {
+        "number": 48,
+        "printed_page": 107,
+        "found_page": 109,
+        "delta": 0
+      },
+      {
+        "number": 49,
+        "printed_page": 109,
+        "found_page": 111,
+        "delta": 0
+      },
+      {
+        "number": 50,
+        "printed_page": 111,
+        "found_page": 113,
+        "delta": 0
+      },
+      {
+        "number": 51,
+        "printed_page": 113,
+        "found_page": 115,
+        "delta": 0
+      },
+      {
+        "number": 52,
+        "printed_page": 115,
+        "found_page": 117,
+        "delta": 0
+      },
+      {
+        "number": 53,
+        "printed_page": 117,
+        "found_page": 119,
+        "delta": 0
+      },
+      {
+        "number": 54,
+        "printed_page": 119,
+        "found_page": 121,
+        "delta": 0
+      },
+      {
+        "number": 55,
+        "printed_page": 121,
+        "found_page": 123,
+        "delta": 0
+      },
+      {
+        "number": 56,
+        "printed_page": 122,
+        "found_page": 125,
+        "delta": 1
+      },
+      {
+        "number": 57,
+        "printed_page": 124,
+        "found_page": 127,
+        "delta": 1
+      },
+      {
+        "number": 58,
+        "printed_page": 126,
+        "found_page": 129,
+        "delta": 1
+      },
+      {
+        "number": 59,
+        "printed_page": 128,
+        "found_page": 130,
+        "delta": 0
+      },
+      {
+        "number": 60,
+        "printed_page": 130,
+        "found_page": 132,
+        "delta": 0
+      },
+      {
+        "number": 61,
+        "printed_page": 132,
+        "found_page": 134,
+        "delta": 0
+      },
+      {
+        "number": 62,
+        "printed_page": 134,
+        "found_page": 136,
+        "delta": 0
+      },
+      {
+        "number": 63,
+        "printed_page": 136,
+        "found_page": 138,
+        "delta": 0
+      },
+      {
+        "number": 64,
+        "printed_page": 137,
+        "found_page": 140,
+        "delta": 1
+      },
+      {
+        "number": 65,
+        "printed_page": 139,
+        "found_page": 141,
+        "delta": 0
+      },
+      {
+        "number": 66,
+        "printed_page": 141,
+        "found_page": 144,
+        "delta": 1
+      },
+      {
+        "number": 67,
+        "printed_page": 143,
+        "found_page": 145,
+        "delta": 0
+      },
+      {
+        "number": 68,
+        "printed_page": 145,
+        "found_page": 147,
+        "delta": 0
+      },
+      {
+        "number": 69,
+        "printed_page": 146,
+        "found_page": 148,
+        "delta": 0
+      },
+      {
+        "number": 70,
+        "printed_page": 149,
+        "found_page": 151,
+        "delta": 0
+      },
+      {
+        "number": 71,
+        "printed_page": 150,
+        "found_page": 152,
+        "delta": 0
+      },
+      {
+        "number": 72,
+        "printed_page": 152,
+        "found_page": 154,
+        "delta": 0
+      },
+      {
+        "number": 73,
+        "printed_page": 155,
+        "found_page": 157,
+        "delta": 0
+      },
+      {
+        "number": 74,
+        "printed_page": 156,
+        "found_page": 158,
+        "delta": 0
+      },
+      {
+        "number": 75,
+        "printed_page": 157,
+        "found_page": 159,
+        "delta": 0
+      },
+      {
+        "number": 76,
+        "printed_page": 158,
+        "found_page": 160,
+        "delta": 0
+      },
+      {
+        "number": 77,
+        "printed_page": 159,
+        "found_page": 161,
+        "delta": 0
+      },
+      {
+        "number": 78,
+        "printed_page": 159,
+        "found_page": 161,
+        "delta": 0
+      },
+      {
+        "number": 79,
+        "printed_page": 159,
+        "found_page": 161,
+        "delta": 0
+      },
+      {
+        "number": 80,
+        "printed_page": 159,
+        "found_page": 161,
+        "delta": 0
+      },
+      {
+        "number": 81,
+        "printed_page": 160,
+        "found_page": 162,
+        "delta": 0
+      },
+      {
+        "number": 82,
+        "printed_page": 160,
+        "found_page": 162,
+        "delta": 0
+      },
+      {
+        "number": 83,
+        "printed_page": 161,
+        "found_page": 163,
+        "delta": 0
+      },
+      {
+        "number": 84,
+        "printed_page": 161,
+        "found_page": 163,
+        "delta": 0
+      },
+      {
+        "number": 85,
+        "printed_page": 162,
+        "found_page": 164,
+        "delta": 0
+      },
+      {
+        "number": 86,
+        "printed_page": 162,
+        "found_page": 164,
+        "delta": 0
+      },
+      {
+        "number": 87,
+        "printed_page": 163,
+        "found_page": 165,
+        "delta": 0
+      },
+      {
+        "number": 88,
+        "printed_page": 163,
+        "found_page": 165,
+        "delta": 0
+      },
+      {
+        "number": 89,
+        "printed_page": 163,
+        "found_page": 165,
+        "delta": 0
+      },
+      {
+        "number": 90,
+        "printed_page": 164,
+        "found_page": 166,
+        "delta": 0
+      },
+      {
+        "number": 91,
+        "printed_page": 164,
+        "found_page": 166,
+        "delta": 0
+      },
+      {
+        "number": 92,
+        "printed_page": 164,
+        "found_page": 166,
+        "delta": 0
+      },
+      {
+        "number": 93,
+        "printed_page": 168,
+        "found_page": 170,
+        "delta": 0
+      },
+      {
+        "number": 94,
+        "printed_page": 168,
+        "found_page": 170,
+        "delta": 0
+      },
+      {
+        "number": 95,
+        "printed_page": 169,
+        "found_page": 171,
+        "delta": 0
+      },
+      {
+        "number": 96,
+        "printed_page": 169,
+        "found_page": 171,
+        "delta": 0
+      },
+      {
+        "number": 97,
+        "printed_page": 170,
+        "found_page": 172,
+        "delta": 0
+      },
+      {
+        "number": 98,
+        "printed_page": 170,
+        "found_page": 172,
+        "delta": 0
+      },
+      {
+        "number": 99,
+        "printed_page": 171,
+        "found_page": 173,
+        "delta": 0
+      },
+      {
+        "number": 100,
+        "printed_page": 172,
+        "found_page": 174,
+        "delta": 0
+      },
+      {
+        "number": 101,
+        "printed_page": 173,
+        "found_page": 175,
+        "delta": 0
+      },
+      {
+        "number": 102,
+        "printed_page": 173,
+        "found_page": 175,
+        "delta": 0
+      },
+      {
+        "number": 103,
+        "printed_page": 174,
+        "found_page": 176,
+        "delta": 0
+      },
+      {
+        "number": 104,
+        "printed_page": 174,
+        "found_page": 176,
+        "delta": 0
+      },
+      {
+        "number": 105,
+        "printed_page": 175,
+        "found_page": 177,
+        "delta": 0
+      },
+      {
+        "number": 106,
+        "printed_page": 176,
+        "found_page": 178,
+        "delta": 0
+      },
+      {
+        "number": 107,
+        "printed_page": 176,
+        "found_page": 178,
+        "delta": 0
+      },
+      {
+        "number": 108,
+        "printed_page": 178,
+        "found_page": 180,
+        "delta": 0
+      },
+      {
+        "number": 109,
+        "printed_page": 178,
+        "found_page": 180,
+        "delta": 0
+      },
+      {
+        "number": 110,
+        "printed_page": 179,
+        "found_page": 181,
+        "delta": 0
+      },
+      {
+        "number": 111,
+        "printed_page": 181,
+        "found_page": 183,
+        "delta": 0
+      },
+      {
+        "number": 112,
+        "printed_page": 190,
+        "found_page": 192,
+        "delta": 0
+      },
+      {
+        "number": 113,
+        "printed_page": 192,
+        "found_page": 194,
+        "delta": 0
+      },
+      {
+        "number": 114,
+        "printed_page": 193,
+        "found_page": 194,
+        "delta": -1
+      }
+    ],
+    "mismatch_outside_window": [],
+    "lot_entry_without_caption": [],
+    "caption_without_lot_entry": []
+  },
+  "scenario_a_move_page_simulation": {
+    "moved_page_from": 13,
+    "moved_page_to": 216,
+    "probe_caption": {
+      "number": 1,
+      "page": 13,
+      "line_ordinal": 68,
+      "text": "Table 1."
+    },
+    "same_caption_after_move": [
+      {
+        "number": 1,
+        "page": 216,
+        "line_ordinal": 68,
+        "text": "Table 1."
+      }
+    ],
+    "content_hashes_on_src_page_before": [
+      "54efdce90e6fe76b",
+      "e19fd18d58a3ad44"
+    ],
+    "content_hashes_on_dest_page_after": [
+      "54efdce90e6fe76b",
+      "e19fd18d58a3ad44"
+    ],
+    "content_identity_preserved": true,
+    "lot_entries_unchanged_after_move": true,
+    "caption_page_deltas": {
+      "unchanged": 0,
+      "shifted_by_reorder": 113,
+      "moved_with_page": [
+        {
+          "number": 1,
+          "from_page": 13,
+          "to_page": 216,
+          "delta": 203
+        }
+      ]
+    }
+  },
+  "uncaptioned_table_pages": {
+    "definition": "trang co >=1 table region nhung KHONG co caption nao tren trang do (ngoai trang LoT)",
+    "pages_0based": [
+      0,
+      18,
+      25,
+      26,
+      28,
+      30,
+      32,
+      34,
+      36,
+      39,
+      41,
+      42,
+      44,
+      46,
+      48,
+      52,
+      53,
+      55,
+      57,
+      59,
+      61,
+      62,
+      65,
+      66,
+      69,
+      71,
+      72,
+      74,
+      76,
+      78,
+      80,
+      82,
+      84,
+      86,
+      88,
+      90,
+      92,
+      94,
+      96,
+      98,
+      100,
+      102,
+      104,
+      106,
+      108,
+      110,
+      112,
+      114,
+      116,
+      118,
+      120,
+      122,
+      124,
+      126,
+      128,
+      131,
+      133,
+      135,
+      137,
+      139,
+      142,
+      143,
+      146,
+      149,
+      150,
+      156,
+      179,
+      182,
+      184,
+      185,
+      186,
+      189,
+      190,
+      191,
+      193,
+      196,
+      197,
+      198,
+      199,
+      200,
+      201,
+      202,
+      203,
+      204,
+      205,
+      206,
+      207,
+      208,
+      209,
+      210,
+      211,
+      212,
+      213,
+      214,
+      215,
+      216
+    ],
+    "count": 96
+  },
+  "elapsed_seconds": 27.38
+}

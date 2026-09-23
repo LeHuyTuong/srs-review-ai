@@ -16,6 +16,7 @@
 library;
 
 import '../../../data/models/deterministic_finding.dart';
+import '../../../data/models/human_issue.dart';
 import '../../../data/models/review_models.dart';
 import '../../../data/models/review_progress.dart';
 import 'document_verdict.dart';
@@ -87,6 +88,10 @@ String buildHtmlReport({
   int imageReviewedCount = 0,
   PageImageCoverage? imageCoverage,
   Map<String, FindingStatus> findingStatus = const {},
+
+  /// Reviewer-authored issues (Report tab) — rendered in their own section
+  /// so the shared-with-link dashboard carries the human side too.
+  List<HumanIssue> humanIssues = const [],
 }) {
   // Same effective-mode rule as both twins: the run's own mock flag outranks
   // the toggle at export time.
@@ -436,6 +441,27 @@ String buildHtmlReport({
     }
     out.write('</table></div></details>\n');
   }
+  // -- Human-reported issues (reviewer-entered, not model output) --
+  if (humanIssues.isNotEmpty) {
+    out.write('<h2>Human-reported issues (${humanIssues.length})</h2>');
+    out.write(
+      '<p class="meta">Entered by a reviewer in the app — not model '
+      'output.</p><ul>',
+    );
+    for (final issue in humanIssues) {
+      final stamp = issue.createdAt.toUtc().toIso8601String();
+      out.write('<li><b>${_esc(issue.title)}</b>');
+      out.write('<span class="chip">${_esc(issue.severity.name)}</span>');
+      out.write('<span class="meta">${_esc(issue.section ?? '')} '
+          '${_esc(stamp)}</span>');
+      if (issue.detail.isNotEmpty) {
+        out.write('<br>${_esc(issue.detail)}');
+      }
+      out.write('</li>');
+    }
+    out.write('</ul>');
+  }
+
 
   // ── Inventory (collapsed: it is long) ─────────────────────────────────
   out.write(

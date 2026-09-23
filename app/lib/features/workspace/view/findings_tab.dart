@@ -470,11 +470,21 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
     // a clean syllabus (F7/F8/F9 passing) and still carry consistency smells
     // — the OTES pattern is exactly the opposite: 63/63 use cases without a
     // Postcondition, which trips M2 even when F7 is happy.
+    // §F.5 format rows share the referenceFindings storage (persistence,
+    // export and the Verifier already travel that list) but render under
+    // their own heading — furniture smells are presentation, not the M2
+    // consistency family.
+    final format = state.referenceFindings
+        .where((finding) => !finding.passed && finding.check.isFormatCheck)
+        .toList(growable: false);
     final reference = state.referenceFindings
-        .where((finding) => !finding.passed)
+        .where((finding) => !finding.passed && !finding.check.isFormatCheck)
         .toList(growable: false);
 
-    if (result == null && syllabus.isEmpty && reference.isEmpty) {
+    if (result == null &&
+        syllabus.isEmpty &&
+        reference.isEmpty &&
+        format.isEmpty) {
       return WEmptyState(
         icon: Icons.auto_awesome,
         title: 'Kiểm tra tài liệu dựa trên bằng chứng',
@@ -747,6 +757,88 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                                       color: colors.muted,
                                       height: 1.7,
                                     ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        if (format.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              0,
+              AppSpacing.lg,
+              AppSpacing.md,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Format & Layout',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: colors.ink,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Trình bày tài liệu (§F.5) — heading đánh số, số trang; chạy ngoại tuyến, 0 token. Font, cỡ chữ, căn lề chưa kiểm tự động — đối chiếu bằng mắt.',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colors.muted,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                for (final finding in format)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: WPanel(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      child: AppInkWell(
+                        onTap: () => showSyllabusCheckDetail(context, finding),
+                        borderRadius: AppRadius.boxSm,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.text_fields_outlined,
+                              size: 17,
+                              color: colors.amber,
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          workspaceLabel(finding.check.label),
+                                          style: theme.textTheme.labelLarge
+                                              ?.copyWith(
+                                                color: colors.ink,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                      ),
+                                      if (finding.subject != null)
+                                        WBadge(label: finding.subject!),
+                                    ],
+                                  ),
+                                  const SizedBox(height: AppSpacing.xs),
+                                  Text(
+                                    workspaceMessage(finding.message),
+                                    style: theme.textTheme.bodySmall
+                                        ?.copyWith(
+                                          color: colors.muted,
+                                          height: 1.7,
+                                        ),
                                   ),
                                 ],
                               ),

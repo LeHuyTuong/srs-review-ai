@@ -16,12 +16,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/app_config.dart';
 import '../../../core/providers.dart';
 import '../../../data/checks/blueprint_checks.dart';
+import '../../../data/checks/format_layout_checks.dart';
+import '../../../data/checks/project_info_checks.dart';
 import '../../../data/checks/reference_checks.dart';
 import '../../../data/checks/rubric_config.dart';
 import '../../../data/checks/syllabus_checks.dart';
 import '../../../data/checks/verifier.dart';
 import '../../../data/models/deterministic_finding.dart';
 import '../../../data/models/document_map.dart';
+import '../../../data/models/human_issue.dart';
+import '../../../data/models/project_info.dart';
+import '../../../data/models/review_models.dart' show Severity;
 import '../../../data/models/review_progress.dart';
 import '../../../data/models/srs_document.dart';
 import '../../../data/services/report_exporter.dart';
@@ -78,10 +83,32 @@ class WorkspaceState {
     this.executionLogs = const [],
     this.pageTexts = const [],
     this.uploadUri,
+    this.projectInfo,
+    this.projectName = '',
+    this.humanIssues = const [],
   });
 
   /// Server upload URI for document figure rendering and tight crops.
   final String? uploadUri;
+
+  /// What the user declared about the project in the project-info form —
+  /// the human side of the "Thông tin chung" review (the document side is
+  /// whatever its cover page actually says). Null until the form is saved.
+  final ProjectInfo? projectInfo;
+
+  /// Container name created in workflow step 1 ("Tạo project").
+  ///
+  /// Deliberately NOT [ProjectInfo]projectName: that one is the đề tài title
+  /// declared for the cover-page check (§F.3); THIS is the bucket saved
+  /// sessions are grouped under in the History tab so results from different
+  /// submission rounds never mix (workflow Bước 1→3). '' until step 1 runs.
+  final String projectName;
+
+  /// Issues the reviewer typed in by hand (Report tab) — the "con người"
+  /// source next to the AI rows. Travel with snapshots and sessions so the
+  /// merged report survives restarts; carried across re-imports like the
+  /// project declaration, because they annotate the project, not the file.
+  final List<HumanIssue> humanIssues;
 
   /// Audit trail of AI actions and validation pipeline events.
   final List<String> executionLogs;
@@ -296,6 +323,10 @@ class WorkspaceState {
     List<String>? pageTexts,
     String? uploadUri,
     bool clearUploadUri = false,
+    ProjectInfo? projectInfo,
+    String? projectName,
+    bool clearProjectInfo = false,
+    List<HumanIssue>? humanIssues,
   }) => WorkspaceState(
     hasDocument: hasDocument ?? this.hasDocument,
     fileName: fileName ?? this.fileName,
@@ -336,6 +367,9 @@ class WorkspaceState {
     executionLogs: executionLogs ?? this.executionLogs,
     pageTexts: pageTexts ?? this.pageTexts,
     uploadUri: clearUploadUri ? null : (uploadUri ?? this.uploadUri),
+    projectInfo: clearProjectInfo ? null : (projectInfo ?? this.projectInfo),
+    projectName: projectName ?? this.projectName,
+    humanIssues: humanIssues ?? this.humanIssues,
   );
 }
 
@@ -396,6 +430,118 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     );
   }
 
+  // --------------------------------------------------------- project info form
+
+  /// Saves what the user declared in the project-info form.
+  ///
+  /// Deliberately tiny: the form owns validation (via the model's
+  /// `isValid*` helpers), this method records the result, refreshes the §F.3
+  /// findings against it and leaves an audit-log line, so the "Thông tin
+  /// chung" review and the exported report read one source of truth.
+  /// Not persisted yet — a saved session keeps findings, not the form.
+  void setProjectInfo(ProjectInfo info) {
+    state = state.copyWith(projectInfo: info);
+    _refreshProjectInfoFindings();
+    _log(
+      'Lưu thông tin dự án "${info.projectName}" '
+      '(${info.students.length} thành viên)',
+    );
+    // Fire-and-forget like the other sync mutations: the §F.3 findings just
+    // recomputed must survive a restart next to the declaration they were
+    // derived from (no-op before a document is loaded).
+    _saveSnapshot();
+  }
+
+  /// Workflow step 1 — creates (or renames) the project container.
+  ///
+  /// A DIFFERENT name is treated as a NEW project: the declaration typed for
+  /// the old one describes the old đề tài, so it — and the §F.3 findings
+  /// derived from it — are dropped rather than silently carried into a
+  /// different history bucket. Re-submitting the same trimmed name is a
+  /// no-op and keeps the form. The loaded document/results are left alone:
+  /// they may have cost quota, and step 3 (re-import) replaces them
+  /// explicitly.
+  void createProject(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty || trimmed == state.projectName) return;
+    state = state.copyWith(
+      projectName: trimmed,
+      clearProjectInfo: true,
+    );
+    _refreshProjectInfoFindings();
+    _log('Tạo project "$trimmed"');
+    // Same fire-and-forget contract as setProjectInfo; no-op without a
+    // document, which is also when _restoreSnapshot would drop the name.
+    _saveSnapshot();
+  }
+
+  /// Report tab — records a reviewer-authored issue (the "con người"
+  /// source beside the model's rows).
+  ///
+  /// An empty title is a no-op (the dialog validates first); ids are unique
+  /// by creation microsecond so two issues in the same second never
+  /// collapse into one row.
+  void addHumanIssue({
+    required String title,
+    String detail = '',
+    Severity severity = Severity.medium,
+    String? section,
+  }) {
+    final trimmedTitle = title.trim();
+    if (trimmedTitle.isEmpty) return;
+    state = state.copyWith(
+      humanIssues: [
+        ...state.humanIssues,
+        HumanIssue(
+          id: 'human-${DateTime.now().microsecondsSinceEpoch}',
+          title: trimmedTitle,
+          detail: detail.trim(),
+          severity: severity,
+          section: section?.trim(),
+          createdAt: DateTime.now(),
+        ),
+      ],
+    );
+    _log('Reviewer added issue "$trimmedTitle" (${severity.name})');
+    _saveSnapshot();
+  }
+
+  /// Drops one reviewer-authored issue. Like every other sync mutation it
+  /// persists best-effort right away so a restart cannot resurrect the row.
+  void removeHumanIssue(String id) {
+    state = state.copyWith(
+      humanIssues: state.humanIssues
+          .where((issue) => issue.id != id)
+          .toList(),
+    );
+    _saveSnapshot();
+  }
+
+  /// §F.3 (rulebook 1.7-draft) — recompute the declared-vs-cover findings
+  /// from the CURRENT declaration and page texts.
+  ///
+  /// Replaces any previous run of the same check instead of appending: the
+  /// user may save the form three times, and three stacked copies of one
+  /// mismatch would read as three defects. Called after import and after
+  /// every save.
+  void _refreshProjectInfoFindings() {
+    final kept = state.referenceFindings
+        .where((finding) => finding.check != CheckId.projectInfoMismatch)
+        .toList();
+    final declared = state.projectInfo;
+    state = state.copyWith(
+      referenceFindings: declared == null
+          ? kept
+          : [
+              ...kept,
+              ...const ProjectInfoChecks().declaredVsCover(
+                declared,
+                state.pageTexts,
+              ),
+            ],
+    );
+  }
+
   // ------------------------------------------------------------- demo / import
 
   Future<void> loadDemo() async {
@@ -420,8 +566,21 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       sizeLabel: '27.37 MB',
       isDemo: true,
       units: units,
+      // Like a re-import: the container name and the declaration belong to
+      // the PROJECT, not to whichever file is open — dropping them here
+      // would erase workflow steps 1+2 the moment someone opens the demo.
+      projectInfo: state.projectInfo,
+      projectName: state.projectName,
+      humanIssues: state.humanIssues,
       syllabusFindings: SyllabusChecks(RubricConfig.fallback).runAll(document),
-      referenceFindings: const ReferenceChecks().runAll(document),
+      referenceFindings: [
+        ...const ReferenceChecks().runAll(document),
+        // §F.5 rides the repository list at import (document_repository);
+        // the demo path computes the same checks here because it bypasses
+        // the repository entirely. The dashboard splits them back out by
+        // [CheckId.isFormatCheck] into the Format & Layout section.
+        ...const FormatLayoutChecks().runAll(document),
+      ],
       blueprintFindings: const BlueprintChecks().runAll(document.blueprint),
       diagramPageCount: document.imagePageIndexes.length,
       imageReviewAvailable: false,
@@ -433,6 +592,9 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       toast:
           '${units.length} units extracted. All detected IDs have been preserved.',
     ).copyWith(restoring: false);
+    // Fresh page texts — re-verify the carried declaration against them so
+    // §F.3 never lags one document behind (same contract as importDocument).
+    _refreshProjectInfoFindings();
     _scheduleToastClear();
     _log('Tải tài liệu mẫu: $demoFileName ($demoPageCount trang)');
     _log(
@@ -474,7 +636,20 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         units: unitsFromDocument(loaded.document),
         syllabusFindings: loaded.findings,
         referenceFindings: loaded.referenceFindings,
-        blueprintFindings: loaded.blueprintFindings,
+        blueprintFindings: [
+          ...loaded.blueprintFindings,
+          // §F.4 — chapter order reads the resolved index, which only exists
+          // here; the declaration-based §F.3 is refreshed separately below,
+          // because it must also react to later form saves.
+          ...const ProjectInfoChecks().sectionOrder(loaded.document.blueprint),
+        ],
+        // The declaration is about the PROJECT, not the file: replacing the
+        // document must not silently discard what the user typed.
+        projectInfo: state.projectInfo,
+        projectName: state.projectName,
+        // Reviewer-authored issues annotate the project, not the file: a
+        // re-import must not discard what the reviewer already recorded.
+        humanIssues: state.humanIssues,
         // How many pages look like diagrams. Recorded at import so the report
         // can distinguish diagram detection from actual image review.
         diagramPageCount: loaded.document.imagePageIndexes.length,
@@ -488,6 +663,10 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
             '${loaded.document.requirements.length} units extracted. '
             'All detected IDs have been preserved.',
       ).copyWith(restoring: false);
+      // §F.3 needs BOTH sides of the comparison: the declaration survived the
+      // re-import above (projectInfo is carried over), and these are fresh
+      // page texts to check it against.
+      _refreshProjectInfoFindings();
       _scheduleToastClear();
       await _saveSnapshot();
       await _analyzeDocumentOnServer(
@@ -873,6 +1052,12 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   bool get canAuditDiagrams => diagramAuditCount > 0;
 
   bool get hasPdfBytes => _pdfBytes != null && _pdfBytes!.isNotEmpty;
+
+  /// True when results are on screen but the original file is gone — the
+  /// state a restored session lands in. The workflow's "đánh giá lại" path
+  /// must ask for an explicit re-import instead of pretending the bytes are
+  /// still in memory ([runReview] refuses with the matching message).
+  bool get needsReImport => state.hasDocument && _document == null;
 
   bool get canRenderPdf =>
       state.canRenderPdf ||
@@ -1348,8 +1533,11 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
               ?.map((e) => e as String)
               .toList() ??
           const <String>[];
+      final projectInfo = _decodeProjectInfo(payload);
       state = state.copyWith(
         hasDocument: true,
+        projectName: (payload['projectName'] as String?) ?? '',
+        humanIssues: _decodeHumanIssues(payload),
         pageTexts: pageTexts,
         // Only `units` is load-bearing; the rest is display metadata. Casting
         // those with `as String` / `as int` used to throw on a payload that was
@@ -1365,6 +1553,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         blueprintFindings: blueprintFindings,
         findingStatus: findingStatus,
         diagramPageCount: (payload['diagramPageCount'] as int?) ?? 0,
+        projectInfo: projectInfo,
         uploadUri: _uploadUri,
         imageReviewAvailable: _uploadUri != null && _uploadUri!.isNotEmpty,
         imageReviewedCount: 0,
@@ -1383,6 +1572,10 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         toast: 'Saved review restored.',
         restoring: false,
       );
+      // Same contract as the snapshot path: recompute §F.3 against the
+      // restored pages, so a form payload lost to a schema bump drops its
+      // findings together with the declaration that justified them.
+      _refreshProjectInfoFindings();
       _scheduleToastClear();
       return true;
     } on Object catch (error) {
@@ -1528,6 +1721,38 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
 
   // ------------------------------------------------------------- persistence
 
+  /// Reads the declared project info from a persisted payload.
+  ///
+  /// Degrades to null instead of throwing: a payload written by a future
+  /// schema must cost the user their form, never their whole restored
+  /// workspace — §F.3 then recomputes to nothing, which is coherent (no
+  /// declaration, no declared-vs-cover claim).
+  static ProjectInfo? _decodeProjectInfo(Map<String, dynamic> payload) {
+    final raw = payload['projectInfo'] as Map<String, dynamic>?;
+    if (raw == null) return null;
+    try {
+      return ProjectInfo.fromJson(raw);
+    } on Object {
+      return null;
+    }
+  }
+
+  /// Reads reviewer-authored issues from a persisted payload.
+  ///
+  /// Degrades to an empty list instead of throwing: one future-schema row
+  /// must cost the user that row, never the whole restored workspace.
+  static List<HumanIssue> _decodeHumanIssues(Map<String, dynamic> payload) {
+    final raw = payload['humanIssues'];
+    if (raw is! List) return const [];
+    try {
+      return raw
+          .map((entry) => HumanIssue.fromJson(entry as Map<String, dynamic>))
+          .toList(growable: false);
+    } on Object {
+      return const [];
+    }
+  }
+
   Future<void> _saveSnapshot() async {
     if (!state.hasDocument) return;
     final payload = jsonEncode({
@@ -1556,6 +1781,18 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       'parserVersion': state.parserVersion,
       'uploadUri': _uploadUri ?? state.uploadUri,
       'pageTexts': state.pageTexts,
+      // The declaration persists WITH the §F.3 findings that were derived
+      // from it: a restored finding against an empty form would be a claim
+      // nobody can re-verify. Missing key (older snapshots) restores null.
+      'projectInfo': state.projectInfo?.toJson(),
+      // Step-1 container rides along like the declaration: History grouping
+      // needs it after a restart. Missing key restores ''.
+      'projectName': state.projectName,
+      // Reviewer-authored issues ride along for the same reason the merge
+      // in the Report tab must read identically after a restart.
+      'humanIssues': state.humanIssues
+          .map((issue) => issue.toJson())
+          .toList(growable: false),
     });
     try {
       await _store.saveSnapshot(payload);
@@ -1650,8 +1887,11 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
               ?.map((e) => e as String)
               .toList() ??
           const <String>[];
+      final projectInfo = _decodeProjectInfo(payload);
       state = WorkspaceState(
         hasDocument: true,
+        projectName: (payload['projectName'] as String?) ?? '',
+        humanIssues: _decodeHumanIssues(payload),
         fileName: payload['fileName'] as String,
         pageCount: payload['pageCount'] as int,
         sizeLabel: payload['sizeLabel'] as String,
@@ -1662,6 +1902,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         blueprintFindings: blueprintFindings,
         findingStatus: findingStatus,
         diagramPageCount: (payload['diagramPageCount'] as int?) ?? 0,
+        projectInfo: projectInfo,
         result: resultJson == null
             ? null
             : WorkspaceReviewResult.fromJson(resultJson),
@@ -1672,6 +1913,10 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         imageReviewAvailable: _uploadUri != null && _uploadUri!.isNotEmpty,
         restoring: false,
       );
+      // The declaration and the pages it was checked against both survived;
+      // recompute so a future-schema form payload (decoded as null above)
+      // cannot leave §F.3 findings that nobody can re-verify behind.
+      _refreshProjectInfoFindings();
     } on Object {
       state = state.copyWith(restoring: false);
     }
@@ -1708,6 +1953,18 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       'parserVersion': state.parserVersion,
       'uploadUri': _uploadUri ?? state.uploadUri,
       'pageTexts': state.pageTexts,
+      // Same rule as the snapshot: findings derived from the declaration
+      // travel with the declaration itself.
+      'projectInfo': state.projectInfo?.toJson(),
+      // The session's History row is grouped under this name — without it,
+      // a finished run would fall into "Chưa gán project" after being
+      // created inside a project.
+      'projectName': state.projectName,
+      // Same rule as the snapshot: the merged Report tab reads this list,
+      // so the session must carry it too.
+      'humanIssues': state.humanIssues
+          .map((issue) => issue.toJson())
+          .toList(growable: false),
     });
     try {
       await _store.save(

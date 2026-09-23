@@ -210,6 +210,7 @@ class WorkspaceReviewResult {
     required this.mock,
     required this.rubricVersion,
     required this.createdAt,
+    this.model,
     this.outcome = 'done',
     this.scores = const {},
     this.totalTokens = 0,
@@ -228,6 +229,9 @@ class WorkspaceReviewResult {
         droppedIssueCount: json['droppedIssueCount'] as int,
         mock: json['mock'] as bool,
         rubricVersion: json['rubricVersion'] as String,
+        // Sessions written before the source tag existed read back as null;
+        // the report then labels the model "not recorded" instead of lying.
+        model: json['model'] as String?,
         createdAt: DateTime.parse(json['createdAt'] as String),
         // Sessions saved before this field existed carry no outcome; they read
         // back as 'done', which is exactly how they always behaved.
@@ -249,6 +253,12 @@ class WorkspaceReviewResult {
   final int droppedIssueCount;
   final bool mock;
   final String rubricVersion;
+
+  /// The model that produced this run's answers (first non-empty per-unit
+  /// `ReviewResult.model`; a run can mix primary and fallback models). Null
+  /// for old sessions — the Report tab needs it to name the reviewer
+  /// ("AI · `<model>` · rubric `<version>`") instead of an anonymous "AI".
+  final String? model;
   final DateTime createdAt;
 
   /// How the run ended — the terminal [ReviewStage] name: 'done', 'cancelled'
@@ -324,8 +334,20 @@ class WorkspaceReviewResult {
       completionTokens += result.completionTokens ?? 0;
     }
 
+    // First model that answered — a run can mix primary and fallback, so
+    // "the model" is whichever actually produced rows (the report's AI
+    // source tag reads it; null keeps old payloads honest).
+    String? runModel;
+    for (final result in run.results.values) {
+      if (result.model.isNotEmpty) {
+        runModel = result.model;
+        break;
+      }
+    }
+
     return WorkspaceReviewResult(
       findings: rows,
+      model: runModel,
       reviewed: run.results.length,
       skipped: units.length - run.results.length,
       failed: run.failures.length,
@@ -359,6 +381,7 @@ class WorkspaceReviewResult {
     'droppedIssueCount': droppedIssueCount,
     'mock': mock,
     'rubricVersion': rubricVersion,
+    'model': model,
     'createdAt': createdAt.toIso8601String(),
     'outcome': outcome,
     'scores': scores,

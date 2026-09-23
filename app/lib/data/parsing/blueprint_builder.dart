@@ -171,6 +171,20 @@ class BlueprintBuilder {
       foldedPages: foldedPages,
       indexPages: indexPages,
     );
+    // Rulebook §F.6: the window missed — before calling the caption "gone",
+    // sweep the whole body once. A far match means the artifact MOVED (the
+    // index still points at its old page). [pdfPageIndex] stays null so
+    // every existing consumer keeps seeing an unresolved artifact;
+    // `BlueprintChecks.tablePositionDrift` reads this second channel.
+    final movedTo = resolved == null
+        ? _searchGlobally(
+            kind: kind,
+            number: entry.number,
+            normalizedCaption: normalized,
+            foldedPages: foldedPages,
+            indexPages: indexPages,
+          )
+        : null;
     return ArtifactRef(
       kind: kind,
       number: entry.number,
@@ -178,6 +192,7 @@ class BlueprintBuilder {
       normalizedCaption: normalized,
       printedPage: entry.page,
       pdfPageIndex: resolved,
+      foundPageIndex: movedTo,
       sectionId: _sectionIdFor(
         resolvedIndex: resolved,
         printedPage: entry.page,
@@ -266,6 +281,35 @@ class BlueprintBuilder {
         if (indexPages.contains(candidate)) continue;
         if (matches(foldedPages[candidate])) return candidate;
       }
+    }
+    return null;
+  }
+
+  /// Whole-body sweep, run ONLY after [_resolvePage]'s window missed — the
+  /// artifact is either moved (rulebook §F.6) or gone. Caption probe first:
+  /// it is distinctive, while the bare label `Table 12` also matches
+  /// cross-references ("see Table 12"); label probe second, for captions that
+  /// lost their printed number. Index pages are pointers, never content, so
+  /// they are skipped exactly like in the window search. Every hit is beyond
+  /// the window by construction — [_resolvePage] already covered it.
+  int? _searchGlobally({
+    required ArtifactKind kind,
+    required int number,
+    required String normalizedCaption,
+    required List<String> foldedPages,
+    required Set<int> indexPages,
+  }) {
+    final probe = _probe(normalizedCaption, _minCaptionProbeLength);
+    if (probe != null) {
+      for (var i = 0; i < foldedPages.length; i++) {
+        if (indexPages.contains(i)) continue;
+        if (foldedPages[i].contains(probe)) return i;
+      }
+    }
+    final matches = _labelMatcher(kind, number);
+    for (var i = 0; i < foldedPages.length; i++) {
+      if (indexPages.contains(i)) continue;
+      if (matches(foldedPages[i])) return i;
     }
     return null;
   }

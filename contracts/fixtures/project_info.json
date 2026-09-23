@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0.0",
+  "project_name": "Online Tutor Enrollment System (OTES)",
+  "students": [
+    {
+      "full_name": "Nguyen Van An",
+      "student_id": "SE171234"
+    },
+    {
+      "full_name": "Tran Thi Binh",
+      "student_id": "SE171235"
+    }
+  ],
+  "supervisor": "Dr. Le Minh Chau",
+  "course_code": "PRM393",
+  "class_name": "SE1836",
+  "document_version": "1.2",
+  "submission_date": "2026-10-15",
+  "notes": "Second revision after supervisor feedback on use case granularity."
+}

@@ -45,6 +45,9 @@ const List<WorkspaceDestination> kWorkspaceDestinations = [
   WorkspaceDestination('Đánh giá tài liệu', Icons.description_outlined),
   WorkspaceDestination('Lịch sử đánh giá', Icons.history),
   WorkspaceDestination('Chuẩn Syllabus & Thang điểm', Icons.menu_book_outlined),
+  // Report branch (index 3): merged AI + human issues with the overall
+  // assessment. Its POSITION — not a path — is what selects it (goBranch).
+  WorkspaceDestination('Báo cáo tổng hợp', Icons.summarize_outlined),
 ];
 
 /// Height of the floating top bar. Named because the scrolling views have to

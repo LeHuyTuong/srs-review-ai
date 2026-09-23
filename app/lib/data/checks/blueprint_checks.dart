@@ -143,6 +143,7 @@ class BlueprintChecks {
       ...missingSections(blueprint),
       ...unclassifiedFigures(blueprint),
       ...captionPageMismatches(blueprint),
+      ...tablePositionDrift(blueprint),
     ];
   }
 
@@ -341,6 +342,10 @@ class BlueprintChecks {
     final findings = <DeterministicFinding>[];
     for (final artifact in blueprint.artifacts) {
       if (artifact.isResolved) continue;
+      // Rulebook §F.6: a caption found elsewhere in the body is a MOVED
+      // artifact, not a stale index — tablePositionDrift reports it
+      // precisely. One artifact must not produce two findings.
+      if (artifact.foundPageIndex != null) continue;
       findings.add(
         DeterministicFinding(
           check: CheckId.captionPageMismatch,
@@ -353,6 +358,63 @@ class BlueprintChecks {
               'Word).',
           subject: artifact.label,
           actual: artifact.printedPage,
+        ),
+      );
+    }
+    return findings;
+  }
+
+  // ------------------------------------------------------- moved artifacts
+
+  /// Rulebook §F.6 — the index points at a page whose caption is not near it
+  /// while the caption EXISTS somewhere else in the body: the artifact moved
+  /// (typically dragged to the end of the document while the index kept its
+  /// old page), which is a different defect from [captionPageMismatches]
+  /// ("the caption is nowhere at all").
+  ///
+  /// [BlueprintBuilder] only fills [ArtifactRef.foundPageIndex] after its
+  /// ±[BlueprintBuilder.captionSearchWindow] search missed, so every hit here
+  /// is beyond that window by construction — no threshold in this check.
+  ///
+  /// Gated on [DocumentBlueprint.trusted], same as [captionPageMismatches]:
+  /// on an unverified offset both "claimed" and "found" pages are guesses.
+  List<DeterministicFinding> tablePositionDrift(DocumentBlueprint blueprint) {
+    if (!blueprint.trusted) return const [];
+    final findings = <DeterministicFinding>[];
+    for (final artifact in blueprint.artifacts) {
+      final found = artifact.foundPageIndex;
+      if (found == null) continue;
+      final claimed = artifact.printedPage - 1 + blueprint.pageOffset;
+      final foundPrinted = found - blueprint.pageOffset + 1;
+      final delta = found - claimed;
+      SectionRange? expected;
+      for (final section in blueprint.sections) {
+        if (section.containsPrintedPage(artifact.printedPage)) {
+          expected = section;
+          break;
+        }
+      }
+      final actual = blueprint.sectionOf(found);
+      final sectionNote =
+          expected != null &&
+              actual != null &&
+              expected.id != actual.id
+          ? ' Caption nằm ở chương "${actual.title}" thay vì chương '
+              '"${expected.title}" mà mục lục ngầm gán.'
+          : '';
+      findings.add(
+        DeterministicFinding(
+          check: CheckId.tablePositionDrift,
+          passed: false,
+          severity: Severity.medium,
+          message:
+              'Mục lục ghi ${artifact.label} ở trang ${artifact.printedPage}, '
+              'nhưng caption nằm ở trang $foundPrinted (lệch '
+              '${delta > 0 ? '+' : ''}$delta trang). Bảng/hình có thể đã bị '
+              'dời mà mục lục chưa được cập nhật — kiểm tra bằng mắt trước '
+              'khi sửa.$sectionNote',
+          subject: artifact.label,
+          actual: found,
         ),
       );
     }

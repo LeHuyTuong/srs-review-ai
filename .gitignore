@@ -54,3 +54,9 @@ server/.uploads/
 
 # ---------- Runtime artifacts (share-link bodies written by the server) ----------
 server/.shares/
+
+# ---------- Uploaded document cache (docmap/meta/page renders beside server) ----------
+server/*-*.pdf
+server/*.docmap.json
+server/*.meta.json
+server/*.render.*.png

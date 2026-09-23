@@ -12,6 +12,8 @@ import 'dart:typed_data';
 
 import '../checks/blueprint_checks.dart';
 import '../checks/contradiction_pass.dart';
+import '../checks/format_layout_checks.dart';
+import '../checks/header_footer_checks.dart';
 import '../checks/reference_checks.dart';
 import '../checks/rubric_config.dart';
 import '../checks/syllabus_checks.dart';
@@ -89,6 +91,17 @@ class DocumentRepository {
       // key, so a ContradictionPass finding participates in the
       // ledger without any new plumbing.
       ...const ContradictionPass().detect(document),
+      // Rulebook §F (1.7-draft) — cover-page and header/footer findings
+      // fold into the same list for the same reason ContradictionPass did:
+      // the dashboard already renders this family under "Consistency
+      // smells" and the Verifier transitions any deterministic key, so a
+      // furniture finding participates in the ledger with no new plumbing.
+      ...const HeaderFooterChecks().runAll(document),
+      // Rulebook §F.5 (1.7-draft) — format & layout findings fold into the
+      // same list for the same reason: the dashboard splits them back out
+      // by [CheckId.isFormatCheck] into the Format & Layout section, and
+      // the Verifier transitions any deterministic key.
+      ...const FormatLayoutChecks().runAll(document),
     ];
     // Document-index findings (blueprint, zero token): keep them last and
     // separate so the other two families never change shape for existing

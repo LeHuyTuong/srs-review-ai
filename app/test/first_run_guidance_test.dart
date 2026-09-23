@@ -1,6 +1,7 @@
 /// Regression tests for the first-run clarity batch (workflow review round 1):
 /// the Export button is gated on a finished review, the restoring spinner says
-/// what it is doing, and the empty state carries a three-step orientation card.
+/// what it is doing, and the empty state carries the guided 3-step project
+/// workflow (Bước 1→3).
 library;
 
 import 'dart:async';
@@ -35,7 +36,7 @@ Future<void> _pumpWhile(
 }
 
 void main() {
-  testWidgets('empty state shows the three-step orientation card', (
+  testWidgets('empty state shows the guided project workflow', (
     tester,
   ) async {
     // 900px: below the 1100px inner-split threshold, so no document-loaded
@@ -60,16 +61,31 @@ void main() {
           find.text('Kiểm tra tài liệu dựa trên bằng chứng').evaluate().isEmpty,
     );
 
-    // The checklist is the only place a brand-new user learns the flow and
-    // the word "unit" before any document exists.
-    expect(find.text('How it works'), findsOneWidget);
-    expect(find.textContaining('1. Import your SRS'), findsOneWidget);
-    expect(find.textContaining('2. Pick units & run a review'), findsOneWidget);
-    expect(find.textContaining('3. Read findings & export'), findsOneWidget);
+    // The workflow card is the only place a brand-new user learns the three
+    // steps AND the word "unit" before any document exists.
+    expect(find.text('Lần đầu? Làm theo 3 bước'), findsOneWidget);
+    expect(find.text('Tạo project mới'), findsOneWidget);
+    expect(find.text('Điền thông tin đồ án'), findsOneWidget);
+    expect(find.text('Nộp file SRS đánh giá'), findsOneWidget);
     expect(
-      find.textContaining('one reviewable requirement'),
+      find.textContaining('yêu cầu có thể chấm'),
       findsOneWidget,
       reason: 'the word "unit" must be defined where it first matters',
+    );
+
+    // Step 1 is a real action: type a name, create the container, see it stick.
+    await tester.enterText(find.byType(TextField).first, 'Đợt 1 — OTES');
+    await tester.pump();
+    // The card sits below the fold on an 844px-tall surface — bring the
+    // button on screen first, or tap() reports a miss and the state never
+    // changes (warnIfMissed).
+    await tester.ensureVisible(find.text('Tạo project'));
+    await tester.pump();
+    await tester.tap(find.text('Tạo project'));
+    await tester.pump();
+    expect(
+      container.read(workspaceViewModelProvider).projectName,
+      'Đợt 1 — OTES',
     );
 
     // Once a document exists, the orientation card hands over to the real

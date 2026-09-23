@@ -22,6 +22,7 @@ Capstone FPT thường nộp **một file duy nhất** chứa cả SRS, SDS, tes
 - [ ] Ghi header ledger (coverage). Trang/ảnh không đọc được → liệt kê ngay.
 - [ ] Ngôn ngữ: toàn văn tiếng Anh? (bỏ qua tên riêng người/địa danh — bẫy OTES: 42 tên tác giả Việt không phải lỗi). → `language`.
 - [ ] Trích toàn bộ ID xuất hiện: FR-*, UC-*, NFR-*, BR-*. Lập bảng ID → vị trí. Trùng → `duplicateIds`.
+- [ ] Trang bìa khai báo đủ tên đề tài / GVHD / nhóm? Header/footer lặp lại có nhất quán giữa các trang? → `coverPageInfo`, `headerFooterConsistency` (`quality-rules.md` §F; thuần text, heuristic — nghi vấn thì mở file kiểm bằng mắt).
 
 ## Phase 1 — Thu thập (§A Introduction, §B.1, B.3–B.5)
 

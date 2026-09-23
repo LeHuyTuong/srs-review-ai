@@ -16,6 +16,7 @@ import 'package:srs_review_ai/data/models/deterministic_finding.dart';
 import 'package:srs_review_ai/data/models/diagram_audit.dart';
 import 'package:srs_review_ai/data/models/document_map.dart';
 import 'package:srs_review_ai/data/models/loaded_document.dart';
+import 'package:srs_review_ai/data/models/project_info.dart';
 import 'package:srs_review_ai/data/models/review_models.dart';
 import 'package:srs_review_ai/data/models/review_progress.dart';
 import 'package:srs_review_ai/data/models/srs_document.dart';
@@ -359,6 +360,227 @@ void main() {
     expect(state.documentFingerprint, isNotEmpty);
     expect(state.documentFingerprint.length, 64); // sha256 hex
     expect(state.parserVersion, kParserVersion);
+  });
+
+  // ------------------------------------------------------------ §F.3 wiring
+  // The declaration, the imported pages, and the findings derived from them
+  // must behave as ONE unit: survive an import together, recompute replace-
+  // not-append on every save, and persist in the snapshot together.
+  LoadedDocument coverDocument() => LoadedDocument(
+    document: SrsDocument(
+      fileName: 'otes.pdf',
+      pageCount: 2,
+      pageTexts: const [
+        'FPT University\nOnline Tutoring Examination System\n'
+            'SRS Document v1.0\nSupervisor: Nguyen Van A',
+        'Student: Tran B — SE123456\nClass SE12345\nSubmitted 2026-01-01',
+      ],
+      requirements: const [
+        RequirementItem(
+          id: 'UC-01',
+          text: 'UC-01 The system shall review its diagrams.',
+          kind: RequirementKind.useCase,
+          pageIndex: 0,
+        ),
+      ],
+      occurrenceKeys: const ['u0-UC-01'],
+      imagePageIndexes: const [],
+    ),
+    findings: const [],
+    sizeBytes: 10,
+  );
+
+  List<DeterministicFinding> mismatchesOf(WorkspaceState state) => state
+      .referenceFindings
+      .where((f) => f.check == CheckId.projectInfoMismatch)
+      .toList(growable: false);
+
+  test('§F.3: declaration vs imported pages, replace-not-append on save', () async {
+    final store = InMemorySessionStore();
+    final container = _container(
+      store,
+      documentRepository: _StubDocumentRepository(coverDocument()),
+    );
+    addTearDown(container.dispose);
+    final vm = container.read(workspaceViewModelProvider.notifier);
+    await vm.importDocument();
+
+    const wrong = ProjectInfo(
+      projectName: 'Quantum Flux Capacitor Examulator',
+      students: [StudentMember(fullName: 'Tran B', studentId: 'SE123456')],
+      supervisor: 'Ghost Advisor',
+    );
+    vm.setProjectInfo(wrong);
+    var state = container.read(workspaceViewModelProvider);
+    expect(mismatchesOf(state), hasLength(2), reason: 'title + supervisor');
+    expect(state.projectInfo?.projectName, wrong.projectName);
+
+    // Re-saving the same declaration must not stack a second copy of the
+    // findings (the class of bug the 40-cap replace pattern exists for).
+    vm.setProjectInfo(wrong);
+    state = container.read(workspaceViewModelProvider);
+    expect(mismatchesOf(state), hasLength(2));
+
+    // Correcting the declaration clears both findings — the check is a
+    // property of (declaration, pages), not an accumulating log.
+    vm.setProjectInfo(
+      const ProjectInfo(
+        projectName: 'Online Tutoring Examination System',
+        students: [StudentMember(fullName: 'Tran B', studentId: 'SE123456')],
+        supervisor: 'Nguyen Van A',
+      ),
+    );
+    state = container.read(workspaceViewModelProvider);
+    expect(mismatchesOf(state), isEmpty);
+  });
+
+  test('§F.3 declaration persists with the snapshot and rechecks on restore', () async {
+    final store = InMemorySessionStore();
+    final containerA = _container(
+      store,
+      documentRepository: _StubDocumentRepository(coverDocument()),
+    );
+    addTearDown(containerA.dispose);
+    final vmA = containerA.read(workspaceViewModelProvider.notifier);
+    await vmA.importDocument();
+    vmA.setProjectInfo(
+      const ProjectInfo(
+        projectName: 'Quantum Flux Capacitor Examulator',
+        students: [StudentMember(fullName: 'Tran B', studentId: 'SE123456')],
+        supervisor: 'Ghost Advisor',
+      ),
+    );
+    // Let the fire-and-forget snapshot write land before reopening the store.
+    await Future<void>.delayed(Duration.zero);
+
+    final containerB = _container(store);
+    addTearDown(containerB.dispose);
+    await _pumpUntil(
+      () => !containerB.read(workspaceViewModelProvider).restoring,
+    );
+    final state = containerB.read(workspaceViewModelProvider);
+    expect(
+      state.projectInfo?.projectName,
+      'Quantum Flux Capacitor Examulator',
+      reason: 'the declaration travels WITH the findings derived from it',
+    );
+    // Restored findings are recomputed against the restored pages — still
+    // exactly two, never the restored pair plus a duplicated recomputed pair.
+    expect(mismatchesOf(state), hasLength(2));
+  });
+
+  group('workflow Bước 1: project container', () {
+    test('createProject sets the name; a different name starts fresh', () async {
+      final store = InMemorySessionStore();
+      final container = _container(
+        store,
+        documentRepository: _StubDocumentRepository(coverDocument()),
+      );
+      addTearDown(container.dispose);
+      final vm = container.read(workspaceViewModelProvider.notifier);
+      await vm.importDocument();
+
+      vm.createProject('  Đợt 1 — OTES  ');
+      expect(
+        container.read(workspaceViewModelProvider).projectName,
+        'Đợt 1 — OTES',
+        reason: 'the container name is stored trimmed',
+      );
+
+      vm.setProjectInfo(
+        const ProjectInfo(
+          projectName: 'Ghost Title',
+          students: [StudentMember(fullName: 'Tran B', studentId: 'SE123456')],
+          supervisor: 'Ghost Advisor',
+        ),
+      );
+      expect(
+        container
+            .read(workspaceViewModelProvider)
+            .referenceFindings
+            .where((f) => f.check == CheckId.projectInfoMismatch)
+            .length,
+        2,
+        reason: 'title + supervisor mismatches from the declaration',
+      );
+
+      // Same trimmed name = same project: the declaration survives.
+      vm.createProject('Đợt 1 — OTES');
+      expect(
+        container.read(workspaceViewModelProvider).projectInfo,
+        isNotNull,
+      );
+
+      // A DIFFERENT name = a new history bucket: the old declaration and
+      // the §F.3 findings derived from it must not leak into the next round.
+      vm.createProject('Đợt 2 — HisWise');
+      final state = container.read(workspaceViewModelProvider);
+      expect(state.projectName, 'Đợt 2 — HisWise');
+      expect(state.projectInfo, isNull);
+      expect(
+        state.referenceFindings
+            .where((f) => f.check == CheckId.projectInfoMismatch),
+        isEmpty,
+      );
+    });
+
+    test('the name survives import, demo, snapshot restore and sessions', () async {
+      final store = InMemorySessionStore();
+      final containerA = _container(
+        store,
+        documentRepository: _StubDocumentRepository(coverDocument()),
+      );
+      addTearDown(containerA.dispose);
+      final vmA = containerA.read(workspaceViewModelProvider.notifier);
+      vmA.createProject('Đợt 1 — OTES');
+      await vmA.importDocument();
+      expect(
+        containerA.read(workspaceViewModelProvider).projectName,
+        'Đợt 1 — OTES',
+        reason: 'importDocument rebuilds state — the container must ride along',
+      );
+
+      // Step 3 may be the demo: the declaration typed in step 2 belongs to
+      // the project, not the file, so it rides along and rechecks.
+      vmA.setProjectInfo(
+        const ProjectInfo(
+          projectName: 'Online Tutoring Examination System',
+          students: [StudentMember(fullName: 'Tran B', studentId: 'SE123456')],
+          supervisor: 'Nguyen Van A',
+        ),
+      );
+      await vmA.loadDemo();
+      final demoState = containerA.read(workspaceViewModelProvider);
+      expect(demoState.projectName, 'Đợt 1 — OTES');
+      expect(demoState.projectInfo?.supervisor, 'Nguyen Van A');
+
+      // Snapshot restore into a fresh container over the same store.
+      await Future<void>.delayed(Duration.zero);
+      final containerB = _container(store);
+      addTearDown(containerB.dispose);
+      await _pumpUntil(
+        () => !containerB.read(workspaceViewModelProvider).restoring,
+      );
+      expect(
+        containerB.read(workspaceViewModelProvider).projectName,
+        'Đợt 1 — OTES',
+      );
+
+      // A finished run stores the container in its session payload; opening
+      // the session puts the row back under the same project.
+      await vmA.runReview();
+      await _pumpUntil(() {
+        final s = containerA.read(workspaceViewModelProvider);
+        return s.hasResult && !s.isRunning && s.history.isNotEmpty;
+      });
+      final history = containerA.read(workspaceViewModelProvider).history;
+      final opened = await vmA.openSession(history.first.id);
+      expect(opened, isTrue);
+      expect(
+        containerA.read(workspaceViewModelProvider).projectName,
+        'Đợt 1 — OTES',
+      );
+    });
   });
 
   test(

@@ -17,7 +17,7 @@ Cả ba xuất **cùng một ledger format** (`checklists/ledger-format.md`) →
 ```
 RULEBOOK.md                 quyết định đã ký (§9) + chỉ mục + lịch sử version (§10)
 references/
-  quality-rules.md            9(+1) tính chất, ISO 25010, ambiguity scan, N/A hàng loạt
+  quality-rules.md            9(+1) tính chất, ISO 25010, ambiguity scan, N/A hàng loạt, §F trang bìa/header-footer
   uml25-diagram-policy.md     14 loại UML 2.5 + ngoại lệ C4/ERD/combined-fragment + G1–G8
   viewpoints.md               IEEE 1016 + Kruchten 4+1 + test 4 câu WHAT/HOW
   architecture-patterns.md    ECB + 5 style → hình dạng sequence/class bắt buộc (chain 7)

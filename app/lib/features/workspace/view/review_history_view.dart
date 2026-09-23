@@ -17,6 +17,70 @@ import '../view_model/workspace_view_model.dart';
 import 'workspace_modals.dart';
 import 'workspace_widgets.dart';
 
+/// Label for sessions saved before workflow step 1 existed (or whose payload
+/// failed to decode) — they are still listed, just without a project bucket.
+const String unassignedProjectLabel = 'Chưa gán project';
+
+/// Groups history rows by the project name stored in each session payload —
+/// the History tab's "results never mix between submission rounds" promise
+/// (workflow Bước 1→3).
+///
+/// Group order follows first appearance (the store returns newest first) and
+/// rows inside a group keep that same order. A missing or undecodable
+/// `projectName` lands under [unassignedProjectLabel] instead of being
+/// dropped: losing a paid-for run over a display field would be worse than
+/// showing it ungrouped.
+List<MapEntry<String, List<SavedSession>>> groupSessionsByProject(
+  List<SavedSession> sessions,
+) {
+  final groups = <String, List<SavedSession>>{};
+  for (final session in sessions) {
+    var name = unassignedProjectLabel;
+    try {
+      final payload = jsonDecode(session.payloadJson) as Map<String, dynamic>;
+      final raw = (payload['projectName'] as String?)?.trim() ?? '';
+      if (raw.isNotEmpty) name = raw;
+    } on Object {
+      // Corrupt payload — keep the row under the unassigned bucket.
+    }
+    (groups[name] ??= <SavedSession>[]).add(session);
+  }
+  return groups.entries.toList(growable: false);
+}
+
+Widget _projectGroupHeader(
+  MapEntry<String, List<SavedSession>> group,
+  ThemeData theme,
+  WorkspaceColors colors,
+) => Padding(
+  padding: const EdgeInsets.fromLTRB(
+    AppSpacing.lg,
+    AppSpacing.lg,
+    AppSpacing.lg,
+    AppSpacing.xs,
+  ),
+  child: Row(
+    children: [
+      Icon(Icons.folder_outlined, size: 15, color: colors.muted),
+      const SizedBox(width: AppSpacing.xs),
+      Expanded(
+        child: Text(
+          group.key,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: colors.ink,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      WBadge(
+        label: '${group.value.length} phiên',
+        tint: WBadgeTint.neutral,
+      ),
+    ],
+  ),
+);
+
 class ReviewHistoryView extends ConsumerStatefulWidget {
   const ReviewHistoryView({super.key});
 
@@ -122,8 +186,11 @@ class _ReviewHistoryViewState extends ConsumerState<ReviewHistoryView> {
                             'Bắt đầu chấm tại màn hình Đánh giá tài liệu. Kết quả sẽ tự động được lưu tại đây.',
                       )
                     else
-                      for (final session in state.history)
-                        _HistoryRow(
+                      for (final group
+                          in groupSessionsByProject(state.history)) ...[
+                        _projectGroupHeader(group, theme, colors),
+                        for (final session in group.value)
+                          _HistoryRow(
                           session: session,
                           onOpen: () async {
                             final opened = await viewModel.openSession(
@@ -172,7 +239,8 @@ class _ReviewHistoryViewState extends ConsumerState<ReviewHistoryView> {
                               await viewModel.deleteSession(session.id);
                             }
                           },
-                        ),
+                          ),
+                      ],
                   ],
                 ),
               ),

@@ -11,6 +11,7 @@
 library;
 
 import '../../../data/models/deterministic_finding.dart';
+import '../../../data/models/human_issue.dart';
 import '../../../data/models/review_models.dart';
 import '../../../data/models/review_progress.dart';
 import 'document_verdict.dart';
@@ -102,6 +103,11 @@ String buildMarkdownReport({
   /// run. This is transient report context and is never persisted with the
   /// snapshot or saved session.
   PageImageCoverage? imageCoverage,
+
+  /// Reviewer-authored issues (Report tab) — the "con người" rows beside the
+  /// model's Findings rows. Each carries its creation timestamp; the Report
+  /// tab's source labels name the reviewer the same way.
+  List<HumanIssue> humanIssues = const [],
 
   /// Per-finding triage, keyed by finding id.
   Map<String, FindingStatus> findingStatus = const {},
@@ -375,6 +381,15 @@ String buildMarkdownReport({
         .length;
 
     lines.add('## Findings (${findings.length})');
+    // Task Báo cáo tổng hợp: every issue names its reviewer. Model rows
+    // name the model that answered plus the prompt/rubric version; human
+    // rows live in the section below with their own timestamps.
+    lines
+      ..add('')
+      ..add(
+        'Reviewer: AI · ${result == null ? 'not run' : (result.model ?? (result.mock ? 'offline mock run' : 'proxy run, model not recorded'))} · '
+        'rubric ${result?.rubricVersion ?? kRubricLabel} · human issues: ${humanIssues.length}',
+      );
     if (accepted > 0 || dismissed > 0) {
       lines
         ..add('')
@@ -425,6 +440,26 @@ String buildMarkdownReport({
 
   lines
     ..add('')
+    ..add(
+      '## Human-reported issues (${humanIssues.length})',
+    )
+    ..add('')
+    ..add('Entered by a reviewer in the app — not model output.')
+    ..add('')
+    ..add('| When (UTC) | Severity | Section | Title | Detail |')
+    ..add('|---|---|---|---|---|');
+  for (final issue in humanIssues) {
+    final stamp = issue.createdAt.toUtc().toIso8601String();
+    final detail = issue.detail.isEmpty ? '—' : issue.detail;
+    lines.add(
+      '| $stamp | ${issue.severity.name} | ${issue.section ?? '—'} | '
+      '${issue.title.replaceAll('|', '\\|')} | '
+      '${detail.replaceAll('|', '\\|')} |',
+    );
+  }
+
+  lines
+    ..add('')
     ..add('## Limitations & future work')
     ..add('')
     ..addAll([
@@ -463,6 +498,10 @@ Map<String, dynamic> buildJsonReport({
   int imageReviewedCount = 0,
   PageImageCoverage? imageCoverage,
   Map<String, FindingStatus> findingStatus = const {},
+
+  /// Reviewer-authored issues (Report tab) — additive-only schema, so older
+  /// readers ignore an unknown `human_issues` key by contract.
+  List<HumanIssue> humanIssues = const [],
 }) {
   final findings = result?.findings ?? const <FindingRow>[];
   FindingStatus statusFor(String id) => findingStatus[id] ?? FindingStatus.open;
@@ -552,6 +591,9 @@ Map<String, dynamic> buildJsonReport({
       ...syllabusFindings,
       ...referenceFindings,
     ]).toJson(),
+    'human_issues': [
+      for (final issue in humanIssues) issue.toJson(),
+    ],
     'deterministic_checks': [
       for (final finding in syllabusFindings)
         {
