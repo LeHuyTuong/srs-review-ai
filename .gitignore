@@ -48,6 +48,8 @@ Thumbs.db
 /samples/private/
 *.log
 coverage/
+# flutter test --file-reporter output (CI annotator input; local runs too)
+/app/test_report.json
 
 # presigned-upload landing zone (dev default; never commit uploaded documents)
 server/.uploads/

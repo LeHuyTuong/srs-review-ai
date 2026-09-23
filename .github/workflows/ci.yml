@@ -68,7 +68,13 @@ jobs:
       - run: dart format --output=none --set-exit-if-changed .
       # Zero tolerance: infos fail too, so lint debt cannot accumulate.
       - run: flutter analyze --fatal-infos --fatal-warnings
-      - run: flutter test
+      # CI logs need a sign-in to read; annotations do not. The step below
+      # re-emits each failure as a public ::error so the check page names
+      # the failing test without opening the log.
+      - id: test
+        run: flutter test --file-reporter json:test_report.json
+      - if: failure() && steps.test.outcome == 'failure'
+        run: python3 ../tools/annotate_test_failures.py test_report.json
 
   # The only automated verification either desktop native runner gets.
   #
@@ -135,7 +141,10 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter analyze --fatal-infos --fatal-warnings
-      - run: flutter test
+      - id: test
+        run: flutter test --file-reporter json:test_report.json
+      - if: failure() && steps.test.outcome == 'failure'
+        run: python3 ../tools/annotate_test_failures.py test_report.json
       # Debug, not release: the fastest target that still runs the platform
       # compiler and linker over every file in the runner directory.
       - run: flutter build ${{ matrix.target }} --debug
