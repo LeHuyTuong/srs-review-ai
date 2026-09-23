@@ -834,11 +834,10 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                                   const SizedBox(height: AppSpacing.xs),
                                   Text(
                                     workspaceMessage(finding.message),
-                                    style: theme.textTheme.bodySmall
-                                        ?.copyWith(
-                                          color: colors.muted,
-                                          height: 1.7,
-                                        ),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colors.muted,
+                                      height: 1.7,
+                                    ),
                                   ),
                                 ],
                               ),

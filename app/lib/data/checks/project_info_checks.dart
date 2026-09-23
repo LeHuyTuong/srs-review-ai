@@ -65,10 +65,9 @@ class ProjectInfoChecks {
     final foldedCover = foldVietnamese(cover);
 
     final findings = <DeterministicFinding>[];
-    final titleTokens = foldVietnamese(declared.projectName)
-        .split(' ')
-        .where((token) => token.length >= _minTitleTokenChars)
-        .toSet();
+    final titleTokens = foldVietnamese(
+      declared.projectName,
+    ).split(' ').where((token) => token.length >= _minTitleTokenChars).toSet();
     if (titleTokens.isNotEmpty) {
       final matched = titleTokens
           .where((token) => foldedCover.contains(token))

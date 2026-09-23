@@ -30,7 +30,8 @@ class HumanIssue {
     section: json['section'] as String?,
     // A row that fails to decode its timestamp would take the whole restore
     // down with it — epoch reads as "obviously old", never as an exception.
-    createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+    createdAt:
+        DateTime.tryParse(json['createdAt'] as String? ?? '') ??
         DateTime.fromMillisecondsSinceEpoch(0),
   );
 

@@ -131,28 +131,29 @@ void main() {
 
   group('§F.4 sectionOrder', () {
     test('monotonic chapters → silent', () {
-      final blueprint = _blueprint(
-        [_range('A', 1, 9), _range('B', 10, 21), _range('C', 22, 30)],
-        trusted: true,
-      );
+      final blueprint = _blueprint([
+        _range('A', 1, 9),
+        _range('B', 10, 21),
+        _range('C', 22, 30),
+      ], trusted: true);
       expect(checks.sectionOrder(blueprint), isEmpty);
     });
 
     // Boundary semantics pinned explicitly: start == previous end passes,
     // only start < previous end is a defect.
     test('chapter starting exactly where the previous ends → silent', () {
-      final blueprint = _blueprint(
-        [_range('A', 1, 10), _range('B', 10, 21)],
-        trusted: true,
-      );
+      final blueprint = _blueprint([
+        _range('A', 1, 10),
+        _range('B', 10, 21),
+      ], trusted: true);
       expect(checks.sectionOrder(blueprint), isEmpty);
     });
 
     test('chapter starting inside its predecessor → one MEDIUM finding', () {
-      final blueprint = _blueprint(
-        [_range('A', 1, 15), _range('B', 10, 25)],
-        trusted: true,
-      );
+      final blueprint = _blueprint([
+        _range('A', 1, 15),
+        _range('B', 10, 25),
+      ], trusted: true);
       final findings = checks.sectionOrder(blueprint);
       expect(findings, hasLength(1));
       expect(findings.single.check, CheckId.sectionOrder);
@@ -167,19 +168,20 @@ void main() {
     });
 
     test('every overlapping pair in a chain is reported', () {
-      final blueprint = _blueprint(
-        [_range('A', 1, 30), _range('B', 10, 40), _range('C', 20, 50)],
-        trusted: true,
-      );
+      final blueprint = _blueprint([
+        _range('A', 1, 30),
+        _range('B', 10, 40),
+        _range('C', 20, 50),
+      ], trusted: true);
       final findings = checks.sectionOrder(blueprint);
       expect(findings.map((f) => f.subject), ['A->B', 'B->C']);
     });
 
     test('untrusted index → silent (a guess is not a finding)', () {
-      final blueprint = _blueprint(
-        [_range('A', 1, 15), _range('B', 10, 25)],
-        trusted: false,
-      );
+      final blueprint = _blueprint([
+        _range('A', 1, 15),
+        _range('B', 10, 25),
+      ], trusted: false);
       expect(checks.sectionOrder(blueprint), isEmpty);
     });
 

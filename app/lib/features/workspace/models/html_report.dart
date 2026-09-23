@@ -452,8 +452,10 @@ String buildHtmlReport({
       final stamp = issue.createdAt.toUtc().toIso8601String();
       out.write('<li><b>${_esc(issue.title)}</b>');
       out.write('<span class="chip">${_esc(issue.severity.name)}</span>');
-      out.write('<span class="meta">${_esc(issue.section ?? '')} '
-          '${_esc(stamp)}</span>');
+      out.write(
+        '<span class="meta">${_esc(issue.section ?? '')} '
+        '${_esc(stamp)}</span>',
+      );
       if (issue.detail.isNotEmpty) {
         out.write('<br>${_esc(issue.detail)}');
       }
@@ -461,7 +463,6 @@ String buildHtmlReport({
     }
     out.write('</ul>');
   }
-
 
   // ── Inventory (collapsed: it is long) ─────────────────────────────────
   out.write(

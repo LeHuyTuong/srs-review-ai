@@ -396,11 +396,9 @@ class BlueprintChecks {
       }
       final actual = blueprint.sectionOf(found);
       final sectionNote =
-          expected != null &&
-              actual != null &&
-              expected.id != actual.id
+          expected != null && actual != null && expected.id != actual.id
           ? ' Caption nằm ở chương "${actual.title}" thay vì chương '
-              '"${expected.title}" mà mục lục ngầm gán.'
+                '"${expected.title}" mà mục lục ngầm gán.'
           : '';
       findings.add(
         DeterministicFinding(

@@ -55,10 +55,8 @@ void main() {
     );
     await _pumpWhile(
       tester,
-      () => find
-          .text('Kiểm tra tài liệu dựa trên bằng chứng')
-          .evaluate()
-          .isEmpty,
+      () =>
+          find.text('Kiểm tra tài liệu dựa trên bằng chứng').evaluate().isEmpty,
     );
 
     // A reviewer-authored row exists before any AI run has happened: the
@@ -188,9 +186,6 @@ void main() {
       'createdAt': 'not-a-date',
     });
     expect(decoded.severity, Severity.medium);
-    expect(
-      decoded.createdAt,
-      DateTime.fromMillisecondsSinceEpoch(0),
-    );
+    expect(decoded.createdAt, DateTime.fromMillisecondsSinceEpoch(0));
   });
 }

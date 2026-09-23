@@ -1,4 +1,5 @@
 library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/layout/app_viewport.dart';
@@ -15,6 +16,7 @@ import '../models/workspace_findings.dart';
 import '../view_model/workspace_view_model.dart';
 import 'workspace_modals.dart';
 import 'workspace_widgets.dart';
+
 /// Report tab — the supervisor-facing summary, kept SEPARATE from the
 /// review screen on purpose (task Báo cáo tổng hợp, tab riêng).
 ///
@@ -25,6 +27,7 @@ import 'workspace_widgets.dart';
 /// Reached only through `goBranch(3)` like every other destination: no
 /// path literal may select a branch (the `/workspace` GoException lesson).
 enum _SourceFilter { all, ai, human }
+
 extension on _SourceFilter {
   String label(int total, int ai, int human) => switch (this) {
     _SourceFilter.all => 'Tất cả ($total)',
@@ -32,11 +35,13 @@ extension on _SourceFilter {
     _SourceFilter.human => 'Con người ($human)',
   };
 }
+
 class ReportView extends ConsumerStatefulWidget {
   const ReportView({super.key});
   @override
   ConsumerState<ReportView> createState() => _ReportViewState();
 }
+
 class _ReportViewState extends ConsumerState<ReportView> {
   _SourceFilter _filter = _SourceFilter.all;
   @override
@@ -53,8 +58,8 @@ class _ReportViewState extends ConsumerState<ReportView> {
     final aiSource = result == null
         ? 'AI · chưa chạy lượt nào'
         : result.mock
-            ? 'AI · mô phỏng ngoại tuyến (không gọi model)'
-            : 'AI · ${result.model ?? 'model không ghi nhận'} · prompt ${result.rubricVersion}';
+        ? 'AI · mô phỏng ngoại tuyến (không gọi model)'
+        : 'AI · ${result.model ?? 'model không ghi nhận'} · prompt ${result.rubricVersion}';
     final aiRows = result?.findings ?? const <FindingRow>[];
     final offlineRows = [
       ...state.syllabusFindings,
@@ -90,6 +95,7 @@ class _ReportViewState extends ConsumerState<ReportView> {
       return 'Trông ổn: sàn đạt, không còn lỗi nghiêm trọng từ AI. Rà nốt '
           '${aiRows.length + offlineRows.length} lỗi trung bình/nhẹ rồi đính kèm báo cáo khi nộp.';
     }
+
     final insets = ChromeInsets.of(context);
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
@@ -127,7 +133,8 @@ class _ReportViewState extends ConsumerState<ReportView> {
                 isDemo: state.isDemo,
                 hasResult: state.hasResult,
                 reviewed: result?.reviewed ?? 0,
-                skippedCount: result?.skipped ??
+                skippedCount:
+                    result?.skipped ??
                     state.units.where((unit) => !unit.selected).length,
                 failedCount: result?.failed ?? 0,
                 dropped: result?.droppedIssueCount ?? 0,
@@ -185,6 +192,7 @@ class _ReportViewState extends ConsumerState<ReportView> {
     );
   }
 }
+
 /// Panel 1 — đánh giá tổng quan (task: verdict, điểm tổng, nhận xét chung).
 ///
 /// Reads only derived data: the verdict from the deterministic ledger, the
@@ -260,15 +268,10 @@ Widget _overallPanel({
                   tint: mock ? WBadgeTint.amber : WBadgeTint.green,
                 ),
                 if (isDemo)
-                  const WBadge(
-                    label: 'Tài liệu mẫu',
-                    tint: WBadgeTint.neutral,
-                  ),
+                  const WBadge(label: 'Tài liệu mẫu', tint: WBadgeTint.neutral),
                 if (rubricVersion.isNotEmpty)
                   WBadge(label: 'Rubric $rubricVersion'),
-                WBadge(
-                  label: fileName.isEmpty ? 'Chưa nhập file' : fileName,
-                ),
+                WBadge(label: fileName.isEmpty ? 'Chưa nhập file' : fileName),
                 if (pageCount > 0)
                   WBadge(label: '$pageCount trang · $sizeLabel'),
               ],
@@ -315,6 +318,7 @@ Widget _overallPanel({
     },
   );
 }
+
 Widget _count(
   String label,
   int value,
@@ -342,6 +346,7 @@ Widget _count(
     ),
   );
 }
+
 /// Panel 2 — danh sách issue gộp từ mọi nguồn (task: AI + con người).
 ///
 /// One header row counts each source, then every card carries its own
@@ -377,6 +382,7 @@ Widget _issueListHeader({
     },
   );
 }
+
 Widget _filterChip({
   required bool selected,
   required String label,
@@ -396,9 +402,7 @@ Widget _filterChip({
           decoration: BoxDecoration(
             color: selected ? colors.brand : colors.canvas,
             borderRadius: AppRadius.boxSm,
-            border: Border.all(
-              color: selected ? colors.brand : colors.border,
-            ),
+            border: Border.all(color: selected ? colors.brand : colors.border),
           ),
           child: Text(
             label,
@@ -454,8 +458,7 @@ List<Widget> _issueCards({
           icon: Icons.rule_outlined,
           title: finding.check.label,
           body: finding.message,
-          quote:
-              finding.subject == null ? null : 'Vị trí: ${finding.subject}',
+          quote: finding.subject == null ? null : 'Vị trí: ${finding.subject}',
           source:
               'Luật ngoại tuyến · ${familyFor(finding.check).title} · rubric $rubricVersion',
           severity: finding.severity,
@@ -475,7 +478,8 @@ List<Widget> _issueCards({
           title: issue.title,
           body: issue.detail.isEmpty ? 'Không có mô tả thêm.' : issue.detail,
           quote: issue.section == null ? null : 'Vị trí: ${issue.section}',
-          source: 'Con người · ${two(stamp.day)}/${two(stamp.month)} '
+          source:
+              'Con người · ${two(stamp.day)}/${two(stamp.month)} '
               '${two(stamp.hour)}:${two(stamp.minute)}',
           severity: issue.severity,
           trailing: _DeleteHumanButton(
@@ -489,11 +493,13 @@ List<Widget> _issueCards({
   cards.sort((a, b) => rank(a.severity).compareTo(rank(b.severity)));
   return [for (final entry in cards) entry.card];
 }
+
 class _ScoredCard {
   const _ScoredCard({required this.severity, required this.card});
   final Severity severity;
   final Widget card;
 }
+
 class _ReportIssueCard extends StatelessWidget {
   const _ReportIssueCard({
     required this.icon,
@@ -586,6 +592,7 @@ class _ReportIssueCard extends StatelessWidget {
     );
   }
 }
+
 class _DeleteHumanButton extends StatelessWidget {
   const _DeleteHumanButton({required this.issueId, required this.onDelete});
   final String issueId;
@@ -601,6 +608,7 @@ class _DeleteHumanButton extends StatelessWidget {
     );
   }
 }
+
 /// Add-issue dialog (task: cơ chế nhập issue của con người).
 ///
 /// One title field (required), one detail field, a severity dropdown, one

@@ -22,9 +22,7 @@ void main() {
   test('the schema declares the same version the model speaks', () {
     final schema =
         jsonDecode(
-              File(
-                '../contracts/project-info.schema.json',
-              ).readAsStringSync(),
+              File('../contracts/project-info.schema.json').readAsStringSync(),
             )
             as Map<String, dynamic>;
 

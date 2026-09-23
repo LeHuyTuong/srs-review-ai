@@ -51,7 +51,10 @@ void main() {
         _section('SEC-4.2.1'),
       ]);
       expect(findings, hasLength(2));
-      expect(findings.every((f) => f.check == CheckId.headingNumbering), isTrue);
+      expect(
+        findings.every((f) => f.check == CheckId.headingNumbering),
+        isTrue,
+      );
       // Both fired rows name '4' as the missing parent, with the child as
       // the subject so the ledger can point at the offending heading.
       expect(
@@ -92,15 +95,9 @@ void main() {
     });
 
     test('a monotonic run of trailing numbers stays silent', () {
-      expect(
-        checks.pageNumbering(_pages(7, (i) => '${i + 1}')),
-        isEmpty,
-      );
+      expect(checks.pageNumbering(_pages(7, (i) => '${i + 1}')), isEmpty);
       // The other footer shapes count too.
-      expect(
-        checks.pageNumbering(_pages(7, (i) => 'Trang ${i + 1}')),
-        isEmpty,
-      );
+      expect(checks.pageNumbering(_pages(7, (i) => 'Trang ${i + 1}')), isEmpty);
     });
 
     test('no page number anywhere fires one low finding', () {
@@ -113,9 +110,7 @@ void main() {
 
     test('a run that repeats or steps backwards fires once', () {
       final suffixes = ['2', '3', '3', '3', '5', '4'];
-      final findings = checks.pageNumbering(
-        _pages(7, (i) => suffixes[i - 1]),
-      );
+      final findings = checks.pageNumbering(_pages(7, (i) => suffixes[i - 1]));
       expect(findings, hasLength(1));
       expect(findings.single.check, CheckId.pageNumbering);
       expect(findings.single.message, contains('3 lần'));
