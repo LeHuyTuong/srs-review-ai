@@ -81,6 +81,7 @@ class PageImageCoverage {
     this.reviewed = 0,
     this.skipped = 0,
     this.failed = 0,
+    this.rendererUnavailable = false,
     this.reasons = const <String, int>{},
     this.decisions = const <String, int>{},
     this.reviewedOccurrenceKeys = const <String>{},
@@ -106,6 +107,16 @@ class PageImageCoverage {
   /// failed. Ordinary text-only requirements are not renderer failures.
   final int failed;
 
+  /// True when at least one page failed because THIS HOST has no PDF renderer
+  /// (pdfx's platform probe answered false), not because that particular page
+  /// was bad.
+  ///
+  /// A page-level failure costs one unit's evidence; a missing renderer means
+  /// no page image was ever sent, so every diagram was read from extracted
+  /// text. Callers owe the user that sentence — a run like this must not look
+  /// like the diagrams were graded.
+  final bool rendererUnavailable;
+
   /// Stable fallback/decision tokens -> requirement counts.
   final Map<String, int> reasons;
 
@@ -123,6 +134,7 @@ class PageImageCoverage {
         other.reviewed == reviewed &&
         other.skipped == skipped &&
         other.failed == failed &&
+        other.rendererUnavailable == rendererUnavailable &&
         _mapsEqual(other.reasons, reasons) &&
         _mapsEqual(other.decisions, decisions) &&
         _setsEqual(other.reviewedOccurrenceKeys, reviewedOccurrenceKeys);
@@ -135,6 +147,7 @@ class PageImageCoverage {
     reviewed,
     skipped,
     failed,
+    rendererUnavailable,
     _mapHash(reasons),
     _mapHash(decisions),
     _setHash(reviewedOccurrenceKeys),

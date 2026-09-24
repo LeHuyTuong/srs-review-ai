@@ -788,6 +788,11 @@ class _RunSummaryBar extends ConsumerWidget {
               child: Text(
                 'Review finished · ${state.runReviewed} units reviewed · '
                 '$findings findings'
+                // The missing-renderer sentence rides BEFORE the token and
+                // failure notes on purpose: this line is capped at two lines
+                // with an ellipsis, and "the diagrams were read from text" is
+                // the one clause the user must not have clipped away.
+                '${state.diagramsWereTextOnly ? kNoPdfRendererNote : ''}'
                 '${(state.result?.totalTokens ?? 0) > 0 ? ' · ${state.result!.totalTokens} tokens' : ''}'
                 // A run where units failed must not read as a clean result —
                 // the same honesty rule the toast already follows.

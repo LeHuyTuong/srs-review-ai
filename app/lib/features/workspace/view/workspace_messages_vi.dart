@@ -310,6 +310,14 @@ const _fragments = <String, String>{
       'Tất cả trang sơ đồ đều kiểm tra thất bại (lỗi đầu tiên: ',
   ') — the pages were not seen; no verdict was written.':
       ') — chưa xem được ảnh trang; chưa có kết luận.',
+  // The two shapes of the missing-renderer notice: the standalone line the
+  // Findings tab shows, and the tail the run summary appends to its sentence.
+  'This platform has no PDF renderer — the diagrams were reviewed from '
+          'text only, not from their images.':
+      'Thiết bị này không có bộ vẽ PDF; sơ đồ chỉ được chấm từ văn bản, không chấm từ ảnh trang.',
+  ' · this platform has no PDF renderer — the diagrams were reviewed from '
+          'text only, not from their images':
+      ' · thiết bị này không có bộ vẽ PDF nên sơ đồ chỉ được chấm từ văn bản',
   'The proxy could not answer (': 'Máy chủ không thể trả lời (',
   '). These are the matching passages from your document instead — no model was ':
       '). Dưới đây là đoạn văn phù hợp trong tài liệu; không có mô hình nào được ',

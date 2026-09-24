@@ -27,6 +27,23 @@ typedef PdfDocumentOpener = Future<PdfDocument> Function(Uint8List bytes);
 /// handle.
 typedef PdfSupportProbe = Future<bool> Function();
 
+/// This host has no PDF renderer at all: pdfx's platform probe answered false,
+/// so nothing on this machine can rasterize a page.
+///
+/// It stays an [UnsupportedError] — every existing caller already degrades to
+/// text-only on any error — but the distinct type lets a caller tell "this
+/// platform cannot see diagrams" apart from "this one page failed to render".
+/// The two read very differently to the user: a page that failed is one unit
+/// short, while a missing renderer means no image reached the model at all and
+/// a run that still reports findings must say they came from extracted text.
+class PdfRendererUnavailable extends UnsupportedError {
+  PdfRendererUnavailable()
+    : super(
+        'No PDF renderer on this platform: pdfx supports Android, iOS, '
+        'macOS, Windows and the web only.',
+      );
+}
+
 /// Hard payload guard for diagram-review images.
 ///
 /// Callers may lower these limits for a particular workflow, but cannot raise
@@ -352,16 +369,14 @@ class PageImageRenderer {
 
 /// The production opener: pdfx, but only on a platform that has a renderer.
 ///
-/// Throws [UnsupportedError] instead of letting pdfx raise the same verdict
-/// from a discarded future, so callers can keep degrading to text-only. An
-/// injected [PdfDocumentOpener] bypasses both this gate and pdfx.
+/// Throws [PdfRendererUnavailable] instead of letting pdfx raise the same
+/// verdict from a discarded future, so callers can keep degrading to text-only
+/// and can still recognize the platform verdict when they do. An injected
+/// [PdfDocumentOpener] bypasses both this gate and pdfx.
 PdfDocumentOpener _openWithPdfx(PdfSupportProbe supportsPdf) =>
     (Uint8List bytes) async {
       if (!await supportsPdf()) {
-        throw UnsupportedError(
-          'No PDF renderer on this platform: pdfx supports Android, iOS, '
-          'macOS, Windows and the web only.',
-        );
+        throw PdfRendererUnavailable();
       }
       return PdfDocument.openData(bytes);
     };

@@ -129,13 +129,28 @@ class _FakePageRenderer extends PageImageRenderer {
   }) async => Uint8List.fromList([1, 2, 3]);
 }
 
+/// A renderer that is present but always reports pdfx's platform verdict —
+/// what the desktop/web app sees on a host with no pdfium (Linux), and what
+/// must reach the user as a sentence rather than as a silent text-only run.
+class _UnavailablePageRenderer extends PageImageRenderer {
+  _UnavailablePageRenderer()
+    : super(openDocument: (_) async => throw StateError('unused opener'));
+
+  @override
+  Future<Uint8List> renderPage({
+    required Uint8List pdfBytes,
+    required int pageIndex,
+    PageImageRenderOptions options = const PageImageRenderOptions(),
+  }) async => throw PdfRendererUnavailable();
+}
+
 class _VisionReviewRepository extends ReviewRepository {
   /// Real passthroughs onto the MockReviewApi rule branch; only the PDF
   /// render is faked.
-  _VisionReviewRepository()
+  _VisionReviewRepository({PageImageRenderer? renderer})
     : super(
         const MockReviewApi(latency: Duration.zero),
-        renderer: _FakePageRenderer(),
+        renderer: renderer ?? _FakePageRenderer(),
       );
 }
 
@@ -1355,6 +1370,7 @@ void main() {
     Future<(WorkspaceViewModel, ProviderContainer)> visionVm({
       Uint8List? pdfBytes,
       DocumentMapService? documentMapService,
+      PageImageRenderer? renderer,
     }) async {
       final store = InMemorySessionStore();
       final container = _container(
@@ -1362,7 +1378,7 @@ void main() {
         documentRepository: _StubVisionDocRepository(
           _visionLoaded(pdfBytes: pdfBytes),
         ),
-        reviewRepository: _VisionReviewRepository(),
+        reviewRepository: _VisionReviewRepository(renderer: renderer),
         documentMapService: documentMapService,
       );
       final vm = container.read(workspaceViewModelProvider.notifier);
@@ -1461,6 +1477,41 @@ void main() {
             .toList();
         expect(diagram, hasLength(1));
         expect(diagram.single.message, contains('Page 1'));
+      },
+    );
+
+    test(
+      'a run on a host with no PDF renderer says the diagrams came from text',
+      () async {
+        final (vm, container) = await visionVm(
+          pdfBytes: Uint8List.fromList([0, 1, 2]),
+          renderer: _UnavailablePageRenderer(),
+        );
+        addTearDown(container.dispose);
+
+        await vm.runReview();
+        await _pumpUntil(() {
+          final state = container.read(workspaceViewModelProvider);
+          return state.hasResult && !state.isRunning;
+        });
+
+        final state = container.read(workspaceViewModelProvider);
+        // The run still does its job — a missing renderer degrades to text,
+        // it does not fail the review…
+        expect(state.result!.reviewed, 1);
+        expect(state.diagramsWereTextOnly, isTrue);
+        expect(
+          (state.imageCoverage?.reasons['no-pdf-renderer'] ?? 0),
+          greaterThan(0),
+          reason: 'the page failed for the host\'s reason, not the page\'s',
+        );
+        // …but it must never read as if the pictures had been graded.
+        expect(state.toast, contains('no PDF renderer'));
+        expect(
+          state.toast,
+          contains('the diagrams were reviewed from text only'),
+          reason: 'a run with no renderer owes the user that sentence',
+        );
       },
     );
 

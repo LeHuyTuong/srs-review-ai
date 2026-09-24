@@ -208,6 +208,11 @@ class ReviewRepository {
     final imageFailureByPage = <int, String>{};
     var extracted = 0;
     var failed = 0;
+    // Kept separately from the per-page failures: "this host cannot rasterize
+    // at all" is a property of the machine, not of one page, and it is the
+    // difference between one unit losing its image and every diagram being
+    // read from text. The summary owes the user the latter in plain words.
+    var rendererUnavailable = false;
     if (imageReviewEnabled) {
       for (var index = 0; index < items.length; index++) {
         if (token.isCancelled) {
@@ -255,12 +260,14 @@ class ReviewRepository {
           }
           imageB64ByPage[pageIndex] = imageB64;
           extracted++;
-        } on Object {
+        } on Object catch (error) {
           // A bad/missing page must not kill the whole review. The requirement
           // still gets its ordinary text-only request below. Cancellation wins
           // over attributing a renderer failure to the cancelled run.
           if (token.isCancelled) break;
-          const reason = 'render-failed';
+          final noRenderer = error is PdfRendererUnavailable;
+          if (noRenderer) rendererUnavailable = true;
+          final reason = noRenderer ? 'no-pdf-renderer' : 'render-failed';
           imageFailureByPage[pageIndex] = reason;
           failed++;
           reasonCounts[reason] = (reasonCounts[reason] ?? 0) + 1;
@@ -655,6 +662,7 @@ class ReviewRepository {
         reviewed: reviewed,
         skipped: items.length - reviewed,
         failed: failed,
+        rendererUnavailable: rendererUnavailable,
         reasons: reasonCounts,
         decisions: decisionCounts,
         reviewedOccurrenceKeys: reviewedOccurrenceKeys,

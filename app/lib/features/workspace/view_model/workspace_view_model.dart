@@ -48,6 +48,24 @@ export '../../../data/services/session_store.dart' show SavedSession;
 /// two malformed synthetic ids.
 const Set<String> _demoMalformedIds = {'UC0134', 'UC0114'};
 
+/// The line a finished run owes the user when this host has no PDF renderer.
+///
+/// A run that asked for page images and never got one still reviews every
+/// diagram-shaped unit — from its extracted text. Without this sentence that
+/// run looks identical to one whose pictures were graded, and the verdict's
+/// diagram component would read as if a model had looked at the drawings.
+/// English here, Vietnamese in the presentation layer, like every other
+/// application-owned message; the leading separator lets callers append it to
+/// a one-line summary.
+const String kNoPdfRendererNote =
+    ' · this platform has no PDF renderer — the diagrams were reviewed from '
+    'text only, not from their images';
+
+/// [kNoPdfRendererNote] without the summary separator, for a standalone line.
+const String kNoPdfRendererNotice =
+    'This platform has no PDF renderer — the '
+    'diagrams were reviewed from text only, not from their images.';
+
 class WorkspaceState {
   const WorkspaceState({
     this.hasDocument = false,
@@ -225,6 +243,14 @@ class WorkspaceState {
   /// Full page-image selection, extraction, and request coverage for the latest
   /// run. This is transient UI/report context and is never serialized.
   final PageImageCoverage? imageCoverage;
+
+  /// True when the last run wanted page images and this host could not
+  /// rasterize a single page, so no diagram was ever put in front of the model.
+  ///
+  /// Derived from the run's own coverage, never from the platform: a run with
+  /// image review switched off (DOCX, mock mode, a session without bytes) says
+  /// nothing about the renderer and must stay quiet.
+  bool get diagramsWereTextOnly => imageCoverage?.rendererUnavailable ?? false;
 
   /// Identity of the reviewed content: the document fingerprint and the
   /// parser version that produced it. Saved sessions record both so opening
@@ -1307,6 +1333,10 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       final capNote = skipped > 0
           ? ' · $skipped left out by the ${AppConfig.maxRequirementsPerRun}-unit per-run cap'
           : '';
+      // A run whose pages could not be rendered is not a text-only run by
+      // choice: say so, or the diagram findings read as if the pictures had
+      // been graded.
+      final rendererNote = state.diagramsWereTextOnly ? kNoPdfRendererNote : '';
       state = state.copyWith(
         clearProgress: true,
         runStartedAt: DateTime.now(),
@@ -1318,7 +1348,8 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         runSummaryDismissed: false,
         toast:
             '$reviewed units reviewed · $findings verified findings'
-            '$failNote$capNote${saved ? ' · saved on this device' : ''}',
+            '$failNote$capNote$rendererNote'
+            '${saved ? ' · saved on this device' : ''}',
       );
     } else if (progress.stage == ReviewStage.cancelled) {
       final kept = result?.reviewed ?? progress.completed;

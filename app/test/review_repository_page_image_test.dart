@@ -332,6 +332,43 @@ void main() {
     });
 
     test(
+      'a host with no PDF renderer is reported as a platform verdict',
+      () async {
+        // The renderer exists but pdfx's platform probe says this machine has
+        // none — the Linux verdict that escaped the run's own catch before
+        // 2026-09-24. It must degrade AND be attributable to the host.
+        final renderer = FakePageImageRenderer(
+          pngBytes: Uint8List.fromList([1]),
+          error: PdfRendererUnavailable(),
+        );
+        final api = RecordingReviewApi();
+        final repository = ReviewRepository(api, renderer: renderer);
+
+        final run = await _collectRun(
+          repository,
+          _diagramDocument(),
+          pdfBytes: Uint8List.fromList([1, 2, 3]),
+          imageReviewEnabled: true,
+        );
+
+        expect(api.calls.single.imageB64, isNull);
+        // "One page was bad" and "this machine cannot draw" must not share a
+        // reason: only the second one means no diagram was ever seen.
+        expect(
+          run.imageCoverage,
+          _coverage(
+            candidates: 1,
+            skipped: 1,
+            failed: 1,
+            rendererUnavailable: true,
+            reasons: const {'no-pdf-renderer': 1},
+            decisions: const {'selected': 1},
+          ),
+        );
+      },
+    );
+
+    test(
       'does not count a transient image retry as a final image failure',
       () async {
         final png = Uint8List.fromList([4, 5, 6]);
@@ -647,6 +684,7 @@ PageImageCoverage _coverage({
   int reviewed = 0,
   int skipped = 0,
   int failed = 0,
+  bool rendererUnavailable = false,
   Map<String, int> reasons = const {},
   Map<String, int> decisions = const {},
   Set<String> reviewedKeys = const {},
@@ -656,6 +694,7 @@ PageImageCoverage _coverage({
   reviewed: reviewed,
   skipped: skipped,
   failed: failed,
+  rendererUnavailable: rendererUnavailable,
   reasons: reasons,
   decisions: decisions,
   reviewedOccurrenceKeys: reviewedKeys,

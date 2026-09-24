@@ -21,6 +21,12 @@ void main() {
           'Đã chấm 40 mục · 3 lỗi đã đối chiếu · 2 mục thất bại, chưa được chấm · 23 mục chưa chấm do giới hạn 40 mục/lượt · đã lưu trên thiết bị',
       'Review cancelled · 4 unit(s) reviewed and saved on this device.':
           'Đã hủy lượt chấm · Đã chấm và lưu 4 mục trên thiết bị.',
+      // The missing-renderer honesty line, in both shapes the app shows it:
+      // appended to the run summary, and standalone above the verdict.
+      '40 units reviewed · 3 verified findings · this platform has no PDF renderer — the diagrams were reviewed from text only, not from their images':
+          'Đã chấm 40 mục · 3 lỗi đã đối chiếu · thiết bị này không có bộ vẽ PDF nên sơ đồ chỉ được chấm từ văn bản',
+      'This platform has no PDF renderer — the diagrams were reviewed from text only, not from their images.':
+          'Thiết bị này không có bộ vẽ PDF; sơ đồ chỉ được chấm từ văn bản, không chấm từ ảnh trang.',
     };
     for (final entry in cases.entries) {
       expect(workspaceMessage(entry.key), entry.value);

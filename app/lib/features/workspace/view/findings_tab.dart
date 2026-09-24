@@ -605,6 +605,41 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
             ],
           ),
         ),
+        // The run's own report card, one line, above the verdict: when this
+        // host has no PDF renderer the run reviewed diagram content from
+        // extracted text, and the verdict panel right below would otherwise
+        // read as if a model had looked at the pictures. Rides the same
+        // coverage fact as the run summary, so the two can never disagree.
+        if (state.diagramsWereTextOnly)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              0,
+              AppSpacing.lg,
+              AppSpacing.md,
+            ),
+            child: Row(
+              key: const Key('no-pdf-renderer-notice'),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.image_not_supported_outlined,
+                  size: 15,
+                  color: colors.amber,
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(
+                  child: Text(
+                    workspaceMessage(kNoPdfRendererNotice),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colors.amber,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         _verdictPanel(state),
         if (result != null) _sectionScores(state),
         if (syllabus.isNotEmpty)

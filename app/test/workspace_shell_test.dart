@@ -18,7 +18,9 @@ import 'package:srs_review_ai/core/widgets/glass_surface.dart';
 import 'package:srs_review_ai/data/models/loaded_document.dart';
 import 'package:srs_review_ai/data/models/srs_document.dart';
 import 'package:srs_review_ai/data/repositories/document_repository.dart';
+import 'package:srs_review_ai/data/repositories/review_repository.dart';
 import 'package:srs_review_ai/data/services/mock_review_api.dart';
+import 'package:srs_review_ai/data/services/page_image_renderer.dart';
 import 'package:srs_review_ai/data/services/session_store.dart';
 import 'package:srs_review_ai/features/workspace/view/workspace_modals.dart';
 import 'package:srs_review_ai/features/workspace/view/workspace_shell.dart';
@@ -61,6 +63,7 @@ class _StubProgressRepository extends DocumentRepository {
 ProviderContainer _container(
   InMemorySessionStore store, {
   DocumentRepository? documentRepository,
+  ReviewRepository? reviewRepository,
 }) => ProviderContainer(
   overrides: [
     sessionStoreProvider.overrideWithValue(store),
@@ -69,8 +72,66 @@ ProviderContainer _container(
     ),
     if (documentRepository != null)
       documentRepositoryProvider.overrideWithValue(documentRepository),
+    if (reviewRepository != null)
+      reviewRepositoryProvider.overrideWithValue(reviewRepository),
   ],
 );
+
+/// A PDF-shaped import: real bytes in memory, so page-image review is on, with
+/// one use case whose text names a diagram (the shape the selector picks).
+class _PdfBytesRepository extends DocumentRepository {
+  @override
+  Future<LoadedDocument?> pickAndParse({
+    void Function(String status)? onStatus,
+  }) async {
+    onStatus?.call('Đang đọc vision.pdf…');
+    return LoadedDocument(
+      document: SrsDocument(
+        fileName: 'vision.pdf',
+        pageCount: 1,
+        pageTexts: const [
+          'UC-01 The PaymentGateway AuthorizesOrder flow reviews diagrams.',
+        ],
+        requirements: const [
+          RequirementItem(
+            id: 'UC-01',
+            text:
+                'UC-01 The PaymentGateway AuthorizesOrder flow reviews diagrams.',
+            kind: RequirementKind.useCase,
+            pageIndex: 0,
+          ),
+        ],
+        occurrenceKeys: const ['u0-UC-01'],
+        imagePageIndexes: const [0],
+      ),
+      findings: const [],
+      sizeBytes: 3,
+      pdfBytes: Uint8List.fromList([0, 1, 2]),
+    );
+  }
+}
+
+/// A renderer that is present but answers with pdfx's platform verdict, the
+/// way every render behaves on a host with no pdfium (Linux CI, 2026-09-24).
+class _UnavailablePageRenderer extends PageImageRenderer {
+  _UnavailablePageRenderer()
+    : super(openDocument: (_) async => throw StateError('unused opener'));
+
+  @override
+  Future<Uint8List> renderPage({
+    required Uint8List pdfBytes,
+    required int pageIndex,
+    PageImageRenderOptions options = const PageImageRenderOptions(),
+  }) async => throw PdfRendererUnavailable();
+}
+
+class _NoRendererRepository extends ReviewRepository {
+  _NoRendererRepository()
+    : super(
+        const MockReviewApi(latency: Duration.zero),
+        renderer: _UnavailablePageRenderer(),
+      );
+}
 
 Future<void> _pumpWhile(
   WidgetTester tester,
@@ -339,6 +400,60 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.textContaining(quote), findsWidgets);
+    await tester.pump(const Duration(seconds: 5));
+  });
+
+  /// The one-line notice a host with no PDF renderer owes the user. The run
+  /// still reviews every diagram-shaped unit — from its extracted text — so
+  /// without this sentence it is indistinguishable from a run whose pictures
+  /// were graded, and the verdict's diagram component reads as if a model had
+  /// looked at the drawings.
+  testWidgets('a run with no PDF renderer says the diagrams came from text', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final container = _container(
+      InMemorySessionStore(),
+      documentRepository: _PdfBytesRepository(),
+      reviewRepository: _NoRendererRepository(),
+    );
+    addTearDown(container.dispose);
+    final vm = container.read(workspaceViewModelProvider.notifier);
+    await vm.importDocument();
+    await vm.runReview();
+    await _pumpWhile(
+      tester,
+      () => !container.read(workspaceViewModelProvider).hasResult,
+    );
+    expect(
+      container.read(workspaceViewModelProvider).diagramsWereTextOnly,
+      isTrue,
+      reason: 'the fixture must actually reach the renderer',
+    );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: buildRouter()),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // In the chrome first: the summary bar outlives the 4-second toast, so the
+    // sentence is still there when the user looks up from the progress bar.
+    expect(find.textContaining('no PDF renderer'), findsWidgets);
+
+    // 'Kết quả & Lỗi' also labels workflow step 3 — target the tab (last
+    // match), scrolled clear of the floating bars.
+    await _scrollToTappable(tester, find.text('Kết quả & Lỗi').last);
+    await tester.tap(find.text('Kết quả & Lỗi').last);
+    await tester.pump(const Duration(milliseconds: 200));
+
+    // And it stays on the tab that carries the verdict it qualifies.
+    expect(find.byKey(const Key('no-pdf-renderer-notice')), findsOneWidget);
     await tester.pump(const Duration(seconds: 5));
   });
 
