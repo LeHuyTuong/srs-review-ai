@@ -25,6 +25,7 @@ import 'package:srs_review_ai/data/repositories/review_repository.dart';
 import 'package:srs_review_ai/data/services/api_service.dart';
 import 'package:srs_review_ai/data/services/document_map_service.dart';
 import 'package:srs_review_ai/data/services/mock_review_api.dart';
+import 'package:srs_review_ai/data/services/page_image_renderer.dart';
 import 'package:srs_review_ai/data/services/review_api.dart';
 import 'package:srs_review_ai/data/services/session_store.dart';
 import 'package:srs_review_ai/features/workspace/models/demo_units.dart';
@@ -111,17 +112,31 @@ class _RefusingSaveStore extends InMemorySessionStore {
   }
 }
 
-class _VisionReviewRepository extends ReviewRepository {
-  /// Real passthroughs onto the MockReviewApi rule branch; only the PDF
-  /// render is faked (test "bytes" are not parseable documents).
-  _VisionReviewRepository()
-    : super(const MockReviewApi(latency: Duration.zero));
+/// A rasterizer that never opens a document: pdfx is a native plugin with a
+/// renderer on Windows/macOS/Android/iOS/web and none on Linux, so a test that
+/// reached the real one would pass or fail depending on the machine running it
+/// (both the review run and the vision audit rasterize). Test "bytes" are not
+/// parseable documents either way.
+class _FakePageRenderer extends PageImageRenderer {
+  _FakePageRenderer()
+    : super(openDocument: (_) async => throw StateError('unused opener'));
 
   @override
-  Future<Uint8List> renderPageForAudit(
-    Uint8List pdfBytes,
-    int pageIndex,
-  ) async => Uint8List.fromList([1, 2, 3]);
+  Future<Uint8List> renderPage({
+    required Uint8List pdfBytes,
+    required int pageIndex,
+    PageImageRenderOptions options = const PageImageRenderOptions(),
+  }) async => Uint8List.fromList([1, 2, 3]);
+}
+
+class _VisionReviewRepository extends ReviewRepository {
+  /// Real passthroughs onto the MockReviewApi rule branch; only the PDF
+  /// render is faked.
+  _VisionReviewRepository()
+    : super(
+        const MockReviewApi(latency: Duration.zero),
+        renderer: _FakePageRenderer(),
+      );
 }
 
 /// Fake server anatomy: one figure region on page 0 (the page the vision

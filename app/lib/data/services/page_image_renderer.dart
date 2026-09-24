@@ -15,6 +15,18 @@ import 'package:pdfx/pdfx.dart';
 /// testable without replacing the production `PdfDocument.openData` path.
 typedef PdfDocumentOpener = Future<PdfDocument> Function(Uint8List bytes);
 
+/// Reports whether this host can rasterize PDFs at all.
+///
+/// pdfx picks its renderer from the operating system, and
+/// `PdfDocument.openData` checks that support from a future it never awaits
+/// (`assertHasPdfSupport()` upstream), so on a platform with no renderer the
+/// verdict arrives as an UNHANDLED async error — it escapes every `catch` the
+/// review run and the vision audit wrap this path in, turning a text-only
+/// degradation into a failed run (measured on Ubuntu CI, 2026-09-24). Asking
+/// first turns "no renderer here" into an ordinary error those callers already
+/// handle.
+typedef PdfSupportProbe = Future<bool> Function();
+
 /// Hard payload guard for diagram-review images.
 ///
 /// Callers may lower these limits for a particular workflow, but cannot raise
@@ -203,8 +215,11 @@ class PageImageRenderSpec {
 
 /// Standalone PDF page renderer.
 class PageImageRenderer {
-  PageImageRenderer({PdfDocumentOpener? openDocument})
-    : _openDocument = openDocument ?? _openWithPdfx;
+  PageImageRenderer({
+    PdfDocumentOpener? openDocument,
+    PdfSupportProbe? pdfSupport,
+  }) : _openDocument =
+           openDocument ?? _openWithPdfx(pdfSupport ?? hasPdfSupport);
 
   final PdfDocumentOpener _openDocument;
 
@@ -335,5 +350,18 @@ class PageImageRenderer {
   }
 }
 
-Future<PdfDocument> _openWithPdfx(Uint8List bytes) =>
-    PdfDocument.openData(bytes);
+/// The production opener: pdfx, but only on a platform that has a renderer.
+///
+/// Throws [UnsupportedError] instead of letting pdfx raise the same verdict
+/// from a discarded future, so callers can keep degrading to text-only. An
+/// injected [PdfDocumentOpener] bypasses both this gate and pdfx.
+PdfDocumentOpener _openWithPdfx(PdfSupportProbe supportsPdf) =>
+    (Uint8List bytes) async {
+      if (!await supportsPdf()) {
+        throw UnsupportedError(
+          'No PDF renderer on this platform: pdfx supports Android, iOS, '
+          'macOS, Windows and the web only.',
+        );
+      }
+      return PdfDocument.openData(bytes);
+    };

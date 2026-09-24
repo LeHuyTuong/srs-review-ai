@@ -223,6 +223,53 @@ void main() {
       expect(opened, isFalse);
     });
   });
+  // Regression guard for the Ubuntu CI failure of 2026-09-24: pdfx raises
+  // "platform not supported" from a future `PdfDocument.openData` never
+  // awaits, so the verdict arrived as an unhandled async error that escaped
+  // the try/catch around every render (review runs and vision audits alike).
+  // The renderer now asks the platform first and throws an ordinary error.
+  group('platform support gate', () {
+    test(
+      'a platform with no renderer fails where a caller can catch it',
+      () async {
+        // No injected opener: this walks the production path, with only pdfx's
+        // own platform probe replaced.
+        final renderer = PageImageRenderer(pdfSupport: () async => false);
+
+        await expectLater(
+          renderer.renderPage(pdfBytes: Uint8List.fromList([1]), pageIndex: 0),
+          throwsA(
+            isA<UnsupportedError>().having(
+              (error) => error.message,
+              'message',
+              contains('No PDF renderer on this platform'),
+            ),
+          ),
+        );
+        await expectLater(
+          renderer.pageSize(pdfBytes: Uint8List.fromList([1]), pageIndex: 0),
+          throwsA(isA<UnsupportedError>()),
+        );
+      },
+    );
+
+    test('an injected opener is used as-is, without the probe', () async {
+      var probed = false;
+      final renderer = PageImageRenderer(
+        openDocument: (_) async => throw StateError('injected opener'),
+        pdfSupport: () async {
+          probed = true;
+          return false;
+        },
+      );
+
+      await expectLater(
+        renderer.renderPage(pdfBytes: Uint8List.fromList([1]), pageIndex: 0),
+        throwsStateError,
+      );
+      expect(probed, isFalse);
+    });
+  });
   group('pageSize', () {
     test('reports the fake page dimensions in points', () async {
       final page = FakePdfPage(
