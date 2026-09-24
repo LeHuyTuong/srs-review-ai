@@ -2,6 +2,22 @@
 
 Cập nhật: 2026-09-10. **Planning only: chưa triển khai các mốc bên dưới.**
 
+## Trạng thái thực tế (cập nhật 2026-09-24, thay thế dòng "Planning only" phía trên)
+
+Roadmap đã được triển khai phần lớn. Bảng này chỉ ghi cái có bằng chứng trong
+repo; gate nào chưa chạy thật thì ghi **MỞ** (luật ROADMAP-AC2).
+
+| Mốc | Trạng thái 2026-09-24 | Bằng chứng |
+|---|---|---|
+| M0 · manifest/fixture | Đạt | `docs/evidence/otes-m0-syncfusion-manifest.json`, probe pdfplumber, `docs/evidence/qa-signoff-2026-09-14.md` |
+| M1 · inventory không mất dữ liệu | Đạt trên OTES (parser 1.4.2) | `docs/review-parser-coverage-2026-09-21.md`: 130 unit, 63/63 UC giữ nguyên flow, 0 section là thân UC; cap file 30 MB; kẹp 40 unit có báo shortfall trong summary |
+| M2 · review text có bằng chứng | Đạt phần deterministic + quote verify; **MỞ** gold set | 285 reference findings khớp R14 (qa-signoff); `verify_quote` chạy trên mọi đáp án (`server/app/main.py`); bộ positive/negative đã annotation để đo precision/recall chưa chốt |
+| M3 · Vercel + resume | Đạt, kèm một đổi thiết kế | Presigned upload vượt trần body 4,5 MB (`3019a0d`, 14 security test); cache key đủ 11 thành phần gồm cả có/không ảnh (`c3fc786` + test hồi quy); cache bền SQLite (`7779632`); pacing + batch dập retry storm (`9527aa7`, đo 1347 → ~40 call upstream). **Đổi thiết kế 2026-09-23 (`b27d481`):** bỏ auto-restore snapshot — "resume" giờ nghĩa là mở lại session từ Lịch sử (sembast, `8ec3388`); draft nhỏ chỉ giữ projectName/projectInfo/humanIssues |
+| M4 · sơ đồ có ngân sách | Đạt phần render/preview/budget; **MỞ** precision/recall ảnh | `docs/evidence/m4-renderer-spike.md`; preview modal + deep-link (`18cc102`, `c388d00`); token usage đo thật cả hai đầu (`c05b983`); renderer được probe trước khi dùng, thiếu renderer thì báo thẳng (`bf44431`, `2559a59`). Chưa có tập ảnh annotated để đo precision/recall của auto-select |
+| M5 · export + nghiệm thu | Một phần; **MỞ** 3 gate nghiệm thu | Report tab + report twins MD/JSON/HTML parity (`8cac725`, qa-signoff). Còn mở: (1) E2E desktop đích chạy LLM path trên code sau 2026-09-21 — sign-off 09-14 ghi rõ không đo lại LLM path; (2) đối chiếu thủ công 10 citations; (3) holdout đúng nghĩa — CarbonX/HisWise đã chạy thật (`reviews/`, 2026-09-15) nhưng cùng thời kỳ hiệu chuẩn thang điểm, chưa phải tài liệu mới sau khi chốt luật |
+
+Test estate tại ngày cập nhật: app **841/841**, server **161 pass + 1 skip**.
+
 ## Understanding
 
 Xây tiếp app có sẵn để sinh viên nhập PDF/DOCX SRS, xem cây section/requirement,
