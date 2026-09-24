@@ -5,13 +5,15 @@ Run locally:      python3 tools/check_guardrails.py
 Runs in CI:       .github/workflows/ci.yml
 Runs pre-commit:  tools/install-hooks.sh
 
-Five families of rule plus one for design tokens:
+Seven rules:
   1. SECRETS   — no API key ever enters git history.
   2. NO DIRECT LLM — the Flutter app may only talk to our own proxy (AC6).
   3. LAYERING  — MVVM boundaries from the Flutter architecture guide.
   4. PINS      — dependency versions whose majors are known traps.
   5. CONTRACT  — schema, Python and Dart agree on one contract version.
   6. DESIGN TOKENS — colors and radii live only in core/theme/.
+  7. NATIVE PLUGINS — a plugin is imported only in a file that exposes a way
+     to replace it (a probe, an injected fake, a conditional stub).
 
 This file is excluded from its own scans; keep example keys out of it anyway.
 """
@@ -370,6 +372,252 @@ def check_design_tokens(files: list[Path]) -> list[Violation]:
 
 
 # --------------------------------------------------------------------------
+# 7. NATIVE PLUGINS — imported only behind a probe or a fake
+# --------------------------------------------------------------------------
+# A plugin decides behaviour from the HOST, from a channel that does not exist
+# in a plain `flutter test` run, or from a native library some targets do not
+# ship. Two incidents paid for this rule: pdfx reported "no renderer on this
+# platform" from a future nobody awaited, so the text-only fallback never ran
+# and Ubuntu CI failed a test that passes on Windows; and `path_provider`
+# throws MissingPluginException in the test runner, which is only survivable
+# because the store falls back.
+#
+# The rule is two-sided. The first half fails on a NEW import: the plugin may
+# only be touched in registered files, so a call cannot quietly appear where no
+# test can substitute it. The second half keeps the registrations honest — a
+# seam that disappears, or a file that stopped importing its plugin, is a
+# violation instead of a stale comment.
+#
+# Test files are out of scope: that is where the fakes live, and importing the
+# plugin there is how a fake is written.
+
+
+@dataclass(frozen=True)
+class NativePluginAdapter:
+    """One file allowed to import a native plugin, and what makes it replaceable."""
+
+    path: str
+    # (file, regex) pairs that must still match: the probe, the injected fake
+    # parameter, the stub, or the override that supplies the real instance.
+    #
+    # Write a seam pattern so that a line wrap cannot break it: `dart format`
+    # happily moves `Future<Uri?> Function(` onto the next line when a typedef
+    # grows, and a pattern that assumed one line then reports a seam that is
+    # still there. This bit the first version of this very rule.
+    seams: tuple[tuple[str, str], ...]
+    seam_note: str
+
+
+@dataclass(frozen=True)
+class NativePluginRule:
+    package: str
+    adapters: tuple[NativePluginAdapter, ...]
+    why: str
+
+
+NATIVE_PLUGIN_RULES: tuple[NativePluginRule, ...] = (
+    NativePluginRule(
+        package="pdfx",
+        why="pdfx picks its renderer from the OS and reports a missing one from a future "
+        "nobody awaits, so the verdict has to be asked for before the plugin is touched",
+        adapters=(
+            NativePluginAdapter(
+                path="app/lib/data/services/page_image_renderer.dart",
+                seams=(
+                    (
+                        "app/lib/data/services/page_image_renderer.dart",
+                        r"typedef PdfDocumentOpener =[\s\S]{0,80}?Function\(",
+                    ),
+                    (
+                        "app/lib/data/services/page_image_renderer.dart",
+                        r"typedef PdfSupportProbe =[\s\S]{0,80}?Function\(",
+                    ),
+                ),
+                seam_note="the injectable document opener and the platform probe",
+            ),
+        ),
+    ),
+    NativePluginRule(
+        package="path_provider",
+        why="the directory lookup is a channel: it throws MissingPluginException wherever the "
+        "plugin is absent (a plain flutter test run, an unknown target), so the caller needs a "
+        "stub to fall back to",
+        adapters=(
+            NativePluginAdapter(
+                path="app/lib/data/services/session_database_platform_io.dart",
+                seams=(
+                    (
+                        "app/lib/data/services/session_database_platform.dart",
+                        r"export 'session_database_platform_stub\.dart'",
+                    ),
+                    (
+                        "app/lib/data/services/session_database_platform_stub.dart",
+                        r"throw UnsupportedError",
+                    ),
+                ),
+                seam_note="the conditional stub that throws UnsupportedError instead of a missing channel",
+            ),
+        ),
+    ),
+    NativePluginRule(
+        package="file_picker",
+        why="the picker answers only inside a real host, so every call site must be reachable "
+        "through an injected picker or an injected dialog",
+        adapters=(
+            NativePluginAdapter(
+                path="app/lib/data/services/file_picker_service.dart",
+                seams=(
+                    (
+                        "app/lib/data/repositories/document_repository.dart",
+                        r"FilePickerService\? picker",
+                    ),
+                ),
+                seam_note="DocumentRepository's injectable picker",
+            ),
+            NativePluginAdapter(
+                path="app/lib/data/services/report_exporter.dart",
+                seams=(
+                    (
+                        "app/lib/data/services/report_exporter.dart",
+                        r"typedef SaveFileDialog =[\s\S]{0,80}?Function\(",
+                    ),
+                    (
+                        "app/lib/data/services/report_exporter.dart",
+                        r"typedef ShareSheet =[\s\S]{0,80}?Function\(",
+                    ),
+                ),
+                seam_note="the injectable save dialog and share sheet",
+            ),
+        ),
+    ),
+    NativePluginRule(
+        package="shared_preferences",
+        why="the store only exists once main() has awaited the plugin, so every reader has to go "
+        "through the provider main() overrides or take the instance as a parameter",
+        adapters=(
+            NativePluginAdapter(
+                path="app/lib/core/providers.dart",
+                seams=(
+                    (
+                        "app/lib/core/providers.dart",
+                        r"sharedPreferencesProvider = Provider<SharedPreferences>",
+                    ),
+                ),
+                seam_note="the overridable sharedPreferencesProvider",
+            ),
+            NativePluginAdapter(
+                path="app/lib/main.dart",
+                seams=(
+                    (
+                        "app/lib/main.dart",
+                        r"sharedPreferencesProvider\.overrideWithValue\(prefs\)",
+                    ),
+                ),
+                seam_note="the override that supplies the loaded instance",
+            ),
+            NativePluginAdapter(
+                path="app/lib/data/services/session_store.dart",
+                seams=(
+                    (
+                        "app/lib/data/services/session_store.dart",
+                        r"SharedPreferencesSessionStore\(this\._prefs\)",
+                    ),
+                ),
+                seam_note="the constructor that takes the prefs instance",
+            ),
+            NativePluginAdapter(
+                path="app/lib/data/services/session_database.dart",
+                seams=(
+                    (
+                        "app/lib/data/services/session_database.dart",
+                        r"required SharedPreferences prefs",
+                    ),
+                ),
+                seam_note="the constructor that takes the prefs instance",
+            ),
+        ),
+    ),
+)
+
+
+def package_name(import_uri: str) -> str | None:
+    """The package a `package:` import comes from, else None."""
+    prefix = "package:"
+    if not import_uri.startswith(prefix):
+        return None
+    return import_uri[len(prefix) :].split("/", 1)[0]
+
+
+def check_native_plugins(files: list[Path]) -> list[Violation]:
+    violations: list[Violation] = []
+    app_lib = REPO / "app" / "lib"
+    by_package = {rule.package: rule for rule in NATIVE_PLUGIN_RULES}
+    registered = {
+        (rule.package, adapter.path): adapter
+        for rule in NATIVE_PLUGIN_RULES
+        for adapter in rule.adapters
+    }
+
+    imported: set[tuple[str, str]] = set()
+    for path in files:
+        if path.suffix != ".dart" or not path.is_relative_to(app_lib):
+            continue
+        rel = path.relative_to(REPO).as_posix()
+        for number, line in read_lines(path):
+            match = IMPORT.match(line)
+            if not match:
+                continue
+            package = package_name(match.group(1))
+            if package is None or package not in by_package:
+                continue
+            imported.add((package, rel))
+            if (package, rel) in registered:
+                continue
+            rule = by_package[package]
+            violations.append(
+                Violation(
+                    "native-plugin-seam",
+                    rel,
+                    number,
+                    f"imports '{package}', which may only be touched by "
+                    f"{', '.join(adapter.path for adapter in rule.adapters)} — {rule.why}. "
+                    f"Put the call behind {rule.adapters[0].seam_note}, or register this file "
+                    "with the seam that makes it replaceable in tools/check_guardrails.py",
+                )
+            )
+
+    for rule in NATIVE_PLUGIN_RULES:
+        for adapter in rule.adapters:
+            if (rule.package, adapter.path) not in imported:
+                violations.append(
+                    Violation(
+                        "native-plugin-seam",
+                        adapter.path,
+                        0,
+                        f"registered as a file allowed to import '{rule.package}' but no longer "
+                        "imports it — drop the registration, or the list stops describing the tree",
+                    )
+                )
+                continue
+            for seam_path, pattern in adapter.seams:
+                seam_file = REPO / seam_path
+                text = seam_file.read_text(encoding="utf-8") if seam_file.exists() else ""
+                if re.search(pattern, text):
+                    continue
+                violations.append(
+                    Violation(
+                        "native-plugin-seam",
+                        adapter.path,
+                        0,
+                        f"the seam ({adapter.seam_note}) is gone: /{pattern}/ no longer matches "
+                        f"{seam_path} — a plugin nobody can replace decides by itself how the "
+                        "review behaves on a host it does not support",
+                    )
+                )
+    return violations
+
+
+# --------------------------------------------------------------------------
 # plumbing
 # --------------------------------------------------------------------------
 def read_lines(path: Path) -> list[tuple[int, str]]:
@@ -415,6 +663,7 @@ def main() -> int:
         "dependency pins": check_pins,
         "contract version agreement": check_contract_version,
         "design tokens (colors/radii in core/theme/)": lambda: check_design_tokens(files),
+        "native plugins behind a probe or fake": lambda: check_native_plugins(files),
     }
 
     total: list[Violation] = []

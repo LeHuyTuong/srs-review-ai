@@ -22,8 +22,41 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../core/platform/app_platform.dart';
 
+/// Opens the platform save dialog and writes [bytes], returning where the
+/// platform put the file (null = the user cancelled).
+///
+/// Injected rather than called straight through to `file_picker` so the plugin
+/// stays replaceable: the channel exists only inside a real host, so without
+/// this seam the one write path a report has could not be exercised anywhere
+/// but on a device. The production default is
+/// [filePickerSaveDialog] below.
+typedef SaveFileDialog =
+    Future<Uri?> Function({
+      required String fileName,
+      required Uint8List bytes,
+      required String mimeType,
+      required String dialogTitle,
+    });
+
+/// Hands the written file to the OS share sheet. Injected for the same reason
+/// as [SaveFileDialog]: the share sheet is native-only, and a test has to be
+/// able to prove the file reached it without a channel.
+typedef ShareSheet =
+    Future<void> Function({required String path, required String title});
+
 class ReportExporter {
-  const ReportExporter();
+  const ReportExporter({
+    SaveFileDialog saveFile = filePickerSaveDialog,
+    ShareSheet shareSheet = sharePlusShareSheet,
+  }) : // Named initializing formals cannot target a private field, so these
+       // assignments have to stay explicit (same as DocumentRepository).
+       // ignore: prefer_initializing_formals
+       _saveFile = saveFile,
+       // ignore: prefer_initializing_formals
+       _shareSheet = shareSheet;
+
+  final SaveFileDialog _saveFile;
+  final ShareSheet _shareSheet;
 
   /// Opens the platform save dialog and writes [contents].
   ///
@@ -36,7 +69,7 @@ class ReportExporter {
     // their own MIME so the platform dialog suggests the right type.
     String mimeType = 'text/markdown',
   }) async {
-    final uri = await FilePicker.saveFile(
+    final uri = await _saveFile(
       fileName: fileName,
       bytes: Uint8List.fromList(utf8.encode(contents)),
       mimeType: mimeType,
@@ -77,9 +110,27 @@ class ReportExporter {
     final dir = await Directory.systemTemp.createTemp('srs-review');
     final file = File('${dir.path}/$fileName');
     await file.writeAsString(contents, flush: true);
-    await SharePlus.instance.share(
-      ShareParams(files: [XFile(file.path)], title: fileName),
-    );
+    await _shareSheet(path: file.path, title: fileName);
     return file.path;
   }
 }
+
+/// The production save dialog: `file_picker` writes the bytes itself, on every
+/// target this app ships on.
+Future<Uri?> filePickerSaveDialog({
+  required String fileName,
+  required Uint8List bytes,
+  required String mimeType,
+  required String dialogTitle,
+}) => FilePicker.saveFile(
+  fileName: fileName,
+  bytes: bytes,
+  mimeType: mimeType,
+  dialogTitle: dialogTitle,
+);
+
+/// The production share sheet.
+Future<void> sharePlusShareSheet({
+  required String path,
+  required String title,
+}) => SharePlus.instance.share(ShareParams(files: [XFile(path)], title: title));
