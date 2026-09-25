@@ -66,6 +66,10 @@ server/*.render.*.png
 node_modules/
 
 # Skill draw.io cá nhân — công cụ tác giả, không phải phần app/pipeline chấm, giữ local
+# (2026-09-25: file zip là bản nén gốc, thêm vào đây vì `git add -A` sẽ đưa nó
+# lên theo dõi dù cây đã giải nén bên dưới đã bị ignore — đẩy 1 file .zip là
+# đẩy nguyên bộ skill lên origin.)
+skills.zip
 skills/README.md
 skills/activity-diagram/
 skills/architecture-diagram/
