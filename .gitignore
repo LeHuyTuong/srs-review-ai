@@ -62,3 +62,18 @@ server/*-*.pdf
 server/*.docmap.json
 server/*.meta.json
 server/*.render.*.png
+
+node_modules/
+
+# Skill draw.io cá nhân — công cụ tác giả, không phải phần app/pipeline chấm, giữ local
+skills/README.md
+skills/activity-diagram/
+skills/architecture-diagram/
+skills/communication-diagram/
+skills/component-diagram/
+skills/conceptual-erd/
+skills/package-diagram/
+skills/sequence-class-diagram/
+skills/state-machine-diagram/
+skills/use-case-diagram/
+skills/diagram-builder/
