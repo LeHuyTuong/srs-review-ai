@@ -148,6 +148,41 @@ class AskResponse(Strict):
     mock: bool = False
 
 
+# --------------------------- criteria (CRUD) ------------------
+#
+# The evaluation checklist became editable data on 2026-09-25. These three
+# models are its wire shape: the same keys the store keeps, so a row that comes
+# back from GET /criteria can be sent straight back in a PUT.
+#
+# `id` is an identifier, not prose: it appears in the prompt and in the issue
+# `type` the model reports, so it is restricted to lowercase, digits, dot, dash
+# and underscore. A title with spaces would be copied into every finding.
+
+
+class CriterionCreate(Strict):
+    id: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9][a-z0-9_.-]*$")
+    title: str = Field(min_length=1, max_length=200)
+    what: str = Field(min_length=1, max_length=4000)
+    source: str = Field(default="", max_length=300)
+    scope: str = "unit"
+    severity: str = "medium"
+    enabled: bool = True
+    order: int = Field(default=100, ge=0, le=10_000)
+
+
+class CriterionUpdate(Strict):
+    """Every field optional: absent means "leave alone", which is what lets the
+    app's toggle send one field instead of the whole row."""
+
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    what: str | None = Field(default=None, min_length=1, max_length=4000)
+    source: str | None = Field(default=None, max_length=300)
+    scope: str | None = None
+    severity: str | None = None
+    enabled: bool | None = None
+    order: int | None = Field(default=None, ge=0, le=10_000)
+
+
 # --------------------------- LLM-facing schema ---------------------------
 # What we hand to Gemini as `responseSchema`. Deliberately NARROWER than
 # ReviewResult: the model may not invent `verification`, `cached`, `model` or

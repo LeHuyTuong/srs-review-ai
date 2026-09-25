@@ -49,9 +49,13 @@ class Settings(BaseSettings):
     """When true the proxy answers from server/app/mock/*.json — no network at all.
     This is the demo safety net (research 05, day 3 / AC4)."""
 
-    prompt_version: str = "p2"
+    prompt_version: str = "p3"
     """Part of the cache key: bumping it invalidates cached reviews.
-    p2 (2026-09-21): unit-type briefings added to the review user prompt."""
+    p2 (2026-09-21): unit-type briefings added to the review user prompt.
+    p3 (2026-09-25): the hardcoded evaluation checklist moved OUT of prompt.py
+    and into the editable criteria store; the prompt now renders whatever rows
+    are enabled. The criteria fingerprint joins the cache key separately, so an
+    edit to a criterion invalidates cached results without a release."""
 
     # --- Limits ---
     rate_limit_per_day: int = 50

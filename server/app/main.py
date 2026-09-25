@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field, ValidationError
 from . import docmap
 from .cache import cache_key
 from .config import Settings, get_settings
+from .criteria import CriteriaStore, validate
 from .diagram import (
     DESCRIBE_SYSTEM,
     DIAGRAM_PROMPT_VERSION,
@@ -59,6 +60,8 @@ from .schemas import (
     BatchUnitFailure,
     BatchUnitResult,
     Citation,
+    CriterionCreate,
+    CriterionUpdate,
     ReviewRequest,
     ReviewResult,
 )
@@ -119,6 +122,11 @@ _upload_store = UploadStore(
 
 _share_store = ShareStore(_settings.share_dir)
 
+# The editable evaluation criteria. Its own sqlite file, NOT the review cache:
+# the cache is pruned by an LRU cap, and a criterion the pruner evicted would be
+# a criterion the user believes they configured.
+_criteria = CriteriaStore(_settings.cache_dir / "criteria.sqlite3")
+
 
 class PresignRequest(BaseModel):
     model_config = {"extra": "forbid"}
@@ -158,6 +166,9 @@ def health(settings: Settings = Depends(get_settings)) -> dict[str, object]:
             "review_entries": len(_review_cache),
             "diagram_entries": len(_diagram_cache),
         },
+        # The editable checklist, because "the app reviewed me against three
+        # criteria and I configured nine" is a question /health can answer.
+        "criteria": _criteria.stats(),
     }
 
 
@@ -182,6 +193,79 @@ def rubric(settings: Settings = Depends(get_settings)) -> dict[str, object]:
             # changes the original — exactly how "50/day" went wrong.
             "max_batch_units": settings.max_batch_units,
         },
+    }
+
+
+@app.get("/criteria", dependencies=[Depends(require_app_token)])
+def list_criteria() -> dict[str, Any]:
+    """The evaluation checklist as DATA, editable through the endpoints below.
+
+    Auth follows the rest of the write surface (`X-App-Token`), and the reads are
+    protected too: a deployment that shares one proxy must not hand its marking
+    sheet to anyone who can reach the port.
+    """
+    return {"criteria": _criteria.list(), "stats": _criteria.stats()}
+
+
+@app.post("/criteria", status_code=201, dependencies=[Depends(require_app_token)])
+def create_criterion(body: CriterionCreate) -> dict[str, Any]:
+    # Two different failures, two different codes: a body the prompt could never
+    # use is 422, and only a name that already exists is a 409. Folding both into
+    # one handler made an invalid `scope` answer "conflict", which tells the user
+    # nothing about what to fix.
+    try:
+        validate(body.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    try:
+        row = _criteria.create(body.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"criterion": row, "stats": _criteria.stats()}
+
+
+@app.put("/criteria/{criterion_id}", dependencies=[Depends(require_app_token)])
+def update_criterion(criterion_id: str, body: CriterionUpdate) -> dict[str, Any]:
+    try:
+        row = _criteria.update(criterion_id, body.model_dump(exclude_none=True))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if row is None:
+        raise HTTPException(
+            status_code=404, detail=f"no criterion {criterion_id!r}"
+        )
+    return {"criterion": row, "stats": _criteria.stats()}
+
+
+@app.delete("/criteria/{criterion_id}", dependencies=[Depends(require_app_token)])
+def delete_criterion(criterion_id: str) -> dict[str, Any]:
+    if not _criteria.delete(criterion_id):
+        raise HTTPException(
+            status_code=404, detail=f"no criterion {criterion_id!r}"
+        )
+    return {"deleted": criterion_id, "stats": _criteria.stats()}
+
+
+@app.post("/criteria/reset", dependencies=[Depends(require_app_token)])
+def reset_criteria() -> dict[str, Any]:
+    """Restore the seed. The only way back from a marking sheet somebody broke,
+    and the reason an edit is never silently reverted on restart."""
+    return {"criteria": _criteria.reset(), "stats": _criteria.stats()}
+
+
+def _review_config() -> dict[str, Any]:
+    """The rubric plus the criteria snapshot this request is scored against.
+
+    One object on purpose. The prompt renders `criteria_block` and the cache key
+    hashes `criteria_fingerprint` from the SAME read of the store, so a criterion
+    edited between the cache lookup and the cache store cannot write a result
+    under the key of the wording that produced it. The cached rubric dict is
+    never mutated — `load_rubric` is `lru_cache`d and shared process-wide.
+    """
+    return {
+        **load_rubric(),
+        "criteria_fingerprint": _criteria.fingerprint(),
+        "criteria_block": _criteria.prompt_block("unit"),
     }
 
 
@@ -225,6 +309,12 @@ def _review_cache_key(
         settings.prompt_version,
         str(rubric_cfg["version"]),
         str(settings.fuzzy_threshold),
+        # The editable criteria reach the prompt through `criteria_block`, so
+        # their fingerprint belongs in the key for the same reason the rubric
+        # version does: change the wording and the old result is not an answer
+        # to the new question. Without this line, switching a criterion off
+        # would keep serving the reviews it produced.
+        str(rubric_cfg.get("criteria_fingerprint", "")),
     )
 
 
@@ -301,7 +391,7 @@ async def review(
     user: str = Depends(caller_id),
 ) -> ReviewResult:
     _ensure_bounded(text=payload.text, image_b64=payload.image_b64, settings=settings)
-    rubric_cfg = load_rubric()
+    rubric_cfg = _review_config()
     provider = build_provider(settings)
     key = _review_cache_key(
         requirement_id=payload.requirement_id,
@@ -597,7 +687,7 @@ async def review_batch(
             ),
         )
 
-    rubric_cfg = load_rubric()
+    rubric_cfg = _review_config()
     provider = build_provider(settings)
 
     results: dict[int, ReviewResult] = {}

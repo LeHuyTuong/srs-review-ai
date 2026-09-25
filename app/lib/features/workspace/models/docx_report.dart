@@ -19,7 +19,6 @@ import 'package:archive/archive.dart';
 
 import '../../../data/checks/criteria_catalog.dart';
 import '../../../data/models/deterministic_finding.dart';
-import '../../../data/models/finding_status.dart';
 import '../../../data/models/human_issue.dart';
 import '../../../data/models/review_models.dart';
 import '../../../data/models/review_progress.dart';
@@ -27,11 +26,6 @@ import 'report_export.dart';
 import 'section_scores.dart';
 import 'workspace_findings.dart';
 import 'workspace_unit.dart';
-
-/// Usable text width on A4 with the 2cm margins declared in [sectPr], in twips.
-/// Every table below sizes its columns to sum to this; Word scales a `pct` table
-/// to the text column, so the sum is what keeps a six-column inventory legible.
-const int _textWidth = 9638;
 
 /// Builds the .docx bytes for one report. Same inputs as [buildMarkdownReport]
 /// and [buildHtmlReport], so the numbers cannot drift between the four exports.
@@ -387,6 +381,11 @@ String _p(
 /// A bordered table with a shaded header row. The trailing empty paragraph is
 /// required, not cosmetic: Word merges two tables that touch, and a table as the
 /// last block of a document is invalid.
+///
+/// Every `widths` list sums to 9638 twips — the A4 text width inside the 2cm
+/// margins of [sectPr]. Word scales a `pct` table to the text column, so the sum
+/// is what keeps a six-column inventory legible instead of one narrow column
+/// beside five collapsed ones.
 String _table(List<List<String>> rows, List<int> widths) {
   const border =
       '<w:top w:val="single" w:sz="4" w:space="0" w:color="B9C4BE"/>'

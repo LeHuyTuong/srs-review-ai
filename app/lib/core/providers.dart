@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/checks/rubric_config.dart';
+import '../data/models/ai_criterion.dart';
 import '../data/repositories/document_repository.dart';
 import '../data/repositories/review_repository.dart';
 import '../data/services/api_service.dart';
@@ -174,6 +175,151 @@ final rubricProvider = FutureProvider<RubricConfig>((ref) async {
     return RubricConfig.fallback;
   }
 });
+
+/// The editable AI evaluation checklist (2026-09-25).
+///
+/// This is DATA on the proxy (`/criteria`), not a const list in the app — the
+/// row a user switches off here is the row the model stops being asked about,
+/// because `prompt.py` renders whatever the store has enabled. The offline
+/// rule-based checks in `data/checks/` are deliberately NOT in this list: they
+/// are exact, free, and shown on their own dashboard section.
+final criteriaProvider =
+    AsyncNotifierProvider<CriteriaController, List<AiCriterion>>(
+      CriteriaController.new,
+    );
+
+class CriteriaController extends AsyncNotifier<List<AiCriterion>> {
+  /// Null in mock mode: there is no proxy to ask, and pretending otherwise
+  /// would show a checklist the review would not use.
+  ApiService? get _api {
+    final candidate = ref.read(reviewApiProvider);
+    return candidate is ApiService ? candidate : null;
+  }
+
+  bool get canEdit => _api != null;
+
+  @override
+  Future<List<AiCriterion>> build() async {
+    final api = _api;
+    if (api == null) return const [];
+    try {
+      return await api.fetchCriteria();
+    } on Object {
+      // An unreachable proxy must not block the screen; the view shows the
+      // error state and the retry button.
+      rethrow;
+    }
+  }
+
+  Future<void> refresh() async {
+    final api = _api;
+    if (api == null) return;
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(api.fetchCriteria);
+  }
+
+  /// Flips one row. Returns null on success or a message to show — the view
+  /// owns the SnackBar, this stays free of BuildContext.
+  Future<String?> setEnabled(AiCriterion criterion, bool enabled) async {
+    final api = _api;
+    if (api == null) return 'Chỉ sửa được tiêu chí khi đang kết nối máy chủ.';
+    try {
+      await api.updateCriterion(criterion.id, {'enabled': enabled});
+      await _reload();
+      return null;
+    } on Object catch (error) {
+      return _message(error);
+    }
+  }
+
+  /// Creates when [existing] is null, updates otherwise.
+  Future<String?> save({
+    AiCriterion? existing,
+    required String id,
+    required String title,
+    required String what,
+    required CriterionScope scope,
+    required CriterionSeverity severity,
+    required String source,
+    required int order,
+  }) async {
+    final api = _api;
+    if (api == null) return 'Chỉ sửa được tiêu chí khi đang kết nối máy chủ.';
+    if (title.trim().isEmpty) return 'Tiêu đề không được để trống.';
+    if (what.trim().isEmpty) return 'Phần mô tả kiểm tra không được để trống.';
+    if (existing == null && !_validId(id)) {
+      return 'Mã tiêu chí chỉ gồm chữ thường, số, dấu gạch và dấu chấm.';
+    }
+    try {
+      if (existing == null) {
+        await api.createCriterion(
+          AiCriterion(
+            id: id,
+            title: title.trim(),
+            what: what.trim(),
+            source: source.trim(),
+            scope: scope,
+            severity: severity,
+            order: order,
+          ),
+        );
+      } else {
+        await api.updateCriterion(existing.id, {
+          'title': title.trim(),
+          'what': what.trim(),
+          'source': source.trim(),
+          'scope': scope.wire,
+          'severity': severity.name,
+          'order': order,
+        });
+      }
+      await _reload();
+      return null;
+    } on Object catch (error) {
+      return _message(error);
+    }
+  }
+
+  Future<String?> remove(String id) async {
+    final api = _api;
+    if (api == null) return 'Chỉ sửa được tiêu chí khi đang kết nối máy chủ.';
+    try {
+      await api.deleteCriterion(id);
+      await _reload();
+      return null;
+    } on Object catch (error) {
+      return _message(error);
+    }
+  }
+
+  Future<String?> resetToSeed() async {
+    final api = _api;
+    if (api == null) return 'Chỉ sửa được tiêu chí khi đang kết nối máy chủ.';
+    try {
+      await api.resetCriteria();
+      await _reload();
+      return null;
+    } on Object catch (error) {
+      return _message(error);
+    }
+  }
+
+  Future<void> _reload() async {
+    final api = _api;
+    if (api == null) return;
+    state = AsyncData(await api.fetchCriteria());
+  }
+
+  static bool _validId(String id) =>
+      RegExp(r'^[a-z0-9][a-z0-9_.-]*$').hasMatch(id);
+
+  /// The proxy's own message when it has one — "criterion 'x' already exists"
+  /// tells the user what to do, "request failed" does not.
+  static String _message(Object error) {
+    if (error is ApiException) return error.message;
+    return 'Không lưu được tiêu chí: $error';
+  }
+}
 
 final documentRepositoryProvider = Provider<DocumentRepository>((ref) {
   // AsyncValue.value is nullable in Riverpod 3 (there is no valueOrNull).

@@ -14,22 +14,7 @@ ISO/IEC/IEEE 29148 (IEEE 830).
 Score ONE requirement against this rubric:
 {criteria}
 
-CHECKLIST — inspect the requirement against EVERY characteristic below and report
-EVERY violation you find. A typical capstone SRS requirement contains 1-4 defects;
-reporting only the first one you notice is a failed review:
-1. Unambiguous — vague adjectives or adverbs ("fast", "user-friendly", "appropriate",
-   "flexible", "hỗ trợ tốt", "dễ sử dụng"), undefined pronouns, open-ended lists
-   ("etc.", "and so on", "including but not limited to").
-2. Verifiable — no measurable threshold, no observable outcome, cannot be tested by
-   any black-box test, no acceptance criterion a tester could execute.
-3. Complete — missing actor, missing trigger, missing expected outcome, or missing
-   error/edge handling the feature obviously needs (say which one is missing).
-4. Atomic — one sentence bundling several independent behaviours with "and"/"or";
-   name each behaviour that should become its own requirement.
-5. Feasible & design-free — prescribes an implementation ("use MySQL", "build in
-   React") instead of a need, or demands something physically impossible.
-6. Traceable wording — no clear singular actor ("the system", "the user"), or the
-   requirement cannot be linked to a feature a stakeholder would recognize.
+{evaluation}
 
 HARD RULES — a violation makes your answer useless:
 1. Ground everything in the PROVIDED TEXT ONLY. Never infer facts that are not written there.
@@ -157,8 +142,35 @@ def _unit_brief(requirement_id: str, section: str | None) -> str:
     return ""
 
 
-def review_system_prompt(rubric: dict[str, Any]) -> str:
-    return _REVIEW_SYSTEM.format(criteria=criteria_lines(rubric))
+def review_system_prompt(
+    rubric: dict[str, Any], criteria_block: str | None = None
+) -> str:
+    """Assemble the review system prompt.
+
+    The evaluation criteria are NOT written here any more (2026-09-25): they are
+    rows in the criteria store, rendered by `CriteriaStore.prompt_block` and
+    editable through `/criteria`. Keeping a hardcoded copy below this function
+    would make the CRUD a lie — a user who switches a criterion off would still
+    be reviewed against the prose frozen into the prompt. What stays here is the
+    part that is about the ANSWER (grounding, verbatim quotes, images as context,
+    output language), because that is not a criterion a user may switch off.
+
+    `criteria_block` defaults to the snapshot the caller carried in `rubric`, so
+    the prompt and the cache key are rendered from one and the same read of the
+    store (see `_review_config` in main.py).
+    """
+    block = (
+        criteria_block
+        if criteria_block is not None
+        else str(rubric.get("criteria_block") or "")
+    )
+    return _REVIEW_SYSTEM.format(
+        criteria=criteria_lines(rubric),
+        evaluation=block
+        or (
+            "EVALUATION CRITERIA — none are enabled. Report no issues and score 8-10."
+        ),
+    )
 
 
 def _unit_body(

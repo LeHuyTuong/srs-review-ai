@@ -1,0 +1,136 @@
+{
+  "version": "c1",
+  "note": "AI-judged criteria. This file is the SEED, not the truth: the proxy serves whatever is in criteria.sqlite3, which starts as a copy of this file and is then editable through /criteria. The rule from review-rules/RULEBOOK.md still holds — a criterion is never added to code or to a prompt by hand; it is added here, or through the API, and the prompt follows the stored rows. 'scope' says what the model is asked to judge: 'unit' = one requirement at a time, 'document' = the run as a whole (the flow/ordering family).",
+  "criteria": [
+    {
+      "id": "unambiguous",
+      "title": "Rõ ràng — không mơ hồ",
+      "what": "The sentence is free of vague adjectives and adverbs (quickly, user-friendly, appropriate, flexible, hỗ trợ tốt, dễ sử dụng), undefined pronouns, and open-ended lists (etc., and so on, including but not limited to).",
+      "source": "ISO/IEC/IEEE 29148 unambiguous",
+      "scope": "unit",
+      "severity": "high",
+      "enabled": true,
+      "order": 10
+    },
+    {
+      "id": "verifiable",
+      "title": "Kiểm chứng được — có ngưỡng đo",
+      "what": "A tester could execute it: there is a measurable threshold, an observable outcome, or an acceptance criterion. No number, no condition, no black-box test means this criterion fails.",
+      "source": "ISO/IEC/IEEE 29148 verifiable",
+      "scope": "unit",
+      "severity": "high",
+      "enabled": true,
+      "order": 20
+    },
+    {
+      "id": "complete",
+      "title": "Đầy đủ — actor, trigger, kết quả, nhánh lỗi",
+      "what": "The sentence names an actor, a trigger, an expected outcome, and the error or edge handling the feature obviously needs. Name whichever part is missing instead of saying 'incomplete'.",
+      "source": "ISO/IEC/IEEE 29148 complete",
+      "scope": "unit",
+      "severity": "medium",
+      "enabled": true,
+      "order": 30
+    },
+    {
+      "id": "atomic",
+      "title": "Nguyên tử — một hành vi mỗi câu",
+      "what": "One sentence bundles several independent behaviours with and/or. Name each behaviour that should become its own requirement.",
+      "source": "ISO/IEC/IEEE 29148 atomic",
+      "scope": "unit",
+      "severity": "medium",
+      "enabled": true,
+      "order": 40
+    },
+    {
+      "id": "feasible",
+      "title": "Khả thi và không ràng buộc thiết kế",
+      "what": "The sentence prescribes an implementation (use MySQL, build in React) instead of stating a need, or asks for something physically impossible.",
+      "source": "ISO/IEC/IEEE 29148 implementation-free",
+      "scope": "unit",
+      "severity": "medium",
+      "enabled": true,
+      "order": 50
+    },
+    {
+      "id": "traceable",
+      "title": "Truy vết được — có actor cụ thể",
+      "what": "The subject is 'the system' or 'the user' with no singular actor, or the requirement cannot be linked to a feature a stakeholder would recognize.",
+      "source": "ISO/IEC/IEEE 29148 traceable",
+      "scope": "unit",
+      "severity": "low",
+      "enabled": true,
+      "order": 60
+    },
+    {
+      "id": "nfr_quantified",
+      "title": "NFR có số và điều kiện đo",
+      "what": "A non-functional requirement states a figure AND the condition it is measured under (for example: available 99.5% of the time, measured monthly over 30 days). A figure with no measurement condition, or neither, fails this criterion.",
+      "source": "review-rules quality-rules §B (ISO/IEC 25010:2011)",
+      "scope": "unit",
+      "severity": "high",
+      "enabled": true,
+      "order": 70
+    },
+    {
+      "id": "no_placeholder",
+      "title": "Không còn chỗ trống",
+      "what": "The text still carries TBD, TODO, 'chưa xác định', 'to be determined' or a template sentence copied from the course outline without being filled in.",
+      "source": "review-rules quality-rules §C",
+      "scope": "unit",
+      "severity": "high",
+      "enabled": true,
+      "order": 80
+    },
+    {
+      "id": "flow_srs_outline",
+      "title": "Flow tài liệu đúng khung A–F",
+      "what": "The SRS follows the required order: A Introduction, B Overall description, C Use cases (C.1 use case diagram, C.2 use case list, C.3 specifications, C.4 activity diagrams), D Functional requirements, E Non-functional requirements, F Data and traceability. A chapter that appears before the chapter it must follow, or a section that reappears later, fails. Judge the ORDER, not the prose.",
+      "source": "review-rules templates/srs-outline.md",
+      "scope": "document",
+      "severity": "high",
+      "enabled": true,
+      "order": 90
+    },
+    {
+      "id": "flow_diagram_placement",
+      "title": "Sơ đồ nằm đúng chỗ, không đảo lên đầu",
+      "what": "The use case diagram belongs in C.1, before the use case list and the specifications; activity diagrams belong in C.4, after the specifications they describe; an ERD or data dictionary belongs in F.1, not near the front of the document. A diagram that appears earlier than its chapter is a finding, and the finding must name the section it was found in and the section it belongs to.",
+      "source": "review-rules templates/srs-outline.md + uml25-diagram-policy.md",
+      "scope": "document",
+      "severity": "high",
+      "enabled": true,
+      "order": 100
+    },
+    {
+      "id": "flow_use_case_order",
+      "title": "Use case giữ thứ tự, UC cuối không nhảy lên đầu",
+      "what": "The use case list and the specifications appear in the same order as each other, IDs increase monotonically, and the last use case in the list is the last one specified — no use case reappears after the end of the list, and none of the early-numbered use cases is written after a higher-numbered one.",
+      "source": "review-rules templates/use-case.md",
+      "scope": "document",
+      "severity": "medium",
+      "enabled": true,
+      "order": 110
+    },
+    {
+      "id": "document_consistency",
+      "title": "Nhất quán xuyên tài liệu",
+      "what": "The same entity, actor or module keeps ONE name across the text, the tables and the diagrams. Two names for one thing, or one name for two things, is a finding: name both strings and where each was found.",
+      "source": "review-rules quality-rules §D",
+      "scope": "document",
+      "severity": "high",
+      "enabled": true,
+      "order": 120
+    },
+    {
+      "id": "format_broken",
+      "title": "Định dạng không vỡ",
+      "what": "The document's own structure is readable: numbered headings form a hierarchy (3.1 requires 3), table and figure numbers do not skip, and every caption points at a real place. Report the broken numbering itself, not a general complaint about layout.",
+      "source": "review-rules quality-rules §F.4–F.5",
+      "scope": "document",
+      "severity": "medium",
+      "enabled": true,
+      "order": 130
+    }
+  ]
+}

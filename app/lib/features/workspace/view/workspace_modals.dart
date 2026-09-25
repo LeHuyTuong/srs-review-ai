@@ -28,6 +28,7 @@ import '../models/ask_document.dart';
 import '../models/demo_units.dart';
 import '../models/workspace_unit.dart' show UnitKind;
 import '../view_model/workspace_view_model.dart';
+import 'criteria_manager.dart';
 import 'shortcuts_modal.dart';
 import 'workspace_widgets.dart';
 
@@ -1140,6 +1141,16 @@ Future<void> showRubricModal(BuildContext context, WidgetRef ref) => _show(
             rubric == null
                 ? 'Ngưỡng tham khảo: 3–7 bước đánh số cho mỗi Use Case.'
                 : 'Ngưỡng tham khảo: ${rubric.ucMinTransactions}–${rubric.ucMaxTransactions} bước xử lý cho mỗi Use Case. Luồng thay thế có thể ảnh hưởng cách đếm; cần đối chiếu thang điểm của người hướng dẫn.',
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // 2026-09-25: the AI half of the checklist became data on the proxy.
+          // This button is the point of that change — the rows behind it can be
+          // added, edited, switched off and deleted without a build.
+          WButton.primary(
+            label: 'Quản lý tiêu chí AI (thêm / sửa / tắt)',
+            icon: Icons.tune,
+            expanded: true,
+            onPressed: () => showCriteriaManagerModal(context, ref),
           ),
           const SizedBox(height: AppSpacing.sm),
           const WInfoNote(

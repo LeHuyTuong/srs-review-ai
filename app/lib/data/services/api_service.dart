@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 
 import '../../core/app_config.dart';
 import '../checks/rubric_config.dart';
+import '../models/ai_criterion.dart';
 import '../models/diagram_audit.dart';
 import '../models/review_models.dart';
 import 'review_api.dart';
@@ -68,6 +69,75 @@ class ApiService implements ReviewApi {
   Future<RubricConfig> fetchRubric() async {
     final data = await _get('/rubric');
     return RubricConfig.fromJson(data);
+  }
+
+  // ---------------------------------------------------------------- criteria
+  //
+  // The editable evaluation checklist (2026-09-25). Read through `_get` so a
+  // flaky connection is retried; written through `_write` so it is NOT — a
+  // repeated POST would create the row twice and a repeated PUT would fight the
+  // user who is editing the same row in another window.
+
+  /// The proxy's live criteria, or an empty list when it cannot be reached.
+  Future<List<AiCriterion>> fetchCriteria() async {
+    final data = await _get('/criteria');
+    final rows = (data['criteria'] as List<dynamic>? ?? const []);
+    return rows
+        .map((row) => AiCriterion.fromJson(row as Map<String, dynamic>))
+        .toList(growable: false);
+  }
+
+  Future<CriteriaStats> fetchCriteriaStats() async {
+    final data = await _get('/criteria');
+    return CriteriaStats.fromJson(data['stats'] as Map<String, dynamic>?);
+  }
+
+  Future<AiCriterion> createCriterion(AiCriterion criterion) async {
+    final data = await _write('POST', '/criteria', criterion.toJson());
+    return AiCriterion.fromJson(data['criterion'] as Map<String, dynamic>);
+  }
+
+  /// Partial update: only the keys in [patch] change. The id itself is not
+  /// patchable — it is what every existing finding's `type` points at.
+  Future<AiCriterion> updateCriterion(
+    String id,
+    Map<String, dynamic> patch,
+  ) async {
+    final data = await _write('PUT', '/criteria/$id', patch);
+    return AiCriterion.fromJson(data['criterion'] as Map<String, dynamic>);
+  }
+
+  Future<void> deleteCriterion(String id) async {
+    await _write('DELETE', '/criteria/$id');
+  }
+
+  Future<List<AiCriterion>> resetCriteria() async {
+    final data = await _write('POST', '/criteria/reset');
+    final rows = (data['criteria'] as List<dynamic>? ?? const []);
+    return rows
+        .map((row) => AiCriterion.fromJson(row as Map<String, dynamic>))
+        .toList(growable: false);
+  }
+
+  /// One entry point for the three write verbs. No retry, on purpose: a criteria
+  /// edit is a human decision, and repeating it behind their back is worse than
+  /// showing the error.
+  Future<Map<String, dynamic>> _write(
+    String method,
+    String path, [
+    Map<String, dynamic>? body,
+  ]) async {
+    try {
+      final response = switch (method) {
+        'POST' => await _dio.post<Map<String, dynamic>>(path, data: body),
+        'PUT' => await _dio.put<Map<String, dynamic>>(path, data: body),
+        _ => await _dio.delete<Map<String, dynamic>>(path),
+      };
+      return response.data ??
+          (throw ApiException('The proxy returned an empty body.'));
+    } on DioException catch (error) {
+      throw _translate(error, effectiveBaseUrl);
+    }
   }
 
   @override
