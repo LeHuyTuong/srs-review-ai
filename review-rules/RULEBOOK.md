@@ -24,7 +24,8 @@ review-rules/
 │   ├── srs-review.md  sds-review.md  ledger-format.md
 └── adapters/                ← lớp mỏng cho từng harness
     ├── deepseek-AGENTS.md   app-port-map.md
-    (Claude skill nằm ở /skills/srs-reviewer và /skills/sds-reviewer, trỏ về đây)
+    (Claude skill srs-reviewer / sds-reviewer là file LOCAL đã ignore, không theo
+     dõi trong repo từ 2026-09-25 — vẫn trỏ về đây, và bộ luật ở đây mới là gốc)
 ```
 
 ---

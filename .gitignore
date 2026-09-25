@@ -88,3 +88,10 @@ skills/diagram-builder/
 # (skills/srs-reviewer + skills/sds-reviewer vẫn được track).
 skills/skills/
 skills/__MACOSX/
+
+# 2026-09-25: hai adapter Claude skill không còn được theo dõi trong repo nữa
+# (bản local ở skills/skills/ đã kiểm là byte-giống-hệt bản đã xoá). Thêm ở đây
+# để lần giải nén sau không biến chúng thành untracked noise và không có cơ hội
+# lọt vào một `git add -A`.
+skills/srs-reviewer/
+skills/sds-reviewer/

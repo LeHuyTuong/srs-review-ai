@@ -13,7 +13,7 @@ contracts/  review.schema.json + fixtures — hợp đồng giữa hai bên
 docs/       adr/ (0001–0008, chỉ mục ở adr/README.md), evidence/, plans/, roadmap.md, tech-lead-brief.md
 tools/      check_guardrails.py, install-hooks.sh
 review-rules/  bộ luật chấm SRS/SDS model-agnostic (RULEBOOK.md là nguồn sự thật) — xem README trong đó
-skills/     Claude skill srs-reviewer / sds-reviewer — adapter mỏng trỏ về review-rules/
+skills/     Claude skill srs-reviewer / sds-reviewer — LOCAL, đã ignore, không theo dõi trong repo; vẫn là adapter mỏng trỏ về review-rules/
 reviews/    ledger chạy thật trên tài liệu có sẵn (OTES, HisWise, CarbonX) — bằng chứng hiệu chuẩn thang điểm
 ```
 

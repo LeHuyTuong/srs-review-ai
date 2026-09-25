@@ -6,7 +6,7 @@
 
 | Harness | Điểm vào | Cách nạp |
 |---|---|---|
-| Claude (Cowork / Claude Code) | `/skills/srs-reviewer/SKILL.md`, `/skills/sds-reviewer/SKILL.md` | skill tự nạp khi nói "review SRS/SDS"; SKILL.md trỏ về đây |
+| Claude (Cowork / Claude Code) | `skills/srs-reviewer/SKILL.md`, `skills/sds-reviewer/SKILL.md` (local, đã ignore) | adapter mỏng trỏ về đây; file nằm trên máy người dùng chứ không theo dõi trong repo (2026-09-25) |
 | DeepSeek harness | `adapters/deepseek-AGENTS.md` | dán khối vào AGENTS.md / system prompt; model đọc file theo STEP 0 |
 | App `srs-review-ai` | `adapters/app-port-map.md` | bản đồ luật ↔ `CheckId` / `DiagramType`; port theo thứ tự §4 |
 
