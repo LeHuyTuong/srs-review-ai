@@ -96,6 +96,17 @@ flutter run                                  # macOS/Android/Windows
 flutter run --dart-define=MOCK_MODE=true     # start in offline mode
 ```
 
+> **The review history lives in the BROWSER on web, and `flutter run -d chrome`
+> throws the browser profile away on every relaunch.** It launches a fresh
+> profile under `%TEMP%\flutter_tools.<hash>\`, so a new port (a new origin) and
+> an empty IndexedDB: your saved sessions look gone even though the old profile
+> is still on disk. Use the fixed-profile launcher instead — same port, same
+> profile, and `r` / `R` hot reload still work:
+>
+> ```powershell
+> powershell -ExecutionPolicy Bypass -File app\tool\dev_web.ps1
+> ```
+
 **Chrome is for development only.** The deliverable targets are Android and
 Windows; `web/` exists so you can iterate without waiting on an emulator or a
 Gradle build. Web is not built in CI and the file picker behaves differently
