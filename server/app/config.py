@@ -49,13 +49,18 @@ class Settings(BaseSettings):
     """When true the proxy answers from server/app/mock/*.json — no network at all.
     This is the demo safety net (research 05, day 3 / AC4)."""
 
-    prompt_version: str = "p3"
+    prompt_version: str = "p4"
     """Part of the cache key: bumping it invalidates cached reviews.
     p2 (2026-09-21): unit-type briefings added to the review user prompt.
     p3 (2026-09-25): the hardcoded evaluation checklist moved OUT of prompt.py
     and into the editable criteria store; the prompt now renders whatever rows
     are enabled. The criteria fingerprint joins the cache key separately, so an
-    edit to a criterion invalidates cached results without a release."""
+    edit to a criterion invalidates cached results without a release.
+    p4 (2026-09-25): the criteria block asks for the criterion id in
+    `criterion_id` instead of in `type`. That instruction is prompt TEMPLATE
+    text, not a criterion row, so the criteria fingerprint does not cover it —
+    without this bump, a cached p3 result (produced by a prompt that could not
+    name a criterion at all) would keep answering the new question."""
 
     # --- Limits ---
     rate_limit_per_day: int = 50

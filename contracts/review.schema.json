@@ -6,7 +6,7 @@
   "x-contract-version": "1.0.0",
   "$defs": {
     "IssueType": {
-      "description": "Quality issue vocabulary for the LLM (ISO/IEC/IEEE 29148 flavoured). Deterministic rule checks use $defs/CheckId instead — do not mix the two vocabularies.",
+      "description": "Quality issue vocabulary for the LLM (ISO/IEC/IEEE 29148 flavoured). Deterministic rule checks use $defs/CheckId instead — do not mix the two vocabularies. This is the defect CLASS, not the criterion the model was judging: an editable criterion is an id from the criteria list and travels in Issue.criterion_id. `other` is the vocabulary's escape hatch — the server maps any unrecognised value to it rather than failing the unit, because the app rejects an unknown type loudly and a verified finding must not die over a label.",
       "type": "string",
       "enum": [
         "ambiguity",
@@ -14,7 +14,8 @@
         "untestable",
         "incomplete",
         "inconsistent",
-        "duplicate"
+        "duplicate",
+        "other"
       ]
     },
     "Severity": {
@@ -37,6 +38,10 @@
       "required": ["type", "severity", "quote", "suggestion", "verification"],
       "properties": {
         "type": { "$ref": "#/$defs/IssueType" },
+        "criterion_id": {
+          "type": ["string", "null"],
+          "description": "Id of the evaluation criterion this issue answers, when the model named one — a row from the (editable) criteria list the prompt carried. This is what makes an edited or user-added criterion traceable in the findings; null when the model named none. Additive: an older reader ignores it."
+        },
         "severity": { "$ref": "#/$defs/Severity" },
         "quote": {
           "type": "string",

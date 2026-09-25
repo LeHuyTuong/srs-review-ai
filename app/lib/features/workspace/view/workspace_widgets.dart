@@ -82,6 +82,11 @@ String workspaceLabel(String label) => switch (label) {
   'incomplete' => 'Chưa đầy đủ',
   'inconsistent' => 'Không nhất quán',
   'duplicate' => 'Trùng lặp',
+  // The wire vocabulary's escape hatch: the model found a real defect (its quote
+  // verified) but no ISO class fit. Not 'chưa phân loại' — that label belongs to
+  // units the parser could not classify, and reusing it here would read as a
+  // parsing problem instead of a rubric one.
+  'other' => 'Khác',
   _ => label,
 };
 

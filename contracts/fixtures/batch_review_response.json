@@ -10,6 +10,7 @@
         "issues": [
           {
             "type": "ambiguity",
+            "criterion_id": "unambiguous",
             "severity": "high",
             "quote": "The system should respond quickly",
             "suggestion": "Replace 'quickly' with a measurable threshold, e.g. 'respond within 2s for 95% of requests under 100 concurrent users'.",
@@ -36,6 +37,7 @@
         "issues": [
           {
             "type": "incomplete",
+            "criterion_id": "complete",
             "severity": "high",
             "quote": "5.2 Payment",
             "suggestion": "Name the actor that triggers the payment step and state the outcome for a declined card.",

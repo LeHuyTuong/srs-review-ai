@@ -36,6 +36,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from .schemas import IssueType
+
 CRITERIA_SEED = Path(__file__).resolve().parent / "criteria.json"
 
 VALID_SCOPES = ("unit", "document")
@@ -346,16 +348,30 @@ class CriteriaStore:
     def prompt_block(self, scope: str) -> str:
         """The rubric block the model reads. Empty when every criterion in that
         scope is disabled, so the prompt never carries a section that tells the
-        model to follow nothing."""
+        model to follow nothing.
+
+        The instruction names `criterion_id` as the place for the id and `type`
+        as the place for the defect class. It used to ask for the id IN `type`,
+        which was unanswerable: `type` is a closed enum in the response schema,
+        so a model that obeyed the instruction produced a payload the server
+        could not parse — and the user's own criterion (the one they added or
+        edited) was precisely the value that could never come back. Splitting
+        the two dimensions is what makes an edited criterion traceable in the
+        findings at all.
+        """
         rows = self.enabled(scope)
         if not rows:
             return ""
+        defect_classes = ", ".join(t.value for t in IssueType)
         lines = [
             "EVALUATION CRITERIA — judge EVERY enabled criterion below against the"
             " unit and report every violation. A typical requirement violates 1-4"
             " of them; reporting only the first one is a failed review. When a"
-            " criterion is violated, name its id in the issue `type` so the row can"
-            " be traced back to this list.",
+            " criterion is violated, put its id in the issue `criterion_id` so the"
+            f" row can be traced back to this list, and name the defect class in"
+            f" `type` ({defect_classes}). Report the criterion id even when the"
+            " class does not fit the wording — it is the id, not the class, that"
+            " points back at this list.",
             "",
         ]
         for index, row in enumerate(rows, start=1):

@@ -21,13 +21,26 @@ class ContractException implements Exception {
   String toString() => 'ContractException: $message';
 }
 
+/// The defect CLASS of an issue, not the criterion the model was judging.
+///
+/// `other` is the vocabulary's escape hatch: the id of an editable criterion
+/// (whatever a user added or renamed in the criteria list) travels in
+/// `ReviewIssue.criterionId`, and a class the model could not fit any of the
+/// ISO names travels as `other`. The server maps an unrecognised `type` to it
+/// instead of failing the unit — [fromWire] stays strict on purpose, so a
+/// genuinely new enum member still fails loudly here rather than silently
+/// degrading, and the server is the side that must never emit one.
+///
+/// The order of this enum is the wire vocabulary's order: the JSON schema's
+/// `enum` is compared against it in test/contract_test.dart.
 enum IssueType {
   ambiguity,
   vagueness,
   untestable,
   incomplete,
   inconsistent,
-  duplicate;
+  duplicate,
+  other;
 
   static IssueType fromWire(String value) => values.firstWhere(
     (e) => e.name == value,
@@ -72,6 +85,7 @@ class ReviewIssue {
     required this.suggestion,
     required this.verification,
     this.similarity,
+    this.criterionId,
   });
 
   factory ReviewIssue.fromJson(Map<String, dynamic> json) => ReviewIssue(
@@ -81,9 +95,20 @@ class ReviewIssue {
     suggestion: json['suggestion'] as String,
     verification: Verification.fromWire(json['verification'] as String),
     similarity: (json['similarity'] as num?)?.toDouble(),
+    criterionId: json['criterion_id'] as String?,
   );
 
   final IssueType type;
+
+  /// The evaluation criterion this issue answers — the id of a row in the
+  /// (editable) criteria list the prompt carried, e.g. `nfr_quantified`.
+  ///
+  /// This is what makes a criterion a user *added or edited* traceable: the
+  /// defect class above says what kind of defect it is, and this says which
+  /// rubric row it came from. Null when the model named none, or when an older
+  /// proxy that predates the field answered.
+  final String? criterionId;
+
   final Severity severity;
   final String quote;
   final String suggestion;
@@ -92,6 +117,7 @@ class ReviewIssue {
 
   Map<String, dynamic> toJson() => {
     'type': type.name,
+    'criterion_id': criterionId,
     'severity': severity.name,
     'quote': quote,
     'suggestion': suggestion,

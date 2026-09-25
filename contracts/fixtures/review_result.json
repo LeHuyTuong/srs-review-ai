@@ -5,6 +5,7 @@
   "issues": [
     {
       "type": "ambiguity",
+      "criterion_id": "unambiguous",
       "severity": "high",
       "quote": "The system should respond quickly",
       "suggestion": "Replace 'quickly' with a measurable threshold, e.g. 'respond within 2s for 95% of requests under 100 concurrent users'.",
@@ -13,6 +14,7 @@
     },
     {
       "type": "untestable",
+      "criterion_id": "verifiable",
       "severity": "medium",
       "quote": "the user interface must be friendly",
       "suggestion": "Define an acceptance criterion, e.g. 'a first-time user completes the submit flow in under 3 steps without help'.",

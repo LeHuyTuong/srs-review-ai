@@ -15,12 +15,28 @@ CONTRACT_VERSION = "1.0.0"
 
 
 class IssueType(StrEnum):
+    """The defect CLASS of an issue (ISO/IEC/IEEE 29148 flavoured).
+
+    Distinct from the criterion the model was judging: a criterion is an
+    editable row in `criteria.json` (`nfr_quantified`, or whatever a user adds),
+    a type is the kind of defect. The model reports the criterion in
+    `Issue.criterion_id` and the class here.
+
+    `other` is the closed vocabulary's escape hatch, and it is load-bearing: the
+    app rejects an unknown `type` loudly (contract_test), so an unrecognised
+    value must never reach the wire. Before this member existed, a model that
+    put a criterion id in `type` — which the prompt used to literally ask for —
+    made `Issue(...)` raise, and the unit died: a 500 on the single-unit path,
+    a silent unit failure on the batch path.
+    """
+
     ambiguity = "ambiguity"
     vagueness = "vagueness"
     untestable = "untestable"
     incomplete = "incomplete"
     inconsistent = "inconsistent"
     duplicate = "duplicate"
+    other = "other"
 
 
 class Severity(StrEnum):
@@ -84,6 +100,15 @@ class BatchReviewRequest(Strict):
 
 class Issue(Strict):
     type: IssueType
+    criterion_id: str | None = Field(
+        default=None,
+        description=(
+            "The evaluation criterion this issue answers, when the model named "
+            "one — the id from the criteria list the prompt carried. It is what "
+            "traces a finding back to the rubric row a user edited or added; "
+            "None when the model named none."
+        ),
+    )
     severity: Severity
     quote: str = Field(min_length=1)
     suggestion: str = Field(min_length=1)
@@ -206,12 +231,19 @@ LLM_REVIEW_SCHEMA: dict[str, Any] = {
                 "type": "OBJECT",
                 "properties": {
                     "type": {"type": "STRING", "enum": [t.value for t in IssueType]},
+                    "criterion_id": {"type": "STRING"},
                     "severity": {"type": "STRING", "enum": [s.value for s in Severity]},
                     "quote": {"type": "STRING"},
                     "suggestion": {"type": "STRING"},
                 },
                 "required": ["type", "severity", "quote", "suggestion"],
-                "propertyOrdering": ["type", "severity", "quote", "suggestion"],
+                "propertyOrdering": [
+                    "type",
+                    "criterion_id",
+                    "severity",
+                    "quote",
+                    "suggestion",
+                ],
             },
         },
     },
@@ -236,12 +268,19 @@ LLM_BATCH_REVIEW_SCHEMA: dict[str, Any] = {
                             "type": "OBJECT",
                             "properties": {
                                 "type": {"type": "STRING", "enum": [t.value for t in IssueType]},
+                                "criterion_id": {"type": "STRING"},
                                 "severity": {"type": "STRING", "enum": [s.value for s in Severity]},
                                 "quote": {"type": "STRING"},
                                 "suggestion": {"type": "STRING"},
                             },
                             "required": ["type", "severity", "quote", "suggestion"],
-                            "propertyOrdering": ["type", "severity", "quote", "suggestion"],
+                            "propertyOrdering": [
+                                "type",
+                                "criterion_id",
+                                "severity",
+                                "quote",
+                                "suggestion",
+                            ],
                         },
                     },
                 },

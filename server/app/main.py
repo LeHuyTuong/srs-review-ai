@@ -482,6 +482,21 @@ async def review(
         raise HTTPException(
             status_code=502, detail="AI provider unavailable. Retry or use mock mode."
         ) from exc
+    except ValidationError as exc:
+        # The batch path has carried this guard since it was written; the single
+        # path did not, so the same unusable payload was a 500 here and a
+        # per-unit failure there. The labels an issue carries are now coerced
+        # instead of validated (verify.review_issues), so this is the belt to
+        # that braces: a future field the provider gets wrong must surface as a
+        # readable 502, never as an unhandled traceback that looks like a proxy
+        # bug and tells the user nothing.
+        log.warning(
+            "review payload for %s was unusable: %s", payload.requirement_id, exc
+        )
+        raise HTTPException(
+            status_code=502,
+            detail="AI provider returned an unexpected structure. Retry or use mock mode.",
+        ) from exc
 
     _review_cache.put(key, result)
     return result

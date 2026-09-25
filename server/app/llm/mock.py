@@ -43,6 +43,22 @@ _SENTENCE = re.compile(r"(?:[^.!?\n]|(?<=\d)\.(?=\d))+[.!?]?")
 # prompt it was handed, the same way a real model reads its input.
 _UNIT_MARKER = re.compile(r"^--- unit_index:\s*(\d+)\s*$", re.MULTILINE)
 
+# The criteria block renders one `[id] title` line per enabled row, so the
+# offline provider can read back which criteria it is allowed to cite — the same
+# way it reads the unit text back instead of carrying a canned answer. A
+# supervisor who disables `unambiguous` must stop seeing it named on the
+# findings, exactly as a real model would stop naming a row the prompt no longer
+# lists.
+_CRITERION_LINE = re.compile(r"^\s*\d+\.\s*\[([^\]]+)\]", re.MULTILINE)
+
+# Which rule in this file backs which seed criterion, best first. First enabled
+# match wins; no match means the issue is reported without a criterion id, which
+# is the contract's "the model named none".
+_CRITERION_FOR_RULE = {
+    "vague": ("unambiguous", "vagueness", "verifiable"),
+    "no_modal": ("verifiable", "untestable", "unambiguous"),
+}
+
 
 class MockProvider:
     name = "mock"
@@ -64,6 +80,7 @@ class MockProvider:
             "completion_tokens": comp_tok,
             "total_tokens": prompt_tok + comp_tok,
         }
+        enabled = _enabled_criteria(system)
         if "grounded" in props:
             return GenerateJsonResult(self._ask(user), self.model_id, usage)
         if "elements" in props:
@@ -71,11 +88,11 @@ class MockProvider:
         if "clean" in props:
             return GenerateJsonResult(self._judge(user), self.model_id, usage)
         if "results" in props:
-            return GenerateJsonResult(self._review_batch(user), self.model_id, usage)
-        return GenerateJsonResult(self._review(user), self.model_id, usage)
+            return GenerateJsonResult(self._review_batch(user, enabled), self.model_id, usage)
+        return GenerateJsonResult(self._review(user, enabled), self.model_id, usage)
 
     # ------------------------------------------------------------------
-    def _review(self, user: str) -> dict[str, Any]:
+    def _review(self, user: str, enabled: tuple[str, ...] = ()) -> dict[str, Any]:
         requirement_id = _field(user, "requirement_id") or "UNKNOWN"
         text = _quoted_block(user)
         issues: list[dict[str, Any]] = []
@@ -91,6 +108,7 @@ class MockProvider:
                         "type": "ambiguity",
                         "severity": "high",
                         "quote": sentence,
+                        "criterion_id": _cite(_CRITERION_FOR_RULE["vague"], enabled),
                         "suggestion": (
                             f"'{hit}' is not measurable. Replace it with a threshold that a "
                             "tester can verify, e.g. 'within 2s for 95% of requests'."
@@ -103,6 +121,7 @@ class MockProvider:
                         "type": "untestable",
                         "severity": "medium",
                         "quote": sentence,
+                        "criterion_id": _cite(_CRITERION_FOR_RULE["no_modal"], enabled),
                         "suggestion": (
                             "State the requirement with 'shall' and a verifiable acceptance "
                             "criterion so it can be tested."
@@ -111,6 +130,12 @@ class MockProvider:
                 )
 
         issues = issues[:3]
+        # A None criterion_id is dropped rather than sent as null: the field is
+        # optional on the wire, and "the model named none" is the absence of the
+        # key, not a null the app has to distinguish from "no criterion".
+        for issue in issues:
+            if issue.get("criterion_id") is None:
+                issue.pop("criterion_id")
         score = 9 if not issues else max(3, 9 - 2 * len(issues))
         result: dict[str, Any] = {
             "requirement_id": requirement_id,
@@ -121,7 +146,7 @@ class MockProvider:
             result["context_note"] = f"Offline mode: no diagram analysis for section {image_context}."
         return result
 
-    def _review_batch(self, user: str) -> dict[str, Any]:
+    def _review_batch(self, user: str, enabled: tuple[str, ...] = ()) -> dict[str, Any]:
         """Offline batch review: the same rules, once per numbered block.
 
         This is what keeps mock mode (and every test that runs against it) on the
@@ -133,7 +158,7 @@ class MockProvider:
         for position, marker in enumerate(markers):
             end = markers[position + 1].start() if position + 1 < len(markers) else len(user)
             block = user[marker.end() : end]
-            reviewed = self._review(block)
+            reviewed = self._review(block, enabled)
             # The marker owns the index; the block's own text cannot invent one.
             reviewed["unit_index"] = int(marker.group(1))
             results.append(reviewed)
@@ -208,6 +233,18 @@ class MockProvider:
             "grounded": True,
             "quotes": [sentence] if sentence else [],
         }
+
+
+def _enabled_criteria(system: str) -> tuple[str, ...]:
+    """The criterion ids the prompt carried, in the order the block rendered
+    them. Empty when the block is absent — mock mode then reports issues with no
+    criterion id, which is what a model with no criteria list would do."""
+    return tuple(_CRITERION_LINE.findall(system))
+
+
+def _cite(preferences: tuple[str, ...], enabled: tuple[str, ...]) -> str | None:
+    """The first criterion this rule backs that the user still has enabled."""
+    return next((name for name in preferences if name in enabled), None)
 
 
 def _field(blob: str, name: str) -> str | None:

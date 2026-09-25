@@ -79,6 +79,11 @@ class MockReviewApi implements ReviewApi {
             type: IssueType.ambiguity,
             severity: Severity.high,
             quote: sentence,
+            // The seed criterion this rule implements. Offline mock mode names
+            // it for the same reason the proxy's mock does: a criterion id is
+            // what traces a finding back to the rubric row, and a demo that
+            // never carries one cannot show the feature that produces it.
+            criterionId: 'unambiguous',
             suggestion:
                 '"$vague" is not measurable. Replace it with a threshold a tester '
                 'can verify, e.g. "within 2s for 95% of requests".',
@@ -94,6 +99,7 @@ class MockReviewApi implements ReviewApi {
             type: IssueType.untestable,
             severity: Severity.medium,
             quote: sentence,
+            criterionId: 'verifiable',
             suggestion:
                 'State the requirement with "shall" plus a verifiable acceptance criterion.',
             verification: Verification.exact,
