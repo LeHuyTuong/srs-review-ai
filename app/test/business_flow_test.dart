@@ -380,7 +380,7 @@ void main() {
         result: null,
         units: const [],
         syllabusFindings: const [
-          DeterministicFinding(
+          DeterministicFinding.both(
             check: CheckId.ucCount,
             passed: false,
             severity: Severity.high,

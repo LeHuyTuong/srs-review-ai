@@ -87,9 +87,9 @@ void main() {
       // Never above info/low: chapter-varying running heads are the known
       // false positive, so the finding must not read as a verdict.
       expect(finding.severity, Severity.low);
-      expect(finding.message, contains('Online Tutoring Examination System'));
-      expect(finding.message, contains('Online Testing Examination System'));
-      expect(finding.message, contains('tutoring'));
+      expect(finding.messageVi, contains('Online Tutoring Examination System'));
+      expect(finding.messageVi, contains('Online Testing Examination System'));
+      expect(finding.messageVi, contains('tutoring'));
       expect(finding.subject, 'header_1:tutoring~testing');
       expect(
         finding.ledgerKey,

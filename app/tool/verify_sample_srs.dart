@@ -26,7 +26,7 @@ void _printFindings(String title, List<DeterministicFinding> findings) {
   for (final f in findings) {
     print(
       '${f.passed ? 'PASS' : 'FAIL'} [${f.severity.name}] '
-      '${f.check.name} | subject=${f.subject ?? '-'} | ${f.message}',
+      '${f.check.name} | subject=${f.subject ?? '-'} | ${f.messageEn}',
     );
   }
 }
@@ -221,7 +221,7 @@ void main() {
     for (final finding in findings) {
       print(
         '${finding.passed ? 'PASS' : 'FAIL'} [${finding.severity.name}] '
-        '${finding.check.wire} | ${finding.message}',
+        '${finding.check.wire} | ${finding.messageEn}',
       );
     }
     print('→ ${findings.length} finding từ mục lục, chưa tốn token nào.');

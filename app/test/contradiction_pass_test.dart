@@ -85,10 +85,10 @@ void main() {
       expect(f.actual, 2);
       // The original strings appear verbatim in the message, comma-
       // separated, so the dashboard renders the actual variants.
-      expect(f.message, contains('Customer'));
-      expect(f.message, contains('Customers'));
-      expect(f.message, contains('3.4 Account'));
-      expect(f.message, contains('3.5 Settings'));
+      expect(f.messageEn, contains('Customer'));
+      expect(f.messageEn, contains('Customers'));
+      expect(f.messageEn, contains('3.4 Account'));
+      expect(f.messageEn, contains('3.5 Settings'));
     });
 
     test('case-only difference collapses correctly', () {
@@ -204,7 +204,7 @@ void main() {
           ),
         ]),
       );
-      final msg = findings.single.message;
+      final msg = findings.single.messageEn;
       // Each variant appears as a bare substring — the message joins
       // them with ", " so a trailing-space check would always miss.
       expect(msg, contains('Customer'));

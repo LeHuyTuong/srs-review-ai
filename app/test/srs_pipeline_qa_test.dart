@@ -117,7 +117,7 @@ void main() {
           for (final f in findings)
             '${f.check.name}:${f.passed ? 'pass' : 'fail'}',
         ],
-        'messages': [for (final f in findings) f.message],
+        'messages': [for (final f in findings) f.messageEn],
         'm2DuplicateIdsCount': m2DuplicateIds.length,
         'm2MissingPostconditionCount': m2MissingPostcondition.length,
         'm2CrossArtifactNameCount': m2CrossArtifactName.length,

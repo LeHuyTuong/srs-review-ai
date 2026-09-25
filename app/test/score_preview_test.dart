@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:srs_review_ai/core/providers.dart';
 import 'package:srs_review_ai/core/router/app_router.dart';
+import 'package:srs_review_ai/core/widgets/full_screen_surface.dart';
 import 'package:srs_review_ai/data/services/mock_review_api.dart';
 import 'package:srs_review_ai/data/services/session_store.dart';
 import 'package:srs_review_ai/features/workspace/models/section_scores.dart';
@@ -177,11 +178,11 @@ void main() {
         .findings
         .firstWhere((f) => f.unitKey == unitWithIssues.key)
         .quote;
-    // The sheet's own ListView builds lazily — scroll it (the last scrollable
-    // in the tree once the sheet is up) before asserting. Scope to the sheet:
+    // The surface's own ListView builds lazily — scroll it (the last scrollable
+    // in the tree once the sheet is up) before asserting. Scope to the surface:
     // the findings tab behind it paints the same quote string.
     final quoteInSheet = find.descendant(
-      of: find.byType(DraggableScrollableSheet),
+      of: find.byType(WFullScreenSurface),
       matching: find.text('"$quote"'),
     );
     await tester.scrollUntilVisible(

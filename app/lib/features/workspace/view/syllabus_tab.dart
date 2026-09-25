@@ -10,6 +10,7 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
 import '../../../core/widgets/app_ink_well.dart';
 import '../../../data/models/deterministic_finding.dart';
+import '../../../data/models/report_language.dart';
 import '../view_model/workspace_view_model.dart';
 import 'workspace_modals.dart';
 import 'workspace_widgets.dart';
@@ -185,7 +186,7 @@ class _CheckCard extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    workspaceMessage(finding.message),
+                    finding.messageFor(ReportLanguage.vietnamese),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colors.muted,
                       height: 1.7,

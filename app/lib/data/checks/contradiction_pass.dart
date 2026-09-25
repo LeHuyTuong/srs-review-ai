@@ -77,11 +77,16 @@ class ContradictionPass {
           check: CheckId.crossArtifactName,
           passed: false,
           severity: Severity.high,
-          message:
+          messageEn:
               'Entity "$stem" appears as ${variantList.join(", ")} '
               'across ${sectionList.length} sections '
               '(${sectionList.join(", ")}). Same concept, '
               'different labels — pick one name.',
+          messageVi:
+              'Thực thể "$stem" xuất hiện dưới các tên '
+              '${variantList.join(", ")} trong ${sectionList.length} mục '
+              '(${sectionList.join(", ")}). Cùng một khái niệm nhưng khác '
+              'nhãn — hãy chọn một tên.',
           subject: stem,
           actual: variantList.length,
           // Vision-required: text-level name variation is a *signal*

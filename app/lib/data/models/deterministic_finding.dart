@@ -4,6 +4,7 @@
 /// having: they keep working when the network or the free-tier quota does not.
 library;
 
+import 'report_language.dart' show ReportLanguage;
 import 'review_models.dart' show Severity;
 
 enum CheckId {
@@ -290,11 +291,26 @@ bool isDeterministicFindingKey(String key) {
 }
 
 class DeterministicFinding {
+  /// One finding, with its message in BOTH report languages.
+  ///
+  /// Both are required, and that is the point (2026-09-25). The report used to
+  /// be half English and half Vietnamese because each check wrote its message
+  /// in whichever language its author used that day, so an exported file made a
+  /// supervisor switch language mid-page. "Both required" makes the compiler
+  /// the enforcement: a new check cannot be added without deciding what it says
+  /// in each language, and no call site can pick a language by accident
+  /// because there is no single-language field left to read.
+  ///
+  /// The subtlety in each pair is the SAME interpolated data in both strings —
+  /// the same id, the same count, the same missing numbers. A translation that
+  /// quietly restates different facts is the failure this shape invites, which
+  /// is why the twins sit next to each other in the check that raises them.
   const DeterministicFinding({
     required this.check,
     required this.passed,
     required this.severity,
-    required this.message,
+    required this.messageEn,
+    required this.messageVi,
     this.subject,
     this.actual,
     this.expectedMin,
@@ -302,21 +318,46 @@ class DeterministicFinding {
     this.requiresVisionEvidence = false,
   });
 
-  factory DeterministicFinding.fromJson(
-    Map<String, dynamic> json,
-  ) => DeterministicFinding(
-    check: CheckId.values.firstWhere((value) => value.wire == json['check']),
-    passed: json['passed'] as bool,
-    severity: Severity.values.firstWhere(
-      (value) => value.name == json['severity'],
-    ),
-    message: json['message'] as String,
-    subject: json['subject'] as String?,
-    actual: json['actual'] as num?,
-    expectedMin: json['expected_min'] as num?,
-    expectedMax: json['expected_max'] as num?,
-    requiresVisionEvidence: json['requires_vision_evidence'] as bool? ?? false,
-  );
+  /// Both languages the same string.
+  ///
+  /// For a message that carries no prose (an id, a count, a slug) and for the
+  /// synthetic findings the test suite builds — those assert arithmetic, not
+  /// wording, and duplicating a fixture string twice would be noise.
+  const DeterministicFinding.both({
+    required this.check,
+    required this.passed,
+    required this.severity,
+    required String message,
+    this.subject,
+    this.actual,
+    this.expectedMin,
+    this.expectedMax,
+    this.requiresVisionEvidence = false,
+  }) : messageEn = message,
+       messageVi = message;
+
+  factory DeterministicFinding.fromJson(Map<String, dynamic> json) {
+    // `message` is the pre-2026-09-25 single-language field (and the field a
+    // saved session still carries): it holds the Vietnamese twin, so a session
+    // written before this change opens as a Vietnamese report, and an English
+    // report falls back to it only when `message_en` is absent.
+    final legacy = json['message'] as String? ?? '';
+    return DeterministicFinding(
+      check: CheckId.values.firstWhere((value) => value.wire == json['check']),
+      passed: json['passed'] as bool,
+      severity: Severity.values.firstWhere(
+        (value) => value.name == json['severity'],
+      ),
+      messageEn: json['message_en'] as String? ?? legacy,
+      messageVi: json['message_vi'] as String? ?? legacy,
+      subject: json['subject'] as String?,
+      actual: json['actual'] as num?,
+      expectedMin: json['expected_min'] as num?,
+      expectedMax: json['expected_max'] as num?,
+      requiresVisionEvidence:
+          json['requires_vision_evidence'] as bool? ?? false,
+    );
+  }
 
   final CheckId check;
 
@@ -328,7 +369,18 @@ class DeterministicFinding {
   String get ledgerKey => '${check.wire}:${subject ?? '_'}';
   final bool passed;
   final Severity severity;
-  final String message;
+
+  /// The finding's message in English. Read it through [messageFor], never
+  /// directly: a builder that reads one side of the pair is how a report
+  /// becomes half one language and half the other again.
+  final String messageEn;
+
+  /// The finding's message in Vietnamese.
+  final String messageVi;
+
+  /// The message in the report language the user chose.
+  String messageFor(ReportLanguage language) =>
+      language == ReportLanguage.vietnamese ? messageVi : messageEn;
 
   /// The UC/requirement id this is about; null for document-level findings.
   final String? subject;
@@ -348,7 +400,12 @@ class DeterministicFinding {
     'check': check.wire,
     'passed': passed,
     'severity': severity.name,
-    'message': message,
+    // Both sides are persisted: a session saved after this change reopens in
+    // whichever language the user picks, and `message` keeps the older readers
+    // (and the pre-change sessions) working.
+    'message': messageVi,
+    'message_en': messageEn,
+    'message_vi': messageVi,
     'subject': subject,
     'actual': actual,
     'expected_min': expectedMin,

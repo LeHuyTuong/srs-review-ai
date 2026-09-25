@@ -85,7 +85,7 @@ void main() {
     final run1 = await service.audit(document);
     for (final f in run1.findings) {
       print(
-        'ROW1|${f.subject}|${f.passed}|${f.severity.name}|${f.message.length}ch',
+        'ROW1|${f.subject}|${f.passed}|${f.severity.name}|${f.messageEn.length}ch',
       );
     }
     print(

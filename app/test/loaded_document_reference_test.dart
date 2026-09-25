@@ -77,14 +77,14 @@ void main() {
       () {
         final doc = _doc(const <RequirementItem>[]);
         const reference = <DeterministicFinding>[
-          DeterministicFinding(
+          DeterministicFinding.both(
             check: CheckId.duplicateIds,
             passed: false,
             severity: Severity.high,
             message: 'UC04 reused',
             subject: 'UC04',
           ),
-          DeterministicFinding(
+          DeterministicFinding.both(
             check: CheckId.missingPostcondition,
             passed: false,
             severity: Severity.high,
@@ -117,7 +117,7 @@ void main() {
     test('allFindings preserves syllabus-before-reference order', () {
       final doc = _doc(const <RequirementItem>[]);
       const syllabus = <DeterministicFinding>[
-        DeterministicFinding(
+        DeterministicFinding.both(
           check: CheckId.ucCount,
           passed: true,
           severity: Severity.low,
@@ -125,7 +125,7 @@ void main() {
         ),
       ];
       const reference = <DeterministicFinding>[
-        DeterministicFinding(
+        DeterministicFinding.both(
           check: CheckId.duplicateIds,
           passed: false,
           severity: Severity.high,

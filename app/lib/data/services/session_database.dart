@@ -6,11 +6,11 @@
 /// what a database is for, so this is the primary store now:
 ///
 ///   * one record per session, keyed by its id — saving one session writes one
-///     small record, whatever the history weighs;
-///   * the workspace DRAFT (step-1 project + step-2 declaration) lives beside
-///     it in its own record, so it no longer shares a value with a 30-session
-///     list — and it is small, because since 2026-09-23 the app no longer
-///     reopens a whole previous workspace by itself;
+///     small record, whatever the history weighs;  ///   * the workspace DRAFT (step-1 project, step-2 declaration, reviewer
+///     issues, the report-language preference) lives beside it in its own
+///     record, so it no longer shares a value with a 30-session list — and
+///     it is small, because since 2026-09-23 the app no longer reopens a
+///     whole previous workspace by itself;
 ///   * the 30-session cap is enforced by deleting the coldest RECORDS instead of
 ///     rewriting a list that silently drops them.
 ///

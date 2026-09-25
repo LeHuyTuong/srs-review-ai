@@ -9,7 +9,7 @@ DeterministicFinding _row(
   bool passed = true,
   Severity severity = Severity.low,
   String? subject,
-}) => DeterministicFinding(
+}) => DeterministicFinding.both(
   check: check,
   passed: passed,
   severity: severity,

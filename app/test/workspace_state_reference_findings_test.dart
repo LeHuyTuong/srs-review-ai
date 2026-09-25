@@ -28,7 +28,7 @@ void main() {
       );
       // Real parameter swaps the field; old call sites must not be re-pointed.
       const reference = <DeterministicFinding>[
-        DeterministicFinding(
+        DeterministicFinding.both(
           check: CheckId.duplicateIds,
           passed: false,
           severity: Severity.high,
@@ -54,7 +54,7 @@ void main() {
       // The snapshot serializer / deserializer depends on this — if
       // toJson / fromJson ever drift between Dart code and the wire
       // shape, the M2 family is lost on a restart.
-      const original = DeterministicFinding(
+      const original = DeterministicFinding.both(
         check: CheckId.duplicateIds,
         passed: false,
         severity: Severity.high,
@@ -77,7 +77,7 @@ void main() {
       // reopen through History, a server-side verifier, the ledger dashboard
       // importer) will see what we mean to send.
       const reference = <DeterministicFinding>[
-        DeterministicFinding(
+        DeterministicFinding.both(
           check: CheckId.duplicateIds,
           passed: false,
           severity: Severity.high,
@@ -124,7 +124,8 @@ void main() {
       expect(round.check, orig.check);
       expect(round.passed, orig.passed);
       expect(round.severity, orig.severity);
-      expect(round.message, orig.message);
+      expect(round.messageEn, orig.messageEn);
+      expect(round.messageVi, orig.messageVi);
       expect(round.subject, orig.subject);
       expect(round.actual, orig.actual);
     });

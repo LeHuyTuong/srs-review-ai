@@ -11,6 +11,7 @@ import '../../../core/widgets/full_screen_surface.dart';
 import '../../../data/checks/criteria_catalog.dart';
 import '../../../data/models/deterministic_finding.dart';
 import '../../../data/models/human_issue.dart';
+import '../../../data/models/report_language.dart';
 import '../../../data/models/review_models.dart';
 import '../models/document_verdict.dart';
 import '../models/workspace_findings.dart';
@@ -443,8 +444,16 @@ List<Widget> _issueCards({
           title: '${row.requirementId} · ${row.title}',
           body: row.issue.suggestion,
           quote: row.quote,
-          source:
-              'AI · ${row.issue.verification.name} · trang ${row.pageIndex + 1}',
+          // The criterion the model was answering rides in the source line: it
+          // is the one part of an AI finding that points at a rubric row the
+          // user can edit, and an id is never translated.
+          source: [
+            'AI',
+            row.issue.verification.name,
+            'trang ${row.pageIndex + 1}',
+            if ((row.issue.criterionId ?? '').isNotEmpty)
+              'tiêu chí ${row.issue.criterionId}',
+          ].join(' · '),
           severity: row.severity,
           trailing: null,
         ),
@@ -458,7 +467,10 @@ List<Widget> _issueCards({
         card: _ReportIssueCard(
           icon: Icons.rule_outlined,
           title: finding.check.label,
-          body: finding.message,
+          // The finding carries its Vietnamese message itself (2026-09-25), so
+          // no translation table sits between the ledger and the reader: the
+          // twin IS the reviewed wording, not a re-rendering of the English one.
+          body: finding.messageFor(ReportLanguage.vietnamese),
           quote: finding.subject == null ? null : 'Vị trí: ${finding.subject}',
           source:
               'Luật ngoại tuyến · ${familyFor(finding.check).title} · rubric $rubricVersion',

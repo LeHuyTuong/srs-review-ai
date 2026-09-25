@@ -69,9 +69,13 @@ class ReferenceChecks {
           check: CheckId.duplicateIds,
           passed: false,
           severity: Severity.high,
-          message:
+          messageEn:
               'Id "$id" is used by $occurrences requirements. Reuse is a '
               'signal, not always a bug — confirm the duplication on purpose.',
+          messageVi:
+              'Mã "$id" được dùng bởi $occurrences yêu cầu. Dùng lại là tín '
+              'hiệu, không phải lúc nào cũng là lỗi — hãy xác nhận việc trùng '
+              'này là cố ý.',
           subject: id,
           actual: occurrences,
         ),
@@ -111,10 +115,14 @@ class ReferenceChecks {
           check: CheckId.missingPostcondition,
           passed: false,
           severity: Severity.high,
-          message:
+          messageEn:
               'Use case "$uc" has no Postcondition section. Without a '
               'measurable end-state the tester cannot tell when the flow is '
               'done.',
+          messageVi:
+              'Use case "$uc" không có mục Postcondition. Không có trạng thái '
+              'kết thúc đo được thì người kiểm thử không biết luồng đã xong '
+              'khi nào.',
           subject: uc.id,
         ),
       );
@@ -158,10 +166,13 @@ class ReferenceChecks {
           check: CheckId.missingActor,
           passed: false,
           severity: Severity.high,
-          message:
+          messageEn:
               'Use case "$uc" has no Actor label. A use case without an '
               'actor leaves the system boundary undefined — the flow has '
               'no "who".',
+          messageVi:
+              'Use case "$uc" không có nhãn Actor. Use case không có actor thì '
+              'biên hệ thống không xác định — luồng không có "ai".',
           subject: uc.id,
         ),
       );

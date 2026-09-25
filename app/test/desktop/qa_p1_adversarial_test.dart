@@ -24,6 +24,7 @@ import 'package:srs_review_ai/core/platform/app_platform.dart';
 import 'package:srs_review_ai/core/providers.dart';
 import 'package:srs_review_ai/core/theme/app_theme.dart';
 import 'package:srs_review_ai/core/widgets/app_ink_well.dart';
+import 'package:srs_review_ai/core/widgets/full_screen_surface.dart';
 import 'package:srs_review_ai/data/services/mock_review_api.dart';
 import 'package:srs_review_ai/data/services/session_store.dart';
 import 'package:srs_review_ai/features/workspace/models/workspace_findings.dart';
@@ -537,9 +538,13 @@ void main() {
 
         await tester.tap(find.text('Mở tài liệu gốc'));
         await tester.pumpAndSettle();
-        // The source sheet is a DraggableScrollableSheet in a bottom sheet —
-        // its presence is the side effect the menu entry promises.
-        expect(find.byType(DraggableScrollableSheet), findsOneWidget);
+        // The source sheet used to be a DraggableScrollableSheet in a bottom
+        // sheet, which capped it at 82% of the screen; it is now the same
+        // full-screen surface as every other modal (2026-09-25). Its presence
+        // is the side effect the menu entry promises, so it is the surface —
+        // and not a stray sheet anywhere in the tree — that is asserted.
+        expect(find.byType(WFullScreenSurface), findsOneWidget);
+        expect(find.byType(DraggableScrollableSheet), findsNothing);
       });
     });
 

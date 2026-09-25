@@ -10,7 +10,7 @@ import 'package:srs_review_ai/features/workspace/models/html_report.dart';
 import 'package:srs_review_ai/features/workspace/models/report_export.dart';
 
 DeterministicFinding _pass(CheckId c, {String? subject}) =>
-    DeterministicFinding(
+    DeterministicFinding.both(
       check: c,
       passed: true,
       severity: Severity.low,

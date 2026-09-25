@@ -19,7 +19,7 @@ void main() {
     CheckId id, {
     bool passed = false,
     bool requiresVisionEvidence = false,
-  }) => DeterministicFinding(
+  }) => DeterministicFinding.both(
     check: id,
     passed: passed,
     severity: Severity.high,
@@ -39,7 +39,7 @@ void main() {
           check(CheckId.ucSize, passed: true),
         ],
         referenceFindings: [
-          DeterministicFinding(
+          DeterministicFinding.both(
             check: CheckId.missingPostcondition,
             passed: false,
             severity: Severity.high,
@@ -64,7 +64,7 @@ void main() {
     });
 
     test('ledgerKey matches the Verifier storage key exactly', () {
-      final f = DeterministicFinding(
+      final f = DeterministicFinding.both(
         check: CheckId.duplicateIds,
         passed: false,
         severity: Severity.high,

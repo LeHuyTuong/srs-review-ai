@@ -116,7 +116,7 @@ void main() {
           .where((f) => f.check == CheckId.missingPostcondition && !f.passed)
           .toList(growable: false);
       expect(missingPostRows, isNotEmpty);
-      final anchorRaw = missingPostRows.first.message;
+      final anchorRaw = missingPostRows.first.messageEn;
       // Each twin escapes the way it renders: markdown pipes, HTML entities.
       final mdAnchor = anchorRaw.replaceAll('|', '\\|');
       final htmlAnchor = anchorRaw

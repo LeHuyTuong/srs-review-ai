@@ -5,6 +5,7 @@ library;
 import 'dart:async';
 import 'dart:ui' show Tristate;
 
+import 'package:dio/dio.dart' show CancelToken;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -16,11 +17,13 @@ import 'package:srs_review_ai/core/router/app_router.dart';
 import 'package:srs_review_ai/core/theme/app_theme.dart';
 import 'package:srs_review_ai/core/widgets/glass_surface.dart';
 import 'package:srs_review_ai/data/models/loaded_document.dart';
+import 'package:srs_review_ai/data/models/review_models.dart';
 import 'package:srs_review_ai/data/models/srs_document.dart';
 import 'package:srs_review_ai/data/repositories/document_repository.dart';
 import 'package:srs_review_ai/data/repositories/review_repository.dart';
 import 'package:srs_review_ai/data/services/mock_review_api.dart';
 import 'package:srs_review_ai/data/services/page_image_renderer.dart';
+import 'package:srs_review_ai/data/services/review_api.dart';
 import 'package:srs_review_ai/data/services/session_store.dart';
 import 'package:srs_review_ai/features/workspace/view/workspace_modals.dart';
 import 'package:srs_review_ai/features/workspace/view/workspace_shell.dart';
@@ -64,11 +67,12 @@ ProviderContainer _container(
   InMemorySessionStore store, {
   DocumentRepository? documentRepository,
   ReviewRepository? reviewRepository,
+  ReviewApi? reviewApi,
 }) => ProviderContainer(
   overrides: [
     sessionStoreProvider.overrideWithValue(store),
     reviewApiProvider.overrideWithValue(
-      const MockReviewApi(latency: Duration.zero),
+      reviewApi ?? const MockReviewApi(latency: Duration.zero),
     ),
     if (documentRepository != null)
       documentRepositoryProvider.overrideWithValue(documentRepository),
@@ -131,6 +135,86 @@ class _NoRendererRepository extends ReviewRepository {
         const MockReviewApi(latency: Duration.zero),
         renderer: _UnavailablePageRenderer(),
       );
+}
+
+/// The offline rules emit ONE severity. Measured on the demo: 40 reviewed
+/// units → 120 issues, all medium, because every sentence of a synthetic use
+/// case lacks "shall" and `MockReviewApi.score` keeps only the first three
+/// sentences per unit — the vague-word ("quickly") sentence sits further down
+/// and is cut. So a severity facet over the plain mock can only ever exercise
+/// the zero-count case, never the narrowing one.
+///
+/// This fake re-labels the issues the rules produced in a fixed
+/// high/medium/medium pattern: the facet then has something to narrow to AND
+/// a genuinely empty facet (low). Quotes are untouched, so verification still
+/// passes exactly as it does offline.
+class _MixedSeverityApi extends MockReviewApi {
+  const _MixedSeverityApi();
+
+  static const List<Severity> _pattern = [
+    Severity.high,
+    Severity.medium,
+    Severity.medium,
+  ];
+
+  ReviewResult _mix(ReviewResult base) => ReviewResult(
+    requirementId: base.requirementId,
+    score: base.score,
+    issues: [
+      for (final (index, issue) in base.issues.indexed)
+        ReviewIssue(
+          type: issue.type,
+          severity: _pattern[index % _pattern.length],
+          quote: issue.quote,
+          suggestion: issue.suggestion,
+          verification: issue.verification,
+          similarity: issue.similarity,
+        ),
+    ],
+    model: base.model,
+    contextNote: base.contextNote,
+    droppedIssueCount: base.droppedIssueCount,
+    cached: base.cached,
+    mock: base.mock,
+    promptTokens: base.promptTokens,
+    completionTokens: base.completionTokens,
+    totalTokens: base.totalTokens,
+  );
+
+  @override
+  Future<ReviewResult> review({
+    required String requirementId,
+    required String text,
+    String? section,
+    int? pageIndex,
+    String? imageB64,
+    CancelToken? cancelToken,
+  }) async => _mix(
+    await super.review(
+      requirementId: requirementId,
+      text: text,
+      section: section,
+      pageIndex: pageIndex,
+      imageB64: imageB64,
+      cancelToken: cancelToken,
+    ),
+  );
+
+  @override
+  Future<BatchReviewOutcome> reviewBatch(
+    List<BatchReviewUnit> units, {
+    CancelToken? cancelToken,
+  }) async {
+    final base = await super.reviewBatch(units, cancelToken: cancelToken);
+    return BatchReviewOutcome(
+      resultsByIndex: {
+        for (final entry in base.resultsByIndex.entries)
+          entry.key: _mix(entry.value),
+      },
+      failuresByIndex: base.failuresByIndex,
+      mock: base.mock,
+    );
+  }
 }
 
 Future<void> _pumpWhile(
@@ -512,6 +596,133 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
   });
 
+  /// Round 34 — the severity facet. The findings row could only be filtered by
+  /// status before; "show only the Nghiêm trọng ones" is how a student triages
+  /// before a deadline, and the verdict panel tells them to do exactly that. The
+  /// chips carry counts so a dead end is visible BEFORE it is tapped, and
+  /// tapping a facet that matches nothing must reach the no-match copy — never
+  /// the "document is clean" copy, which is a claim the data never made.
+  ///
+  /// The fake re-labels severities (see [_MixedSeverityApi]): the plain demo
+  /// run comes back all-medium, so it could only prove the zero-count case.
+  testWidgets('findings severity filter carries counts and narrows the list', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final container = _container(
+      InMemorySessionStore(),
+      reviewApi: const _MixedSeverityApi(),
+    );
+    addTearDown(container.dispose);
+    final vm = container.read(workspaceViewModelProvider.notifier);
+    await vm.loadDemo();
+
+    // Keep the selection inside the per-run cap.
+    final overCap = container
+        .read(workspaceViewModelProvider)
+        .units
+        .where((u) => u.selected)
+        .skip(40)
+        .toList();
+    for (final unit in overCap) {
+      vm.setUnitSelected(unit.key, false);
+    }
+    await vm.runReview();
+    await _pumpWhile(
+      tester,
+      () => !container.read(workspaceViewModelProvider).hasResult,
+    );
+
+    final result = container.read(workspaceViewModelProvider).result!;
+    final highCount = result.findings
+        .where((f) => f.severity == Severity.high)
+        .length;
+    final mediumCount = result.findings
+        .where((f) => f.severity == Severity.medium)
+        .length;
+    final totalCount = result.findings.length;
+    expect(highCount, greaterThan(0), reason: 'the fake labels one of three');
+    expect(mediumCount, greaterThan(highCount));
+    expect(
+      result.findings.where((f) => f.severity == Severity.low),
+      isEmpty,
+      reason: 'the pattern leaves the low facet genuinely empty',
+    );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: buildRouter()),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // 'Kết quả & Lỗi' also labels workflow step 3 — target the tab (last
+    // match), scrolled clear of the floating bars. This run has 120 findings,
+    // which puts the tab row further up than the helper's default band allows,
+    // so the top guard is widened to clear the glass bar it would otherwise
+    // land under.
+    await _scrollToTappable(
+      tester,
+      find.text('Kết quả & Lỗi').last,
+      topChrome: 110,
+    );
+    await tester.tap(find.text('Kết quả & Lỗi').last);
+    await tester.pump(const Duration(milliseconds: 200));
+
+    // Counts ride the chips: each facet says what tapping it would show.
+    await _scrollToTappable(
+      tester,
+      find.text('Nghiêm trọng ($highCount)'),
+      topChrome: 110,
+    );
+    expect(find.text('Trung bình ($mediumCount)'), findsOneWidget);
+    expect(find.text('Nhẹ (0)'), findsOneWidget);
+    expect(find.text('Tất cả mức độ ($totalCount)'), findsOneWidget);
+
+    // Severe only: every card badge left is Nghiêm trọng (the chip labels all
+    // carry counts, so an exact-text finder can only match the card badges).
+    await tester.tap(find.text('Nghiêm trọng ($highCount)'));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('Nghiêm trọng'), findsNWidgets(highCount));
+    expect(find.text('Trung bình'), findsNothing);
+
+    // Medium is the mirror case: the severe rows really are gone.
+    await _scrollToTappable(
+      tester,
+      find.text('Trung bình ($mediumCount)'),
+      topChrome: 110,
+    );
+    await tester.tap(find.text('Trung bình ($mediumCount)'));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('Nghiêm trọng'), findsNothing);
+    expect(find.text('Trung bình'), findsNWidgets(mediumCount));
+
+    // And back to every severity.
+    await _scrollToTappable(
+      tester,
+      find.text('Tất cả mức độ ($totalCount)'),
+      topChrome: 110,
+    );
+    await tester.tap(find.text('Tất cả mức độ ($totalCount)'));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('Nghiêm trọng'), findsNWidgets(highCount));
+    expect(find.text('Trung bình'), findsNWidgets(mediumCount));
+
+    // Last, because it empties the list and the page gets short: a facet with
+    // nothing behind it lands on the no-match copy, never on the
+    // "document is clean" copy — the data never said the SRS was clean.
+    await _scrollToTappable(tester, find.text('Nhẹ (0)'), topChrome: 110);
+    await tester.tap(find.text('Nhẹ (0)'));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('Không tìm thấy lỗi phù hợp'), findsOneWidget);
+    expect(find.text('Chưa phát hiện lỗi qua các kiểm tra'), findsNothing);
+    await tester.pump(const Duration(seconds: 5));
+  });
+
   /// Round 33 — the brief's Output row names three legs (ledger.md + JSON +
   /// share sheet). The export modal is where all three meet, so the test
   /// opens it through the real shell after a real run and pins that every
@@ -594,9 +805,23 @@ void main() {
     );
     // The modal previews the markdown report it is about to save — pinned
     // so the JSON button can never silently replace the markdown preview.
+    // The preview opens in the app's default report language (Vietnamese),
+    // and the switch above it re-renders the SAME preview: a report half in
+    // one language is the thing this replaced, so the flip has to reach the
+    // text the user is looking at, not only the file they save.
+    expect(
+      find.textContaining('# Báo cáo đánh giá SRS', skipOffstage: false),
+      findsOneWidget,
+    );
+    await tester.tap(find.widgetWithText(WButton, 'English').first);
+    await tester.pump(const Duration(milliseconds: 400));
     expect(
       find.textContaining('# SRS Review Report', skipOffstage: false),
       findsOneWidget,
+    );
+    expect(
+      find.textContaining('# Báo cáo đánh giá SRS', skipOffstage: false),
+      findsNothing,
     );
     await tester.pump(const Duration(seconds: 5));
   });

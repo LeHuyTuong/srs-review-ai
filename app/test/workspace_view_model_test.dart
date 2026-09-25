@@ -236,7 +236,7 @@ LoadedDocument _visionLoaded({Uint8List? pdfBytes}) => LoadedDocument(
   document: _diagramDocument(),
   findings: const [],
   referenceFindings: const [
-    DeterministicFinding(
+    DeterministicFinding.both(
       check: CheckId.duplicateIds,
       passed: true,
       severity: Severity.low,
@@ -763,8 +763,11 @@ void main() {
       final session = (await store.list()).single;
       expect(session.payloadJson, isNot(contains('pdfBytes')));
       expect(session.payloadJson, isNot(contains(base64Encode(pdfBytes))));
+      // The VM exports in its default report language (Vietnamese) unless the
+      // user switches it; the English rendering of this same run is pinned in
+      // report_language_test.dart.
       final report = vm.exportMarkdown();
-      expect(report, contains('## PDF page-image coverage'));
+      expect(report, contains('## Phạm vi ảnh trang PDF'));
       expect(report, contains('| 2 | 1 | 1 | 1 | 0 |'));
       expect(report, contains('reason=no-diagram-intent=1'));
     },
@@ -1145,9 +1148,10 @@ void main() {
         everyElement(UnitStatus.pending),
       );
       // The exported report states the run returned nothing, in plain words.
+      // Default report language is Vietnamese.
       final markdown = vm.exportMarkdown();
-      expect(markdown, contains('The last review run failed'));
-      expect(markdown, contains('only 0 selected unit(s) returned results'));
+      expect(markdown, contains('Lượt chấm gần nhất'));
+      expect(markdown, contains('chỉ 0 mục đã chọn trả về kết quả'));
     },
   );
 
@@ -1407,7 +1411,7 @@ void main() {
         state.referenceFindings
             .where((f) => f.check == CheckId.duplicateIds)
             .single
-            .message,
+            .messageEn,
         'kept family must survive re-audit',
       );
       expect(state.toast, contains('Vision audit: 1 page(s)'));
@@ -1476,7 +1480,7 @@ void main() {
             .where((f) => f.check == CheckId.diagramAudit)
             .toList();
         expect(diagram, hasLength(1));
-        expect(diagram.single.message, contains('Page 1'));
+        expect(diagram.single.messageEn, contains('Page 1'));
       },
     );
 

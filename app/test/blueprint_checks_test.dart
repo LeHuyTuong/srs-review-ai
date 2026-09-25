@@ -158,8 +158,8 @@ void main() {
         expect(finding.severity, Severity.medium);
         expect(finding.passed, isFalse);
         expect(finding.actual, 2);
-        expect(finding.message, contains('Table 22'));
-        expect(finding.message, contains('Table 23'));
+        expect(finding.messageVi, contains('Table 22'));
+        expect(finding.messageVi, contains('Table 23'));
         expect(finding.subject, 'kick a student out of group');
       },
     );
@@ -181,7 +181,7 @@ void main() {
 
       expect(findings, hasLength(1));
       expect(findings.single.actual, 3);
-      expect(findings.single.message, contains('Table 43'));
+      expect(findings.single.messageVi, contains('Table 43'));
     });
 
     test('distinct captions are not duplicates', () {
@@ -232,7 +232,7 @@ void main() {
       expect(findings, hasLength(1));
       expect(findings.single.check, CheckId.numberingGap);
       expect(findings.single.severity, Severity.low);
-      expect(findings.single.message, contains('Figure 40'));
+      expect(findings.single.messageVi, contains('Figure 40'));
     });
 
     test('the same jump across two sections is not a gap', () {
@@ -543,7 +543,7 @@ void main() {
 
       expect(findings, hasLength(1));
       expect(findings.single.check, CheckId.captionPageMismatch);
-      expect(findings.single.message, contains('trang 25'));
+      expect(findings.single.messageVi, contains('trang 25'));
     });
 
     test('an untrusted page mapping is not blamed on the document', () {
@@ -588,16 +588,16 @@ void main() {
       expect(finding.passed, isFalse);
       expect(finding.actual, 190);
       expect(finding.subject, 'Table 9');
-      expect(finding.message, contains('trang 25'));
-      expect(finding.message, contains('trang 191'));
-      expect(finding.message, contains('+166'));
+      expect(finding.messageVi, contains('trang 25'));
+      expect(finding.messageVi, contains('trang 191'));
+      expect(finding.messageVi, contains('+166'));
       expect(
-        finding.message,
+        finding.messageVi,
         contains('"Software Requirement Specification"'),
         reason: 'the chapter the index implied',
       );
       expect(
-        finding.message,
+        finding.messageVi,
         contains('"System Implementation & Test"'),
         reason: 'the chapter the caption really sits in',
       );
@@ -618,7 +618,7 @@ void main() {
       final findings = checks.tablePositionDrift(blueprint);
 
       expect(findings, hasLength(1));
-      expect(findings.single.message, isNot(contains('thay vì chương')));
+      expect(findings.single.messageVi, isNot(contains('thay vì chương')));
     });
 
     test('a moved artifact is not also blamed as a stale index', () {

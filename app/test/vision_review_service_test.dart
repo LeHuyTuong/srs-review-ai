@@ -428,7 +428,7 @@ void main() {
         final row = (await svc.audit(doc)).findings.single;
         expect(row.passed, isTrue);
         expect(row.severity, Severity.low);
-        expect(row.message, contains('2 element(s)'));
+        expect(row.messageEn, contains('2 element(s)'));
       },
     );
 
@@ -596,7 +596,10 @@ void main() {
         );
         final outcome = await svc.audit(doc);
         expect(outcome.findings.single.subject, startsWith('DOC-'));
-        expect(outcome.findings.single.message, contains('ten bang trung lap'));
+        expect(
+          outcome.findings.single.messageEn,
+          contains('ten bang trung lap'),
+        );
       },
     );
 
@@ -624,7 +627,7 @@ void main() {
       );
       final outcome = await svc.audit(doc);
       expect(
-        outcome.findings.single.message,
+        outcome.findings.single.messageEn,
         contains('no drawn diagram found on this page'),
       );
     });

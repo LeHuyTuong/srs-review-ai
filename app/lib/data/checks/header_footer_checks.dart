@@ -114,11 +114,16 @@ class HeaderFooterChecks {
           // the committee's first read of the whole document.
           severity: Severity.high,
           subject: 'title',
-          message:
+          messageEn:
               'The cover page declares no project-title label ("Project '
               'name:", "Đề tài:", …) on the first pages. Heuristic over '
               'extracted text: a cover that prints the title WITHOUT a label '
               'is reported as missing — open the file and check visually.',
+          messageVi:
+              'Trang bìa không khai nhãn tên đề tài ("Project name:", '
+              '"Đề tài:", …) trong các trang đầu. Heuristic trên text trích '
+              'xuất: bìa in tên đề tài KHÔNG kèm nhãn vẫn bị báo là thiếu — '
+              'hãy mở file và kiểm tra bằng mắt.',
         ),
       if (!_supervisorLabel.hasMatch(folded))
         const DeterministicFinding(
@@ -126,11 +131,16 @@ class HeaderFooterChecks {
           passed: false,
           severity: Severity.medium,
           subject: 'supervisor',
-          message:
+          messageEn:
               'The cover page declares no supervisor label ("Supervisor:", '
               '"Giảng viên hướng dẫn:", "GVHD", …) on the first pages. '
               'Heuristic over extracted text — verify visually before '
               'editing.',
+          messageVi:
+              'Trang bìa không khai nhãn giảng viên hướng dẫn ("Supervisor:", '
+              '"Giảng viên hướng dẫn:", "GVHD", …) trong các trang đầu. '
+              'Heuristic trên text trích xuất — kiểm tra bằng mắt trước khi '
+              'sửa.',
         ),
       if (!_membersLabel.hasMatch(folded))
         const DeterministicFinding(
@@ -138,10 +148,15 @@ class HeaderFooterChecks {
           passed: false,
           severity: Severity.low,
           subject: 'members',
-          message:
+          messageEn:
               'The cover page names no group or member list ("Group …", '
               '"Thành viên", a members table) on the first pages. Heuristic '
               'over extracted text — verify visually before editing.',
+          messageVi:
+              'Trang bìa không nêu tên nhóm hoặc danh sách thành viên '
+              '("Group …", "Thành viên", bảng thành viên) trong các trang '
+              'đầu. Heuristic trên text trích xuất — kiểm tra bằng mắt trước '
+              'khi sửa.',
         ),
     ];
   }
@@ -246,7 +261,17 @@ class HeaderFooterChecks {
               // are the known false positive, so the finding must never
               // read as a verdict.
               severity: Severity.low,
-              message:
+              messageEn:
+                  'The line ${slot.key} changes content between pages: '
+                  '"${variants[a].value.original}" '
+                  '(${_pagesLabel(variants[a].value.pages)}) and '
+                  '"${variants[b].value.original}" '
+                  '(${_pagesLabel(variants[b].value.pages)}) — differing in '
+                  '"$differingWord", not page numbering. A sign that two '
+                  'document versions were merged (a stale project/group name '
+                  'survives). Heuristic over extracted text — open the file '
+                  'and check visually before editing.',
+              messageVi:
                   'Dòng ${slot.key} đổi nội dung giữa các trang: '
                   '"${variants[a].value.original}" '
                   '(${_pagesLabel(variants[a].value.pages)}) và '

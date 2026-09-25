@@ -295,7 +295,7 @@ void main() {
         result: null,
         units: const [],
         syllabusFindings: [
-          DeterministicFinding(
+          DeterministicFinding.both(
             check: CheckId.ucCount,
             passed: false,
             severity: Severity.high,
@@ -303,7 +303,7 @@ void main() {
           ),
         ],
         referenceFindings: [
-          DeterministicFinding(
+          DeterministicFinding.both(
             check: CheckId.missingPostcondition,
             passed: false,
             severity: Severity.high,

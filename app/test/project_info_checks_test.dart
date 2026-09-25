@@ -82,10 +82,10 @@ void main() {
       // The message must carry BOTH sides of the comparison so the reader
       // can act on it without re-opening the form.
       expect(
-        findings.single.message,
+        findings.single.messageVi,
         contains('Quantum Flux Capacitor Examulator'),
       );
-      expect(findings.single.message, contains('0/'));
+      expect(findings.single.messageVi, contains('0/'));
     });
 
     test('supervisor missing, title matches → MEDIUM, one finding', () {
@@ -96,7 +96,7 @@ void main() {
       expect(findings, hasLength(1));
       expect(findings.single.severity, Severity.medium);
       expect(findings.single.subject, 'supervisor');
-      expect(findings.single.message, contains('Ghost Advisor'));
+      expect(findings.single.messageVi, contains('Ghost Advisor'));
     });
 
     test('both wrong → exactly two findings, one per field', () {
@@ -161,10 +161,10 @@ void main() {
       expect(findings.single.subject, 'A->B');
       // Both parts named, with their printed spans — the whole claim is in
       // the message, like every other deterministic finding.
-      expect(findings.single.message, contains('"A Chapter A"'));
-      expect(findings.single.message, contains('"B Chapter B"'));
-      expect(findings.single.message, contains('15'));
-      expect(findings.single.message, contains('10'));
+      expect(findings.single.messageVi, contains('"A Chapter A"'));
+      expect(findings.single.messageVi, contains('"B Chapter B"'));
+      expect(findings.single.messageVi, contains('15'));
+      expect(findings.single.messageVi, contains('10'));
     });
 
     test('every overlapping pair in a chain is reported', () {

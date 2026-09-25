@@ -107,7 +107,7 @@ void main() {
       expect(finding.actual, 7);
       // The message must point at the count so the reader does not have to
       // recount by hand — a one-line summary that says "7 requirements".
-      expect(finding.message, contains('7'));
+      expect(finding.messageEn, contains('7'));
     });
 
     test('multiple duplicate ids are reported, sorted by id', () {
@@ -162,7 +162,7 @@ Postcondition: the PDF sits in the user's download folder.'''),
       expect(f.check, CheckId.missingPostcondition);
       expect(f.severity, Severity.high);
       expect(f.subject, 'UC-02');
-      expect(f.message, contains('UC-02'));
+      expect(f.messageEn, contains('UC-02'));
     });
 
     test('hyphen and "postconditions" forms both accepted', () {

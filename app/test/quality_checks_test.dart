@@ -42,8 +42,8 @@ void main() {
       // because of the word boundary.
       expect(findings, hasLength(1));
       expect(findings.single.subject, 'FR-01');
-      expect(findings.single.message, contains('"user-friendly"'));
-      expect(findings.single.message, contains('"fast"'));
+      expect(findings.single.messageEn, contains('"user-friendly"'));
+      expect(findings.single.messageEn, contains('"fast"'));
       expect(findings.single.severity, Severity.low);
     });
 
@@ -60,8 +60,8 @@ void main() {
           )
           .where((f) => f.check == CheckId.ambiguousWording);
       expect(findings, hasLength(1));
-      expect(findings.single.message, contains('"nhanh chóng"'));
-      expect(findings.single.message, contains('"phù hợp"'));
+      expect(findings.single.messageEn, contains('"nhanh chóng"'));
+      expect(findings.single.messageEn, contains('"phù hợp"'));
     });
 
     test('"v.v." is caught, "vv" without dots is not (conservative)', () {
@@ -72,7 +72,7 @@ void main() {
             ]),
           )
           .where((f) => f.check == CheckId.ambiguousWording);
-      expect(findings.single.message, contains('"v.v."'));
+      expect(findings.single.messageEn, contains('"v.v."'));
     });
 
     test('NFD-decomposed Vietnamese is caught too (the real OTES form)', () {
@@ -89,7 +89,7 @@ void main() {
           )
           .where((f) => f.check == CheckId.ambiguousWording);
       expect(findings, hasLength(1));
-      expect(findings.single.message, contains('"nhanh ch\u00F3ng"'));
+      expect(findings.single.messageEn, contains('"nhanh ch\u00F3ng"'));
     });
 
     test('clean document yields one passing row, not silence', () {
@@ -149,7 +149,7 @@ void main() {
           .toList();
       expect(rows, hasLength(1));
       expect(rows.single.passed, isFalse);
-      expect(rows.single.message, contains('criterion 7'));
+      expect(rows.single.messageEn, contains('criterion 7'));
     });
 
     test('passes when any row names a priority field', () {
@@ -234,7 +234,7 @@ void main() {
       ]).single;
 
       expect(finding.passed, isFalse);
-      expect(finding.message, contains('not the condition'));
+      expect(finding.messageEn, contains('not the condition'));
     });
 
     // The trap a plain digit scan falls into: standards references and

@@ -22,14 +22,13 @@ import '../../../core/widgets/full_screen_surface.dart';
 import '../../../data/checks/rubric_config.dart';
 import '../../../data/models/deterministic_finding.dart';
 import '../../../data/models/project_info.dart';
+import '../../../data/models/report_language.dart';
 import '../../../data/models/review_models.dart' show Verification;
 import '../../../data/models/review_progress.dart';
 import '../models/ask_document.dart';
 import '../models/demo_units.dart';
 import '../models/workspace_unit.dart' show UnitKind;
 import '../view_model/workspace_view_model.dart';
-import 'criteria_manager.dart';
-import 'rubric_editor.dart';
 import 'shortcuts_modal.dart';
 import 'workspace_widgets.dart';
 
@@ -455,6 +454,48 @@ Future<void> showExportModal(BuildContext context, WidgetRef ref) => _show(
                 '${state.result?.findings.length ?? 0} lỗi. '
                 'Báo cáo được tạo trên thiết bị này và chỉ được gửi đi '
                 'khi bạn chọn nơi lưu hoặc chia sẻ.',
+          ),
+          const SizedBox(height: AppSpacing.md),
+          // Report language (2026-09-25). One switch, above the preview and the
+          // four save buttons, because all of them read the same choice: a
+          // report that is half English and half Vietnamese is what this
+          // replaced, and per-button languages would recreate it one export at
+          // a time.
+          Text(
+            'Ngôn ngữ báo cáo',
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: colors.ink,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Row(
+            children: [
+              for (final option in ReportLanguage.values) ...[
+                Expanded(
+                  child: option == state.reportLanguage
+                      ? WButton.primary(
+                          label: option.label,
+                          expanded: true,
+                          onPressed: () => viewModel.setReportLanguage(option),
+                        )
+                      : WButton.secondary(
+                          label: option.label,
+                          expanded: true,
+                          onPressed: () => viewModel.setReportLanguage(option),
+                        ),
+                ),
+                if (option != ReportLanguage.values.last)
+                  const SizedBox(width: AppSpacing.sm),
+              ],
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'Cả bốn định dạng (Markdown, JSON, HTML, Word) dùng cùng ngôn ngữ '
+            'này. Trích dẫn từ tài liệu (bằng chứng) và câu gợi ý do AI viết '
+            'giữ nguyên ngôn ngữ gốc.',
+            style: theme.textTheme.labelSmall?.copyWith(color: colors.muted),
           ),
           const SizedBox(height: AppSpacing.md),
           // Vision audit lives HERE, beside the report it feeds: rows land
@@ -1112,68 +1153,15 @@ Future<void> showHelpModal(BuildContext context, WidgetRef ref) => _show(
   ),
 );
 
-Future<void> showRubricModal(BuildContext context, WidgetRef ref) => _show(
-  context: context,
-  builder: (_) => Consumer(
-    builder: (context, ref, _) {
-      final rubric = ref.watch(rubricProvider).value;
-      final version = rubric?.version ?? RubricConfig.fallback.version;
-      return _ModalScaffold(
-        icon: Icons.menu_book_outlined,
-        title: 'Tiêu chí đánh giá và giới hạn',
-        description:
-            'SEP490 · $version — bộ tiêu chí dùng để kiểm tra tài liệu.',
-        children: [
-          _settingRow(
-            context,
-            'F7 · Số lượng Use Case tối thiểu',
-            rubric == null
-                ? 'Ngưỡng tham khảo: tối thiểu 20 Use Case.'
-                : 'Ngưỡng tham khảo: tối thiểu ${rubric.ucCountMin} Use Case, không giới hạn tối đa. Mốc hoàn thành 75% cần danh sách khai báo đã xác minh và đánh giá của người hướng dẫn.',
-          ),
-          _settingRow(
-            context,
-            'F8 · Kiểm tra ngôn ngữ tiếng Anh',
-            'Phát hiện dấu hiệu ngoài tiếng Anh chỉ là kiểm tra sơ bộ ngoại tuyến. Người hướng dẫn cần xác nhận yêu cầu ngôn ngữ trong Syllabus.',
-          ),
-          _settingRow(
-            context,
-            'F9 · Số bước xử lý',
-            rubric == null
-                ? 'Ngưỡng tham khảo: 3–7 bước đánh số cho mỗi Use Case.'
-                : 'Ngưỡng tham khảo: ${rubric.ucMinTransactions}–${rubric.ucMaxTransactions} bước xử lý cho mỗi Use Case. Luồng thay thế có thể ảnh hưởng cách đếm; cần đối chiếu thang điểm của người hướng dẫn.',
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          // 2026-09-25: the AI half of the checklist became data on the proxy.
-          // This button is the point of that change — the rows behind it can be
-          // added, edited, switched off and deleted without a build.
-          WButton.primary(
-            label: 'Quản lý tiêu chí AI (thêm / sửa / tắt)',
-            icon: Icons.tune,
-            expanded: true,
-            onPressed: () => showCriteriaManagerModal(context, ref),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          // And the syllabus thresholds / grading weights became editable in the
-          // same way. The numbers above are what the proxy is serving; this is
-          // where they come from.
-          WButton.secondary(
-            label: 'Sửa chuẩn syllabus & thang điểm',
-            icon: Icons.calculate_outlined,
-            expanded: true,
-            onPressed: () => showRubricEditor(context, ref),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          const WInfoNote(
-            icon: Icons.arrow_outward,
-            text:
-                'Phiên bản này chưa hỗ trợ OCR, tiếp tục lượt chấm bị gián đoạn hoặc đo độ chính xác/độ bao phủ. Kiểm tra hình ảnh chỉ áp dụng cho các trang PDF được chọn, chưa bao quát toàn bộ sơ đồ.',
-          ),
-        ],
-      );
-    },
-  ),
-);
+// ---------------------------------------------------------------------------
+// 2026-09-25 — REMOVED: showRubricModal. It had no caller anywhere in the repo
+// (verified by grep over lib + test), which is why the rubric and criteria
+// editors were unreachable: the only thing advertising them was a modal nothing
+// opened. Both now live in the syllabus destination's own PageHeading, next to
+// the numbers they edit. The F7/F8/F9 rows it repeated are already on that
+// page, and the "no OCR" note is the 'Chưa hỗ trợ' card there too — deleting it
+// removes a second, drifting copy of both, not information.
+// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // document info
@@ -1636,7 +1624,7 @@ class _SyllabusCheckDetail extends StatelessWidget {
       title: finding.subject == null
           ? workspaceLabel(finding.check.label)
           : '${workspaceLabel(finding.check.label)} · ${finding.subject}',
-      description: workspaceMessage(finding.message),
+      description: finding.messageFor(ReportLanguage.vietnamese),
       children: [
         Wrap(
           spacing: AppSpacing.sm,

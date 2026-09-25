@@ -12,6 +12,8 @@ import '../../../core/theme/workspace_colors.dart';
 import '../../../core/widgets/chrome_insets.dart';
 import '../../../data/checks/criteria_catalog.dart';
 import '../../../data/checks/rubric_config.dart';
+import 'criteria_manager.dart';
+import 'rubric_editor.dart';
 import 'workspace_widgets.dart';
 
 class SyllabusRubricView extends ConsumerWidget {
@@ -78,6 +80,22 @@ class SyllabusRubricView extends ConsumerWidget {
                 title: 'Chuẩn Syllabus & Thang điểm',
                 subtitle:
                     'Nắm rõ tiêu chí và kiểm tra các yêu cầu cơ bản ngay cả khi ngoại tuyến.',
+                // 2026-09-25: both editing surfaces used to be reachable only
+                // through a modal nobody could find. They belong to THIS
+                // destination — the page that already shows what the numbers
+                // are — so the buttons live in its heading instead.
+                actions: [
+                  WButton.secondary(
+                    label: 'Sửa thang điểm',
+                    icon: Icons.calculate_outlined,
+                    onPressed: () => showRubricEditor(context, ref),
+                  ),
+                  WButton.primary(
+                    label: 'Quản lý tiêu chí AI',
+                    icon: Icons.tune,
+                    onPressed: () => showCriteriaManagerModal(context, ref),
+                  ),
+                ],
               ),
               const SizedBox(height: AppSpacing.xl),
               WPanel(
@@ -177,16 +195,22 @@ class SyllabusRubricView extends ConsumerWidget {
                     ),
                     for (final family in CriterionFamily.values) ...[
                       const SizedBox(height: AppSpacing.lg),
-                      Row(
+                      // Title above its cost badge, not beside it: the vision
+                      // family's cost is 43 characters ('AI · tốn lượt gọi, chạy
+                      // khi bạn bấm audit'), and a non-wrapping Text inside a
+                      // fixed Container got unbounded width from this Row — it
+                      // overflowed a 390px card by 162px. Stacked, the badge
+                      // has the full width and may wrap.
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(
-                              family.title,
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                color: colors.ink,
-                              ),
+                          Text(
+                            family.title,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: colors.ink,
                             ),
                           ),
+                          const SizedBox(height: AppSpacing.xs),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.sm,

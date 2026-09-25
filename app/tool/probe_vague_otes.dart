@@ -128,7 +128,7 @@ void main() {
       }
     }
     for (final f in vague.take(5)) {
-      print('VAGUE|${f.subject}|${f.message}');
+      print('VAGUE|${f.subject}|${f.messageEn}');
     }
   });
 }

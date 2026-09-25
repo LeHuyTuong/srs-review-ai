@@ -1,17 +1,23 @@
-/// Source sheet — the brief's source drawer, rebuilt as a bottom sheet on
-/// phones and a side-anchored sheet on wide windows. Shows the unit's
-/// metadata, its classification controls and the original source text with
-/// copy-to-clipboard.
+/// Source sheet — the unit's metadata, its classification controls and the
+/// original source text with copy-to-clipboard.
+///
+/// Full-screen since 2026-09-25, like every other modal in the app. This was
+/// the last `DraggableScrollableSheet` holdout, and that is exactly why it was
+/// the one surface that still read as "một mẩu giữa màn hình": a 0.82 height
+/// ratio caps the sheet below the fold on the phone it was sized for, so the
+/// source text a reviewer opened it to read was the part pushed off the bottom.
+/// A drag handle buys nothing once the surface can BE the screen, and the
+/// height it frees goes to the text, the finding list and the page preview.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/layout/app_breakpoint.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
+import '../../../core/widgets/full_screen_surface.dart';
 import '../../../data/checks/rubric_config.dart';
 import '../../../data/models/review_models.dart' show Severity;
 import '../models/workspace_findings.dart';
@@ -20,41 +26,23 @@ import '../view_model/workspace_view_model.dart';
 import 'workspace_modals.dart' show showDocumentPreviewModal;
 import 'workspace_widgets.dart';
 
+/// `ref` stays in the signature because eight call sites pass it and none of
+/// them should learn about the surface to get a full-screen modal.
 Future<void> showSourceSheet(
   BuildContext context,
   WidgetRef ref,
   WorkspaceUnit unit, {
   FindingRow? finding,
-}) {
-  final width = MediaQuery.sizeOf(context).width;
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    showDragHandle: false,
-    builder: (_) => DraggableScrollableSheet(
-      initialChildSize: width >= AppBreakpoints.compactMaxWidth ? 0.9 : 0.82,
-      maxChildSize: 0.95,
-      minChildSize: 0.5,
-      builder: (sheetContext, scrollController) => _SourceSheetBody(
-        unit: unit,
-        finding: finding,
-        scrollController: scrollController,
-      ),
-    ),
-  );
-}
+}) => showFullScreenSurface<void>(
+  context: context,
+  builder: (_) => _SourceSheetBody(unit: unit, finding: finding),
+);
 
 class _SourceSheetBody extends ConsumerWidget {
-  const _SourceSheetBody({
-    required this.unit,
-    required this.finding,
-    required this.scrollController,
-  });
+  const _SourceSheetBody({required this.unit, required this.finding});
 
   final WorkspaceUnit unit;
   final FindingRow? finding;
-  final ScrollController scrollController;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -93,43 +81,32 @@ class _SourceSheetBody extends ConsumerWidget {
         current.title.toLowerCase().contains('diagram') ||
         current.kind == UnitKind.section;
 
-    return WPanel(
-      padding: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: colors.border)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.description_outlined, size: 17, color: colors.muted),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    'NGỮ CẢNH TÀI LIỆU GỐC',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colors.muted,
-                      letterSpacing: 1.4,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Đóng tài liệu gốc',
-                  icon: const Icon(Icons.close),
-                  color: colors.muted,
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
+    return WFullScreenSurface(
+      icon: Icons.description_outlined,
+      title: 'Ngữ cảnh tài liệu gốc',
+      description:
+          'Toàn văn yêu cầu trong tài liệu, kèm phân loại và kết quả chấm của lượt gần nhất.',
+      // The body owns everything under the header, so a long requirement reads
+      // down the whole window instead of scrolling inside a sheet capped at
+      // 82% of it. This is the `fillBody` opt-out the document preview uses for
+      // the same reason: the surface is for reading a page, not a paragraph.
+      fillBody: true,
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.xl,
+          AppSpacing.lg,
+          AppSpacing.xl,
+          AppSpacing.xl,
+        ),
+        // A prose column stops at a readable measure even when the window is
+        // 1900px wide. The HEIGHT is the part the sheet was starving for, and
+        // that now comes from the surface rather than from this cap.
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 980),
             child: ListView(
-              controller: scrollController,
-              padding: const EdgeInsets.all(AppSpacing.xl),
+              padding: EdgeInsets.zero,
               children: [
                 Wrap(
                   spacing: AppSpacing.sm,
@@ -293,6 +270,14 @@ class _SourceSheetBody extends ConsumerWidget {
                                       label: workspaceLabel(row.typeLabel),
                                       tint: WBadgeTint.neutral,
                                     ),
+                                    // Which rubric row this finding answers — an
+                                    // id from the editable criteria list, so a
+                                    // criterion the reviewer added is traceable
+                                    // right where they read the finding.
+                                    if (row.issue.criterionId
+                                        case final criterionId?)
+                                      if (criterionId.isNotEmpty)
+                                        WBadge(label: 'Tiêu chí: $criterionId'),
                                     if (state.statusOf(row.id) !=
                                         FindingStatus.open)
                                       WBadge(
@@ -456,7 +441,7 @@ class _SourceSheetBody extends ConsumerWidget {
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -621,7 +606,11 @@ class _SourceSheetPagePreviewState
               ClipRRect(
                 borderRadius: AppRadius.boxSm,
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 280),
+                  // 280 was a sheet-sized cap. The surface is the window now, so
+                  // the page preview gets a window-sized one — an sds-reviewer
+                  // judgment on a connector label is not made on a thumbnail.
+                  // "Phóng to" is still there for the full page.
+                  constraints: const BoxConstraints(maxHeight: 420),
                   child: Center(
                     child: Image.memory(bytes, fit: BoxFit.contain),
                   ),

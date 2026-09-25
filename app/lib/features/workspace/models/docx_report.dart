@@ -17,12 +17,13 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 
-import '../../../data/checks/criteria_catalog.dart';
 import '../../../data/models/deterministic_finding.dart';
 import '../../../data/models/human_issue.dart';
+import '../../../data/models/report_language.dart';
 import '../../../data/models/review_models.dart';
 import '../../../data/models/review_progress.dart';
 import 'report_export.dart';
+import 'report_strings.dart';
 import 'section_scores.dart';
 import 'workspace_findings.dart';
 import 'workspace_unit.dart';
@@ -48,7 +49,13 @@ Uint8List buildDocxReport({
   PageImageCoverage? imageCoverage,
   Map<String, FindingStatus> findingStatus = const {},
   List<HumanIssue> humanIssues = const [],
+
+  /// The language the document is written in. See [buildMarkdownReport] for why
+  /// the builder default stays English while the app passes the user's choice
+  /// explicitly.
+  ReportLanguage language = ReportLanguage.english,
 }) {
+  final s = ReportStrings(language);
   final reportOffline = result?.mock ?? offline;
   final findings = result?.findings ?? const <FindingRow>[];
   final scores = result?.scores ?? const <String, int>{};
@@ -65,65 +72,115 @@ Uint8List buildDocxReport({
   final body = <String>[];
 
   // ---------------------------------------------------------------- title
-  body.add(_p('SRS review report', style: 'Title'));
+  body.add(
+    _p(s.pick('SRS review report', 'Báo cáo đánh giá SRS'), style: 'Title'),
+  );
   body.add(
     _p(
-      '${fileName.trim().isEmpty ? 'Untitled document' : fileName} · '
-      'generated ${_stamp(DateTime.now().toUtc())}',
+      '${fileName.trim().isEmpty ? s.pick('Untitled document', 'Tài liệu chưa đặt tên') : fileName} · '
+      '${s.pick('generated', 'tạo lúc')} ${_stamp(DateTime.now().toUtc())}',
       style: 'Subtitle',
     ),
   );
   body.add(
     _p(
-      'Rubric: $kRubricLabel · mode: '
-      '${reportOffline ? 'offline mock (no model calls)' : 'online proxy'}',
+      '${s.pick('Rubric', 'Thang điểm')}: '
+      '${rubricVersionLabel(result?.rubricVersion ?? kRubricLabel, s)} · '
+      '${s.pick('language', 'ngôn ngữ')}: ${language.label} · '
+      '${s.pick('mode', 'chế độ')}: '
+      '${s.mode(reportOffline, short: true)}',
       style: 'Subtitle',
     ),
   );
+  body.add(_p(s.languageNote, style: 'Subtitle'));
   if (imageCoverage?.rendererUnavailable ?? false) {
     // The same sentence the run summary and the Findings tab show. Without it
     // the report claims diagram coverage the run never had.
     body.add(
       _p(
-        'No PDF renderer on this platform — the diagrams were reviewed from '
-        'text only.',
+        s.pick(
+          'No PDF renderer on this platform — the diagrams were reviewed from text only.',
+          'Nền tảng này không có bộ render PDF — sơ đồ chỉ được đánh giá từ văn bản.',
+        ),
         bold: true,
       ),
     );
   }
 
   // -------------------------------------------------------- run summary
-  body.add(_p('1. Run summary', style: 'Heading1'));
+  body.add(
+    _p(s.pick('1. Run summary', '1. Tóm tắt lượt chấm'), style: 'Heading1'),
+  );
   body.add(
     _table(
       [
-        ['Metric', 'Value'],
-        ['File', fileName.trim().isEmpty ? 'Untitled document' : fileName],
-        ['Mode', reportOffline ? 'Offline mock' : 'Online proxy'],
-        ['Model', result?.model ?? '—'],
-        ['Rubric version', result?.rubricVersion ?? '—'],
-        ['Run outcome', result?.outcome ?? '—'],
-        ['Requirements reviewed', '${result?.reviewed ?? 0}'],
-        ['Requirements skipped', '${result?.skipped ?? 0}'],
-        ['Requirements failed', '${result?.failed ?? 0}'],
-        ['Average score', average],
+        [s.pick('Metric', 'Chỉ số'), s.pick('Value', 'Giá trị')],
         [
-          'Findings',
-          '${findings.length} (high $high · medium $medium · low $low)',
+          s.pick('File', 'Tệp'),
+          fileName.trim().isEmpty
+              ? s.pick('Untitled document', 'Tài liệu chưa đặt tên')
+              : fileName,
         ],
-        ['Quotes dropped (not verbatim)', '${result?.droppedIssueCount ?? 0}'],
         [
-          'Page images sent',
+          s.pick('Mode', 'Chế độ'),
+          reportOffline
+              ? s.pick('Offline mock', 'Mô phỏng ngoại tuyến')
+              : s.pick('Online proxy', 'Trực tuyến qua proxy'),
+        ],
+        [s.pick('Model', 'Model'), result?.model ?? '—'],
+        [
+          s.pick('Rubric version', 'Phiên bản thang điểm'),
+          result == null ? '—' : rubricVersionLabel(result.rubricVersion, s),
+        ],
+        [
+          s.pick('Run outcome', 'Kết quả lượt chấm'),
+          result?.outcome == null ? '—' : s.runOutcome(result!.outcome),
+        ],
+        [
+          s.pick('Requirements reviewed', 'Số yêu cầu đã chấm'),
+          '${result?.reviewed ?? 0}',
+        ],
+        [
+          s.pick('Requirements skipped', 'Số yêu cầu bỏ qua'),
+          '${result?.skipped ?? 0}',
+        ],
+        [
+          s.pick('Requirements failed', 'Số yêu cầu lỗi'),
+          '${result?.failed ?? 0}',
+        ],
+        [s.pick('Average score', 'Điểm trung bình'), average],
+        [
+          s.pick('Findings', 'Lỗi phát hiện'),
+          '${findings.length} '
+              '(${s.severityLabel(Severity.high).toLowerCase()} $high · '
+              '${s.severityLabel(Severity.medium).toLowerCase()} $medium · '
+              '${s.severityLabel(Severity.low).toLowerCase()} $low)',
+        ],
+        [
+          s.pick(
+            'Quotes dropped (not verbatim)',
+            'Trích dẫn bị loại (không khớp nguyên văn)',
+          ),
+          '${result?.droppedIssueCount ?? 0}',
+        ],
+        [
+          s.pick('Page images sent', 'Ảnh trang đã gửi'),
           imageReviewAvailable && !reportOffline
-              ? '$effectiveReviewed requirement(s); $diagramPageCount diagram-like page(s) detected'
-              : 'none (text-only run)',
+              ? s.pick(
+                  '$effectiveReviewed requirement(s); $diagramPageCount diagram-like page(s) detected',
+                  '$effectiveReviewed yêu cầu; phát hiện $diagramPageCount trang trông như có sơ đồ',
+                )
+              : s.pick(
+                  'none (text-only run)',
+                  'không có (lượt chấm chỉ văn bản)',
+                ),
         ],
         [
-          'Tokens',
+          s.pick('Tokens', 'Token'),
           result == null
               ? '—'
-              : '${result.totalTokens} '
-                    '(prompt ${result.promptTokens} · completion ${result.completionTokens})',
+              : '${result.totalTokens} (prompt ${result.promptTokens} · '
+                    'completion ${result.completionTokens})',
         ],
       ],
       const [3000, 6638],
@@ -132,14 +189,32 @@ Uint8List buildDocxReport({
 
   // ------------------------------------------------------ section scores
   final sections = summarizeSections(units: units, result: result);
-  body.add(_p('2. Scores by document section', style: 'Heading1'));
+  body.add(
+    _p(
+      s.pick('2. Scores by document section', '2. Điểm theo mục tài liệu'),
+      style: 'Heading1',
+    ),
+  );
   if (sections.isEmpty) {
-    body.add(_p('No scored sections in this run.'));
+    body.add(
+      _p(
+        s.pick(
+          'No scored sections in this run.',
+          'Lượt chấm này không có mục nào được chấm điểm.',
+        ),
+      ),
+    );
   } else {
     body.add(
       _table(
         [
-          ['Section', 'Units', 'Average', 'Findings', 'High'],
+          [
+            s.pick('Section', 'Mục'),
+            s.pick('Units', 'Số mục'),
+            s.pick('Average', 'Trung bình'),
+            s.pick('Findings', 'Lỗi'),
+            s.pick('High', 'Nghiêm trọng'),
+          ],
           for (final s in sections)
             [
               s.section,
@@ -155,23 +230,43 @@ Uint8List buildDocxReport({
   }
 
   // --------------------------------------------------- model findings
-  body.add(_p('3. Findings from the review model', style: 'Heading1'));
+  body.add(
+    _p(
+      s.pick('3. Findings from the review model', '3. Lỗi do model phát hiện'),
+      style: 'Heading1',
+    ),
+  );
   if (findings.isEmpty) {
-    body.add(_p('The run produced no findings.'));
+    body.add(
+      _p(
+        s.pick(
+          'The run produced no findings.',
+          'Lượt chấm không phát hiện lỗi nào.',
+        ),
+      ),
+    );
   } else {
     for (final f in findings) {
       final status = findingStatus[f.id] ?? FindingStatus.open;
+      // The defect class is localized (it was printed as the raw enum name,
+      // which put an English token in a Vietnamese finding line) and the
+      // criterion the finding answers rides here too when the model named one.
       body.add(
         _p(
-          '${f.id} · ${f.severity.name} · ${f.typeLabel} · '
-          'quote ${f.issue.verification.name}',
+          '${f.id} · ${s.severityLabel(f.severity)} · '
+          '${s.issueTypeLabel(f.issue.type)} · '
+          '${s.pick('quote', 'trích dẫn')} '
+          '${s.verificationLabel(f.issue.verification)}',
           style: 'Heading3',
         ),
       );
       body.add(
         _p(
-          'Requirement ${f.requirementId} · page ${f.pageIndex + 1} · '
-          '${f.title} · triage: ${status.name}',
+          '${s.pick('Requirement', 'Yêu cầu')} ${f.requirementId} · '
+          '${s.pick('page', 'trang')} ${f.pageIndex + 1} · '
+          '${f.title} · ${s.pick('triage', 'phân loại')}: '
+          '${s.findingStatusLabel(status)}'
+          '${f.issue.criterionId == null || f.issue.criterionId!.isEmpty ? '' : ' · ${s.criterionRef(f.issue.criterionId!)}'}',
           style: 'Caption',
         ),
       );
@@ -179,52 +274,82 @@ Uint8List buildDocxReport({
         body.add(_p(f.quote, style: 'Quote'));
       } else {
         body.add(
-          _p('(the model returned no quote for this issue)', italic: true),
+          _p(
+            s.pick(
+              '(the model returned no quote for this issue)',
+              '(model không trả về trích dẫn cho lỗi này)',
+            ),
+            italic: true,
+          ),
         );
       }
       if (f.suggestion.trim().isNotEmpty) {
-        body.add(_p('How to fix: ${f.suggestion}'));
+        body.add(_p('${s.pick('How to fix', 'Cách sửa')}: ${f.suggestion}'));
       }
     }
   }
 
   // ------------------------------------------------ offline check layer
-  final whatFor = {for (final c in kCriteriaChecklist) c.check: c.what};
   // Not named `offline`: that is the bool parameter, and a local may not
   // shadow it — the collection below resolved to the bool and every
   // `.entries` in the loop became a getter on a bool.
   final offlineFamilies = <String, List<DeterministicFinding>>{
-    'Syllabus thresholds (F7–F9)': syllabusFindings,
-    'Consistency smells': referenceFindings,
-    'Document index and format': blueprintFindings,
+    s.pick('Syllabus thresholds (F7–F9)', 'Ngưỡng syllabus (F7–F9)'):
+        syllabusFindings,
+    s.pick('Consistency smells', 'Mùi nhất quán'): referenceFindings,
+    s.pick('Document index and format', 'Mục lục và định dạng'):
+        blueprintFindings,
   };
-  body.add(_p('4. Offline checks (no model calls)', style: 'Heading1'));
   body.add(
     _p(
-      'These rows come from the rule-based layer: zero tokens, and the same '
-      'evidence whether or not the network was reachable. "FAIL" is the row a '
-      'student has to act on; "PASS" is shown so an absent check cannot be '
-      'mistaken for a check that never ran.',
+      s.pick(
+        '4. Offline checks (no model calls)',
+        '4. Kiểm tra ngoại tuyến (không gọi model)',
+      ),
+      style: 'Heading1',
+    ),
+  );
+  body.add(
+    _p(
+      s.pick(
+        'These rows come from the rule-based layer: zero tokens, and the same evidence whether or not the network was reachable. "FAIL" is the row a student has to act on; "PASS" is shown so an absent check cannot be mistaken for a check that never ran.',
+        'Các dòng này đến từ tầng luật: không tốn token, và bằng chứng như nhau dù có mạng hay không. Dòng "KHÔNG ĐẠT" là việc sinh viên phải xử lý; dòng "ĐẠT" được in ra để một kiểm tra vắng mặt không bị tưởng nhầm là kiểm tra chưa từng chạy.',
+      ),
     ),
   );
   for (final entry in offlineFamilies.entries) {
     final rows = entry.value;
-    body.add(_p('${entry.key} — ${rows.length} row(s)', style: 'Heading2'));
+    body.add(
+      _p(
+        '${entry.key} — ${rows.length} ${s.pick('row(s)', 'dòng')}',
+        style: 'Heading2',
+      ),
+    );
     if (rows.isEmpty) {
-      body.add(_p('Not run for this document.'));
+      body.add(
+        _p(
+          s.pick('Not run for this document.', 'Không chạy cho tài liệu này.'),
+        ),
+      );
       continue;
     }
     body.add(
       _table(
         [
-          ['Criterion', 'Result', 'Severity', 'Subject', 'Detail'],
+          [
+            s.pick('Criterion', 'Tiêu chí'),
+            s.pick('Result', 'Kết quả'),
+            s.pick('Severity', 'Mức độ'),
+            s.pick('Subject', 'Đối tượng'),
+            s.pick('Detail', 'Chi tiết'),
+          ],
           for (final row in rows)
             [
-              whatFor[row.check] ?? row.check.wire,
-              row.passed ? 'PASS' : 'FAIL',
-              row.passed ? '—' : row.severity.name,
+              s.checkLabel(row.check),
+              row.passed ? s.pick('PASS', 'ĐẠT') : s.pick('FAIL', 'KHÔNG ĐẠT'),
+              row.passed ? '—' : s.severityLabel(row.severity),
               row.subject ?? '—',
-              _evidence(row),
+              _evidence(row, s),
             ],
         ],
         const [3000, 900, 1000, 1500, 3238],
@@ -233,17 +358,38 @@ Uint8List buildDocxReport({
   }
 
   // ------------------------------------------------ reviewer-authored
-  body.add(_p('5. Issues recorded by the reviewer', style: 'Heading1'));
+  body.add(
+    _p(
+      s.pick(
+        '5. Issues recorded by the reviewer',
+        '5. Lỗi do người review ghi',
+      ),
+      style: 'Heading1',
+    ),
+  );
   if (humanIssues.isEmpty) {
-    body.add(_p('No reviewer-issued issues.'));
+    body.add(
+      _p(
+        s.pick(
+          'No reviewer-issued issues.',
+          'Không có lỗi nào do người review ghi.',
+        ),
+      ),
+    );
   } else {
     body.add(
       _table(
         [
-          ['Severity', 'Section', 'Title', 'Detail', 'Recorded'],
+          [
+            s.pick('Severity', 'Mức độ'),
+            s.pick('Section', 'Vị trí'),
+            s.pick('Title', 'Tiêu đề'),
+            s.pick('Detail', 'Chi tiết'),
+            s.pick('Recorded', 'Thời điểm ghi'),
+          ],
           for (final issue in humanIssues)
             [
-              issue.severity.name,
+              s.severityLabel(issue.severity),
               issue.section ?? '—',
               issue.title,
               issue.detail.trim().isEmpty ? '—' : issue.detail,
@@ -256,28 +402,42 @@ Uint8List buildDocxReport({
   }
 
   // ------------------------------------------------------------ inventory
-  body.add(_p('6. Document inventory', style: 'Heading1'));
   body.add(
     _p(
-      'Every unit the parser produced, in document order — the scope this '
-      'report is about, including the units that were not reviewed.',
+      s.pick('6. Document inventory', '6. Danh mục tài liệu'),
+      style: 'Heading1',
+    ),
+  );
+  body.add(
+    _p(
+      s.pick(
+        'Every unit the parser produced, in document order — the scope this report is about, including the units that were not reviewed.',
+        'Mọi mục bộ tách tạo ra, theo thứ tự tài liệu — đúng phạm vi báo cáo này nói tới, kể cả những mục chưa được chấm.',
+      ),
     ),
   );
   if (units.isEmpty) {
-    body.add(_p('The inventory is empty.'));
+    body.add(_p(s.pick('The inventory is empty.', 'Danh mục trống.')));
   } else {
     body.add(
       _table(
         [
-          ['ID', 'Kind', 'Section', 'Page', 'Status', 'Selected'],
+          [
+            s.pick('ID', 'Mã'),
+            s.pick('Kind', 'Loại'),
+            s.pick('Section', 'Mục'),
+            s.pick('Page', 'Trang'),
+            s.pick('Status', 'Trạng thái'),
+            s.pick('Selected', 'Được chọn'),
+          ],
           for (final u in units)
             [
               u.id,
-              u.kind.label,
+              s.unitKindLabel(u.kind),
               u.section ?? '—',
               '${u.pageIndex + 1}',
-              u.status.name,
-              u.selected ? 'yes' : 'no',
+              s.unitStatusLabel(u.status.name),
+              s.yesNo(u.selected),
             ],
         ],
         const [1400, 1400, 2600, 700, 1500, 2038],
@@ -286,18 +446,34 @@ Uint8List buildDocxReport({
   }
 
   // ---------------------------------------------------------- limitations
-  body.add(_p('7. Limitations and evidence notes', style: 'Heading1'));
   body.add(
     _p(
-      'This section is not optional. A reader who only sees the score above '
-      'cannot tell which of these caveats applied to their run.',
+      s.pick(
+        '7. Limitations and evidence notes',
+        '7. Giới hạn và ghi chú bằng chứng',
+      ),
+      style: 'Heading1',
     ),
   );
-  for (final line in reportLimitations(offline: reportOffline)) {
+  body.add(
+    _p(
+      s.pick(
+        'This section is not optional. A reader who only sees the score above cannot tell which of these caveats applied to their run.',
+        'Mục này không được bỏ. Người chỉ đọc phần điểm ở trên không thể biết điều nào trong các lưu ý này áp dụng cho lượt chấm của mình.',
+      ),
+    ),
+  );
+  for (final line in reportLimitations(
+    offline: reportOffline,
+    language: language,
+  )) {
     body.add(_p('• $line', indentLeft: 360));
   }
 
-  return _package(body.join());
+  return _package(
+    body.join(),
+    s.pick('SRS review report', 'Báo cáo đánh giá SRS'),
+  );
 }
 
 /// `YYYY-MM-DD HH:mm` in UTC. The report is a record of a run, so it states the
@@ -311,15 +487,23 @@ String _stamp(DateTime utc) {
 
 /// The one cell that says *why* a check fired, numbers included: "actual 12" is
 /// the difference between a finding a student can act on and a slogan.
-String _evidence(DeterministicFinding row) {
-  final text = StringBuffer(row.message);
+String _evidence(DeterministicFinding row, ReportStrings s) {
+  final text = StringBuffer(row.messageFor(s.language));
   final numbers = <String>[];
-  if (row.actual != null) numbers.add('actual ${row.actual}');
-  if (row.expectedMin != null) numbers.add('min ${row.expectedMin}');
-  if (row.expectedMax != null) numbers.add('max ${row.expectedMax}');
+  if (row.actual != null) {
+    numbers.add('${s.pick('actual', 'thực tế')} ${row.actual}');
+  }
+  if (row.expectedMin != null) {
+    numbers.add('${s.pick('min', 'tối thiểu')} ${row.expectedMin}');
+  }
+  if (row.expectedMax != null) {
+    numbers.add('${s.pick('max', 'tối đa')} ${row.expectedMax}');
+  }
   if (numbers.isNotEmpty) text.write(' (${numbers.join(' · ')})');
   if (row.requiresVisionEvidence) {
-    text.write(' [needs diagram evidence]');
+    text.write(
+      ' [${s.pick('needs diagram evidence', 'cần bằng chứng sơ đồ')}]',
+    );
   }
   return text.toString();
 }
@@ -527,13 +711,17 @@ $_xmlHeader
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
 </Relationships>''';
 
-const String _coreProps =
+/// The document properties Word shows in its title bar and File → Info pane.
+/// They follow the report language: a Vietnamese .docx that introduces itself
+/// as "SRS review report" in the window title is the same half-and-half the
+/// rest of this file removes.
+String _coreProps(String title) =>
     '''
 $_xmlHeader
 <cp:coreProperties
   xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
   xmlns:dc="http://purl.org/dc/elements/1.1/">
-  <dc:title>SRS review report</dc:title>
+  <dc:title>$title</dc:title>
   <dc:creator>SRS Review AI</dc:creator>
   <cp:lastModifiedBy>SRS Review AI</cp:lastModifiedBy>
 </cp:coreProperties>''';
@@ -548,11 +736,11 @@ $_xmlHeader
 /// Zips the parts. Part ORDER matters to strict readers: `[Content_Types].xml`
 /// must be the first entry in an OPC package, which is why it is added first
 /// rather than alongside the rest.
-Uint8List _package(String body) {
+Uint8List _package(String body, String title) {
   final archive = Archive()
     ..addFile(ArchiveFile.string('[Content_Types].xml', _contentTypes))
     ..addFile(ArchiveFile.string('_rels/.rels', _rootRels))
-    ..addFile(ArchiveFile.string('docProps/core.xml', _coreProps))
+    ..addFile(ArchiveFile.string('docProps/core.xml', _coreProps(title)))
     ..addFile(ArchiveFile.string('docProps/app.xml', _appProps))
     ..addFile(
       ArchiveFile.string(

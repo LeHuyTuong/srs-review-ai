@@ -433,19 +433,30 @@ class VisionReviewService {
         ? ''
         : ' ${result.unreadable.length} item(s) unreadable at render '
               'resolution — tiny-text verdicts understate risk.';
+    final suffixVi = result.unreadable.isEmpty
+        ? ''
+        : ' ${result.unreadable.length} mục không đọc được ở độ phân giải '
+              'render — kết luận về chữ quá nhỏ sẽ đánh giá thấp rủi ro.';
     if (result.findings.isEmpty) {
       return DeterministicFinding(
         check: CheckId.diagramAudit,
         passed: true,
         severity: Severity.low,
         subject: subject,
-        message: sawDiagram
+        messageEn: sawDiagram
             ? 'Vision audit of page $page (${candidate.kind.wire}): no '
                   'notation issues found in ${result.elements.length} element(s), '
                   '${result.relations.length} relation(s).$suffix'
             : 'Vision audit of page $page (${candidate.kind.wire}): no '
                   'drawn diagram found on this page (0 elements, 0 relations) — '
                   'nothing to grade.$suffix',
+        messageVi: sawDiagram
+            ? 'Chấm ảnh trang $page (${candidate.kind.wire}): không thấy lỗi '
+                  'ký pháp trong ${result.elements.length} phần tử, '
+                  '${result.relations.length} quan hệ.$suffixVi'
+            : 'Chấm ảnh trang $page (${candidate.kind.wire}): không thấy sơ đồ '
+                  'được vẽ trên trang này (0 phần tử, 0 quan hệ) — không có gì '
+                  'để chấm.$suffixVi',
       );
     }
     final evidence = result.findings
@@ -455,14 +466,22 @@ class VisionReviewService {
     final more = result.findings.length > 4
         ? ' (+${result.findings.length - 4} more)'
         : '';
+    final moreVi = result.findings.length > 4
+        ? ' (+${result.findings.length - 4} mục nữa)'
+        : '';
     return DeterministicFinding(
       check: CheckId.diagramAudit,
       passed: false,
       severity: redCount > 0 ? Severity.high : Severity.medium,
       subject: subject,
-      message:
+      messageEn:
           'Page $page (${candidate.kind.wire}): '
           '${result.findings.length} issue(s) — $evidence$more.$suffix',
+      // `evidence` is the model's own reading of the diagram and stays as it
+      // came back; only the frame around it is translated.
+      messageVi:
+          'Trang $page (${candidate.kind.wire}): '
+          '${result.findings.length} lỗi — $evidence$moreVi.$suffixVi',
     );
   }
 

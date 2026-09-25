@@ -142,9 +142,16 @@ class QualityChecks {
           '$id uses unmeasurable wording: $hits. '
           'Replace with a number, threshold, or test step '
           '(srs-writer quality criteria 2+3).',
+      failVi: (id, hits) =>
+          '$id dùng câu chữ không đo được: $hits. '
+          'Hãy thay bằng con số, ngưỡng đo hoặc bước kiểm thử '
+          '(srs-writer tiêu chí 2+3).',
       pass:
           'No unmeasurable wording flagged by the conservative '
           'phrase scan ("all"/"some" deliberately not scanned).',
+      passVi:
+          'Không phát hiện câu chữ không đo được qua bộ lọc cụm từ '
+          'thận trọng (cố ý không quét "all"/"some").',
     ),
     ..._scan(
       document,
@@ -155,7 +162,12 @@ class QualityChecks {
           '$id still carries placeholder text: $hits. '
           'A submitted document must stand alone '
           '(srs-writer quality criterion 4, Complete).',
+      failVi: (id, hits) =>
+          '$id vẫn còn chỗ trống: $hits. '
+          'Tài liệu nộp phải đứng độc lập được '
+          '(srs-writer tiêu chí 4, Complete).',
       pass: 'No TBD/placeholder text found.',
+      passVi: 'Không tìm thấy TBD/chỗ trống.',
     ),
     ..._priority(document),
     ..._nfrUnquantified(document),
@@ -195,7 +207,7 @@ class QualityChecks {
           // a weak requirement, it is an absent one wearing a label.
           severity: ok ? Severity.low : Severity.high,
           subject: item.id,
-          message: ok
+          messageEn: ok
               ? '${item.id} states a figure and the condition it is measured '
                     'under.'
               : !hasNumber && !hasCondition
@@ -208,6 +220,18 @@ class QualityChecks {
               : '${item.id} gives a figure but not the condition it holds '
                     'under — under what load, at which percentile, on what '
                     'hardware? (rulebook 1.5 hard rule 6).',
+          messageVi: ok
+              ? '${item.id} có con số và điều kiện đo đi kèm.'
+              : !hasNumber && !hasCondition
+              ? '${item.id} không có con số đo được lẫn điều kiện đo. Người '
+                    'kiểm thử không thể biết yêu cầu này đạt hay không '
+                    '(rulebook 1.5 hard rule 6).'
+              : !hasNumber
+              ? '${item.id} có điều kiện đo nhưng không có con số để đo '
+                    '(rulebook 1.5 hard rule 6).'
+              : '${item.id} có con số nhưng thiếu điều kiện áp dụng — dưới tải '
+                    'bao nhiêu, ở percentile nào, trên cấu hình nào? '
+                    '(rulebook 1.5 hard rule 6).',
         ),
       );
     }
@@ -246,13 +270,20 @@ class QualityChecks {
         check: CheckId.missingPriority,
         passed: anyMentioned,
         severity: anyMentioned ? Severity.low : Severity.medium,
-        message: anyMentioned
+        messageEn: anyMentioned
             ? 'At least one requirement names a priority field '
                   '(srs-writer quality criterion 7, Prioritized).'
             : 'No requirement in this document names a priority '
                   '(priority / do uu tien / muc do uu tien). A reviewer '
                   'cannot sequence fixes without it '
                   '(srs-writer quality criterion 7, Prioritized).',
+        messageVi: anyMentioned
+            ? 'Có ít nhất một yêu cầu nêu trường độ ưu tiên '
+                  '(srs-writer tiêu chí 7, Prioritized).'
+            : 'Không yêu cầu nào trong tài liệu này nêu độ ưu tiên '
+                  '(priority / do uu tien / muc do uu tien). Người review '
+                  'không thể xếp thứ tự sửa lỗi nếu thiếu nó '
+                  '(srs-writer tiêu chí 7, Prioritized).',
       ),
     ];
   }
@@ -263,7 +294,9 @@ class QualityChecks {
     CheckId check,
     Severity severity, {
     required String Function(String id, String hits) fail,
+    required String Function(String id, String hits) failVi,
     required String pass,
+    required String passVi,
   }) {
     final findings = <DeterministicFinding>[];
     for (final item in document.requirements) {
@@ -282,7 +315,8 @@ class QualityChecks {
           check: check,
           passed: false,
           severity: severity,
-          message: fail(item.id, hits.map((h) => '"$h"').join(', ')),
+          messageEn: fail(item.id, hits.map((h) => '"$h"').join(', ')),
+          messageVi: failVi(item.id, hits.map((h) => '"$h"').join(', ')),
           subject: item.id,
         ),
       );
@@ -293,7 +327,8 @@ class QualityChecks {
           check: check,
           passed: true,
           severity: Severity.low,
-          message: pass,
+          messageEn: pass,
+          messageVi: passVi,
         ),
       );
     }

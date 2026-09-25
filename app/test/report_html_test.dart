@@ -21,7 +21,7 @@ DeterministicFinding check(
   bool passed = false,
   String? subject,
   bool requiresVisionEvidence = false,
-}) => DeterministicFinding(
+}) => DeterministicFinding.both(
   check: id,
   passed: passed,
   subject: subject,
@@ -274,7 +274,7 @@ void main() {
         units: const [],
         referenceFindings: [
           for (var i = 1; i <= 30; i++)
-            DeterministicFinding(
+            DeterministicFinding.both(
               check: CheckId.missingPostcondition,
               passed: false,
               subject: 'UC-$i',
@@ -311,14 +311,14 @@ void main() {
         result: null,
         units: const [],
         syllabusFindings: [
-          DeterministicFinding(
+          DeterministicFinding.both(
             check: CheckId.ucSize,
             passed: false,
             subject: 'UC-1',
             severity: Severity.medium,
             message: 'UC-1 looks thin: ~0 transactions detected.',
           ),
-          DeterministicFinding(
+          DeterministicFinding.both(
             check: CheckId.ucSize,
             passed: false,
             subject: 'UC-2',
@@ -406,14 +406,14 @@ void main() {
         result: null,
         units: const [],
         referenceFindings: [
-          DeterministicFinding(
+          DeterministicFinding.both(
             check: CheckId.missingPostcondition,
             passed: false,
             severity: Severity.high,
             message: 'UC-01 has no Postcondition',
             subject: 'UC-01',
           ),
-          DeterministicFinding(
+          DeterministicFinding.both(
             check: CheckId.missingPostcondition,
             passed: false,
             severity: Severity.high,
@@ -441,7 +441,7 @@ void main() {
         result: null,
         units: const [],
         referenceFindings: [
-          DeterministicFinding(
+          DeterministicFinding.both(
             check: CheckId.missingPostcondition,
             passed: false,
             severity: Severity.high,
@@ -463,7 +463,7 @@ void main() {
         result: null,
         units: const [],
         referenceFindings: [
-          DeterministicFinding(
+          DeterministicFinding.both(
             check: CheckId.diagramAudit,
             passed: false,
             severity: Severity.high,

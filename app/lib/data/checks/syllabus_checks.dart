@@ -60,8 +60,10 @@ class SyllabusChecks {
         // Below the gate the whole team waits for defense round 2 — nothing in
         // this app is more severe than that.
         severity: Severity.high,
-        message:
+        messageEn:
             'Found $count use cases, below the $min required to defend in round 1.',
+        messageVi:
+            'Tìm thấy $count Use Case, dưới mức tối thiểu $min để bảo vệ ở vòng 1.',
         actual: count,
         expectedMin: min,
         expectedMax: max,
@@ -76,9 +78,12 @@ class SyllabusChecks {
         check: CheckId.ucCount,
         passed: true,
         severity: Severity.low,
-        message:
+        messageEn:
             'Found $count use cases, above the $max this rubric recommends. '
             'Not a defect on its own — check F9 (use-case size) instead.',
+        messageVi:
+            'Tìm thấy $count Use Case, trên mức $max mà thang điểm này khuyến '
+            'nghị. Tự nó không phải lỗi — hãy xem F9 (kích thước Use Case).',
         actual: count,
         expectedMin: min,
         expectedMax: max,
@@ -88,9 +93,12 @@ class SyllabusChecks {
       check: CheckId.ucCount,
       passed: true,
       severity: Severity.low,
-      message: max == null
+      messageEn: max == null
           ? 'Found $count use cases, at or above the $min required.'
           : 'Found $count use cases, inside the recommended $min–$max range.',
+      messageVi: max == null
+          ? 'Tìm thấy $count Use Case, đạt hoặc trên mức tối thiểu $min.'
+          : 'Tìm thấy $count Use Case, nằm trong khoảng khuyến nghị $min–$max.',
       actual: count,
       expectedMin: min,
       expectedMax: max,
@@ -107,9 +115,12 @@ class SyllabusChecks {
           check: CheckId.language,
           passed: false,
           severity: Severity.medium,
-          message:
+          messageEn:
               '${item.id} is not written in English. '
               'The syllabus requires all documents in English.',
+          messageVi:
+              '${item.id} không được viết bằng tiếng Anh. Syllabus yêu cầu toàn '
+              'bộ tài liệu viết bằng tiếng Anh.',
           subject: item.id,
         ),
       );
@@ -120,7 +131,8 @@ class SyllabusChecks {
           check: CheckId.language,
           passed: true,
           severity: Severity.low,
-          message: 'All requirement statements look like English.',
+          messageEn: 'All requirement statements look like English.',
+          messageVi: 'Tất cả câu yêu cầu đều có vẻ là tiếng Anh.',
         ),
       );
     }
@@ -143,8 +155,11 @@ class SyllabusChecks {
             check: CheckId.ucSize,
             passed: false,
             severity: Severity.medium,
-            message:
+            messageEn:
                 '${uc.id} looks thin: ~$count transactions detected, a medium use case needs $min–$max.',
+            messageVi:
+                '${uc.id} có vẻ mỏng: phát hiện ~$count bước xử lý, một Use Case '
+                'cỡ vừa cần $min–$max.',
             subject: uc.id,
             actual: count,
             expectedMin: min,
@@ -157,8 +172,11 @@ class SyllabusChecks {
             check: CheckId.ucSize,
             passed: false,
             severity: Severity.medium,
-            message:
+            messageEn:
                 '${uc.id} looks oversized: ~$count transactions detected. Consider splitting it.',
+            messageVi:
+                '${uc.id} có vẻ quá lớn: phát hiện ~$count bước xử lý. Cân nhắc '
+                'tách nhỏ.',
             subject: uc.id,
             actual: count,
             expectedMin: min,

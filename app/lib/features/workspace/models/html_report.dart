@@ -17,10 +17,12 @@ library;
 
 import '../../../data/models/deterministic_finding.dart';
 import '../../../data/models/human_issue.dart';
+import '../../../data/models/report_language.dart';
 import '../../../data/models/review_models.dart';
 import '../../../data/models/review_progress.dart';
 import 'document_verdict.dart';
 import 'report_export.dart';
+import 'report_strings.dart';
 import 'section_scores.dart';
 import 'workspace_findings.dart';
 import 'workspace_unit.dart';
@@ -32,6 +34,17 @@ String _statusClass(FindingStatus s) => switch (s) {
   FindingStatus.pendingVision => 'amber',
   FindingStatus.disputed => '',
 };
+
+/// `_CheckGroup.severity` is the enum's NAME (it is part of the group's
+/// identity, so it must not follow the language); the cell it lands in is
+/// prose, so this is where the name becomes a word the reader understands.
+String _localizedSeverity(ReportStrings s, String severity) =>
+    switch (severity) {
+      'high' => s.severityLabel(Severity.high),
+      'medium' => s.severityLabel(Severity.medium),
+      'low' => s.severityLabel(Severity.low),
+      _ => severity,
+    };
 
 String _esc(String text) => text
     .replaceAll('&', '&amp;')
@@ -92,7 +105,13 @@ String buildHtmlReport({
   /// Reviewer-authored issues (Report tab) — rendered in their own section
   /// so the shared-with-link dashboard carries the human side too.
   List<HumanIssue> humanIssues = const [],
+
+  /// The language the dashboard is written in. See [buildMarkdownReport] for
+  /// why the builder default stays English while the app passes the user's
+  /// choice explicitly.
+  ReportLanguage language = ReportLanguage.english,
 }) {
+  final s = ReportStrings(language);
   // Same effective-mode rule as both twins: the run's own mock flag outranks
   // the toggle at export time.
   final reportOffline = result?.mock ?? offline;
@@ -108,25 +127,36 @@ String buildHtmlReport({
   final imageReviewCapable = imageReviewAvailable && !reportOffline;
 
   final out = StringBuffer()
-    ..write('<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">')
+    ..write(
+      '<!DOCTYPE html>\n<html lang="${language.wire}">\n<head>\n<meta charset="utf-8">',
+    )
     ..write(
       '<meta name="viewport" content="width=device-width, initial-scale=1">',
     )
-    ..write('<title>SRS Review — ${_esc(fileName)}</title>')
+    ..write(
+      '<title>${s.pick('SRS Review', 'Đánh giá SRS')} — '
+      '${_esc(fileName)}</title>',
+    )
     ..write('<style>$_css</style>\n</head>\n<body>\n');
 
   // ── Header ────────────────────────────────────────────────────────────
   final modeChip = reportOffline
-      ? '<span class="chip amber">Offline mock — not a live AI assessment</span>'
-      : '<span class="chip blue">Online proxy — not official grading</span>';
+      ? '<span class="chip amber">${_esc(s.mode(true, short: false))}</span>'
+      : '<span class="chip blue">${_esc(s.mode(false, short: false))}</span>';
   out.write(
-    '<header><h1>SRS Review Report</h1>'
-    '<p class="meta">${_esc(fileName)} · ${_esc(result?.rubricVersion ?? kRubricLabel)}'
-    ' · generated ${_esc(generated)}</p><p>$modeChip</p></header>\n',
+    '<header><h1>${_esc(s.pick('SRS Review Report', 'Báo cáo đánh giá SRS'))}</h1>'
+    '<p class="meta">${_esc(fileName)} · '
+    '${_esc(rubricVersionLabel(result?.rubricVersion ?? kRubricLabel, s))}'
+    ' · ${_esc(s.pick('generated', 'tạo lúc'))} ${_esc(generated)}</p>'
+    '<p>$modeChip</p>'
+    '<p class="meta">${_esc(s.languageNote)}</p></header>\n',
   );
 
   // ── Coverage cards ────────────────────────────────────────────────────
-  out.write('<h2>Coverage</h2>\n<div class="cards">');
+  out.write(
+    '<h2>${_esc(s.pick('Coverage', 'Phạm vi đánh giá'))}</h2>\n'
+    '<div class="cards">',
+  );
   void card(String label, String value, [String tone = '']) {
     out.write(
       '<div class="card"><div class="num $tone">$value</div>'
@@ -134,16 +164,16 @@ String buildHtmlReport({
     );
   }
 
-  card('Reviewed', '${result?.reviewed ?? 0}');
+  card(s.pick('Reviewed', 'Đã chấm'), '${result?.reviewed ?? 0}');
   card(
-    'Failed',
+    s.pick('Failed', 'Lỗi'),
     '${result?.failed ?? 0}',
     (result?.failed ?? 0) > 0 ? 'red' : '',
   );
-  card('Skipped', '$skipped');
-  card('Total units', '${units.length}');
+  card(s.pick('Skipped', 'Bỏ qua'), '$skipped');
+  card(s.pick('Total units', 'Tổng số mục'), '${units.length}');
   card(
-    'Unverified dropped',
+    s.pick('Unverified dropped', 'Trích dẫn bị loại'),
     '${result?.droppedIssueCount ?? 0}',
     (result?.droppedIssueCount ?? 0) > 0 ? 'amber' : '',
   );
@@ -152,19 +182,16 @@ String buildHtmlReport({
   // ── Honesty banners (same conditions as the markdown's notes) ─────────
   if (result != null &&
       (result.outcome != 'done' || result.reviewed == 0 || result.failed > 0)) {
-    final ended = switch (result.outcome) {
-      'cancelled' => 'was cancelled',
-      'failed' => 'failed — quota, provider or proxy error',
-      _ => 'completed',
-    };
+    final ended = s.runOutcome(result.outcome);
     final failedNote = result.failed > 0
-        ? ' ${result.failed} selected unit(s) errored and were NOT reviewed.'
+        ? s.pick(
+            ' ${result.failed} selected unit(s) errored and were NOT reviewed.',
+            ' ${result.failed} mục đã chọn bị lỗi và KHÔNG được chấm.',
+          )
         : '';
     out.write(
-      '<div class="banner red"><b>The last review run $ended — only '
-      '${result.reviewed} selected unit(s) returned results.$failedNote</b> '
-      'Units are marked reviewed only where the run returned a result; the '
-      'rest are pending or failed, and nothing was assessed for them.</div>\n',
+      '<div class="banner red"><b>${_esc(s.pick('The last review run $ended — only ${result.reviewed} selected unit(s) returned results.$failedNote', 'Lượt chấm gần nhất $ended — chỉ ${result.reviewed} mục đã chọn trả về kết quả.$failedNote'))}</b> '
+      '${_esc(s.pick('Units are marked reviewed only where the run returned a result; the rest are pending or failed, and nothing was assessed for them.', 'Mục chỉ được đánh dấu đã chấm khi lượt chấm trả kết quả; số còn lại đang chờ hoặc lỗi, và không được đánh giá gì.'))}</div>\n',
     );
   }
   final showImageReviewNote =
@@ -174,54 +201,76 @@ String buildHtmlReport({
       imageCoverage != null;
   if (showImageReviewNote) {
     final note = reportOffline
-        ? '<b>Offline mock mode performed a text-only review.</b> PDF page '
-              'images were not sent to the model; any diagram content was '
-              'assessed from extracted text. Treat "no issues found" as '
-              '"nothing the text gave away".'
+        ? s.pick(
+            '<b>Offline mock mode performed a text-only review.</b> PDF page images were not sent to the model; any diagram content was assessed from extracted text. Treat "no issues found" as "nothing the text gave away".',
+            '<b>Chế độ mô phỏng ngoại tuyến chỉ chấm trên văn bản.</b> Ảnh trang PDF không được gửi cho model; mọi nội dung sơ đồ được đánh giá từ văn bản trích xuất. Hãy hiểu "không thấy lỗi" là "văn bản không để lộ gì".',
+          )
         : imageReviewUsed
-        ? '<b>PDF image review was available, and $effectiveImageReviewedCount '
-              'requirement(s) were reviewed with page images.</b> Other '
-              'requirements were assessed from extracted text alone.'
+        ? s.pick(
+            '<b>PDF image review was available, and $effectiveImageReviewedCount requirement(s) were reviewed with page images.</b> Other requirements were assessed from extracted text alone.',
+            '<b>Có ảnh trang PDF, và $effectiveImageReviewedCount yêu cầu đã được chấm kèm ảnh trang.</b> Các yêu cầu còn lại chỉ được đánh giá từ văn bản trích xuất.',
+          )
         : imageReviewCapable
-        ? '<b>PDF page images were available, but none were attached to a '
-              'successful review request.</b> Any diagram content was '
-              'therefore text-only.'
-        : '<b>PDF page images were NOT available for this document or '
-              'session.</b> Any diagram content was text-only; review '
-              'findings came from extracted text.';
+        ? s.pick(
+            '<b>PDF page images were available, but none were attached to a successful review request.</b> Any diagram content was therefore text-only.',
+            '<b>Có ảnh trang PDF nhưng không ảnh nào được gắn vào một lượt chấm thành công.</b> Vì vậy mọi nội dung sơ đồ chỉ còn văn bản.',
+          )
+        : s.pick(
+            '<b>PDF page images were NOT available for this document or session.</b> Any diagram content was text-only; review findings came from extracted text.',
+            '<b>Tài liệu hoặc phiên này KHÔNG có ảnh trang PDF.</b> Mọi nội dung sơ đồ chỉ còn văn bản; lỗi phát hiện được đến từ văn bản trích xuất.',
+          );
     out.write('<div class="banner grey">🖼️ $note</div>\n');
     if (diagramPageCount > 0) {
       out.write(
-        '<p class="meta">Diagram-like pages detected: $diagramPageCount</p>\n',
+        '<p class="meta">${_esc(s.pick('Diagram-like pages detected', 'Số trang trông như có sơ đồ'))}: '
+        '$diagramPageCount</p>\n',
       );
     }
   }
   if (imageCoverage != null) {
     final c = imageCoverage;
     out.write(
-      '<h3>PDF page-image coverage</h3>'
-      '<div class="tscroll"><table><tr><th>Candidates</th><th>Extracted</th><th>Image-reviewed</th>'
-      '<th>Text-only/skipped</th><th>Image failures</th></tr>'
+      '<h3>${_esc(s.pick('PDF page-image coverage', 'Phạm vi ảnh trang PDF'))}</h3>'
+      '<div class="tscroll"><table>'
+      '<tr><th>${_esc(s.pick('Candidates', 'Trang ứng viên'))}</th>'
+      '<th>${_esc(s.pick('Extracted', 'Đã trích ảnh'))}</th>'
+      '<th>${_esc(s.pick('Image-reviewed', 'Đã chấm bằng ảnh'))}</th>'
+      '<th>${_esc(s.pick('Text-only/skipped', 'Chỉ văn bản/bỏ qua'))}</th>'
+      '<th>${_esc(s.pick('Image failures', 'Ảnh lỗi'))}</th></tr>'
       '<tr><td>${c.candidates}</td><td>${c.extracted}</td>'
-      '<td>${c.reviewed}</td><td>${c.skipped}</td><td>${c.failed}</td></tr></table></div>\n',
+      '<td>${c.reviewed}</td><td>${c.skipped}</td><td>${c.failed}</td></tr>'
+      '</table></div>\n',
     );
   }
 
   // ── Verdict (rubric E, same compute as both other twins) ───────────────
   final verdict = computeVerdict([...syllabusFindings, ...referenceFindings]);
-  out.write('<h2>Verdict (rubric E, 10-point)</h2>');
+  out.write(
+    '<h2>${_esc(s.pick('Verdict (rubric E, 10-point)', 'Kết luận (rubric E, thang 10 điểm)'))}</h2>',
+  );
   out.write('<p class="meta"><strong>${_esc(verdict.display)}</strong></p>');
   out.write(
-    '<div class="tscroll"><table><tr><th>Component</th>'
-    '<th>State</th></tr>',
+    '<div class="tscroll"><table>'
+    '<tr><th>${_esc(s.pick('Component', 'Thành phần'))}</th>'
+    '<th>${_esc(s.pick('State', 'Trạng thái'))}</th></tr>',
   );
   for (final entry in <String, String>{
-    'Floor (7 SRS criteria, 5 pts)': verdict.floor.name,
-    'Diagrams clean (2 pts)': verdict.diagram.name,
-    'Cross-artifact clean (2 pts)': verdict.crossArtifact.name,
-    'Traceability UC→design→test (1 pt)':
-        '${verdict.traceability.name} (no test-artifact input in this tool)',
-    'Deductions −1 per 🔴 ERD/SM/SEQ-CLS row': '${verdict.deductions}',
+    s.pick('Floor (7 SRS criteria, 5 pts)', 'Sàn (7 tiêu chí SRS, 5 điểm)'): s
+        .componentState(verdict.floor),
+    s.pick('Diagrams clean (2 pts)', 'Sơ đồ sạch (2 điểm)'): s.componentState(
+      verdict.diagram,
+    ),
+    s.pick('Cross-artifact clean (2 pts)', 'Nhất quán xuyên tài liệu (2 điểm)'):
+        s.componentState(verdict.crossArtifact),
+    s.pick(
+      'Traceability UC→design→test (1 pt)',
+      'Truy vết UC→thiết kế→kiểm thử (1 điểm)',
+    ): '${s.componentState(verdict.traceability)} '
+        '${s.pick('(no test-artifact input in this tool)', '(công cụ này chưa có dữ liệu kiểm thử)')}',
+    s.pick(
+      'Deductions −1 per 🔴 ERD/SM/SEQ-CLS row',
+      'Trừ −1 mỗi dòng 🔴 ERD/SM/SEQ-CLS',
+    ): '${verdict.deductions}',
   }.entries) {
     out.write(
       '<tr><td>${_esc(entry.key)}</td><td>${_esc(entry.value)}</td></tr>',
@@ -234,9 +283,8 @@ String buildHtmlReport({
     final sections = summarizeSections(units: units, result: result);
     if (sections.isNotEmpty) {
       out.write(
-        '<h2>Scores by section</h2>'
-        '<p class="meta">Worst average first — start fixing at the top. '
-        'Bars are average score /10.</p>',
+        '<h2>${_esc(s.pick('Scores by section', 'Điểm theo mục'))}</h2>'
+        '<p class="meta">${_esc(s.pick('Worst average first — start fixing at the top. Bars are average score /10.', 'Điểm trung bình thấp nhất xếp trước — sửa từ trên xuống. Thanh là điểm trung bình trên 10.'))}</p>',
       );
       for (final section in sections) {
         final avg = section.averageScore;
@@ -250,9 +298,12 @@ String buildHtmlReport({
             : 'green';
         out.write(
           '<div class="bar"><div class="blabel">${_esc(section.section)} '
-          '<span class="bsub">avg ${avg == null ? '—' : avg.toStringAsFixed(1)}'
-          ' · ${section.reviewedCount} scored · ${section.findingCount} to fix'
-          ' · ${section.highSeverityCount} high</span></div>'
+          '<span class="bsub">${_esc(s.pick('avg', 'TB'))} '
+          '${avg == null ? '—' : avg.toStringAsFixed(1)}'
+          ' · ${section.reviewedCount} ${_esc(s.pick('scored', 'đã chấm'))}'
+          ' · ${section.findingCount} ${_esc(s.pick('to fix', 'cần sửa'))}'
+          ' · ${section.highSeverityCount} ${_esc(s.pick('high', 'nghiêm trọng'))}'
+          '</span></div>'
           '<div class="track"><div class="fill $tone" style="width:$pct%"></div></div></div>',
         );
       }
@@ -263,13 +314,23 @@ String buildHtmlReport({
   // ── Model findings, grouped by severity ───────────────────────────────
   if (findings.isEmpty) {
     final message = result == null
-        ? 'No findings yet — run a review to populate this section.'
+        ? s.pick(
+            'No findings yet — run a review to populate this section.',
+            'Chưa có lỗi nào — hãy chạy một lượt chấm để có dữ liệu cho mục này.',
+          )
         : result.reviewed > 0
-        ? 'The run reviewed ${result.reviewed} unit(s) and verified no '
-              'issues worth reporting.'
-        : 'No findings — no unit was successfully reviewed. See the warning '
-              'above.';
-    out.write('<h2>Findings</h2>\n<p class="meta">${_esc(message)}</p>\n');
+        ? s.pick(
+            'The run reviewed ${result.reviewed} unit(s) and verified no issues worth reporting.',
+            'Lượt chấm đã chấm ${result.reviewed} mục và không có lỗi nào đáng báo cáo.',
+          )
+        : s.pick(
+            'No findings — no unit was successfully reviewed. See the warning above.',
+            'Không có lỗi — không mục nào được chấm thành công. Xem cảnh báo ở trên.',
+          );
+    out.write(
+      '<h2>${_esc(s.pick('Findings', 'Lỗi phát hiện'))}</h2>\n'
+      '<p class="meta">${_esc(message)}</p>\n',
+    );
   } else {
     final accepted = findings
         .where((f) => statusFor(f.id) == FindingStatus.fixed)
@@ -278,10 +339,12 @@ String buildHtmlReport({
         .where((f) => statusFor(f.id) == FindingStatus.disputed)
         .length;
     final triage = accepted > 0 || dismissed > 0
-        ? ' <span class="triage">Triage: $accepted accepted · $dismissed '
-              'dismissed · ${findings.length - accepted - dismissed} still open.</span>'
+        ? ' <span class="triage">${_esc(s.pick('Triage: $accepted accepted · $dismissed dismissed · ${findings.length - accepted - dismissed} still open.', 'Phân loại: $accepted đã sửa · $dismissed phản hồi là sai · ${findings.length - accepted - dismissed} còn để ngỏ.'))}</span>'
         : '';
-    out.write('<h2>Findings (${findings.length})$triage</h2>\n');
+    out.write(
+      '<h2>${_esc(s.pick('Findings', 'Lỗi phát hiện'))} '
+      '(${findings.length})$triage</h2>\n',
+    );
     for (final severity in const [
       Severity.high,
       Severity.medium,
@@ -296,18 +359,25 @@ String buildHtmlReport({
         Severity.medium => 'medium',
         Severity.low => 'low',
       };
-      out.write('<h3 class="$cls">${severity.name} (${group.length})</h3>\n');
+      out.write(
+        '<h3 class="$cls">${_esc(s.severityLabel(severity))} '
+        '(${group.length})</h3>\n',
+      );
       for (final finding in group) {
         out.write(
           '<div class="finding $cls"><div class="fhead">'
           '<b>${_esc(finding.requirementId)} · ${_esc(finding.title)}</b>'
           '<span class="chips">'
-          '<span class="chip">${_esc(statusFor(finding.id).label)}</span>'
-          '<span class="chip">page ${finding.pageIndex + 1}</span>'
-          '<span class="chip">${_esc(finding.issue.verification.name)} match</span>'
+          '<span class="chip">${_esc(s.findingStatusLabel(statusFor(finding.id)))}</span>'
+          '<span class="chip">${_esc(s.pick('page', 'trang'))} ${finding.pageIndex + 1}</span>'
+          '<span class="chip">${_esc(s.verificationLabel(finding.issue.verification))}</span>'
+          // Which rubric row this finding answers — the one value that traces it
+          // back to a criterion a user added or edited.
+          '${finding.issue.criterionId == null || finding.issue.criterionId!.isEmpty ? '' : '<span class="chip">${_esc(s.criterionRef(finding.issue.criterionId!))}</span>'}'
           '</span></div>'
           '<blockquote>${_esc(finding.quote)}</blockquote>'
-          '<p class="sugg"><b>Suggestion.</b> ${_esc(finding.suggestion)}</p></div>\n',
+          '<p class="sugg"><b>${_esc(s.pick('Suggestion', 'Gợi ý'))}.</b> '
+          '${_esc(finding.suggestion)}</p></div>\n',
         );
       }
     }
@@ -319,17 +389,12 @@ String buildHtmlReport({
   // cases" in one line and expand only if they want the names. The full
   // per-row ledger stays below, collapsed — nothing is hidden, the
   // default reading order just stops punishing repetition.
-  final allDeterministic = [
-    for (final f in syllabusFindings) ('syllabus', f),
-    for (final f in referenceFindings)
-      (
-        f.check == CheckId.diagramAudit
-            ? 'diagram audit (vision)'
-            : 'reference (M2)',
-        f,
-      ),
-    for (final f in blueprintFindings) ('document index', f),
-  ];
+  final allDeterministic = reportDeterministicRows(
+    s: s,
+    syllabusFindings: syllabusFindings,
+    referenceFindings: referenceFindings,
+    blueprintFindings: blueprintFindings,
+  );
   if (allDeterministic.isNotEmpty) {
     final failing = allDeterministic.where((e) => !e.$2.passed).length;
     // The re-review tally — sds-reviewer's "grep -c OPEN" rendered for
@@ -357,14 +422,11 @@ String buildHtmlReport({
         .length;
     final hasLedgerState = fixedCount + verifiedCount > 0;
     out.write(
-      '<h2>Deterministic checks (${allDeterministic.length})</h2>'
-      '<p class="meta">Offline rule checks — no model, zero tokens. '
-      'syllabus rows come from the SEP490 rubric (F7/F8/F9) and the '
-      'srs-writer quality scan; reference (M2) '
-      'rows are the consistency checks (duplicate ids, missing '
-      'postconditions, cross-artifact names). '
-      '${failing == 0 ? 'All checks passed.' : '<b>$failing of ${allDeterministic.length} need attention.</b>'}'
-      '${hasLedgerState ? ' Ledger: <b>$openCount open</b> · $fixedCount fixed (awaiting re-verify) · $verifiedCount verified/disputed.' : ''}</p>',
+      '<h2>${_esc(s.pick('Deterministic checks', 'Kiểm tra bằng luật'))} '
+      '(${allDeterministic.length})</h2>'
+      '<p class="meta">${_esc(s.pick('Offline rule checks — no model, zero tokens. syllabus rows come from the SEP490 rubric (F7/F8/F9) and the srs-writer quality scan; reference (M2) rows are the consistency checks (duplicate ids, missing postconditions, cross-artifact names).', 'Kiểm tra bằng luật ngoại tuyến — không gọi model, không tốn token. Nhóm syllabus đến từ thang SEP490 (F7/F8/F9) và bộ quét chất lượng của srs-writer; nhóm mùi nhất quán (M2) là các kiểm tra nhất quán (mã trùng, thiếu hậu điều kiện, tên thực thể khác nhau giữa các mục).'))} '
+      '${failing == 0 ? _esc(s.pick('All checks passed.', 'Tất cả kiểm tra đều đạt.')) : _esc(s.pick('$failing of ${allDeterministic.length} need attention.', '$failing/${allDeterministic.length} mục cần xử lý.'))}'
+      '${hasLedgerState ? ' ${_esc(s.pick('Ledger:', 'Sổ theo dõi:'))} <b>$openCount ${_esc(s.pick('open', 'đang mở'))}</b> · $fixedCount ${_esc(s.pick('fixed (awaiting re-verify)', 'đã sửa (chờ xác minh lại)'))} · $verifiedCount ${_esc(s.pick('verified/disputed', 'đã xác minh/phản hồi sai'))}.' : ''}</p>',
     );
 
     // Group key: same family, check, pass-state, severity, and message
@@ -374,13 +436,14 @@ String buildHtmlReport({
     final groups = <_CheckGroup, List<String>>{};
     final order = <_CheckGroup>[];
     for (final (family, finding) in allDeterministic) {
+      final detail = finding.messageFor(language);
       final template =
-          finding.subject != null && finding.message.contains(finding.subject!)
-          ? finding.message.replaceAll(finding.subject!, '⟨id⟩')
-          : finding.message;
+          finding.subject != null && detail.contains(finding.subject!)
+          ? detail.replaceAll(finding.subject!, '⟨id⟩')
+          : detail;
       final group = _CheckGroup(
         family: family,
-        label: finding.check.label,
+        label: s.checkLabel(finding.check),
         passed: finding.passed,
         severity: finding.severity.name,
         template: template,
@@ -390,12 +453,19 @@ String buildHtmlReport({
         groups[group] = <String>[];
         order.add(group);
       }
-      groups[group]!.add(finding.subject ?? 'whole document');
+      groups[group]!.add(
+        finding.subject ?? s.pick('whole document', 'toàn tài liệu'),
+      );
     }
 
     out.write(
-      '<div class="tscroll"><table><tr><th>Family</th><th>Check</th>'
-      '<th>Result</th><th>Count</th><th>Affected</th><th>Detail</th></tr>',
+      '<div class="tscroll"><table>'
+      '<tr><th>${_esc(s.pick('Family', 'Nhóm'))}</th>'
+      '<th>${_esc(s.pick('Check', 'Kiểm tra'))}</th>'
+      '<th>${_esc(s.pick('Result', 'Kết quả'))}</th>'
+      '<th>${_esc(s.pick('Count', 'Số lượng'))}</th>'
+      '<th>${_esc(s.pick('Affected', 'Ảnh hưởng'))}</th>'
+      '<th>${_esc(s.pick('Detail', 'Chi tiết'))}</th></tr>',
     );
     for (final group in order) {
       final subjects = groups[group]!;
@@ -403,16 +473,19 @@ String buildHtmlReport({
       final subjectCell = subjects.length <= inline
           ? subjects.map(_esc).join(', ')
           : '${subjects.take(inline).map(_esc).join(', ')} '
-                '<details class="more"><summary>+${subjects.length - inline} '
-                'more</summary>${subjects.map(_esc).join(', ')}</details>';
+                '<details class="more"><summary>'
+                '+${subjects.length - inline} ${_esc(s.pick('more', 'mục nữa'))}'
+                '</summary>${subjects.map(_esc).join(', ')}</details>';
       final resultCell = group.passed
-          ? '<td class="ok">passed</td>'
-          : '<td class="bad">${_esc(group.severity)}</td>';
+          ? '<td class="ok">${_esc(s.passedFailed(true))}</td>'
+          : '<td class="bad">${_esc(_localizedSeverity(s, group.severity))}</td>';
+      final visionChip = group.vision
+          ? ' <span class="chip amber">${_esc(s.pick('needs vision evidence', 'cần bằng chứng hình ảnh'))}</span>'
+          : '';
       out.write(
         '<tr><td>${_esc(group.family)}</td><td>${_esc(group.label)}</td>'
         '$resultCell<td><b>${subjects.length}</b></td>'
-        '<td>$subjectCell</td><td>${_esc(group.template)}'
-        '${group.vision ? ' <span class="chip amber">needs vision evidence</span>' : ''}</td></tr>',
+        '<td>$subjectCell</td><td>${_esc(group.template)}$visionChip</td></tr>',
       );
     }
     out.write('</table></div>\n');
@@ -420,38 +493,53 @@ String buildHtmlReport({
     // Full ledger, collapsed — the JSON twin and the markdown carry it
     // row-by-row; this keeps the same artefact readable AND complete.
     out.write(
-      '<details><summary>Full ledger (${allDeterministic.length} rows)</summary>'
-      '<div class="tscroll"><table><tr><th>Family</th><th>Check</th>'
-      '<th>Subject</th><th>Result</th><th>Status</th><th>Detail</th></tr>',
+      '<details><summary>${_esc(s.pick('Full ledger', 'Sổ theo dõi đầy đủ'))} '
+      '(${allDeterministic.length} ${_esc(s.pick('rows', 'dòng'))})</summary>'
+      '<div class="tscroll"><table>'
+      '<tr><th>${_esc(s.pick('Family', 'Nhóm'))}</th>'
+      '<th>${_esc(s.pick('Check', 'Kiểm tra'))}</th>'
+      '<th>${_esc(s.pick('Subject', 'Đối tượng'))}</th>'
+      '<th>${_esc(s.pick('Result', 'Kết quả'))}</th>'
+      '<th>${_esc(s.pick('Status', 'Trạng thái'))}</th>'
+      '<th>${_esc(s.pick('Detail', 'Chi tiết'))}</th></tr>',
     );
     for (final (family, finding) in allDeterministic) {
       final resultCell = finding.passed
-          ? '<td class="ok">passed</td>'
-          : '<td class="bad">${_esc(finding.severity.name)}</td>';
+          ? '<td class="ok">${_esc(s.passedFailed(true))}</td>'
+          : '<td class="bad">${_esc(s.severityLabel(finding.severity))}</td>';
       final status = finding.passed
           ? '<td>—</td>'
           : '<td><span class="chip ${_statusClass(statusFor(finding.ledgerKey))}">'
-                '${_esc(statusFor(finding.ledgerKey).label)}</span></td>';
+                '${_esc(s.findingStatusLabel(statusFor(finding.ledgerKey)))}'
+                '</span></td>';
+      final visionChip = finding.requiresVisionEvidence
+          ? ' <span class="chip amber">${_esc(s.pick('needs vision evidence', 'cần bằng chứng hình ảnh'))}</span>'
+          : '';
       out.write(
-        '<tr><td>${_esc(family)}</td><td>${_esc(finding.check.label)}</td>'
-        '<td>${_esc(finding.subject ?? 'whole document')}</td>$resultCell$status'
-        '<td>${_esc(finding.message)}'
-        '${finding.requiresVisionEvidence ? ' <span class="chip amber">needs vision evidence</span>' : ''}</td></tr>',
+        '<tr><td>${_esc(family)}</td>'
+        '<td>${_esc(s.checkLabel(finding.check))}</td>'
+        '<td>${_esc(finding.subject ?? s.pick('whole document', 'toàn tài liệu'))}</td>'
+        '$resultCell$status'
+        '<td>${_esc(finding.messageFor(language))}$visionChip</td></tr>',
       );
     }
     out.write('</table></div></details>\n');
   }
   // -- Human-reported issues (reviewer-entered, not model output) --
   if (humanIssues.isNotEmpty) {
-    out.write('<h2>Human-reported issues (${humanIssues.length})</h2>');
     out.write(
-      '<p class="meta">Entered by a reviewer in the app — not model '
-      'output.</p><ul>',
+      '<h2>${_esc(s.pick('Human-reported issues', 'Lỗi do người review ghi'))} '
+      '(${humanIssues.length})</h2>',
+    );
+    out.write(
+      '<p class="meta">${_esc(s.pick('Entered by a reviewer in the app — not model output.', 'Do người review nhập trong ứng dụng — không phải kết quả của model.'))}</p><ul>',
     );
     for (final issue in humanIssues) {
       final stamp = issue.createdAt.toUtc().toIso8601String();
       out.write('<li><b>${_esc(issue.title)}</b>');
-      out.write('<span class="chip">${_esc(issue.severity.name)}</span>');
+      out.write(
+        '<span class="chip">${_esc(s.severityLabel(issue.severity))}</span>',
+      );
       out.write(
         '<span class="meta">${_esc(issue.section ?? '')} '
         '${_esc(stamp)}</span>',
@@ -466,27 +554,38 @@ String buildHtmlReport({
 
   // ── Inventory (collapsed: it is long) ─────────────────────────────────
   out.write(
-    '<details><summary>Inventory (${units.length} units)</summary>'
-    '<div class="tscroll"><table><tr><th>ID</th><th>Requirement</th><th>Kind</th><th>Page</th>'
-    '<th>Status</th></tr>',
+    '<details><summary>${_esc(s.pick('Inventory', 'Danh mục tài liệu'))} '
+    '(${units.length} ${_esc(s.pick('units', 'mục'))})</summary>'
+    '<div class="tscroll"><table>'
+    '<tr><th>${_esc(s.pick('ID', 'Mã'))}</th>'
+    '<th>${_esc(s.pick('Requirement', 'Yêu cầu'))}</th>'
+    '<th>${_esc(s.pick('Kind', 'Loại'))}</th>'
+    '<th>${_esc(s.pick('Page', 'Trang'))}</th>'
+    '<th>${_esc(s.pick('Status', 'Trạng thái'))}</th></tr>',
   );
   for (final unit in units) {
     out.write(
       '<tr><td>${_esc(unit.id)}</td><td>${_esc(unit.title)}</td>'
-      '<td>${_esc(unit.kind.label)}</td><td>${unit.pageIndex + 1}</td>'
-      '<td>${_esc(unit.status.name)}${unit.malformed ? ' · MALFORMED' : ''}</td></tr>',
+      '<td>${_esc(s.unitKindLabel(unit.kind))}</td>'
+      '<td>${unit.pageIndex + 1}</td>'
+      '<td>${_esc(s.unitStatusLabel(unit.status.name))}'
+      '${unit.malformed ? ' · ${_esc(s.pick('MALFORMED', 'LỖI ĐỊNH DẠNG'))}' : ''}</td></tr>',
     );
   }
   out.write('</table></div></details>\n');
 
   // ── Limitations (shared source with both twins) ───────────────────────
-  out.write('<h2>Limitations &amp; future work</h2><ul>');
-  for (final limitation in reportLimitations(offline: reportOffline)) {
+  out.write(
+    '<h2>${_esc(s.pick('Limitations & future work', 'Giới hạn & hướng tiếp theo'))}</h2><ul>',
+  );
+  for (final limitation in reportLimitations(
+    offline: reportOffline,
+    language: language,
+  )) {
     out.write('<li>${_esc(limitation)}</li>');
   }
   out.write(
-    '</ul>\n<footer>Generated by SRS Review AI · schema '
-    'srs-review/report · self-contained document, no external resources</footer>\n'
+    '</ul>\n<footer>${_esc(s.pick('Generated by SRS Review AI · schema srs-review/report · self-contained document, no external resources', 'Do SRS Review AI tạo · schema srs-review/report · tài liệu tự chứa, không dùng tài nguyên bên ngoài'))}</footer>\n'
     '</body>\n</html>',
   );
   return out.toString();

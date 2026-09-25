@@ -14,6 +14,7 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
 import '../../../core/widgets/app_ink_well.dart';
 import '../../../data/checks/rubric_config.dart';
+import '../../../data/models/report_language.dart';
 import '../../../data/models/review_models.dart';
 import '../models/document_verdict.dart';
 import '../models/section_scores.dart';
@@ -57,9 +58,32 @@ extension on _StatusFilter {
 
 enum _Persona { student, lecturer }
 
+/// Second facet of the same filter row: severity, the axis a student triages
+/// by ("fix the Nghiêm trọng ones first" — the verdict panel says exactly
+/// that). Counts ride the chips so the cost of tapping one is known up front.
+enum _SeverityFilter { all, high, medium, low }
+
+extension on _SeverityFilter {
+  String get label => switch (this) {
+    _SeverityFilter.all => 'Tất cả mức độ',
+    _SeverityFilter.high => 'Nghiêm trọng',
+    _SeverityFilter.medium => 'Trung bình',
+    _SeverityFilter.low => 'Nhẹ',
+  };
+
+  /// Null = no filtering (the "all" chip), mirroring `_StatusFilter.status`.
+  Severity? get severity => switch (this) {
+    _SeverityFilter.all => null,
+    _SeverityFilter.high => Severity.high,
+    _SeverityFilter.medium => Severity.medium,
+    _SeverityFilter.low => Severity.low,
+  };
+}
+
 class _FindingsTabState extends ConsumerState<FindingsTab> {
   String _query = '';
   _StatusFilter _filter = _StatusFilter.all;
+  _SeverityFilter _severityFilter = _SeverityFilter.all;
   _Persona _persona = _Persona.student;
   String? _selectedFindingId;
 
@@ -76,6 +100,27 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
     _StatusFilter.pendingVision => status == FindingStatus.pendingVision,
     _StatusFilter.disputed => status == FindingStatus.disputed,
   };
+
+  bool _matchesSeverity(Severity severity) =>
+      _severityFilter.severity == null || severity == _severityFilter.severity;
+
+  /// Small-caps caption above each filter facet. Two facets now share one
+  /// column, and "Chờ kiểm tra hình ảnh" next to "Nhẹ" reads as one flat list
+  /// without a header naming what each row filters BY.
+  Widget _facetLabel(BuildContext context, String text) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+      child: Text(
+        text,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: context.workspaceColors.muted,
+          letterSpacing: 1.4,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
 
   /// Feature 2: the rubric-E 10-point verdict, computed from the ledger
   /// rows already in state — no extra run, no tokens. Nulls stay visible:
@@ -341,31 +386,52 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                           dense: true,
                         ),
                         const SizedBox(width: AppSpacing.sm),
+                        // One text BLOCK, two lines. The title needs the full
+                        // width, and the counts line grows with the run
+                        // ("120 lỗi cần sửa · 40 nghiêm trọng"): sharing one
+                        // Row between them either overflowed (both fixed) or,
+                        // once both were made flexible, split the free space
+                        // 50/50 and ellipsized BOTH. Stacked, each line gets
+                        // the whole width — measured in the widget test's
+                        // square font (the worst case): title 2/2 lines, no
+                        // ellipsis, where the 50/50 version gave it 107px of a
+                        // 268px string. The counts line may still ellipsize on
+                        // a very narrow phone; it is a summary line, and that
+                        // degrades gracefully.
                         Expanded(
-                          child: Text(
-                            section.section == SectionScore.unclassifiedLabel
-                                ? 'Chưa phân loại'
-                                : section.section,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              color: colors.ink,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Text(
-                          section.findingCount == 0
-                              ? '${section.reviewedCount} mục đã chấm'
-                              : '${section.findingCount} lỗi cần sửa'
-                                    '${section.highSeverityCount > 0 ? ' · ${section.highSeverityCount} nghiêm trọng' : ''}',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: section.highSeverityCount > 0
-                                ? context.severityColors.forSeverity(
-                                    Severity.high,
-                                  )
-                                : colors.muted,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                section.section ==
+                                        SectionScore.unclassifiedLabel
+                                    ? 'Chưa phân loại'
+                                    : section.section,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  color: colors.ink,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(
+                                section.findingCount == 0
+                                    ? '${section.reviewedCount} mục đã chấm'
+                                    : '${section.findingCount} lỗi cần sửa'
+                                          '${section.highSeverityCount > 0 ? ' · ${section.highSeverityCount} nghiêm trọng' : ''}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: section.highSeverityCount > 0
+                                      ? context.severityColors.forSeverity(
+                                          Severity.high,
+                                        )
+                                      : colors.muted,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         Icon(
@@ -506,7 +572,10 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
     }
 
     final query = _query.toLowerCase();
-    final findings = (result?.findings ?? const <FindingRow>[])
+    // Query + status first: the counts printed on the severity chips describe
+    // what each chip WOULD show, so they must be computed before the severity
+    // facet itself narrows the list.
+    final byStatus = (result?.findings ?? const <FindingRow>[])
         .where(
           (f) =>
               (query.isEmpty ||
@@ -516,6 +585,19 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
               _matches(state.statusOf(f.id)),
         )
         .toList(growable: false);
+    final findings = byStatus
+        .where((f) => _matchesSeverity(f.severity))
+        .toList(growable: false);
+    final severityCounts = <Severity, int>{
+      for (final severity in Severity.values)
+        severity: byStatus.where((f) => f.severity == severity).length,
+    };
+    // One flag for the empty state: a query or EITHER facet active means an
+    // empty list is "nothing matched", never "the document is clean".
+    final filtersIdle =
+        query.isEmpty &&
+        _filter == _StatusFilter.all &&
+        _severityFilter == _SeverityFilter.all;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -706,7 +788,9 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                                   ),
                                   const SizedBox(height: AppSpacing.xs),
                                   Text(
-                                    workspaceMessage(finding.message),
+                                    finding.messageFor(
+                                      ReportLanguage.vietnamese,
+                                    ),
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: colors.muted,
                                       height: 1.7,
@@ -787,7 +871,9 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                                   ),
                                   const SizedBox(height: AppSpacing.xs),
                                   Text(
-                                    workspaceMessage(finding.message),
+                                    finding.messageFor(
+                                      ReportLanguage.vietnamese,
+                                    ),
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: colors.muted,
                                       height: 1.7,
@@ -868,7 +954,9 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
                                   ),
                                   const SizedBox(height: AppSpacing.xs),
                                   Text(
-                                    workspaceMessage(finding.message),
+                                    finding.messageFor(
+                                      ReportLanguage.vietnamese,
+                                    ),
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: colors.muted,
                                       height: 1.7,
@@ -914,28 +1002,66 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
               AppSpacing.lg,
               AppSpacing.sm,
             ),
-            child: Wrap(
-              spacing: AppSpacing.sm,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final option in _StatusFilter.values)
-                  // Each chip explains its own status on hover: the words
-                  // "Pending vision" and "Disputed" were unguessable, and a
-                  // chip is where the user goes to find out what they mean.
-                  if (option.status case final status?)
-                    Tooltip(
-                      message: status.description,
-                      child: FilterChip(
-                        label: Text(option.label),
-                        selected: _filter == option,
-                        onSelected: (_) => setState(() => _filter = option),
+                _facetLabel(context, 'TRẠNG THÁI'),
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  children: [
+                    for (final option in _StatusFilter.values)
+                      // Each chip explains its own status on hover: the words
+                      // "Pending vision" and "Disputed" were unguessable, and a
+                      // chip is where the user goes to find out what they mean.
+                      if (option.status case final status?)
+                        Tooltip(
+                          message: status.description,
+                          child: FilterChip(
+                            label: Text(option.label),
+                            selected: _filter == option,
+                            onSelected: (_) => setState(() => _filter = option),
+                          ),
+                        )
+                      else
+                        FilterChip(
+                          label: Text(option.label),
+                          selected: _filter == option,
+                          onSelected: (_) => setState(() => _filter = option),
+                        ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                _facetLabel(context, 'MỨC ĐỘ LỖI'),
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  children: [
+                    for (final option in _SeverityFilter.values)
+                      FilterChip(
+                        // The count is what tapping costs: a chip reading
+                        // "Nhẹ (0)" is a dead end the user can see BEFORE
+                        // emptying the list into the no-match state.
+                        label: Text(
+                          option.severity == null
+                              ? '${option.label} (${byStatus.length})'
+                              : '${option.label} (${severityCounts[option.severity]})',
+                        ),
+                        avatar: option.severity == null
+                            ? null
+                            : Icon(
+                                Icons.circle,
+                                size: 10,
+                                color: context.severityColors.forSeverity(
+                                  option.severity!,
+                                ),
+                              ),
+                        selected: _severityFilter == option,
+                        onSelected: (_) =>
+                            setState(() => _severityFilter = option),
                       ),
-                    )
-                  else
-                    FilterChip(
-                      label: Text(option.label),
-                      selected: _filter == option,
-                      onSelected: (_) => setState(() => _filter = option),
-                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -950,16 +1076,16 @@ class _FindingsTabState extends ConsumerState<FindingsTab> {
             // verdict.
             title: result != null && result.reviewed == 0
                 ? 'Chưa có mục nào được AI chấm'
-                : query.isEmpty && _filter == _StatusFilter.all
+                : filtersIdle
                 ? 'Chưa phát hiện lỗi qua các kiểm tra'
                 : 'Không tìm thấy lỗi phù hợp',
             message: result != null && result.reviewed == 0
                 ? 'Lượt chấm gần nhất không chấm được mục nào — máy chủ từ chối '
                       'hoặc mất kết nối. Xem thông báo lỗi ở đầu trang, kiểm tra '
                       'máy chủ và lượt chấm trong ngày rồi thử lại.'
-                : query.isEmpty && _filter == _StatusFilter.all
+                : filtersIdle
                 ? 'Kết quả này chưa khẳng định tài liệu SRS đã đầy đủ.'
-                : 'Thử từ khóa hoặc bộ lọc khác.',
+                : 'Thử từ khóa, mức độ hoặc trạng thái khác.',
           )
         else
           Padding(
@@ -1192,25 +1318,66 @@ class _FindingCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
+                  // Stacked for the same reason as the section row: the id
+                  // and the match-quality label sat side by side with only the
+                  // id flexible, so a 'Nghiêm trọng' badge (the longest one)
+                  // overflowed a 390px card; making both flexible instead
+                  // split the row 50/50 and ellipsized the id too (91px of a
+                  // 172px string, square test font). Stacked, the id gets the
+                  // full width again and fits on one line.
                   Expanded(
-                    child: Text(
-                      '${finding.requirementId} · trang ${finding.pageIndex + 1}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colors.muted,
-                      ),
-                    ),
-                  ),
-                  Icon(Icons.verified_outlined, size: 14, color: colors.sage),
-                  const SizedBox(width: AppSpacing.xs),
-                  Text(
-                    finding.issue.verification == Verification.exact
-                        ? 'Khớp chính xác'
-                        : 'Khớp gần đúng',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colors.sage,
-                      fontSize: AppType.micro,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${finding.requirementId} · trang ${finding.pageIndex + 1}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colors.muted,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.verified_outlined,
+                              size: 12,
+                              color: colors.sage,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                finding.issue.verification == Verification.exact
+                                    ? 'Khớp chính xác'
+                                    : 'Khớp gần đúng',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: colors.sage,
+                                  fontSize: AppType.micro,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        // The criterion this finding answers, on its own line and
+                        // flexible: the row above is already two flexible
+                        // children wide, and a third badge there is the overflow
+                        // this card's history is made of.
+                        if (finding.issue.criterionId case final criterionId?)
+                          if (criterionId.isNotEmpty)
+                            Text(
+                              'Tiêu chí: $criterionId',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: colors.muted,
+                                fontSize: AppType.micro,
+                              ),
+                            ),
+                      ],
                     ),
                   ),
                 ],
@@ -1420,6 +1587,35 @@ class _FindingInspector extends ConsumerWidget {
               ),
             ],
           ),
+          // The rubric row this finding answers. An id, not prose: it is what a
+          // reader searches for in the criteria list (and the only thing that
+          // identifies a criterion they added themselves), so it is never
+          // translated, and it is elided rather than wrapped to keep the card
+          // inside a 390px phone.
+          if (finding.issue.criterionId case final criterionId?)
+            if (criterionId.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  Icon(
+                    Icons.rule_folder_outlined,
+                    size: 14,
+                    color: colors.muted,
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Text(
+                      'Tiêu chí: $criterionId',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colors.muted,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           const SizedBox(height: AppSpacing.md),
           Text(
             finding.title,

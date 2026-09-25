@@ -70,12 +70,15 @@ void main() {
       ];
 
       expect(findings, isNotEmpty);
+      // 2026-09-25: findings carry BOTH languages, so the UI no longer
+      // translates anything — it reads the Vietnamese twin directly. This is
+      // the tripwire for the pair: a check that forgets a twin, or copies the
+      // English string into both fields, fails right here.
       for (final finding in findings) {
         expect(
-          workspaceMessage(finding.message),
-          isNot(finding.message),
-          reason:
-              'Thông báo "${finding.message}" chưa được dịch sang tiếng Việt',
+          finding.messageVi,
+          isNot(finding.messageEn),
+          reason: 'Thiếu bản tiếng Việt cho "${finding.messageEn}"',
         );
       }
 

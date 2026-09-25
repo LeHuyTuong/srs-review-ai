@@ -17,7 +17,7 @@ import 'package:srs_review_ai/features/workspace/models/workspace_findings.dart'
 const _verifier = Verifier();
 
 DeterministicFinding _uc(String id, {required bool passed}) =>
-    DeterministicFinding(
+    DeterministicFinding.both(
       check: CheckId.language,
       passed: passed,
       severity: passed ? Severity.low : Severity.high,
@@ -26,7 +26,7 @@ DeterministicFinding _uc(String id, {required bool passed}) =>
     );
 
 DeterministicFinding _missingPostcondition(String id, {required bool passed}) =>
-    DeterministicFinding(
+    DeterministicFinding.both(
       check: CheckId.missingPostcondition,
       passed: passed,
       severity: passed ? Severity.low : Severity.high,
@@ -236,7 +236,7 @@ void main() {
             previousStatuses: const {},
             syllabusFindings: const [],
             referenceFindings: const [
-              DeterministicFinding(
+              DeterministicFinding.both(
                 check: CheckId.crossArtifactName,
                 passed: false,
                 severity: Severity.high,
@@ -260,7 +260,7 @@ void main() {
             previousStatuses: const {},
             syllabusFindings: const [],
             referenceFindings: const [
-              DeterministicFinding(
+              DeterministicFinding.both(
                 check: CheckId.duplicateIds,
                 passed: false,
                 severity: Severity.high,
@@ -296,7 +296,7 @@ void main() {
             },
             syllabusFindings: const [],
             referenceFindings: const [
-              DeterministicFinding(
+              DeterministicFinding.both(
                 check: CheckId.crossArtifactName,
                 passed: false,
                 severity: Severity.high,

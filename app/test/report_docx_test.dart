@@ -117,7 +117,7 @@ void main() {
         result: null,
         units: [unit('UC-01', kind: UnitKind.nonFunctional)],
         syllabusFindings: [
-          DeterministicFinding(
+          DeterministicFinding.both(
             check: CheckId.placeholderTbd,
             passed: false,
             severity: Severity.medium,
@@ -224,7 +224,7 @@ void main() {
           result: null,
           units: const [],
           syllabusFindings: [
-            DeterministicFinding(
+            DeterministicFinding.both(
               check: CheckId.ucCount,
               passed: false,
               severity: Severity.high,
@@ -233,7 +233,7 @@ void main() {
               actual: 12,
               expectedMin: 20,
             ),
-            DeterministicFinding(
+            DeterministicFinding.both(
               check: CheckId.language,
               passed: true,
               severity: Severity.low,

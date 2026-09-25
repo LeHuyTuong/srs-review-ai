@@ -79,7 +79,13 @@ class ProjectInfoChecks {
             passed: false,
             severity: Severity.high,
             subject: 'title',
-            message:
+            messageEn:
+                'The declared project title "${declared.projectName}" barely '
+                'appears on the cover page ($matched/'
+                '${titleTokens.length} keywords matched). Check whether the '
+                'cover states the right title, or the declared name is '
+                'abbreviated. Heuristic over extracted text — verify visually.',
+            messageVi:
                 'Tên đề tài khai báo "${declared.projectName}" hầu như không '
                 'xuất hiện trên trang bìa (khớp $matched/'
                 '${titleTokens.length} từ khoá). Kiểm tra xem bìa có ghi '
@@ -100,7 +106,12 @@ class ProjectInfoChecks {
             passed: false,
             severity: Severity.medium,
             subject: 'supervisor',
-            message:
+            messageEn:
+                'The declared supervisor "$supervisor" was not found on the '
+                'cover page. Check whether the cover names a supervisor at '
+                'all, or spells the name differently from the declaration. '
+                'Heuristic over extracted text — verify visually.',
+            messageVi:
                 'Tên giảng viên hướng dẫn khai báo "$supervisor" không thấy '
                 'trên trang bìa. Kiểm tra xem bìa có ghi GVHD chưa, hoặc tên '
                 'trên bìa viết khác với khai báo. Heuristic trên text trích '
@@ -137,7 +148,14 @@ class ProjectInfoChecks {
           passed: false,
           severity: Severity.medium,
           subject: '${previous.id}->${current.id}',
-          message:
+          messageEn:
+              'Section "${previous.id} ${previous.title}" runs to printed '
+              'page ${previous.printedEnd}, but section '
+              '"${current.id} ${current.title}" starts at printed page '
+              '${current.printedStart} — the sections overlap or are out of '
+              'order. Check the index and the chapter placement in the '
+              'printed document.',
+          messageVi:
               'Phần "${previous.id} ${previous.title}" trải tới trang in '
               '${previous.printedEnd}, nhưng phần "${current.id} ${current.title}" '
               'bắt đầu từ trang in ${current.printedStart} — các phần chồng '

@@ -166,15 +166,25 @@ class BlueprintChecks {
     for (final entry in byCaption.entries) {
       final group = entry.value;
       if (group.length < 2) continue;
+      // Both languages, because the listing is interpolated into a message
+      // whose twin must not read "Table 3 (trang 41)" in an English report.
       final listing = group
           .map((a) => '${a.label} (trang ${a.printedPage})')
+          .join(', ');
+      final listingEn = group
+          .map((a) => '${a.label} (page ${a.printedPage})')
           .join(', ');
       findings.add(
         DeterministicFinding(
           check: CheckId.duplicateCaption,
           passed: false,
           severity: Severity.medium,
-          message:
+          messageEn:
+              '${group.length} tables share the name '
+              '"${group.first.caption}": $listingEn. Each use case needs its own '
+              'name, otherwise it cannot be told apart in any traceability '
+              'table.',
+          messageVi:
               '${group.length} bảng dùng cùng tên "${group.first.caption}": '
               '$listing. Mỗi use case phải có tên riêng, nếu không thì không '
               'phân biệt được trong mọi bảng truy vết.',
@@ -221,7 +231,11 @@ class BlueprintChecks {
             check: CheckId.numberingGap,
             passed: false,
             severity: Severity.low,
-            message:
+            messageEn:
+                '${current.label} jumps from ${previous.label} '
+                '(missing ${missing.join(', ')}). Check whether that '
+                'table/figure was deleted without refreshing the index.',
+            messageVi:
                 '${current.label} nhảy từ ${previous.label} '
                 '(thiếu ${missing.join(', ')}). Kiểm tra xem bảng/hình đó có bị '
                 'xoá mà quên cập nhật mục lục không.',
@@ -276,7 +290,10 @@ class BlueprintChecks {
           check: CheckId.missingSection,
           passed: false,
           severity: expected.severity,
-          message:
+          messageEn:
+              'The index has no "${expected.name}" part. A capstone report '
+              'must declare every one of these parts.',
+          messageVi:
               'Mục lục không có phần "${expected.name}". Báo cáo đồ án phải '
               'khai báo đủ các phần này.',
           subject: expected.name,
@@ -317,7 +334,12 @@ class BlueprintChecks {
           check: CheckId.unclassifiedFigure,
           passed: false,
           severity: Severity.low,
-          message:
+          messageEn:
+              '${figure.label} ("${figure.caption}") does not say what kind of '
+              'diagram it is. Name the diagram type in the caption (class '
+              'diagram, sequence diagram, ERD…) so the system scores it '
+              'against the right criteria.',
+          messageVi:
               '${figure.label} ("${figure.caption}") không nói rõ đây là loại '
               'sơ đồ gì. Đặt caption theo loại sơ đồ (class diagram, sequence '
               'diagram, ERD…) để hệ thống chấm đúng bộ tiêu chí.',
@@ -351,7 +373,12 @@ class BlueprintChecks {
           check: CheckId.captionPageMismatch,
           passed: false,
           severity: Severity.low,
-          message:
+          messageEn:
+              'The index says ${artifact.label} is on page '
+              '${artifact.printedPage}, but no caption was found near that '
+              'page. The index may not have been refreshed after the content '
+              'changed (Update Field in Word).',
+          messageVi:
               'Mục lục ghi ${artifact.label} ở trang ${artifact.printedPage} '
               'nhưng không tìm thấy caption quanh trang đó. Có thể mục lục chưa '
               'được cập nhật lại sau khi sửa nội dung (bấm Update Field trong '
@@ -395,7 +422,12 @@ class BlueprintChecks {
         }
       }
       final actual = blueprint.sectionOf(found);
-      final sectionNote =
+      final sectionNoteEn =
+          expected != null && actual != null && expected.id != actual.id
+          ? ' The caption sits in chapter "${actual.title}" instead of the '
+                'chapter "${expected.title}" the index implies.'
+          : '';
+      final sectionNoteVi =
           expected != null && actual != null && expected.id != actual.id
           ? ' Caption nằm ở chương "${actual.title}" thay vì chương '
                 '"${expected.title}" mà mục lục ngầm gán.'
@@ -405,12 +437,18 @@ class BlueprintChecks {
           check: CheckId.tablePositionDrift,
           passed: false,
           severity: Severity.medium,
-          message:
+          messageEn:
+              'The index says ${artifact.label} is on page '
+              '${artifact.printedPage}, but the caption is on page '
+              '$foundPrinted (off by ${delta > 0 ? '+' : ''}$delta pages). The '
+              'table/figure may have moved without the index being refreshed '
+              '— check visually before editing.$sectionNoteEn',
+          messageVi:
               'Mục lục ghi ${artifact.label} ở trang ${artifact.printedPage}, '
               'nhưng caption nằm ở trang $foundPrinted (lệch '
               '${delta > 0 ? '+' : ''}$delta trang). Bảng/hình có thể đã bị '
               'dời mà mục lục chưa được cập nhật — kiểm tra bằng mắt trước '
-              'khi sửa.$sectionNote',
+              'khi sửa.$sectionNoteVi',
           subject: artifact.label,
           actual: found,
         ),

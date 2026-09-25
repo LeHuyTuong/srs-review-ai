@@ -54,7 +54,11 @@ class FormatLayoutChecks {
             passed: false,
             severity: Severity.medium,
             subject: 'SEC-${entry.key}',
-            message:
+            messageEn:
+                'Numbered section "${entry.key}" (${entry.value}) exists but '
+                'its parent "$parent" does not — the heading numbering forms '
+                'no hierarchy. Cross-check the index against the body.',
+            messageVi:
                 'Mục đánh số "${entry.key}" (${entry.value}) tồn tại nhưng '
                 'không thấy mục cha "$parent" — đánh số heading không tạo '
                 'thành phân cấp. Đối chiếu mục lục với thân tài liệu.',
@@ -75,7 +79,11 @@ class FormatLayoutChecks {
           passed: false,
           severity: Severity.medium,
           subject: 'SEC-${entry.key}',
-          message:
+          messageEn:
+              'The heading number "${entry.key}" appears ${entry.value} times '
+              'across SEC sections — the number is not unique, so the index '
+              'and the body are easy to confuse. Merge or renumber.',
+          messageVi:
               'Chuỗi số heading "${entry.key}" xuất hiện ${entry.value} lần '
               'trong các mục SEC — số hiệu không duy nhất, mục lục và '
               'trình bày dễ lẫn. Gộp hoặc đánh lại số hiệu.',
@@ -123,7 +131,13 @@ class FormatLayoutChecks {
           passed: false,
           severity: Severity.low,
           subject: 'pages',
-          message:
+          messageEn:
+              'No page number found on the last line of any page '
+              '(${pageTexts.length - 1} pages after the cover) — the printed '
+              'document may be unnumbered. Heuristic over extracted text (the '
+              'footer may not be the text layer\'s last line) — check visually '
+              'before concluding.',
+          messageVi:
               'Không thấy số trang ở dòng cuối của trang nào '
               '(${pageTexts.length - 1} trang sau bìa) — bản in có thể chưa '
               'đánh số trang. Heuristic trên text trích xuất (footer có thể '
@@ -150,7 +164,13 @@ class FormatLayoutChecks {
           passed: false,
           severity: Severity.low,
           subject: 'pages',
-          message:
+          messageEn:
+              'The last-line page number repeats or steps backwards '
+              '$regressions times '
+              '(${numbers.where((number) => number != null).length} pages carry '
+              'a number) — the page order/numbering is not monotonic. '
+              'Heuristic over extracted text — check visually.',
+          messageVi:
               'Số trang ở dòng cuối trang lặp hoặc giảm $regressions lần '
               '(${numbers.where((number) => number != null).length} trang có '
               'số) — thứ tự/đánh số trang không đơn điệu. Heuristic trên '

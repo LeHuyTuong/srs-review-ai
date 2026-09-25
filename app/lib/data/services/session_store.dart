@@ -102,8 +102,9 @@ abstract class SessionStore {
 
   Future<void> delete(String id);
 
-  /// The small "where I left off" record: workflow step 1 (project container)
-  /// and step 2 (the declaration), and nothing else.
+  /// The small "where I left off" record: workflow step 1 (project container),
+  /// step 2 (the declaration), the reviewer's own issues, and the one UI
+  /// preference that outlives a restart (the report language).
   ///
   /// Deliberately NOT the whole workspace: since 2026-09-23 the app never
   /// reopens a previous session by itself (that is what History → openSession

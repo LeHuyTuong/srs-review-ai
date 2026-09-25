@@ -26,6 +26,7 @@ import '../../../data/models/deterministic_finding.dart';
 import '../../../data/models/document_map.dart';
 import '../../../data/models/human_issue.dart';
 import '../../../data/models/project_info.dart';
+import '../../../data/models/report_language.dart';
 import '../../../data/models/review_models.dart' show Severity;
 import '../../../data/models/review_progress.dart';
 import '../../../data/models/srs_document.dart';
@@ -105,7 +106,23 @@ class WorkspaceState {
     this.projectInfo,
     this.projectName = '',
     this.humanIssues = const [],
+    this.reportLanguage = ReportLanguage.vietnamese,
   });
+
+  /// The language every exported report is written in (2026-09-25).
+  ///
+  /// A saved preference, carried by the workspace draft: the first cut kept it
+  /// session-only and the choice reset to Vietnamese on every restart — a team
+  /// that reports in English re-picked the switch on every launch. Vietnamese
+  /// stays the default (the app's UI is Vietnamese and the documents under
+  /// review are Vietnamese capstone reports); switching is one tap in the
+  /// export modal and applies to all four formats at once.
+  ///
+  /// Still deliberately NOT in the session payload: a saved review is the
+  /// evidence, and the language of a report is how it was rendered, not part of
+  /// what was measured — restoring a session must not silently change the
+  /// language of the next export.
+  final ReportLanguage reportLanguage;
 
   /// Server upload URI for document figure rendering and tight crops.
   final String? uploadUri;
@@ -361,6 +378,7 @@ class WorkspaceState {
     String? projectName,
     bool clearProjectInfo = false,
     List<HumanIssue>? humanIssues,
+    ReportLanguage? reportLanguage,
   }) => WorkspaceState(
     hasDocument: hasDocument ?? this.hasDocument,
     fileName: fileName ?? this.fileName,
@@ -404,6 +422,7 @@ class WorkspaceState {
     projectInfo: clearProjectInfo ? null : (projectInfo ?? this.projectInfo),
     projectName: projectName ?? this.projectName,
     humanIssues: humanIssues ?? this.humanIssues,
+    reportLanguage: reportLanguage ?? this.reportLanguage,
   );
 }
 
@@ -446,9 +465,9 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     // declaration on its own.
     //
     // Two small things ARE restored, because a restart used to throw them
-    // away and nobody asked for that: the DRAFT (the project container and the
-    // declaration the user typed in steps 1–2) and the landing card's short
-    // list of recent sessions.
+    // away and nobody asked for that: the DRAFT (the project container, the
+    // declaration the user typed in steps 1–2, and the report-language
+    // preference) and the landing card's short list of recent sessions.
     scheduleMicrotask(_restoreDraft);
     scheduleMicrotask(_loadRecentSessions);
     return const WorkspaceState();
@@ -1662,8 +1681,22 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
 
   // ------------------------------------------------------------- export
 
+  /// Switch the language of every exported report, markdown preview included.
+  /// One setter rather than four, because the four exports are twins: letting
+  /// them carry different languages is exactly the mixing this feature exists
+  /// to remove.
+  void setReportLanguage(ReportLanguage language) {
+    if (state.reportLanguage == language) return;
+    state = state.copyWith(reportLanguage: language);
+    // Fire-and-forget, same contract as the step-1/2 setters: the choice is a
+    // preference with no other home, so without the draft a restart resets it
+    // to Vietnamese under a user who already picked English.
+    _saveDraft();
+  }
+
   String exportMarkdown() => buildMarkdownReport(
     fileName: state.fileName,
+    language: state.reportLanguage,
     offline: ref.read(mockModeProvider),
     result: state.result,
     units: state.units,
@@ -1690,7 +1723,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   /// you cannot attach to a submission is not really an export.
   Future<String?> saveReportToFile() async {
     final report = exportMarkdown();
-    return _exporter.save(fileName: _reportFileName(), contents: report);
+    return _exporter.save(fileName: reportFileName(), contents: report);
   }
 
   /// Structured twin of [exportMarkdown] — same inputs, same numbers, one
@@ -1698,6 +1731,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   String exportJson() => const JsonEncoder.withIndent('  ').convert(
     buildJsonReport(
       fileName: state.fileName,
+      language: state.reportLanguage,
       offline: ref.read(mockModeProvider),
       result: state.result,
       units: state.units,
@@ -1716,7 +1750,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   Future<String?> saveJsonReportToFile() async {
     final report = exportJson();
     return _exporter.save(
-      fileName: _reportFileName(extension: 'json'),
+      fileName: reportFileName(extension: 'json'),
       contents: report,
     );
   }
@@ -1726,6 +1760,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   /// Same inputs as both twins; the numbers agree by construction.
   String exportHtml() => buildHtmlReport(
     fileName: state.fileName,
+    language: state.reportLanguage,
     offline: ref.read(mockModeProvider),
     result: state.result,
     units: state.units,
@@ -1744,7 +1779,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   Future<String?> saveHtmlReportToFile() async {
     final report = exportHtml();
     return _exporter.save(
-      fileName: _reportFileName(extension: 'html'),
+      fileName: reportFileName(extension: 'html'),
       contents: report,
       mimeType: 'text/html',
     );
@@ -1756,6 +1791,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   /// to three exports out of four.
   Uint8List exportDocx() => buildDocxReport(
     fileName: state.fileName,
+    language: state.reportLanguage,
     offline: ref.read(mockModeProvider),
     result: state.result,
     units: state.units,
@@ -1773,7 +1809,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   /// Writes the .docx to a file the user chooses. Bytes go through
   /// [ReportExporter.saveBytes] — a ZIP container must never be utf8-encoded.
   Future<String?> saveDocxReportToFile() => _exporter.saveBytes(
-    fileName: _reportFileName(extension: 'docx'),
+    fileName: reportFileName(extension: 'docx'),
     bytes: exportDocx(),
     mimeType:
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -1785,16 +1821,25 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   /// supervisor on mobile. Shares the markdown, not the JSON: the share
   /// target is a human reader.
   Future<String> shareReport() =>
-      _exporter.share(fileName: _reportFileName(), contents: exportMarkdown());
+      _exporter.share(fileName: reportFileName(), contents: exportMarkdown());
 
-  String _reportFileName({String extension = 'md'}) {
+  /// The name every save path writes, and the one the share sheet shows.
+  ///
+  /// Public because it is user-visible behaviour, not an internal detail: the
+  /// report language rides in the name so that exporting both an English and a
+  /// Vietnamese copy of one run produces two files instead of one silently
+  /// overwriting the other in the Downloads folder.
+  String reportFileName({String extension = 'md'}) {
     final base = state.fileName.trim().isEmpty ? 'srs' : state.fileName;
     final stem = base.contains('.')
         ? base.substring(0, base.lastIndexOf('.'))
         : base;
     final safe = stem.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
     final stamp = DateTime.now().toIso8601String().substring(0, 10);
-    return 'srs-review-$safe-$stamp.$extension';
+    // The language rides in the file name: a team exporting both an English
+    // and a Vietnamese copy of one run gets two files, not one that silently
+    // overwrites the other in the Downloads folder.
+    return 'srs-review-$safe-${state.reportLanguage.wire}-$stamp.$extension';
   }
 
   // ------------------------------------------------------------- toast
@@ -1845,8 +1890,23 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     }
   }
 
+  /// Reads the report-language preference from a persisted payload.
+  ///
+  /// Null — never a silent Vietnamese — when the key is absent or malformed:
+  /// absence is a draft written before the field existed, and mapping it
+  /// through `fromWire` would push the default over a language the user
+  /// already picked. A value that IS present but unreadable falls back to the
+  /// app default through [ReportLanguage.fromWire] rather than crashing a
+  /// startup over a preference.
+  static ReportLanguage? _decodeReportLanguage(Map<String, dynamic> payload) {
+    final wire = payload['reportLanguage'];
+    if (wire is! String || wire.isEmpty) return null;
+    return ReportLanguage.fromWire(wire);
+  }
+
   /// Persists what no run has claimed yet: the step-1 project container, the
-  /// step-2 declaration and the reviewer's own issues.
+  /// step-2 declaration, the reviewer's own issues and the report-language
+  /// preference.
   ///
   /// Deliberately small, and deliberately NOT the workspace. Units, findings,
   /// triage and the AI result all have a home the moment a run finishes (the
@@ -1855,7 +1915,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   /// the old `_saveSnapshot` re-encoded the whole workspace — units plus every
   /// page of text, ~1 MB on the OTES run — on each of a dozen mutations, for a
   /// reader that no longer existed. The draft is a few hundred bytes, written
-  /// only when one of those three things actually changes.
+  /// only when one of those things actually changes.
   Future<void> _saveDraft() async {
     final payload = jsonEncode({
       'projectName': state.projectName,
@@ -1863,6 +1923,7 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       'humanIssues': state.humanIssues
           .map((issue) => issue.toJson())
           .toList(growable: false),
+      'reportLanguage': state.reportLanguage.wire,
     });
     try {
       await _store.saveDraft(payload);
@@ -1890,6 +1951,18 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
         return;
       }
       final payload = jsonDecode(raw) as Map<String, dynamic>;
+      // The language is a preference, not step-1/2 work, so it is applied
+      // BEFORE the typed-fields guard below: a name typed in the read window
+      // must not cost the choice. A draft that predates the field (key absent)
+      // is a no-op — mapping absence through `fromWire` would write Vietnamese
+      // over a language the user already picked. The one input that can lose
+      // here is a Vietnamese choice made inside the same read window as a draft
+      // that carries 'en'; it falls back to the app default, not to another
+      // language.
+      final language = _decodeReportLanguage(payload);
+      if (language != null) {
+        state = state.copyWith(reportLanguage: language);
+      }
       final name = (payload['projectName'] as String?)?.trim() ?? '';
       final info = _decodeProjectInfo(payload);
       final issues = _decodeHumanIssues(payload);

@@ -61,7 +61,7 @@ void main() {
         findings.map((f) => f.subject),
         unorderedEquals(['SEC-4.2', 'SEC-4.2.1']),
       );
-      expect(findings.every((f) => f.message.contains('"4"')), isTrue);
+      expect(findings.every((f) => f.messageVi.contains('"4"')), isTrue);
       expect(findings.every((f) => f.severity == Severity.medium), isTrue);
     });
 
@@ -72,7 +72,7 @@ void main() {
       ]);
       expect(findings, hasLength(1));
       expect(findings.single.subject, 'SEC-3');
-      expect(findings.single.message, contains('2 lần'));
+      expect(findings.single.messageVi, contains('2 lần'));
     });
 
     test('1.10 after 1.9 is a normal increment, not a gap', () {
@@ -105,7 +105,7 @@ void main() {
       expect(findings, hasLength(1));
       expect(findings.single.check, CheckId.pageNumbering);
       expect(findings.single.severity, Severity.low);
-      expect(findings.single.message, contains('kiểm tra bằng mắt'));
+      expect(findings.single.messageVi, contains('kiểm tra bằng mắt'));
     });
 
     test('a run that repeats or steps backwards fires once', () {
@@ -113,7 +113,7 @@ void main() {
       final findings = checks.pageNumbering(_pages(7, (i) => suffixes[i - 1]));
       expect(findings, hasLength(1));
       expect(findings.single.check, CheckId.pageNumbering);
-      expect(findings.single.message, contains('3 lần'));
+      expect(findings.single.messageVi, contains('3 lần'));
     });
   });
 }
