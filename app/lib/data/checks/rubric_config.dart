@@ -15,6 +15,8 @@ class RubricConfig {
     required this.warnScore,
     this.reviewsPerDay,
     this.maxBatchUnits,
+    this.weights = const {},
+    this.overrideCount = 0,
   });
 
   factory RubricConfig.fromJson(Map<String, dynamic> json) {
@@ -22,8 +24,24 @@ class RubricConfig {
     final ucCount = checks['uc_count'] as Map<String, dynamic>;
     final ucSize = checks['uc_size'] as Map<String, dynamic>;
     final thresholds = json['thresholds'] as Map<String, dynamic>;
+    final criteria =
+        (json['quality_criteria'] as Map<String, dynamic>?) ?? const {};
     return RubricConfig(
       version: json['version'] as String,
+      // The grading weights. Present since 2026-09-25 because the rubric became
+      // editable; a proxy older than this client simply sends no
+      // `quality_criteria`, and an empty map is the honest answer — the editor
+      // then says it cannot show the scale rather than showing zeros.
+      weights: {
+        for (final entry in criteria.entries)
+          if (entry.value is Map<String, dynamic> &&
+              (entry.value as Map<String, dynamic>)['weight'] is num)
+            entry.key: ((entry.value as Map<String, dynamic>)['weight'] as num)
+                .toDouble(),
+      },
+      overrideCount:
+          (json['editable'] as Map<String, dynamic>?)?['overrides'] as int? ??
+          0,
       ucCountMin: ucCount['min'] as int,
       // Nullable since rubric v3: rulebook 1.5 Q1 dropped the upper bound, and
       // the key is kept as an explicit `null` rather than removed so that an
@@ -58,6 +76,20 @@ class RubricConfig {
 
   final String version;
   final int ucCountMin;
+
+  /// The grading weights, keyed by criterion name (`clear`, `testable`, …).
+  final Map<String, double> weights;
+
+  /// How many leaves this deployment has overridden from the committed seed.
+  final int overrideCount;
+
+  /// True when the weights add up to 1.0. The proxy refuses to store a set that
+  /// does not, so the only way to see this false is an edited draft in the UI —
+  /// and the editor must not offer to save that.
+  bool get weightsSumToOne => (weightTotal - 1.0).abs() < 1e-6;
+
+  double get weightTotal =>
+      weights.values.fold<double>(0, (sum, value) => sum + value);
 
   /// Null means "no upper bound" (rubric v3 / rulebook 1.5 Q1). A high use-case
   /// count is not a defect; use-case SIZE is the criterion that matters.

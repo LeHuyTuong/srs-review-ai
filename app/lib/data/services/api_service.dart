@@ -119,6 +119,23 @@ class ApiService implements ReviewApi {
         .toList(growable: false);
   }
 
+  /// Writes the syllabus thresholds and the grading weights (2026-09-25).
+  ///
+  /// Through `_write`, so a failed PUT is NOT retried behind the user's back:
+  /// re-sending a reweighting could land on top of an edit they made in another
+  /// window since the first attempt. The returned rubric is the one the proxy now
+  /// serves, which is what the UI must render — not the values it sent.
+  Future<RubricConfig> updateRubric(Map<String, dynamic> patch) async {
+    final data = await _write('PUT', '/rubric', patch);
+    return RubricConfig.fromJson(data['rubric'] as Map<String, dynamic>);
+  }
+
+  /// Back to the committed seed rubric, discarding every override.
+  Future<RubricConfig> resetRubric() async {
+    final data = await _write('POST', '/rubric/reset');
+    return RubricConfig.fromJson(data['rubric'] as Map<String, dynamic>);
+  }
+
   /// One entry point for the three write verbs. No retry, on purpose: a criteria
   /// edit is a human decision, and repeating it behind their back is worse than
   /// showing the error.

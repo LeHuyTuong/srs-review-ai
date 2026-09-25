@@ -183,6 +183,62 @@ final rubricProvider = FutureProvider<RubricConfig>((ref) async {
 /// because `prompt.py` renders whatever the store has enabled. The offline
 /// rule-based checks in `data/checks/` are deliberately NOT in this list: they
 /// are exact, free, and shown on their own dashboard section.
+/// Writes to the marking scale (2026-09-25).
+///
+/// `rubricProvider` above stays the READ path — it already has the offline
+/// fallback and the whole UI depends on it. This is only the write path, and it
+/// invalidates the reader after a successful save so the two can never disagree
+/// about what the proxy is serving.
+///
+/// The scale is not free-form: the proxy refuses a weight set that does not sum
+/// to 1.0, and a reweighting has to be sent whole (see `rubric_store.py`). This
+/// controller therefore forwards one patch and reports the proxy's own refusal
+/// instead of pre-judging it — the client is not a second place where the rule
+/// lives.
+final rubricControllerProvider =
+    AsyncNotifierProvider<RubricController, RubricConfig>(RubricController.new);
+
+class RubricController extends AsyncNotifier<RubricConfig> {
+  ApiService? get _api {
+    final candidate = ref.read(reviewApiProvider);
+    return candidate is ApiService ? candidate : null;
+  }
+
+  bool get canEdit => _api != null;
+
+  @override
+  Future<RubricConfig> build() async => RubricConfig.fallback;
+
+  Future<String?> save(Map<String, dynamic> patch) async {
+    final api = _api;
+    if (api == null) return 'Chỉ sửa được chuẩn khi đang kết nối máy chủ.';
+    try {
+      final served = await api.updateRubric(patch);
+      // Render what the proxy now serves, not what we sent: it validates and
+      // may normalise, and the report has to quote the live scale.
+      state = AsyncData(served);
+      ref.invalidate(rubricProvider);
+      return null;
+    } on Object catch (error) {
+      return error is ApiException ? error.message : 'Không lưu được: $error';
+    }
+  }
+
+  Future<String?> resetToSeed() async {
+    final api = _api;
+    if (api == null) return 'Chỉ sửa được chuẩn khi đang kết nối máy chủ.';
+    try {
+      state = AsyncData(await api.resetRubric());
+      ref.invalidate(rubricProvider);
+      return null;
+    } on Object catch (error) {
+      return error is ApiException
+          ? error.message
+          : 'Không khôi phục được: $error';
+    }
+  }
+}
+
 final criteriaProvider =
     AsyncNotifierProvider<CriteriaController, List<AiCriterion>>(
       CriteriaController.new,

@@ -29,6 +29,7 @@ import '../models/demo_units.dart';
 import '../models/workspace_unit.dart' show UnitKind;
 import '../view_model/workspace_view_model.dart';
 import 'criteria_manager.dart';
+import 'rubric_editor.dart';
 import 'shortcuts_modal.dart';
 import 'workspace_widgets.dart';
 
@@ -1151,6 +1152,16 @@ Future<void> showRubricModal(BuildContext context, WidgetRef ref) => _show(
             icon: Icons.tune,
             expanded: true,
             onPressed: () => showCriteriaManagerModal(context, ref),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // And the syllabus thresholds / grading weights became editable in the
+          // same way. The numbers above are what the proxy is serving; this is
+          // where they come from.
+          WButton.secondary(
+            label: 'Sửa chuẩn syllabus & thang điểm',
+            icon: Icons.calculate_outlined,
+            expanded: true,
+            onPressed: () => showRubricEditor(context, ref),
           ),
           const SizedBox(height: AppSpacing.sm),
           const WInfoNote(

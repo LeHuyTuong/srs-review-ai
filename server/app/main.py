@@ -46,7 +46,7 @@ from .prompt import (
     review_user_prompt,
 )
 from .ratelimit import RateLimiter
-from .rubric import load_rubric
+from .rubric_store import RubricStore
 from .schemas import (
     CONTRACT_VERSION,
     LLM_ASK_SCHEMA,
@@ -127,6 +127,11 @@ _share_store = ShareStore(_settings.share_dir)
 # a criterion the user believes they configured.
 _criteria = CriteriaStore(_settings.cache_dir / "criteria.sqlite3")
 
+# The live rubric: seed + whatever leaves a user has overridden. Its own sqlite
+# file for the same reason as the criteria — a marking scale a restart could
+# quietly roll back is not an editable scale.
+_rubric = RubricStore(_settings.cache_dir / "rubric.sqlite3")
+
 
 class PresignRequest(BaseModel):
     model_config = {"extra": "forbid"}
@@ -149,7 +154,7 @@ def caller_id(request: Request, x_user_id: str | None = Header(default=None)) ->
 
 @app.get("/health")
 def health(settings: Settings = Depends(get_settings)) -> dict[str, object]:
-    rubric = load_rubric()
+    rubric = _rubric.current()
     return {
         "status": "ok",
         "contract_version": CONTRACT_VERSION,
@@ -169,12 +174,15 @@ def health(settings: Settings = Depends(get_settings)) -> dict[str, object]:
         # The editable checklist, because "the app reviewed me against three
         # criteria and I configured nine" is a question /health can answer.
         "criteria": _criteria.stats(),
+        # And the same question about the marking scale: which numbers are the
+        # seed's, and which ones somebody changed in the app.
+        "rubric": _rubric.stats(),
     }
 
 
 @app.get("/rubric")
 def rubric(settings: Settings = Depends(get_settings)) -> dict[str, object]:
-    """The app reads thresholds from here — no duplicated constants in Dart.
+    """The live marking scale: the seed plus the user's overrides.
 
     `limits` is merged in at the edge rather than written into rubric.json. That
     file is the marking rubric — how a document is graded, with criteria weights
@@ -184,7 +192,7 @@ def rubric(settings: Settings = Depends(get_settings)) -> dict[str, object]:
     `RATE_LIMIT_PER_DAY` then shows a number that contradicts its own behaviour.
     """
     return {
-        **load_rubric(),
+        **_rubric.current(),
         "limits": {
             "reviews_per_day": settings.rate_limit_per_day,
             # The batch ceiling is deployment config too. The client carries a
@@ -193,7 +201,35 @@ def rubric(settings: Settings = Depends(get_settings)) -> dict[str, object]:
             # changes the original — exactly how "50/day" went wrong.
             "max_batch_units": settings.max_batch_units,
         },
+        "editable": {
+            "overrides": _rubric.stats()["overrides"],
+            "degraded": _rubric.degraded,
+        },
     }
+
+
+@app.put("/rubric", dependencies=[Depends(require_app_token)])
+def update_rubric(body: dict[str, Any]) -> dict[str, Any]:
+    """Change the syllabus thresholds and the grading weights.
+
+    422 for anything the store refuses — a weight set that no longer sums to 1.0,
+    a leaf that is not editable, a score outside 0..10 — and in every one of
+    those cases the old rubric is still the one being served. The weights rule is
+    the important one: a scale that does not sum to 1.0 produces ordinary-looking
+    scores that are simply wrong, so it is checked before anything is written.
+    """
+    try:
+        rubric_cfg = _rubric.update(body)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"rubric": rubric_cfg, "stats": _rubric.stats()}
+
+
+@app.post("/rubric/reset", dependencies=[Depends(require_app_token)])
+def reset_rubric() -> dict[str, Any]:
+    """Back to the committed seed — the only way out of a marking scale somebody
+    broke, and the reason an edit is never silently reverted on restart."""
+    return {"rubric": _rubric.reset(), "stats": _rubric.stats()}
 
 
 @app.get("/criteria", dependencies=[Depends(require_app_token)])
@@ -263,7 +299,8 @@ def _review_config() -> dict[str, Any]:
     never mutated — `load_rubric` is `lru_cache`d and shared process-wide.
     """
     return {
-        **load_rubric(),
+        **_rubric.current(),
+        "rubric_fingerprint": _rubric.fingerprint(),
         "criteria_fingerprint": _criteria.fingerprint(),
         "criteria_block": _criteria.prompt_block("unit"),
     }
@@ -309,6 +346,12 @@ def _review_cache_key(
         settings.prompt_version,
         str(rubric_cfg["version"]),
         str(settings.fuzzy_threshold),
+        # The marking scale reached the prompt through `quality_criteria` and
+        # decides every score, so its fingerprint belongs in the key for the same
+        # reason `rubric.version` does: reweight `testable` and the old scores are
+        # not answers to the new question. The seed alone would not catch it —
+        # an override leaves `version` alone.
+        str(rubric_cfg.get("rubric_fingerprint", "")),
         # The editable criteria reach the prompt through `criteria_block`, so
         # their fingerprint belongs in the key for the same reason the rubric
         # version does: change the wording and the old result is not an answer
@@ -818,7 +861,13 @@ async def diagram(
     model guess instead of look. The rate limiter charges ONE unit per
     request, not two — the pair is one logical audit.
     """
-    rubric_cfg = load_rubric()
+    # Only `version` is read here, and an override cannot change it. That is
+    # deliberate: the diagram pass is judged by its own schema and never sees
+    # `quality_criteria`, so the marking weights cannot change its answer — which
+    # is why the rubric fingerprint is NOT part of `diagram_cache_key`. Adding it
+    # would throw away a paid image review every time somebody reweighted the
+    # text criteria, for no correctness gain.
+    rubric_cfg = _rubric.current()
     provider = build_provider(settings)
     models = [settings.gemini_model, settings.gemini_fallback_model]
     key = diagram_cache_key(
