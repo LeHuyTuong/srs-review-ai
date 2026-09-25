@@ -47,9 +47,7 @@ def _isolate_state():
 
 @pytest.fixture
 def client():
-    app.dependency_overrides[get_settings] = lambda: Settings(
-        mock_mode=True, gemini_api_key=""
-    )
+    app.dependency_overrides[get_settings] = lambda: Settings(mock_mode=True, gemini_api_key="")
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
@@ -90,9 +88,7 @@ def test_the_explicit_criterion_id_survives_with_a_valid_type():
 def test_the_explicit_criterion_id_wins_over_an_unfittable_type():
     """A model that fills in both: the named criterion is the value to trust,
     and the junk class is still reported as `other` rather than guessed at."""
-    kept, _ = review_issues(
-        [_issue(type="brand_new_category", criterion_id="my_own_rule")], TEXT
-    )
+    kept, _ = review_issues([_issue(type="brand_new_category", criterion_id="my_own_rule")], TEXT)
 
     assert kept[0].type == IssueType.other
     assert kept[0].criterion_id == "my_own_rule"
@@ -220,9 +216,7 @@ class CriterionProvider:
 
 def _client_with(provider, monkeypatch):
     monkeypatch.setattr(main_module, "build_provider", lambda _settings: provider)
-    app.dependency_overrides[get_settings] = lambda: Settings(
-        mock_mode=False, gemini_api_key="test-key"
-    )
+    app.dependency_overrides[get_settings] = lambda: Settings(mock_mode=False, gemini_api_key="test-key")
     return TestClient(app)
 
 
@@ -282,14 +276,14 @@ def test_mock_cites_an_enabled_criterion_and_drops_it_when_disabled(tmp_path):
     back: a criterion the prompt no longer lists stops being named."""
     system = CriteriaStore(tmp_path / "criteria.sqlite3").prompt_block("unit")
     provider = MockProvider()
-    payload = provider._review(f"requirement_id: FR-03\ntext:\n\"\"\"\n{TEXT}\n\"\"\"", ())
+    payload = provider._review(f'requirement_id: FR-03\ntext:\n"""\n{TEXT}\n"""', ())
     assert all("criterion_id" not in issue for issue in payload["issues"])
 
     ids = tuple(row["id"] for row in load_seed())
-    payload = provider._review(f"requirement_id: FR-03\ntext:\n\"\"\"\n{TEXT}\n\"\"\"", ids)
+    payload = provider._review(f'requirement_id: FR-03\ntext:\n"""\n{TEXT}\n"""', ids)
     assert payload["issues"][0]["criterion_id"] == "unambiguous"
 
     without = tuple(name for name in ids if name != "unambiguous")
-    payload = provider._review(f"requirement_id: FR-03\ntext:\n\"\"\"\n{TEXT}\n\"\"\"", without)
+    payload = provider._review(f'requirement_id: FR-03\ntext:\n"""\n{TEXT}\n"""', without)
     assert payload["issues"][0]["criterion_id"] == "verifiable"
     assert system.count("[") > 1

@@ -13,7 +13,8 @@ from pathlib import Path
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-SERVER_ROOT = Path(__file__).resolve().parent.parent
+# Three levels up: this file lives at server/app/config/settings.py.
+SERVER_ROOT = Path(__file__).resolve().parent.parent.parent
 REPO_ROOT = SERVER_ROOT.parent
 
 

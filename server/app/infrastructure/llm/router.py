@@ -4,8 +4,8 @@ means adding a class and one line here; nothing else in the app changes.
 
 from __future__ import annotations
 
-from ..config import Settings
-from .base import LlmProvider
+from ...config.settings import Settings
+from ...domain.provider import LlmProvider
 from .gemini import GeminiProvider
 from .mock import MockProvider
 

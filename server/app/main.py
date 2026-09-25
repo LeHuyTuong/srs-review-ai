@@ -17,37 +17,11 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Res
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, ValidationError
 
-from . import docmap
-from .cache import cache_key
-from .config import Settings, get_settings
-from .criteria import CriteriaStore, validate
-from .diagram import (
-    DESCRIBE_SYSTEM,
-    DIAGRAM_PROMPT_VERSION,
-    ID_FAMILY_BY_TYPE,
-    LLM_DIAGRAM_DESCRIBE_SCHEMA,
-    LLM_DIAGRAM_JUDGE_SCHEMA,
-    DiagramDescribe,
-    DiagramRequest,
-    DiagramResponse,
-    DiagramVerdict,
-    describe_user_prompt,
-    diagram_cache_key,
-    judge_system_prompt,
-    judge_user_prompt,
-)
-from .llm.base import LlmError
-from .llm.router import build_provider
-from .prompt import (
-    ask_system_prompt,
-    ask_user_prompt,
-    review_batch_user_prompt,
-    review_system_prompt,
-    review_user_prompt,
-)
-from .ratelimit import RateLimiter
-from .rubric_store import RubricStore
-from .schemas import (
+from . import docmap  # infrastructure shim; S4 moves this import to the canonical path
+from .config.criteria import CriteriaStore, validate
+from .config.rubric_store import RubricStore
+from .config.settings import Settings, get_settings
+from .contracts.schemas import (
     CONTRACT_VERSION,
     LLM_ASK_SCHEMA,
     LLM_BATCH_REVIEW_SCHEMA,
@@ -65,16 +39,42 @@ from .schemas import (
     ReviewRequest,
     ReviewResult,
 )
-from .share import ShareStore
-from .store import SqliteCache
-from .uploads import (
+from .domain.provider import LlmError
+from .domain.verification import review_issues, verify_quote
+from .infrastructure.cache import cache_key
+from .infrastructure.diagram import (
+    DESCRIBE_SYSTEM,
+    DIAGRAM_PROMPT_VERSION,
+    ID_FAMILY_BY_TYPE,
+    LLM_DIAGRAM_DESCRIBE_SCHEMA,
+    LLM_DIAGRAM_JUDGE_SCHEMA,
+    DiagramDescribe,
+    DiagramRequest,
+    DiagramResponse,
+    DiagramVerdict,
+    describe_user_prompt,
+    diagram_cache_key,
+    judge_system_prompt,
+    judge_user_prompt,
+)
+from .infrastructure.llm.router import build_provider
+from .infrastructure.ratelimit import RateLimiter
+from .infrastructure.share import ShareStore
+from .infrastructure.store import SqliteCache
+from .infrastructure.uploads import (
     InvalidTokenError,
     UploadError,
     UploadNotFoundError,
     UploadStore,
     UploadTooLargeError,
 )
-from .verify import review_issues, verify_quote
+from .prompt import (
+    ask_system_prompt,
+    ask_user_prompt,
+    review_batch_user_prompt,
+    review_system_prompt,
+    review_user_prompt,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 log = logging.getLogger("srs-proxy")
@@ -267,18 +267,14 @@ def update_criterion(criterion_id: str, body: CriterionUpdate) -> dict[str, Any]
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     if row is None:
-        raise HTTPException(
-            status_code=404, detail=f"no criterion {criterion_id!r}"
-        )
+        raise HTTPException(status_code=404, detail=f"no criterion {criterion_id!r}")
     return {"criterion": row, "stats": _criteria.stats()}
 
 
 @app.delete("/criteria/{criterion_id}", dependencies=[Depends(require_app_token)])
 def delete_criterion(criterion_id: str) -> dict[str, Any]:
     if not _criteria.delete(criterion_id):
-        raise HTTPException(
-            status_code=404, detail=f"no criterion {criterion_id!r}"
-        )
+        raise HTTPException(status_code=404, detail=f"no criterion {criterion_id!r}")
     return {"deleted": criterion_id, "stats": _criteria.stats()}
 
 
@@ -490,9 +486,7 @@ async def review(
         # that braces: a future field the provider gets wrong must surface as a
         # readable 502, never as an unhandled traceback that looks like a proxy
         # bug and tells the user nothing.
-        log.warning(
-            "review payload for %s was unusable: %s", payload.requirement_id, exc
-        )
+        log.warning("review payload for %s was unusable: %s", payload.requirement_id, exc)
         raise HTTPException(
             status_code=502,
             detail="AI provider returned an unexpected structure. Retry or use mock mode.",

@@ -20,8 +20,8 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from app.criteria import CriteriaStore, load_seed
 from app.config import get_settings
+from app.criteria import CriteriaStore, load_seed
 from app.main import _criteria, app
 from app.prompt import review_system_prompt
 from app.rubric import load_rubric
@@ -53,9 +53,7 @@ def test_list_seeds_once_and_then_survives_a_restart(store: CriteriaStore) -> No
     try:
         again = reopened.get(first[0]["id"])
         assert again is not None
-        assert again["title"] == "Tiêu chí đã sửa", (
-            "a restart must not revert the user's marking sheet"
-        )
+        assert again["title"] == "Tiêu chí đã sửa", "a restart must not revert the user's marking sheet"
     finally:
         reopened.close()
 
@@ -173,9 +171,7 @@ def test_an_unwritable_database_degrades_instead_of_failing(tmp_path) -> None:
         assert degraded.list(), "the seed must answer from memory"
         assert degraded.prompt_block("unit")
         assert degraded.fingerprint()
-        created = degraded.create(
-            {"id": "in_memory", "title": "t", "what": "w", "order": 900}
-        )
+        created = degraded.create({"id": "in_memory", "title": "t", "what": "w", "order": 900})
         assert created["id"] == "in_memory"
         assert degraded.get("in_memory") is not None
     finally:
@@ -262,12 +258,7 @@ def test_criteria_reads_and_writes_need_the_app_token(client: TestClient) -> Non
     client.app.dependency_overrides[get_settings] = lambda: _WithToken()
     try:
         assert client.get("/criteria").status_code == 401
-        assert (
-            client.post(
-                "/criteria", json={"id": "x", "title": "t", "what": "w"}
-            ).status_code
-            == 401
-        )
+        assert client.post("/criteria", json={"id": "x", "title": "t", "what": "w"}).status_code == 401
         assert client.get("/criteria", headers={"X-App-Token": "secret"}).status_code == 200
     finally:
         client.app.dependency_overrides.clear()
@@ -277,9 +268,7 @@ def test_the_review_prompt_carries_the_stored_criteria(client: TestClient) -> No
     """The end-to-end claim: what the user edits is what the model is told."""
     _criteria.update("verifiable", {"what": "SENTINEL-WORDING"})
     try:
-        prompt = review_system_prompt(
-            {**load_rubric(), "criteria_block": _criteria.prompt_block("unit")}
-        )
+        prompt = review_system_prompt({**load_rubric(), "criteria_block": _criteria.prompt_block("unit")})
         assert "SENTINEL-WORDING" in prompt
         assert "EVALUATION CRITERIA" in prompt
     finally:

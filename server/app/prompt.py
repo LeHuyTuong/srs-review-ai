@@ -7,7 +7,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any, Protocol
 
-from .rubric import criteria_lines
+from .config.rubric import criteria_lines
 
 _REVIEW_SYSTEM = """You are a meticulous senior software requirements reviewer working to
 ISO/IEC/IEEE 29148 (IEEE 830).
@@ -142,9 +142,7 @@ def _unit_brief(requirement_id: str, section: str | None) -> str:
     return ""
 
 
-def review_system_prompt(
-    rubric: dict[str, Any], criteria_block: str | None = None
-) -> str:
+def review_system_prompt(rubric: dict[str, Any], criteria_block: str | None = None) -> str:
     """Assemble the review system prompt.
 
     The evaluation criteria are NOT written here any more (2026-09-25): they are
@@ -159,17 +157,10 @@ def review_system_prompt(
     the prompt and the cache key are rendered from one and the same read of the
     store (see `_review_config` in main.py).
     """
-    block = (
-        criteria_block
-        if criteria_block is not None
-        else str(rubric.get("criteria_block") or "")
-    )
+    block = criteria_block if criteria_block is not None else str(rubric.get("criteria_block") or "")
     return _REVIEW_SYSTEM.format(
         criteria=criteria_lines(rubric),
-        evaluation=block
-        or (
-            "EVALUATION CRITERIA — none are enabled. Report no issues and score 8-10."
-        ),
+        evaluation=block or ("EVALUATION CRITERIA — none are enabled. Report no issues and score 8-10."),
     )
 
 

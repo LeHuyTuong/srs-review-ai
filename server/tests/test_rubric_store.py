@@ -109,18 +109,12 @@ def test_a_reweighting_is_atomic_or_it_is_refused(store: RubricStore) -> None:
         ({"quality_criteria": {"clear": {"weight": 0}}}, "between 0 and 1"),
         ({"deterministic_checks": {"uc_count": {"min": -1}}}, "not be negative"),
         (
-            {
-                "deterministic_checks": {
-                    "uc_size": {"min_transactions": 9, "max_transactions": 4}
-                }
-            },
+            {"deterministic_checks": {"uc_size": {"min_transactions": 9, "max_transactions": 4}}},
             "must not exceed",
         ),
     ],
 )
-def test_range_checks_refuse_the_obvious_mistakes(
-    store: RubricStore, patch: dict, message: str
-) -> None:
+def test_range_checks_refuse_the_obvious_mistakes(store: RubricStore, patch: dict, message: str) -> None:
     with pytest.raises(ValueError, match=message):
         store.update(patch)
 
@@ -146,9 +140,7 @@ def test_fingerprint_moves_only_for_the_leaves_that_change_a_score(
 ) -> None:
     before = store.fingerprint()
     store.update({"thresholds": {"pass_mark": 6.0}})
-    assert store.fingerprint() != before, (
-        "a pass-mark change makes every cached score a different question"
-    )
+    assert store.fingerprint() != before, "a pass-mark change makes every cached score a different question"
 
     stable = store.fingerprint()
     store.update({"thresholds": {"min_per_part": 2.5}})
@@ -167,9 +159,7 @@ def test_fingerprint_moves_only_for_the_leaves_that_change_a_score(
 def test_reset_restores_the_seed(store: RubricStore) -> None:
     store.update({"thresholds": {"pass_mark": 7.0}})
     restored = store.reset()
-    assert restored["thresholds"]["pass_mark"] == load_rubric()["thresholds"][
-        "pass_mark"
-    ]
+    assert restored["thresholds"]["pass_mark"] == load_rubric()["thresholds"]["pass_mark"]
     assert store.stats()["overrides"] == 0
 
 
@@ -231,9 +221,7 @@ def test_http_edit_then_read_then_reset(client: TestClient) -> None:
 def test_http_refusals_are_422_and_change_nothing(client: TestClient) -> None:
     before = client.get("/rubric").json()
     assert client.put("/rubric", json={"thresholds": {"pass_mark": 42}}).status_code == 422
-    assert (
-        client.put("/rubric", json={"quality_criteria": {"clear": {"weight": 0.9}}})
-    ).status_code == 422
+    assert (client.put("/rubric", json={"quality_criteria": {"clear": {"weight": 0.9}}})).status_code == 422
     assert client.put("/rubric", json={"nonsense": 1}).status_code == 422
     assert client.put("/rubric", json={}).status_code == 422
     after = client.get("/rubric").json()
