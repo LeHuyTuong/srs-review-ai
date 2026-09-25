@@ -68,10 +68,26 @@ class ReportExporter {
     // The export family grew beyond markdown: the JSON and HTML twins need
     // their own MIME so the platform dialog suggests the right type.
     String mimeType = 'text/markdown',
+  }) => saveBytes(
+    fileName: fileName,
+    bytes: Uint8List.fromList(utf8.encode(contents)),
+    mimeType: mimeType,
+  );
+
+  /// The binary leg of the same door. A .docx is bytes, not text: pushing it
+  /// through [save] would utf8-encode a ZIP container and hand Word a file it
+  /// cannot open, which is why this exists instead of a second save dialog.
+  ///
+  /// Returns the destination as the platform reported it, or null when the user
+  /// cancelled. A thrown error is a real failure the caller should show.
+  Future<String?> saveBytes({
+    required String fileName,
+    required Uint8List bytes,
+    String mimeType = 'application/octet-stream',
   }) async {
     final uri = await _saveFile(
       fileName: fileName,
-      bytes: Uint8List.fromList(utf8.encode(contents)),
+      bytes: bytes,
       mimeType: mimeType,
       dialogTitle: 'Save review report',
     );

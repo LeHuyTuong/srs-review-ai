@@ -13,6 +13,7 @@ import '../../../core/layout/app_viewport.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
 import '../../../core/widgets/chrome_insets.dart';
+import '../../../core/widgets/full_screen_surface.dart';
 import '../view_model/workspace_view_model.dart';
 import 'workspace_modals.dart';
 import 'workspace_widgets.dart';
@@ -219,21 +220,25 @@ class _ReviewHistoryViewState extends ConsumerState<ReviewHistoryView> {
                             },
                             onDelete: () async {
                               // 1. Hiển thị Dialog xác nhận trước khi xóa
-                              final confirmed = await showDialog<bool>(
+                              final confirmed = await showFullScreenSurface<bool>(
                                 context: context,
-                                builder: (dialogContext) {
-                                  return AlertDialog(
-                                    title: const Text('Xóa phiên đánh giá?'),
-                                    content: Text(
+                                builder: (dialogContext) => WFullScreenSurface(
+                                  icon: Icons.delete_outline,
+                                  title: 'Xóa phiên đánh giá?',
+                                  description:
                                       'Bạn có chắc chắn muốn xóa phiên đánh giá của tệp "${session.fileName}"? Hành động này không thể hoàn tác.',
-                                    ),
-                                    actions: [
+                                  centerBody: true,
+                                  maxContentWidth: 560,
+                                  body: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
                                       WButton.secondary(
                                         label: 'Hủy',
                                         onPressed: () => Navigator.of(
                                           dialogContext,
                                         ).pop(false),
                                       ),
+                                      const SizedBox(width: AppSpacing.sm),
                                       WButton.primary(
                                         label: 'Xóa',
                                         onPressed: () => Navigator.of(
@@ -241,8 +246,8 @@ class _ReviewHistoryViewState extends ConsumerState<ReviewHistoryView> {
                                         ).pop(true),
                                       ),
                                     ],
-                                  );
-                                },
+                                  ),
+                                ),
                               );
 
                               // 2. Chỉ thực hiện xóa khi người dùng chọn bấm nút "Xóa"

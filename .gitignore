@@ -77,3 +77,10 @@ skills/sequence-class-diagram/
 skills/state-machine-diagram/
 skills/use-case-diagram/
 skills/diagram-builder/
+
+# Sau khi giải nén skills.zip, cây thực tế nằm ở skills/skills/ (lồi một
+# cấp) kèm thư mục rác __MACOSX/ — hai mẫu trên không che được. Chúng là bản
+# sao local của các skill draw.io, không phải adapter mà repo theo dõi
+# (skills/srs-reviewer + skills/sds-reviewer vẫn được track).
+skills/skills/
+skills/__MACOSX/

@@ -7,6 +7,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
 import '../../../core/widgets/chrome_insets.dart';
+import '../../../core/widgets/full_screen_surface.dart';
 import '../../../data/checks/criteria_catalog.dart';
 import '../../../data/models/deterministic_finding.dart';
 import '../../../data/models/human_issue.dart';
@@ -616,7 +617,7 @@ class _DeleteHumanButton extends StatelessWidget {
 /// [WorkspaceViewModel.addHumanIssue] can stay a thin recorder — the same
 /// split the project-info form uses (form owns validation, VM records).
 Future<void> showAddHumanIssueDialog(BuildContext context, WidgetRef ref) =>
-    showDialog<void>(
+    showFullScreenSurface<void>(
       context: context,
       builder: (_) => _AddHumanIssueDialog(ref: ref),
     );
@@ -656,96 +657,103 @@ class _AddHumanIssueDialogState extends State<_AddHumanIssueDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return AlertDialog(
-      title: const Text('Thêm issue của người review'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(
-                labelText: 'Tiêu đề *',
-                hintText: 'Ví dụ: Thiếu số trang ở phụ lục',
-                isDense: true,
-                border: OutlineInputBorder(),
-              ),
+    return WFullScreenSurface(
+      icon: Icons.playlist_add,
+      title: 'Thêm issue của người review',
+      description:
+          'Ghi lại lỗi bạn tự phát hiện — nội dung này đi kèm báo cáo xuất ra.',
+      maxContentWidth: 720,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: titleController,
+            decoration: const InputDecoration(
+              labelText: 'Tiêu đề *',
+              hintText: 'Ví dụ: Thiếu số trang ở phụ lục',
+              isDense: true,
+              border: OutlineInputBorder(),
             ),
-            const SizedBox(height: AppSpacing.sm),
-            TextField(
-              controller: detailController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Mô tả',
-                isDense: true,
-                border: OutlineInputBorder(),
-              ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          TextField(
+            controller: detailController,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'Mô tả',
+              isDense: true,
+              border: OutlineInputBorder(),
             ),
-            const SizedBox(height: AppSpacing.sm),
-            TextField(
-              controller: sectionController,
-              decoration: const InputDecoration(
-                labelText: 'Vị trí (tùy chọn)',
-                hintText: 'Ví dụ: §4.2 hoặc UC-07',
-                isDense: true,
-                border: OutlineInputBorder(),
-              ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          TextField(
+            controller: sectionController,
+            decoration: const InputDecoration(
+              labelText: 'Vị trí (tùy chọn)',
+              hintText: 'Ví dụ: §4.2 hoặc UC-07',
+              isDense: true,
+              border: OutlineInputBorder(),
             ),
-            const SizedBox(height: AppSpacing.sm),
-            DropdownButtonFormField<Severity>(
-              initialValue: severity,
-              decoration: const InputDecoration(
-                labelText: 'Mức độ',
-                isDense: true,
-                border: OutlineInputBorder(),
-              ),
-              items: [
-                for (final entry in Severity.values)
-                  DropdownMenuItem(value: entry, child: Text(entry.name)),
-              ],
-              onChanged: (next) {
-                if (next != null) {
-                  setState(() => severity = next);
-                }
-              },
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          DropdownButtonFormField<Severity>(
+            initialValue: severity,
+            decoration: const InputDecoration(
+              labelText: 'Mức độ',
+              isDense: true,
+              border: OutlineInputBorder(),
             ),
-            if (error.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                error,
-                style: theme.textTheme.labelSmall?.copyWith(color: Colors.red),
+            items: [
+              for (final entry in Severity.values)
+                DropdownMenuItem(value: entry, child: Text(entry.name)),
+            ],
+            onChanged: (next) {
+              if (next != null) {
+                setState(() => severity = next);
+              }
+            },
+          ),
+          if (error.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              error,
+              style: theme.textTheme.labelSmall?.copyWith(color: Colors.red),
+            ),
+          ],
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              WButton.secondary(
+                label: 'Hủy',
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              WButton.primary(
+                label: 'Thêm issue',
+                onPressed: () {
+                  if (titleController.text.trim().isEmpty) {
+                    setState(() => error = 'Tiêu đề không được để trống.');
+                    return;
+                  }
+                  widget.ref
+                      .read(workspaceViewModelProvider.notifier)
+                      .addHumanIssue(
+                        title: titleController.text,
+                        detail: detailController.text,
+                        section: sectionController.text.isEmpty
+                            ? null
+                            : sectionController.text,
+                        severity: severity,
+                      );
+                  Navigator.of(context).pop();
+                },
               ),
             ],
-          ],
-        ),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Hủy'),
-        ),
-        FilledButton(
-          onPressed: () {
-            if (titleController.text.trim().isEmpty) {
-              setState(() => error = 'Tiêu đề không được để trống.');
-              return;
-            }
-            widget.ref
-                .read(workspaceViewModelProvider.notifier)
-                .addHumanIssue(
-                  title: titleController.text,
-                  detail: detailController.text,
-                  section: sectionController.text.isEmpty
-                      ? null
-                      : sectionController.text,
-                  severity: severity,
-                );
-            Navigator.of(context).pop();
-          },
-          child: const Text('Thêm issue'),
-        ),
-      ],
     );
   }
 }

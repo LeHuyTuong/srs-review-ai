@@ -14,10 +14,9 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/layout/app_breakpoint.dart';
-import '../../../core/platform/app_platform.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
+import '../../../core/widgets/full_screen_surface.dart';
 import 'workspace_shortcuts.dart';
 import 'workspace_widgets.dart';
 
@@ -25,26 +24,8 @@ import 'workspace_widgets.dart';
 /// other `show*Modal(context, ref)` entry points the shell registers; the sheet
 /// itself reads nothing from the container today.
 Future<void> showShortcutsModal(BuildContext context, WidgetRef ref) {
-  final width = MediaQuery.sizeOf(context).width;
-  if (AppBreakpoints.showsCenteredDialog(
-    width: width,
-    form: AppPlatform.formFactor,
-  )) {
-    return showDialog<void>(
-      context: context,
-      builder: (dialogContext) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 610),
-          child: const _ShortcutsSheet(),
-        ),
-      ),
-    );
-  }
-  return showModalBottomSheet<void>(
+  return showFullScreenSurface<void>(
     context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
     builder: (_) => const _ShortcutsSheet(),
   );
 }
@@ -56,121 +37,69 @@ class _ShortcutsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.workspaceColors;
     final theme = Theme.of(context);
-    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
     final shortcuts = kAppShortcuts;
 
-    return WPanel(
-      padding: EdgeInsets.fromLTRB(
-        AppSpacing.xl,
-        AppSpacing.xl,
-        AppSpacing.xl,
-        AppSpacing.xl + bottomInset,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Align(
-              alignment: Alignment.topRight,
-              child: IconButton(
-                tooltip: 'Đóng hộp thoại',
-                icon: const Icon(Icons.close),
-                color: colors.muted,
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ),
-            Transform.translate(
-              offset: const Offset(0, -28),
-              child: Column(
+    return WFullScreenSurface(
+      icon: Icons.keyboard_command_key,
+      title: 'Danh sách phím tắt',
+      description:
+          'Khi đang nhập văn bản, chỉ phím Esc và phím chấm điểm hoạt động.',
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final shortcut in shortcuts)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 49,
-                    height: 49,
-                    decoration: BoxDecoration(
-                      color: colors.sageBg,
-                      borderRadius: AppRadius.boxMd,
-                      border: Border.all(color: colors.border),
-                    ),
-                    child: Icon(
-                      Icons.keyboard_command_key,
-                      color: colors.sage,
-                      size: 25,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  Text(
-                    'Danh sách phím tắt',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      color: colors.ink,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    'Khi đang nhập văn bản, chỉ phím Esc và phím chấm điểm hoạt động.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colors.muted,
-                      height: 1.7,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  for (final shortcut in shortcuts)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: 108,
-                            child: Wrap(
-                              spacing: AppSpacing.xs,
-                              children: [
-                                for (final activator in shortcut.activators)
-                                  WBadge(
-                                    label: activatorLabel(activator),
-                                    tint: WBadgeTint.neutral,
-                                  ),
-                              ],
-                            ),
+                  SizedBox(
+                    width: 108,
+                    child: Wrap(
+                      spacing: AppSpacing.xs,
+                      children: [
+                        for (final activator in shortcut.activators)
+                          WBadge(
+                            label: activatorLabel(activator),
+                            tint: WBadgeTint.neutral,
                           ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  shortcut.title,
-                                  style: theme.textTheme.labelLarge?.copyWith(
-                                    color: colors.ink,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                Text(
-                                  shortcut.description,
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: colors.muted,
-                                    height: 1.6,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                      ],
                     ),
-                  const SizedBox(height: AppSpacing.lg),
-                  WButton.primary(
-                    label: 'Đã hiểu',
-                    icon: Icons.check,
-                    expanded: true,
-                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          shortcut.title,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: colors.ink,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          shortcut.description,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colors.muted,
+                            height: 1.6,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          const SizedBox(height: AppSpacing.lg),
+          WButton.primary(
+            label: 'Đã hiểu',
+            icon: Icons.check,
+            expanded: true,
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
       ),
     );
   }

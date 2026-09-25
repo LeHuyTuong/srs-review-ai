@@ -35,6 +35,7 @@ import '../../../data/services/vision_review_service.dart';
 
 import '../models/ask_document.dart';
 import '../models/demo_units.dart';
+import '../models/docx_report.dart';
 import '../models/html_report.dart';
 import '../models/report_export.dart';
 import '../models/workspace_findings.dart';
@@ -1748,6 +1749,35 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
       mimeType: 'text/html',
     );
   }
+
+  /// Word (.docx) twin — the format a supervisor actually opens, added
+  /// 2026-09-25. Same inputs as the three siblings, and the honesty contract
+  /// comes from the same [reportLimitations] list, so a caveat cannot be added
+  /// to three exports out of four.
+  Uint8List exportDocx() => buildDocxReport(
+    fileName: state.fileName,
+    offline: ref.read(mockModeProvider),
+    result: state.result,
+    units: state.units,
+    syllabusFindings: state.syllabusFindings,
+    referenceFindings: state.referenceFindings,
+    blueprintFindings: state.blueprintFindings,
+    diagramPageCount: state.diagramPageCount,
+    imageReviewAvailable: state.imageReviewAvailable,
+    imageReviewedCount: state.imageReviewedCount,
+    imageCoverage: state.imageCoverage,
+    findingStatus: state.findingStatus,
+    humanIssues: state.humanIssues,
+  );
+
+  /// Writes the .docx to a file the user chooses. Bytes go through
+  /// [ReportExporter.saveBytes] — a ZIP container must never be utf8-encoded.
+  Future<String?> saveDocxReportToFile() => _exporter.saveBytes(
+    fileName: _reportFileName(extension: 'docx'),
+    bytes: exportDocx(),
+    mimeType:
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  );
 
   /// Opens the OS share sheet with the markdown report attached. The third
   /// leg of the brief's Output row ("ledger.md + JSON + share sheet") — the

@@ -63,8 +63,9 @@ void main() {
     // Verify page 13 is shown
     expect(find.text('Trang 13 / 114'), findsOneWidget);
 
-    // Close modal
-    final closeBtn = find.byTooltip('Đóng hộp thoại');
+    // Close modal — the close button now lives in the full-screen surface
+    // header that every modal shares, not in a card's corner.
+    final closeBtn = find.byTooltip('Đóng');
     expect(closeBtn, findsOneWidget);
     await tester.tap(closeBtn);
     await tester.pumpAndSettle();
