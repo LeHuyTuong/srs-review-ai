@@ -45,6 +45,15 @@ import '../models/demo_units.dart';
 /// through the ViewModel layer, never by importing data/services directly.
 export '../../../review_history/services/session_store.dart' show SavedSession;
 
+part 'controllers/ask_controller.dart';
+part 'controllers/diagram_audit_controller.dart';
+part 'controllers/document_import_controller.dart';
+part 'controllers/export_controller.dart';
+part 'controllers/history_controller.dart';
+part 'controllers/project_draft_controller.dart';
+part 'controllers/review_run_controller.dart';
+part 'controllers/workspace_controller.dart';
+
 /// The ids the demo keeps visible as unclassified, mirroring the brief's
 /// two malformed synthetic ids.
 const Set<String> _demoMalformedIds = {'UC0134', 'UC0114'};
@@ -425,16 +434,18 @@ class WorkspaceState {
   );
 }
 
+/// The workspace session: the state, and the façade the views talk to.
+///
+/// One controller per use case lives in `controllers/` — project draft,
+/// document import, review run, history, export, ask — and every public member
+/// below forwards to the one that owns it. Views and tests keep a single entry
+/// point while the logic sits behind a named boundary; what is left here is the
+/// state class, the shared session handles, the execution log and the two
+/// cross-cutting writers (units, toast).
 class WorkspaceViewModel extends Notifier<WorkspaceState> {
-  /// Stateless and platform-delegating, so it needs no provider: constructing
-  /// it inline keeps the ViewModel constructible in tests that only care about
-  /// review behaviour.
-  static const ReportExporter _exporter = ReportExporter();
-
-  /// How many saved runs the landing card offers. Three is a shortcut back
-  /// into the most recent submission round, not a second History tab.
-  static const int _recentSessionCount = 3;
-
+  /// The document handles are shared: import fills them, review renders from
+  /// them, history clears them. Controllers reach them through
+  /// [WorkspaceController].
   SrsDocument? _document;
   Uint8List? _pdfBytes;
 
@@ -445,17 +456,36 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
   /// exactly like it does when the analyze call fails.
   DocumentMap? _documentMap;
   String? _uploadUri;
-  StreamSubscription<ReviewProgress>? _subscription;
   Timer? _toastTimer;
-  Timer? _elapsedTimer;
   SessionStore get _store => ref.read(sessionStoreProvider);
+
+  /// The use-case controllers. `late final` because Riverpod constructs this
+  /// object itself; each controller is built on first use.
+  late final ProjectDraftController _draft = ProjectDraftController(this);
+  late final DocumentImportController _import = DocumentImportController(this);
+  late final ReviewRunController _review = ReviewRunController(this);
+  late final DiagramAuditController _diagrams = DiagramAuditController(this);
+  late final HistoryController _history = HistoryController(this);
+  late final ExportController _export = ExportController(this);
+  late final AskController _ask = AskController(this);
+
+  // ------------------------------------------------- the controllers' seam
+
+  /// The notifier's `Ref`, for the controllers.
+  Ref get workspaceRef => ref;
+
+  /// The session the controllers read and write. Two accessors instead of a
+  /// wide interface: the controllers are the same layer as this notifier, they
+  /// just are not notifiers themselves.
+  WorkspaceState get workspaceState => state;
+  set workspaceState(WorkspaceState next) => state = next;
 
   @override
   WorkspaceState build() {
     ref.onDispose(() {
-      _subscription?.cancel();
+      _review._subscription?.cancel();
       _toastTimer?.cancel();
-      _elapsedTimer?.cancel();
+      _review._elapsedTimer?.cancel();
     });
     // No auto-restore of a previous workspace on startup (decision
     // 2026-09-23): opening the app must land on the guided first-run flow
@@ -467,25 +497,9 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     // away and nobody asked for that: the DRAFT (the project container, the
     // declaration the user typed in steps 1–2, and the report-language
     // preference) and the landing card's short list of recent sessions.
-    scheduleMicrotask(_restoreDraft);
-    scheduleMicrotask(_loadRecentSessions);
+    scheduleMicrotask(_draft._restoreDraft);
+    scheduleMicrotask(_history._loadRecentSessions);
     return const WorkspaceState();
-  }
-
-  /// Ticks once a second while a review runs so the progress surface can show
-  /// a live elapsed time. Without it a long run looks identical to a hang —
-  /// the exact complaint this fixes.
-  void _startElapsedTicker() {
-    _elapsedTimer?.cancel();
-    _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (state.isRunning) {
-        // Re-emit for the clock; progress itself is untouched.
-        state = state.copyWith(progress: state.progress);
-      } else {
-        _elapsedTimer?.cancel();
-        _elapsedTimer = null;
-      }
-    });
   }
 
   void _log(String message) {
@@ -499,1347 +513,159 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
 
   // --------------------------------------------------------- project info form
 
-  /// Saves what the user declared in the project-info form.
-  ///
-  /// Deliberately tiny: the form owns validation (via the model's
-  /// `isValid*` helpers), this method records the result, refreshes the §F.3
-  /// findings against it and leaves an audit-log line, so the "Thông tin
-  /// chung" review and the exported report read one source of truth.
-  /// Persisted as part of the workspace draft (and, once a run finishes, of
-  /// the session itself) so the declaration and the §F.3 findings derived from
-  /// it survive a restart together.
-  void setProjectInfo(ProjectInfo info) {
-    state = state.copyWith(projectInfo: info);
-    _refreshProjectInfoFindings();
-    _log(
-      'Lưu thông tin dự án "${info.projectName}" '
-      '(${info.students.length} thành viên)',
-    );
-    // Fire-and-forget: the declaration is step-2 work with no other home — no
-    // session exists until a run finishes, so without the draft a restart
-    // silently eats the form.
-    _saveDraft();
-  }
+  /// Delegates to [ProjectDraftController.setProjectInfo].
+  void setProjectInfo(ProjectInfo info) => _draft.setProjectInfo(info);
 
-  /// Workflow step 1 — creates (or renames) the project container.
-  ///
-  /// A DIFFERENT name is treated as a NEW project: the declaration typed for
-  /// the old one describes the old đề tài, so it — and the §F.3 findings
-  /// derived from it — are dropped rather than silently carried into a
-  /// different history bucket. Re-submitting the same trimmed name is a
-  /// no-op and keeps the form. The loaded document/results are left alone:
-  /// they may have cost quota, and step 3 (re-import) replaces them
-  /// explicitly.
-  void createProject(String name) {
-    final trimmed = name.trim();
-    if (trimmed.isEmpty || trimmed == state.projectName) return;
-    state = state.copyWith(projectName: trimmed, clearProjectInfo: true);
-    _refreshProjectInfoFindings();
-    _log('Tạo project "$trimmed"');
-    // Same fire-and-forget contract as setProjectInfo: the container name is
-    // what the landing flow and the History grouping must still show after a
-    // restart, even before any run has finished.
-    _saveDraft();
-  }
+  /// Delegates to [ProjectDraftController.createProject].
+  void createProject(String name) => _draft.createProject(name);
 
-  /// Report tab — records a reviewer-authored issue (the "con người"
-  /// source beside the model's rows).
-  ///
-  /// An empty title is a no-op (the dialog validates first); ids are unique
-  /// by creation microsecond so two issues in the same second never
-  /// collapse into one row.
+  /// Delegates to [ProjectDraftController.addHumanIssue].
   void addHumanIssue({
     required String title,
     String detail = '',
     Severity severity = Severity.medium,
     String? section,
-  }) {
-    final trimmedTitle = title.trim();
-    if (trimmedTitle.isEmpty) return;
-    state = state.copyWith(
-      humanIssues: [
-        ...state.humanIssues,
-        HumanIssue(
-          id: 'human-${DateTime.now().microsecondsSinceEpoch}',
-          title: trimmedTitle,
-          detail: detail.trim(),
-          severity: severity,
-          section: section?.trim(),
-          createdAt: DateTime.now(),
-        ),
-      ],
-    );
-    _log('Reviewer added issue "$trimmedTitle" (${severity.name})');
-    _saveDraft();
-  }
+  }) => _draft.addHumanIssue(
+    title: title,
+    detail: detail,
+    severity: severity,
+    section: section,
+  );
 
-  /// Drops one reviewer-authored issue. Like every other sync mutation it
-  /// persists best-effort right away so a restart cannot resurrect the row.
-  void removeHumanIssue(String id) {
-    state = state.copyWith(
-      humanIssues: state.humanIssues.where((issue) => issue.id != id).toList(),
-    );
-    _saveDraft();
-  }
-
-  /// §F.3 (rulebook 1.7-draft) — recompute the declared-vs-cover findings
-  /// from the CURRENT declaration and page texts.
-  ///
-  /// Replaces any previous run of the same check instead of appending: the
-  /// user may save the form three times, and three stacked copies of one
-  /// mismatch would read as three defects. Called after import and after
-  /// every save.
-  void _refreshProjectInfoFindings() {
-    final kept = state.referenceFindings
-        .where((finding) => finding.check != CheckId.projectInfoMismatch)
-        .toList();
-    final declared = state.projectInfo;
-    state = state.copyWith(
-      referenceFindings: declared == null
-          ? kept
-          : [
-              ...kept,
-              ...const ProjectInfoChecks().declaredVsCover(
-                declared,
-                state.pageTexts,
-              ),
-            ],
-    );
-  }
+  /// Delegates to [ProjectDraftController.removeHumanIssue].
+  void removeHumanIssue(String id) => _draft.removeHumanIssue(id);
 
   // ------------------------------------------------------------- demo / import
 
-  Future<void> loadDemo() async {
-    if (state.isRunning) return;
-    final document = demoDocument();
-    // Units are immutable: flagged ones are REPLACED, never edited in place.
-    final units = [
-      for (final unit in unitsFromDocument(document))
-        if (_demoMalformedIds.contains(unit.id))
-          unit.classified(UnitKind.unknown)
-        else
-          unit,
-    ];
-    _document = document;
-    _pdfBytes = null;
-    _documentMap = null;
-    _uploadUri = null;
-    state = WorkspaceState(
-      hasDocument: true,
-      fileName: demoFileName,
-      pageCount: demoPageCount,
-      sizeLabel: '27.37 MB',
-      isDemo: true,
-      units: units,
-      // Like a re-import: the container name and the declaration belong to
-      // the PROJECT, not to whichever file is open — dropping them here
-      // would erase workflow steps 1+2 the moment someone opens the demo.
-      projectInfo: state.projectInfo,
-      projectName: state.projectName,
-      humanIssues: state.humanIssues,
-      syllabusFindings: SyllabusChecks(RubricConfig.fallback).runAll(document),
-      referenceFindings: [
-        ...const ReferenceChecks().runAll(document),
-        // §F.5 rides the repository list at import (document_repository);
-        // the demo path computes the same checks here because it bypasses
-        // the repository entirely. The dashboard splits them back out by
-        // [CheckId.isFormatCheck] into the Format & Layout section.
-        ...const FormatLayoutChecks().runAll(document),
-      ],
-      blueprintFindings: const BlueprintChecks().runAll(document.blueprint),
-      diagramPageCount: document.imagePageIndexes.length,
-      imageReviewAvailable: false,
-      imageReviewedCount: 0,
-      imageCoverage: null,
-      documentFingerprint: document.documentFingerprint,
-      parserVersion: kParserVersion,
-      pageTexts: document.pageTexts,
-      toast:
-          '${units.length} units extracted. All detected IDs have been preserved.',
-    );
-    // Fresh page texts — re-verify the carried declaration against them so
-    // §F.3 never lags one document behind (same contract as importDocument).
-    _refreshProjectInfoFindings();
-    _scheduleToastClear();
-    _log('Tải tài liệu mẫu: $demoFileName ($demoPageCount trang)');
-    _log(
-      'Trích xuất: ${units.length} yêu cầu, ${document.imagePageIndexes.length} trang sơ đồ',
-    );
-  }
+  /// Delegates to [DocumentImportController.loadDemo].
+  Future<void> loadDemo() => _import.loadDemo();
 
-  Future<void> importDocument() async {
-    if (state.isRunning) return;
-    state = state.copyWith(
-      clearError: true,
-      historyLoading: false,
-      importStatus: 'Reading file…',
-    );
-    final repository = ref.read(documentRepositoryProvider);
-    try {
-      final loaded = await repository.pickAndParse(
-        onStatus: (status) => state = state.copyWith(importStatus: status),
-      );
-      if (loaded == null) {
-        // user cancelled the picker; keep the current document and bytes
-        state = state.copyWith(clearImportStatus: true);
-        return;
-      }
-      _document = loaded.document;
-      _pdfBytes = loaded.pdfBytes;
-      // A new file invalidates the previous file's server anatomy — reset
-      // BEFORE the analyze attempt so a failed analyze never pairs the old
-      // map with the new document.
-      _documentMap = null;
-      _uploadUri = null;
-      state = WorkspaceState(
-        hasDocument: true,
-        fileName: loaded.document.fileName,
-        pageCount: loaded.document.pageCount,
-        sizeLabel: _formatBytes(loaded.sizeBytes),
-        isDemo: false,
-        units: unitsFromDocument(loaded.document),
-        syllabusFindings: loaded.findings,
-        referenceFindings: loaded.referenceFindings,
-        blueprintFindings: [
-          ...loaded.blueprintFindings,
-          // §F.4 — chapter order reads the resolved index, which only exists
-          // here; the declaration-based §F.3 is refreshed separately below,
-          // because it must also react to later form saves.
-          ...const ProjectInfoChecks().sectionOrder(loaded.document.blueprint),
-        ],
-        // The declaration is about the PROJECT, not the file: replacing the
-        // document must not silently discard what the user typed.
-        projectInfo: state.projectInfo,
-        projectName: state.projectName,
-        // Reviewer-authored issues annotate the project, not the file: a
-        // re-import must not discard what the reviewer already recorded.
-        humanIssues: state.humanIssues,
-        // How many pages look like diagrams. Recorded at import so the report
-        // can distinguish diagram detection from actual image review.
-        diagramPageCount: loaded.document.imagePageIndexes.length,
-        imageReviewAvailable: loaded.pdfBytes != null,
-        imageReviewedCount: 0,
-        imageCoverage: null,
-        documentFingerprint: loaded.document.documentFingerprint,
-        parserVersion: kParserVersion,
-        pageTexts: loaded.document.pageTexts,
-        toast:
-            '${loaded.document.requirements.length} units extracted. '
-            'All detected IDs have been preserved.',
-      );
-      // §F.3 needs BOTH sides of the comparison: the declaration survived the
-      // re-import above (projectInfo is carried over), and these are fresh
-      // page texts to check it against.
-      _refreshProjectInfoFindings();
-      _scheduleToastClear();
-      await _analyzeDocumentOnServer(
-        bytes: loaded.pdfBytes,
-        fileName: loaded.document.fileName,
-      );
-    } on ParseException catch (error) {
-      state = state.copyWith(error: error.message, clearImportStatus: true);
-    } on Object catch (error) {
-      state = state.copyWith(
-        error: 'Unable to read this document: $error',
-        clearImportStatus: true,
-      );
-    }
-  }
-
-  /// Server-side anatomy pass (sds-reviewer step 1, EXTRACT) after a
-  /// successful import: upload the bytes once, then `/documents/analyze`
-  /// returns real section spans and every figure region with its bbox —
-  /// including the vector UML the client parser cannot see.
-  ///
-  /// Strictly an upgrade, never a blocker: mock mode, DOCX imports (no page
-  /// bytes), a dead proxy, or an unparseable file all leave [_documentMap]
-  /// null and every consumer silently takes the heuristic path it already
-  /// had. On success the diagram-page count is REPLACED by the truthful
-  /// figure-page count so the UI stops quoting the text-density guess.
-  Future<void> _analyzeDocumentOnServer({
-    required Uint8List? bytes,
-    required String fileName,
-  }) async {
-    if (bytes == null) return; // DOCX/demo: nothing to upload yet
-    try {
-      // Read INSIDE the try: a provider that cannot build (no configured
-      // proxy URL, storage failure) must not turn a good import into an error.
-      final service = ref.read(documentMapServiceProvider);
-      if (service == null) return; // mock mode
-      final analysis = await service.analyzeDocument(
-        fileName: fileName,
-        bytes: bytes,
-      );
-      // The user may have cleared or re-imported while the upload ran —
-      // a stale map must never attach itself to a different document.
-      if (!ref.mounted || _pdfBytes != bytes) return;
-      _documentMap = analysis.map;
-      _uploadUri = analysis.uploadUri;
-      state = state.copyWith(
-        uploadUri: analysis.uploadUri,
-        imageReviewAvailable: true,
-        diagramPageCount: analysis.map.figurePages.length,
-        toast:
-            'Server anatomy: ${analysis.map.figureCount} figure(s) on '
-            '${analysis.map.figurePages.length} page(s) detected — the '
-            'vision audit will read tight crops.',
-      );
-      _log(
-        'Server anatomy: Phân tích tài liệu hoàn tất (${analysis.map.figureCount} sơ đồ, uploadUri: ${analysis.uploadUri})',
-      );
-      _scheduleToastClear();
-    } on Object {
-      // Heuristic fallback stays. The import already succeeded; a failed
-      // anatomy pass must not turn a good import into an error.
-    }
-  }
+  /// Delegates to [DocumentImportController.importDocument].
+  Future<void> importDocument() => _import.importDocument();
 
   // ------------------------------------------------------------- units
 
-  void classifyUnit(String key, UnitKind kind) {
-    _mutateUnit(key, (unit) => unit.classified(kind));
-  }
+  /// Delegates to [DocumentImportController.classifyUnit].
+  void classifyUnit(String key, UnitKind kind) =>
+      _import.classifyUnit(key, kind);
 
-  void setUnitSelected(String key, bool selected) {
-    _mutateUnit(key, (unit) => unit.copyWith(selected: selected));
-  }
+  /// Delegates to [DocumentImportController.setUnitSelected].
+  void setUnitSelected(String key, bool selected) =>
+      _import.setUnitSelected(key, selected);
 
-  void setSelectedAll(Set<String> keys, bool selected) {
-    if (state.isRunning) return;
-    state = state.copyWith(
-      units: [
-        for (final unit in state.units)
-          if (keys.contains(unit.key))
-            unit.copyWith(selected: selected && !unit.malformed)
-          else
-            unit,
-      ],
-    );
-  }
+  /// Delegates to [DocumentImportController.setSelectedAll].
+  void setSelectedAll(Set<String> keys, bool selected) =>
+      _import.setSelectedAll(keys, selected);
 
-  /// Records what the student decided about one finding.
-  ///
-  /// `open` is stored as "absent" so saved sessions stay a valid key set — an
-  /// unseen id simply reads back as open.
-  void setFindingStatus(String findingId, FindingStatus status) {
-    final next = Map<String, FindingStatus>.from(state.findingStatus);
-    if (status == FindingStatus.open) {
-      next.remove(findingId);
-    } else {
-      next[findingId] = status;
-    }
-    state = state.copyWith(findingStatus: next);
-  }
+  /// Delegates to [ReviewRunController.setFindingStatus].
+  void setFindingStatus(String findingId, FindingStatus status) =>
+      _review.setFindingStatus(findingId, status);
 
-  /// Round 9 — runs the [Verifier] against the current deterministic
-  /// findings and writes the resulting status map back to state.
-  ///
-  /// A future "Re-verify" button (or a re-import flow that re-parses
-  /// the same bytes) calls this. Right now the only caller is the
-  /// Verifier self-test; the API exists so the re-run UI in R10+ does
-  /// not have to reach into the data layer.
-  ///
-  /// Returns a [VerifyDiff] describing what changed, so the caller can
-  /// surface a meaningful toast ("X promoted to verified, Y
-  /// reopened"). No-op when the current parse and the previous
-  /// statuses already agree — the state is not touched and the
-  /// returned diff is empty.
-  VerifyDiff verifyStatuses() {
-    final previous = state.findingStatus;
-    const verifier = Verifier();
-    final next = verifier.verify(
-      previousStatuses: previous,
-      syllabusFindings: state.syllabusFindings,
-      referenceFindings: state.referenceFindings,
-      blueprintFindings: state.blueprintFindings,
-    );
-    if (_statusMapEquals(next, previous)) {
-      return const VerifyDiff();
-    }
-    state = state.copyWith(findingStatus: next);
-    return VerifyDiff.compute(before: previous, after: next);
-  }
+  /// Delegates to [ReviewRunController.verifyStatuses].
+  VerifyDiff verifyStatuses() => _review.verifyStatuses();
 
   /// Identity test on a `Map<String, FindingStatus>` — true when both
   // maps hold the same key→status pairs. Used by [verifyStatuses] to
   // skip a no-op write.
-  static bool _statusMapEquals(
-    Map<String, FindingStatus> a,
-    Map<String, FindingStatus> b,
-  ) {
-    if (a.length != b.length) return false;
-    for (final entry in a.entries) {
-      if (b[entry.key] != entry.value) return false;
-    }
-    return true;
-  }
-
-  /// Replaces the unit with [key] by [mutate]'s result and publishes a new list.
-  ///
-  /// Units are immutable, so the replacement is a DIFFERENT object: a widget
-  /// still holding the old reference cannot observe a change without a rebuild.
-  void _mutateUnit(String key, WorkspaceUnit Function(WorkspaceUnit) mutate) {
-    if (state.isRunning) return;
-    state = state.copyWith(
-      units: [
-        for (final unit in state.units)
-          if (unit.key == key) mutate(unit) else unit,
-      ],
-    );
-  }
 
   // ------------------------------------------------------------- review
 
-  Future<void> runReview() async {
-    if (state.isRunning) return;
-    final selected = state.units.where((u) => u.selected).toList();
-    if (selected.isEmpty) {
-      state = state.copyWith(
-        error:
-            'No units selected. Adjust your selection; nothing will be '
-            'silently skipped.',
-      );
-      return;
-    }
-    // The per-run cap is applied as a CLAMP by the repository, never as a
-    // refusal.
-    //
-    // Refusing here was worse than useless: the demo selects 63 of 65 units
-    // against a 40-unit cap, so pressing "Review 63 units" closed the sheet,
-    // aborted, and wrote the error into the sheet that had just been
-    // destroyed. The user saw a frozen screen with no reason for it
-    // (docs/uiux/audit-2026-09-11.md P0-2, P0-4). We now review as much as the
-    // cap allows and state the shortfall in the progress bar and the summary.
-    final capped = selected.take(AppConfig.maxRequirementsPerRun).toList();
-    final document = _document;
-    if (document == null) {
-      state = state.copyWith(
-        error:
-            'Restored sessions hold no file bytes. Import a document before '
-            'running a new review.',
-      );
-      return;
-    }
+  /// Delegates to [ReviewRunController.runReview].
+  Future<void> runReview() => _review.runReview();
 
-    // Match by inventory occurrence, not raw id: real SRS files may reuse an
-    // id for several distinct tables. An id-indexed map silently drops those
-    // occurrences before they ever reach the review repository.
-    final unitIndexByKey = <String, int>{
-      for (var index = 0; index < state.units.length; index++)
-        state.units[index].key: index,
-    };
-    final selectedItems = <RequirementItem>[];
-    final selectedOccurrenceKeys = <String>[];
-    for (final unit in capped) {
-      final index = unitIndexByKey[unit.key];
-      if (index == null || index >= document.requirements.length) continue;
-      selectedItems.add(document.requirements[index]);
-      selectedOccurrenceKeys.add(unit.key);
-    }
-    final filtered = SrsDocument(
-      fileName: state.fileName,
-      pageCount: document.pageCount,
-      pageTexts: document.pageTexts,
-      requirements: selectedItems,
-      occurrenceKeys: selectedOccurrenceKeys,
-      imagePageIndexes: document.imagePageIndexes,
-    );
+  /// Delegates to [DiagramAuditController.diagramAuditCount].
+  int get diagramAuditCount => _diagrams.diagramAuditCount;
 
-    final imageReviewEnabled =
-        state.imageReviewAvailable &&
-        !ref.read(mockModeProvider) &&
-        _pdfBytes != null;
+  /// Delegates to [DiagramAuditController.canAuditDiagrams].
+  bool get canAuditDiagrams => _diagrams.canAuditDiagrams;
 
-    state = state.copyWith(
-      clearError: true,
-      clearResult: true,
-      runStartedAt: DateTime.now(),
-      runReviewed: 0,
-      // Hide the previous run's summary for the duration of the new one; the
-      // finished run re-opens it.
-      runSummaryDismissed: true,
-      imageReviewedCount: 0,
-      clearImageCoverage: true,
-      runSkipped: selected.length - selectedItems.length,
-      progress: ReviewProgress(
-        stage: ReviewStage.parsing,
-        total: selectedItems.length,
-        // Units the user selected that this run cannot cover. The progress
-        // bar says so in plain words instead of letting the run look complete.
-        skipped: selected.length - selectedItems.length,
-      ),
-    );
-    _startElapsedTicker();
-    _log('Khởi tạo lượt chấm cho ${selectedItems.length} yêu cầu đã chọn');
-    _log(
-      'Chế độ: ${ref.read(mockModeProvider) ? "Mô phỏng ngoại tuyến (Offline Mock)" : "Trực tuyến (LLM Proxy)"}',
-    );
-    if (imageReviewEnabled) {
-      _log(
-        'Kích hoạt Multimodal Vision cho ${_documentMap?.figurePages.length ?? 0} trang sơ đồ',
-      );
-    }
+  /// Delegates to [DiagramAuditController.hasPdfBytes].
+  bool get hasPdfBytes => _diagrams.hasPdfBytes;
 
-    // One read, both uses: the version goes into the result, and the batch
-    // ceiling replaces the client's compile-time copy of a server setting when
-    // the proxy published one.
-    final rubric = ref.read(rubricProvider).value;
-    final rubricVersion = rubric?.version ?? RubricConfig.fallback.version;
-    final repository = ref.read(reviewRepositoryProvider);
+  /// Delegates to [DiagramAuditController.needsReImport].
+  bool get needsReImport => _diagrams.needsReImport;
 
-    await _subscription?.cancel();
-    _subscription = repository
-        .run(
-          filtered,
-          pdfBytes: imageReviewEnabled ? _pdfBytes : null,
-          imageReviewEnabled: imageReviewEnabled,
-          // The server's figure pages (truth) when the anatomy pass ran; null
-          // keeps the heuristic candidate set exactly as it was.
-          figurePages: _documentMap?.figurePages,
-          batchMaxSize: rubric?.maxBatchUnits,
-          onComplete: (run) {
-            final result = WorkspaceReviewResult.fromRun(
-              run: run,
-              document: filtered,
-              units: state.units,
-              rubricVersion: rubricVersion,
-              currentMode: ref.read(mockModeProvider),
-            );
-            // A unit is "reviewed" ONLY if the run actually returned a result
-            // for its id. Being selected proves intent, not work: a run killed
-            // by a 429 or cancelled at the first unit must not stamp "reviewed"
-            // onto 50 rows while coverage honestly says zero. Selected units the
-            // run never reached go back to pending; per-unit failures land in
-            // failed; units left out of the selection stay skipped.
-            state = state.copyWith(
-              result: result,
-              imageReviewedCount: imageReviewEnabled
-                  ? run.imageCoverage.reviewed
-                  : 0,
-              imageCoverage: imageReviewEnabled ? run.imageCoverage : null,
-              units: [
-                for (final unit in state.units)
-                  unit.copyWith(
-                    status: run.results.containsKey(unit.key)
-                        ? UnitStatus.reviewed
-                        : run.failures.containsKey(unit.key)
-                        ? UnitStatus.failed
-                        : unit.selected
-                        ? UnitStatus.pending
-                        : UnitStatus.skipped,
-                  ),
-              ],
-            );
-            _log('Hoàn tất chấm ${run.results.length} yêu cầu');
-            if (result.totalTokens > 0) {
-              _log(
-                'AI token usage: ${result.totalTokens} tokens (${result.promptTokens} prompt · ${result.completionTokens} candidates)',
-              );
-            }
-            if (run.totalDropped > 0) {
-              _log(
-                'Loại bỏ ${run.totalDropped} lỗi do không khớp trích dẫn nguyên văn',
-              );
-            }
-            _log(
-              'Tính điểm hoàn tất: ${result.findings.length} lỗi phát hiện trên ${result.reviewed} yêu cầu',
-            );
-          },
-        )
-        .listen(
-          (progress) async {
-            // The repository reports what it dropped from the document it was
-            // handed — always 0 here, because the view model already clamped the
-            // selection. The user-facing shortfall is THIS layer's number, so it
-            // is re-attached to every progress event rather than being overwritten
-            // and making the warning flicker out of existence.
-            state = state.copyWith(
-              progress: ReviewProgress(
-                stage: progress.stage,
-                completed: progress.completed,
-                total: progress.total,
-                currentRequirementId: progress.currentRequirementId,
-                error: progress.error,
-                skipped: state.runSkipped,
-              ),
-            );
-            if (progress.stage == ReviewStage.parsing) {
-              _log('Đang phân tách và chuẩn hóa ngữ cảnh các yêu cầu...');
-            } else if (progress.stage == ReviewStage.reviewing &&
-                progress.currentRequirementId != null) {
-              _log(
-                'Đang chấm điểm AI: ${progress.completed}/${progress.total} (${progress.currentRequirementId})',
-              );
-            } else if (progress.stage == ReviewStage.verifying) {
-              _log(
-                'Đang kiểm tra trích dẫn nguyên văn (Exact Verbatim Verification)...',
-              );
-            }
-            if (progress.stage == ReviewStage.done ||
-                progress.stage == ReviewStage.cancelled ||
-                progress.stage == ReviewStage.failed) {
-              await _onRunFinished(progress);
-            }
-          },
-          onError: (Object error) {
-            // The stream's own error text, not a generic sentence. A run that
-            // died on a refused connection used to report "Review failed." and
-            // nothing else, so the user had no way to tell a dead server from
-            // a spent quota from a bad file.
-            state = state.copyWith(
-              clearProgress: true,
-              error:
-                  'Chấm điểm thất bại: $error. Danh sách chọn của bạn '
-                  'được giữ nguyên.',
-            );
-          },
-        );
-  }
+  /// Delegates to [DiagramAuditController.canRenderPdf].
+  bool get canRenderPdf => _diagrams.canRenderPdf;
 
-  /// Pages a vision audit would look at, decided offline (visual evidence
-  /// or a NAMED diagram type — see [VisionReviewService.candidates]). Zero
-  /// when the file bytes are gone (a restored session), which is also what
-  /// hides the button: an audit without bytes would render nothing.
-  int get diagramAuditCount {
-    final document = _document;
-    if (document == null || _pdfBytes == null) return 0;
-    return _visionService(
-      VisionReviewService.noOpAuditor,
-    ).candidates(document).length;
-  }
+  /// Delegates to [DiagramAuditController.renderPageImage].
+  Future<Uint8List?> renderPageImage(int pageIndex) =>
+      _diagrams.renderPageImage(pageIndex);
 
-  bool get canAuditDiagrams => diagramAuditCount > 0;
+  /// Delegates to [DiagramAuditController.auditDiagrams].
+  Future<void> auditDiagrams() => _diagrams.auditDiagrams();
 
-  bool get hasPdfBytes => _pdfBytes != null && _pdfBytes!.isNotEmpty;
+  /// Delegates to [ExportController.canShareReport].
+  bool get canShareReport => _export.canShareReport;
 
-  /// True when results are on screen but the original file is gone — the
-  /// state a restored session lands in. The workflow's "đánh giá lại" path
-  /// must ask for an explicit re-import instead of pretending the bytes are
-  /// still in memory ([runReview] refuses with the matching message).
-  bool get needsReImport => state.hasDocument && _document == null;
+  /// Delegates to [ExportController.mintShareLink].
+  Future<String?> mintShareLink() => _export.mintShareLink();
 
-  bool get canRenderPdf =>
-      state.canRenderPdf ||
-      hasPdfBytes ||
-      (_uploadUri != null && _uploadUri!.isNotEmpty);
+  /// Delegates to [ReviewRunController.cancelReview].
+  void cancelReview() => _review.cancelReview();
 
-  /// Renders a single PDF page to PNG bytes for inspection / preview.
-  /// Prioritizes the server's `/documents/render` endpoint via [DocumentMapService]
-  /// for instant PyMuPDF rasterization; if unavailable or offline, falls back
-  /// to in-memory `_pdfBytes` locally via [reviewRepositoryProvider].
-  Future<Uint8List?> renderPageImage(int pageIndex) async {
-    var uploadUri = _uploadUri ?? state.uploadUri;
-    final mapService = ref.read(documentMapServiceProvider);
+  /// Delegates to [ReviewRunController.dismissRunSummary].
+  void dismissRunSummary() => _review.dismissRunSummary();
 
-    // Fast path: high-fidelity PyMuPDF render from server
-    if (uploadUri != null && mapService != null) {
-      try {
-        final image = await mapService.renderFigure(
-          uploadUri: uploadUri,
-          pageIndex: pageIndex,
-        );
-        if (image.isNotEmpty) return image;
-      } catch (e) {
-        _log('Không thể kết xuất trang ${pageIndex + 1} qua máy chủ: $e');
-      }
-    }
-
-    // If server upload hasn't been completed yet, try uploading in-memory bytes now:
-    final bytes = _pdfBytes;
-    if (uploadUri == null &&
-        bytes != null &&
-        bytes.isNotEmpty &&
-        mapService != null) {
-      try {
-        final analysis = await mapService.analyzeDocument(
-          fileName: state.fileName,
-          bytes: bytes,
-        );
-        _documentMap = analysis.map;
-        _uploadUri = analysis.uploadUri;
-        uploadUri = analysis.uploadUri;
-        state = state.copyWith(
-          uploadUri: analysis.uploadUri,
-          imageReviewAvailable: true,
-          diagramPageCount: analysis.map.figurePages.length,
-        );
-        final image = await mapService.renderFigure(
-          uploadUri: analysis.uploadUri,
-          pageIndex: pageIndex,
-        );
-        if (image.isNotEmpty) return image;
-      } catch (e) {
-        _log('Không thể tải trang lên máy chủ để kết xuất: $e');
-      }
-    }
-
-    // Client-side fallback (pdfx)
-    if (bytes != null && bytes.isNotEmpty) {
-      try {
-        final repository = ref.read(reviewRepositoryProvider);
-        return await repository.renderPageForAudit(bytes, pageIndex);
-      } catch (e) {
-        _log('Không thể kết xuất trang ${pageIndex + 1} bằng bộ vẽ nội bộ: $e');
-      }
-    }
-    return null;
-  }
-
-  VisionReviewService _visionService(DiagramAuditor auditor) {
-    // Tight-crop rendering needs BOTH the server anatomy (bboxes) and the
-    // upload ref (what /documents/render resolves); missing either one drops
-    // to the legacy whole-page render — same audit, coarser image.
-    final uploadUri = _uploadUri;
-    final mapService = ref.read(documentMapServiceProvider);
-    return VisionReviewService(
-      auditor: auditor,
-      documentMap: _documentMap,
-      renderRegion: uploadUri == null || mapService == null
-          ? null
-          : (int pageIndex, List<double> bbox) async {
-              final png = await mapService.renderFigure(
-                uploadUri: uploadUri,
-                pageIndex: pageIndex,
-                bbox: bbox,
-              );
-              return base64Encode(png);
-            },
-      renderPage: (int pageIndex, String _) async {
-        final bytes = _pdfBytes;
-        if (bytes == null) {
-          throw StateError('no file bytes to render page $pageIndex');
-        }
-        final repository = ref.read(reviewRepositoryProvider);
-        final png = await repository.renderPageForAudit(bytes, pageIndex);
-        return base64Encode(png);
-      },
-    );
-  }
-
-  /// sds-reviewer steps 4-6 on-device: render each candidate page, two-call
-  /// audit through the proxy, ledger rows into [state.referenceFindings].
-  ///
-  /// Opt-in and explicit, never automatic: a full audit is up to [10]
-  /// proxy requests against a 50/day quota, and silently spending 20% of
-  /// the day's budget in the background of a review would break the
-  /// quota discipline the whole client is built on. Re-running REPLACES
-  /// the previous diagram rows (same stable subjects, fresher evidence)
-  /// and leaves every other family untouched.
-  Future<void> auditDiagrams() async {
-    if (state.isAuditingDiagrams) return;
-    final document = _document;
-    if (document == null || _pdfBytes == null) {
-      state = state.copyWith(
-        error:
-            'The vision audit needs the original file in memory — restored '
-            'sessions keep findings but not bytes. Re-import to audit.',
-      );
-      return;
-    }
-    final repository = ref.read(reviewRepositoryProvider);
-    final service = _visionService(repository.diagramAudit);
-    state = state.copyWith(isAuditingDiagrams: true, clearError: true);
-    try {
-      final outcome = await service.audit(document);
-      final kept = state.referenceFindings
-          .where((f) => f.check != CheckId.diagramAudit)
-          .toList(growable: false);
-      state = state.copyWith(
-        referenceFindings: [...kept, ...outcome.findings],
-        toast: outcome.everythingFailed
-            ? null
-            : 'Vision audit: ${outcome.auditedPageCount} page(s)'
-                  '${outcome.skippedPages.isEmpty ? '' : ', ${outcome.skippedPages.length} skipped (quota cap)'}'
-                  '${outcome.failures.isEmpty ? '' : ', ${outcome.failures.length} failed'}',
-        clearError: !outcome.everythingFailed,
-        error: outcome.everythingFailed
-            ? 'Every diagram audit failed (first: ${outcome.failures.first}) — '
-                  'the pages were not seen; no verdict was written.'
-            : null,
-      );
-      _scheduleToastClear();
-    } on Object catch (error) {
-      state = state.copyWith(
-        error: 'Diagram audit stopped: $error',
-        isAuditingDiagrams: false,
-      );
-      return;
-    }
-    state = state.copyWith(isAuditingDiagrams: false);
-  }
-
-  /// Share-by-link (plan 6): publish THIS dashboard's HTML twin to the
-  /// proxy and return its URL. The report content and the link are built
-  /// from the exact same state the export sheet previews — no separate
-  /// "server-side truth" to drift. Null while offline (the button hides
-  /// there); error state set on failure, like every other paid action.
-  bool get canShareReport => !ref.read(mockModeProvider);
-
-  Future<String?> mintShareLink() async {
-    if (state.isSharingReport) return null;
-    if (!canShareReport) return null;
-    final repository = ref.read(reviewRepositoryProvider);
-    state = state.copyWith(isSharingReport: true, clearError: true);
-    String? link;
-    try {
-      link = await repository.shareReport(
-        html: exportHtml(),
-        fileName: state.fileName,
-      );
-      state = state.copyWith(
-        toast: 'Share link created — anyone with the URL can read it.',
-        clearError: true,
-      );
-      _scheduleToastClear();
-    } on Object catch (error) {
-      state = state.copyWith(error: 'Could not create the share link: $error');
-    }
-    state = state.copyWith(isSharingReport: false);
-    return link;
-  }
-
-  Future<void> _onRunFinished(ReviewProgress progress) async {
-    _elapsedTimer?.cancel();
-    _elapsedTimer = null;
-    // `runSkipped` is deliberately NOT overwritten from the progress event:
-    // the repository reports what it dropped from the document it received,
-    // which is 0 because the view model already clamped. Only the view model
-    // knows how many SELECTED units fell outside the run.
-    final skipped = state.runSkipped;
-    final result = state.result;
-
-    // A cancelled or quota-killed run still produced real, paid-for results.
-    // Saving only once a run reached `done` meant a 429 at unit 39 of 40 threw
-    // away 38 reviewed units: the quota was spent and nothing was kept, so the
-    // only recovery was to run — and pay for — the whole thing again.
-    var saved = false;
-    if (result != null &&
-        (progress.stage == ReviewStage.done || result.reviewed > 0)) {
-      saved = await _saveSession(result);
-    }
-
-    if (progress.stage == ReviewStage.done) {
-      final reviewed = result?.reviewed ?? 0;
-      final findings = result?.findings.length ?? 0;
-      final failed = result?.failed ?? 0;
-      // "Done" with nothing reviewed is not a clean run — it is a run where
-      // every request was refused, and the only honest thing to show is an
-      // error the user cannot miss. Reporting it as a success toast is what
-      // made a 100%-failed run look like the document had no issues at all.
-      if (reviewed == 0 && progress.total > 0) {
-        state = state.copyWith(
-          clearProgress: true,
-          runStartedAt: DateTime.now(),
-          runReviewed: 0,
-          runSkipped: skipped,
-          error:
-              'Không mục nào được chấm (${progress.total} mục đã chọn). '
-              'Máy chủ chấm điểm từ chối hoặc mất kết nối — kiểm tra máy chủ '
-              'và lượt chấm trong ngày rồi thử lại. Danh sách chọn được giữ '
-              'nguyên.',
-        );
-        return;
-      }
-      // "0 units reviewed · 0 findings" is indistinguishable from a clean run
-      // with nothing to report. If units failed — a dead proxy, a bad payload
-      // — say so, or the user draws exactly the wrong conclusion from it.
-      final failNote = failed > 0
-          ? ' · $failed failed and were NOT reviewed'
-          : '';
-      // If the per-run cap bit, say so rather than letting the user believe
-      // the whole document was covered — this app's entire pitch is that it
-      // never truncates silently.
-      final capNote = skipped > 0
-          ? ' · $skipped left out by the ${AppConfig.maxRequirementsPerRun}-unit per-run cap'
-          : '';
-      // A run whose pages could not be rendered is not a text-only run by
-      // choice: say so, or the diagram findings read as if the pictures had
-      // been graded.
-      final rendererNote = state.diagramsWereTextOnly ? kNoPdfRendererNote : '';
-      state = state.copyWith(
-        clearProgress: true,
-        runStartedAt: DateTime.now(),
-        runReviewed: reviewed,
-        runSkipped: skipped,
-        // The run ended here, so the shell's summary bar takes over from the
-        // progress bar: same slot, same visibility, but now with the two
-        // actions a finished run implies instead of a Cancel button.
-        runSummaryDismissed: false,
-        toast:
-            '$reviewed units reviewed · $findings verified findings'
-            '$failNote$capNote$rendererNote'
-            '${saved ? ' · saved on this device' : ''}',
-      );
-    } else if (progress.stage == ReviewStage.cancelled) {
-      final kept = result?.reviewed ?? progress.completed;
-      state = state.copyWith(
-        clearProgress: true,
-        runStartedAt: DateTime.now(),
-        runReviewed: kept,
-        runSkipped: skipped,
-        toast: kept > 0
-            ? 'Review cancelled · $kept unit(s) reviewed'
-                  '${saved ? ' and saved on this device' : ''}.'
-            : 'Review cancelled · nothing had been reviewed yet.',
-      );
-    } else {
-      final kept = result?.reviewed ?? progress.completed;
-      final keptNote = kept > 0
-          ? ' $kept unit(s) were reviewed'
-                '${saved ? ' and saved on this device' : ''}.'
-          : '';
-      state = state.copyWith(
-        clearProgress: true,
-        runStartedAt: DateTime.now(),
-        runReviewed: kept,
-        runSkipped: skipped,
-        error:
-            '${progress.error ?? 'Review failed.'} Your selection is '
-            'preserved.$keptNote',
-      );
-    }
-    _scheduleToastClear();
-  }
-
-  void cancelReview() {
-    ref.read(reviewRepositoryProvider).cancel();
-  }
-
-  /// Closes the "run finished" summary bar. Same lifetime as a toast except
-  /// this one waits for the user instead of a timer: the two buttons in it
-  /// ("View findings", "Export") are the actions a finished run implies.
-  void dismissRunSummary() {
-    state = state.copyWith(runSummaryDismissed: true);
-  }
-
-  /// Closes the error banner.
-  ///
-  /// The only way [WorkspaceState.error] stops being shown. Nothing clears it
-  /// on a timer: an error that vanishes after a few seconds cannot be read,
-  /// copied or acted on, and a failed AI run has no other trace — the units
-  /// just sit there marked failed with no reason attached.
-  void dismissError() {
-    if (state.error == null) return;
-    state = state.copyWith(clearError: true);
-  }
+  /// Delegates to [ReviewRunController.dismissError].
+  void dismissError() => _review.dismissError();
 
   // ------------------------------------------------------------- ask
 
-  /// Offline keyword search — kept because it is the fallback engine and the
-  /// only one available in mock mode.
+  /// Delegates to [AskController.askDocument].
   List<WorkspaceUnit> askDocument(String question) =>
-      AskDocument.search(question, state.units);
+      _ask.askDocument(question);
 
-  /// Answers one question about the loaded document.
-  ///
-  /// Prefers the proxy and falls back to the local search, and — critically —
-  /// reports which one answered. Before this existed the modal could only ever
-  /// call [askDocument], so the proxy's `/ask`, its citation verification and
-  /// its "not found" guard were all unreachable code while the app advertised
-  /// grounded Q&A as a feature.
-  Future<AskOutcome> askQuestion(String question) async {
-    final trimmed = question.trim();
-    if (trimmed.isEmpty) {
-      return const AskOutcome(
-        engine: AskEngine.offlineSearch,
-        answer: '',
-        grounded: false,
-      );
-    }
-
-    final offline = AskDocument.search(trimmed, state.units);
-    if (offline.isEmpty) {
-      // Nothing in the inventory mentions it. Asking the model anyway would be
-      // paying for a guess, and the honest answer is that the document says
-      // nothing — so no engine runs and no token is spent.
-      return const AskOutcome(
-        engine: AskEngine.offlineSearch,
-        answer: 'Not found in the document.',
-        grounded: false,
-      );
-    }
-
-    if (ref.read(mockModeProvider)) {
-      return AskOutcome(
-        engine: AskEngine.offlineSearch,
-        answer: '',
-        grounded: true,
-        units: offline,
-      );
-    }
-
-    final context = AskDocument.contextFor(trimmed, state.units);
-    final repository = ref.read(reviewRepositoryProvider);
-    try {
-      final response = await repository.ask(
-        question: trimmed,
-        context: context,
-      );
-      return AskOutcome(
-        engine: AskEngine.model,
-        answer: response.answer,
-        grounded: response.grounded,
-        citations: response.citations,
-        model: response.model,
-      );
-    } on Object catch (error) {
-      // A dead proxy used to surface as an empty answer and no explanation.
-      // Fall back to what this device can answer and say that is what happened,
-      // labelling the engine so the fallback is never mistaken for the model.
-      return AskOutcome(
-        engine: AskEngine.offlineSearch,
-        answer: '',
-        grounded: true,
-        units: offline,
-        note:
-            'The proxy could not answer (${_shortError(error)}). These are '
-            'the matching passages from your document instead — no model was '
-            'involved.',
-      );
-    }
-  }
-
-  static String _shortError(Object error) {
-    final text = '$error';
-    return text.length <= 120 ? text : '${text.substring(0, 117)}…';
-  }
+  /// Delegates to [AskController.askQuestion].
+  Future<AskOutcome> askQuestion(String question) => _ask.askQuestion(question);
 
   // ------------------------------------------------------------- history
 
-  Future<void> loadHistory() async {
-    state = state.copyWith(historyLoading: true, clearError: true);
-    try {
-      final sessions = await _store.list();
-      state = state.copyWith(history: sessions, historyLoading: false);
-    } on Object catch (error) {
-      state = state.copyWith(
-        historyLoading: false,
-        error: 'Could not load history: $error',
-      );
-    }
-  }
+  /// Delegates to [HistoryController.loadHistory].
+  Future<void> loadHistory() => _history.loadHistory();
 
-  /// Refreshes the landing card's short list ("Tiếp tục gần đây").
-  ///
-  /// Asks the store for the newest rows only — the card shows three titles and
-  /// must not decode thirty payloads to render them. Failure is silent on
-  /// purpose: the landing flow works without the card, so a store hiccup must
-  /// not push an error banner over the steps the user is about to take.
-  Future<void> _loadRecentSessions() async {
-    try {
-      final recent = await _store.listRecent(_recentSessionCount);
-      if (!ref.mounted) return;
-      state = state.copyWith(recentSessions: recent);
-    } on Object {
-      // See above: the shortcut is optional, the flow is not.
-    }
-  }
+  /// Delegates to [HistoryController.openSession].
+  Future<bool> openSession(String id) => _history.openSession(id);
 
-  Future<bool> openSession(String id) async {
-    try {
-      final session = await _store.open(id);
-      if (session == null) {
-        state = state.copyWith(toast: 'Could not open review.');
-        _scheduleToastClear();
-        return false;
-      }
-      final payload = jsonDecode(session.payloadJson) as Map<String, dynamic>;
-      // A session produced by a different parser version may key units
-      // differently — reopening it would present triage state that no longer
-      // lines up with what a fresh parse yields. Rows written before
-      // versioning existed ('') stay openable, as they always were.
-      if (session.parserVersion.isNotEmpty &&
-          session.parserVersion != kParserVersion) {
-        state = state.copyWith(
-          toast:
-              'Saved review was written by parser '
-              '${session.parserVersion}; re-import the document to review '
-              'again.',
-        );
-        _scheduleToastClear();
-        return false;
-      }
-      final units = (payload['units'] as List<dynamic>)
-          .map((e) => WorkspaceUnit.fromJson(e as Map<String, dynamic>))
-          .toList();
-      final resultJson = payload['result'] as Map<String, dynamic>?;
-      final syllabusFindings =
-          (payload['syllabusFindings'] as List<dynamic>?)
-              ?.map(
-                (entry) => DeterministicFinding.fromJson(
-                  entry as Map<String, dynamic>,
-                ),
-              )
-              .toList(growable: false) ??
-          const <DeterministicFinding>[];
-      final referenceFindings =
-          (payload['referenceFindings'] as List<dynamic>?)
-              ?.map(
-                (entry) => DeterministicFinding.fromJson(
-                  entry as Map<String, dynamic>,
-                ),
-              )
-              .toList(growable: false) ??
-          const <DeterministicFinding>[];
-      // Sessions written before the index family existed carry no such key;
-      // they round-trip as an empty list like the M2 family did at Round 5.
-      final blueprintFindings =
-          (payload['blueprintFindings'] as List<dynamic>?)
-              ?.map(
-                (entry) => DeterministicFinding.fromJson(
-                  entry as Map<String, dynamic>,
-                ),
-              )
-              .toList(growable: false) ??
-          const <DeterministicFinding>[];
-      // Sessions written before triage existed carry no such key; every id
-      // then reads back as open, which is how they always behaved.
-      final findingStatus = <String, FindingStatus>{
-        for (final entry
-            in (payload['findingStatus'] as Map<dynamic, dynamic>?)?.entries ??
-                const <MapEntry<dynamic, dynamic>>[])
-          entry.key as String: FindingStatus.fromName(entry.value as String?),
-      };
-      _document = null; // a restored session reviews no new file
-      _pdfBytes = null;
-      _documentMap = null;
-      _uploadUri = payload['uploadUri'] as String?;
-      final pageTexts =
-          (payload['pageTexts'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          const <String>[];
-      final projectInfo = _decodeProjectInfo(payload);
-      state = state.copyWith(
-        hasDocument: true,
-        projectName: (payload['projectName'] as String?) ?? '',
-        humanIssues: _decodeHumanIssues(payload),
-        pageTexts: pageTexts,
-        // Only `units` is load-bearing; the rest is display metadata. Casting
-        // those with `as String` / `as int` used to throw on a payload that was
-        // merely missing an optional field, which the catch-all turned into
-        // "Could not open review" and made the session permanently unopenable.
-        fileName: (payload['fileName'] as String?) ?? session.fileName,
-        pageCount: (payload['pageCount'] as int?) ?? 0,
-        sizeLabel: (payload['sizeLabel'] as String?) ?? '',
-        isDemo: (payload['isDemo'] as bool?) ?? false,
-        units: units,
-        syllabusFindings: syllabusFindings,
-        referenceFindings: referenceFindings,
-        blueprintFindings: blueprintFindings,
-        findingStatus: findingStatus,
-        diagramPageCount: (payload['diagramPageCount'] as int?) ?? 0,
-        projectInfo: projectInfo,
-        uploadUri: _uploadUri,
-        imageReviewAvailable: _uploadUri != null && _uploadUri!.isNotEmpty,
-        imageReviewedCount: 0,
-        clearImageCoverage: true,
-        result: resultJson == null
-            ? null
-            : WorkspaceReviewResult.fromJson(resultJson),
-        documentFingerprint: session.fingerprint,
-        parserVersion: session.parserVersion,
-        // The summary bar describes the run that just finished in THIS
-        // session. `copyWith` carries `runReviewed` over, so opening a saved
-        // review would otherwise re-show a bar about a run the user cannot
-        // see in this context.
-        runReviewed: 0,
-        runSummaryDismissed: true,
-        toast: 'Saved review restored.',
-      );
-      // Recompute §F.3 against the restored pages, so a form payload lost to a
-      // schema bump drops its findings together with the declaration that
-      // justified them.
-      _refreshProjectInfoFindings();
-      // The opened session is now what the app is working on: a restart must
-      // come back to THIS project container and declaration, not to whichever
-      // one the draft was left over from. Awaited because this method is
-      // already async and the lint (rightly) refuses a floating write.
-      await _saveDraft();
-      _scheduleToastClear();
-      return true;
-    } on Object catch (error) {
-      state = state.copyWith(toast: 'Could not open review: $error');
-      _scheduleToastClear();
-      return false;
-    }
-  }
-
-  Future<void> deleteSession(String id) async {
-    try {
-      await _store.delete(id);
-    } on Object catch (error) {
-      state = state.copyWith(
-        error: 'Could not delete the saved review: $error',
-      );
-      return;
-    }
-    await loadHistory();
-    await _loadRecentSessions();
-  }
+  /// Delegates to [HistoryController.deleteSession].
+  Future<void> deleteSession(String id) => _history.deleteSession(id);
 
   // ------------------------------------------------------------- export
 
-  /// Switch the language of every exported report, markdown preview included.
-  /// One setter rather than four, because the four exports are twins: letting
-  /// them carry different languages is exactly the mixing this feature exists
-  /// to remove.
-  void setReportLanguage(ReportLanguage language) {
-    if (state.reportLanguage == language) return;
-    state = state.copyWith(reportLanguage: language);
-    // Fire-and-forget, same contract as the step-1/2 setters: the choice is a
-    // preference with no other home, so without the draft a restart resets it
-    // to Vietnamese under a user who already picked English.
-    _saveDraft();
-  }
+  /// Delegates to [ExportController.setReportLanguage].
+  void setReportLanguage(ReportLanguage language) =>
+      _export.setReportLanguage(language);
 
-  String exportMarkdown() => buildMarkdownReport(
-    fileName: state.fileName,
-    language: state.reportLanguage,
-    offline: ref.read(mockModeProvider),
-    result: state.result,
-    units: state.units,
-    // Both engines' output, in one report: the offline syllabus checks used to
-    // live only on their own tab and never made it into anything a supervisor
-    // could read.
-    syllabusFindings: state.syllabusFindings,
-    // M2 family must reach the report too — the OTES pattern (63/63 use
-    // cases without a Postcondition) lives here, not in the syllabus list.
-    referenceFindings: state.referenceFindings,
-    // Document-index family: same offline evidence, its own family label.
-    blueprintFindings: state.blueprintFindings,
-    diagramPageCount: state.diagramPageCount,
-    imageReviewAvailable: state.imageReviewAvailable,
-    imageReviewedCount: state.imageReviewedCount,
-    imageCoverage: state.imageCoverage,
-    findingStatus: state.findingStatus,
-  );
+  /// Delegates to [ExportController.exportMarkdown].
+  String exportMarkdown() => _export.exportMarkdown();
 
-  /// Writes the report to a file the user chooses.
-  ///
-  /// Returns the destination as the platform reported it, or null when the
-  /// user cancelled. Copying to the clipboard is still offered, but a report
-  /// you cannot attach to a submission is not really an export.
-  Future<String?> saveReportToFile() async {
-    final report = exportMarkdown();
-    return _exporter.save(fileName: reportFileName(), contents: report);
-  }
+  /// Delegates to [ExportController.saveReportToFile].
+  Future<String?> saveReportToFile() => _export.saveReportToFile();
 
-  /// Structured twin of [exportMarkdown] — same inputs, same numbers, one
-  /// shared schema for a server or web tool (goal §4 Output row).
-  String exportJson() => const JsonEncoder.withIndent('  ').convert(
-    buildJsonReport(
-      fileName: state.fileName,
-      language: state.reportLanguage,
-      offline: ref.read(mockModeProvider),
-      result: state.result,
-      units: state.units,
-      syllabusFindings: state.syllabusFindings,
-      referenceFindings: state.referenceFindings,
-      diagramPageCount: state.diagramPageCount,
-      imageReviewAvailable: state.imageReviewAvailable,
-      imageReviewedCount: state.imageReviewedCount,
-      imageCoverage: state.imageCoverage,
-      findingStatus: state.findingStatus,
-    ),
-  );
+  /// Delegates to [ExportController.exportJson].
+  String exportJson() => _export.exportJson();
 
-  /// Writes the JSON report to a file the user chooses. Same dialog, same
-  /// contract, and the same error semantics as [saveReportToFile].
-  Future<String?> saveJsonReportToFile() async {
-    final report = exportJson();
-    return _exporter.save(
-      fileName: reportFileName(extension: 'json'),
-      contents: report,
-    );
-  }
+  /// Delegates to [ExportController.saveJsonReportToFile].
+  Future<String?> saveJsonReportToFile() => _export.saveJsonReportToFile();
 
-  /// Dashboard twin of [exportMarkdown] — the brief's Report row asks for a
-  /// dashboard a supervisor opens in a browser, not just prose for a repo.
-  /// Same inputs as both twins; the numbers agree by construction.
-  String exportHtml() => buildHtmlReport(
-    fileName: state.fileName,
-    language: state.reportLanguage,
-    offline: ref.read(mockModeProvider),
-    result: state.result,
-    units: state.units,
-    syllabusFindings: state.syllabusFindings,
-    referenceFindings: state.referenceFindings,
-    blueprintFindings: state.blueprintFindings,
-    diagramPageCount: state.diagramPageCount,
-    imageReviewAvailable: state.imageReviewAvailable,
-    imageReviewedCount: state.imageReviewedCount,
-    imageCoverage: state.imageCoverage,
-    findingStatus: state.findingStatus,
-  );
+  /// Delegates to [ExportController.exportHtml].
+  String exportHtml() => _export.exportHtml();
 
-  /// Writes the HTML dashboard to a file the user chooses. Same dialog and
-  /// error contract as the markdown and JSON twins.
-  Future<String?> saveHtmlReportToFile() async {
-    final report = exportHtml();
-    return _exporter.save(
-      fileName: reportFileName(extension: 'html'),
-      contents: report,
-      mimeType: 'text/html',
-    );
-  }
+  /// Delegates to [ExportController.saveHtmlReportToFile].
+  Future<String?> saveHtmlReportToFile() => _export.saveHtmlReportToFile();
 
-  /// Word (.docx) twin — the format a supervisor actually opens, added
-  /// 2026-09-25. Same inputs as the three siblings, and the honesty contract
-  /// comes from the same [reportLimitations] list, so a caveat cannot be added
-  /// to three exports out of four.
-  Uint8List exportDocx() => buildDocxReport(
-    fileName: state.fileName,
-    language: state.reportLanguage,
-    offline: ref.read(mockModeProvider),
-    result: state.result,
-    units: state.units,
-    syllabusFindings: state.syllabusFindings,
-    referenceFindings: state.referenceFindings,
-    blueprintFindings: state.blueprintFindings,
-    diagramPageCount: state.diagramPageCount,
-    imageReviewAvailable: state.imageReviewAvailable,
-    imageReviewedCount: state.imageReviewedCount,
-    imageCoverage: state.imageCoverage,
-    findingStatus: state.findingStatus,
-    humanIssues: state.humanIssues,
-  );
+  /// Delegates to [ExportController.exportDocx].
+  Uint8List exportDocx() => _export.exportDocx();
 
-  /// Writes the .docx to a file the user chooses. Bytes go through
-  /// [ReportExporter.saveBytes] — a ZIP container must never be utf8-encoded.
-  Future<String?> saveDocxReportToFile() => _exporter.saveBytes(
-    fileName: reportFileName(extension: 'docx'),
-    bytes: exportDocx(),
-    mimeType:
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  );
+  /// Delegates to [ExportController.saveDocxReportToFile].
+  Future<String?> saveDocxReportToFile() => _export.saveDocxReportToFile();
 
-  /// Opens the OS share sheet with the markdown report attached. The third
-  /// leg of the brief's Output row ("ledger.md + JSON + share sheet") — the
-  /// native AirDrop/Drive/Mail flow is how a report actually reaches a
-  /// supervisor on mobile. Shares the markdown, not the JSON: the share
-  /// target is a human reader.
-  Future<String> shareReport() =>
-      _exporter.share(fileName: reportFileName(), contents: exportMarkdown());
+  /// Delegates to [ExportController.shareReport].
+  Future<String> shareReport() => _export.shareReport();
 
-  /// The name every save path writes, and the one the share sheet shows.
-  ///
-  /// Public because it is user-visible behaviour, not an internal detail: the
-  /// report language rides in the name so that exporting both an English and a
-  /// Vietnamese copy of one run produces two files instead of one silently
-  /// overwriting the other in the Downloads folder.
-  String reportFileName({String extension = 'md'}) {
-    final base = state.fileName.trim().isEmpty ? 'srs' : state.fileName;
-    final stem = base.contains('.')
-        ? base.substring(0, base.lastIndexOf('.'))
-        : base;
-    final safe = stem.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
-    final stamp = DateTime.now().toIso8601String().substring(0, 10);
-    // The language rides in the file name: a team exporting both an English
-    // and a Vietnamese copy of one run gets two files, not one that silently
-    // overwrites the other in the Downloads folder.
-    return 'srs-review-$safe-${state.reportLanguage.wire}-$stamp.$extension';
-  }
+  /// Delegates to [ExportController.reportFileName].
+  String reportFileName({String extension = 'md'}) =>
+      _export.reportFileName(extension: extension);
 
   // ------------------------------------------------------------- toast
 
@@ -1853,199 +679,6 @@ class WorkspaceViewModel extends Notifier<WorkspaceState> {
     _toastTimer = Timer(const Duration(milliseconds: 4500), () {
       state = state.copyWith(clearToast: true);
     });
-  }
-
-  // ------------------------------------------------------------- persistence
-
-  /// Reads the declared project info from a persisted payload.
-  ///
-  /// Degrades to null instead of throwing: a payload written by a future
-  /// schema must cost the user their form, never their whole restored
-  /// workspace — §F.3 then recomputes to nothing, which is coherent (no
-  /// declaration, no declared-vs-cover claim).
-  static ProjectInfo? _decodeProjectInfo(Map<String, dynamic> payload) {
-    final raw = payload['projectInfo'] as Map<String, dynamic>?;
-    if (raw == null) return null;
-    try {
-      return ProjectInfo.fromJson(raw);
-    } on Object {
-      return null;
-    }
-  }
-
-  /// Reads reviewer-authored issues from a persisted payload.
-  ///
-  /// Degrades to an empty list instead of throwing: one future-schema row
-  /// must cost the user that row, never the whole restored workspace.
-  static List<HumanIssue> _decodeHumanIssues(Map<String, dynamic> payload) {
-    final raw = payload['humanIssues'];
-    if (raw is! List) return const [];
-    try {
-      return raw
-          .map((entry) => HumanIssue.fromJson(entry as Map<String, dynamic>))
-          .toList(growable: false);
-    } on Object {
-      return const [];
-    }
-  }
-
-  /// Reads the report-language preference from a persisted payload.
-  ///
-  /// Null — never a silent Vietnamese — when the key is absent or malformed:
-  /// absence is a draft written before the field existed, and mapping it
-  /// through `fromWire` would push the default over a language the user
-  /// already picked. A value that IS present but unreadable falls back to the
-  /// app default through [ReportLanguage.fromWire] rather than crashing a
-  /// startup over a preference.
-  static ReportLanguage? _decodeReportLanguage(Map<String, dynamic> payload) {
-    final wire = payload['reportLanguage'];
-    if (wire is! String || wire.isEmpty) return null;
-    return ReportLanguage.fromWire(wire);
-  }
-
-  /// Persists what no run has claimed yet: the step-1 project container, the
-  /// step-2 declaration, the reviewer's own issues and the report-language
-  /// preference.
-  ///
-  /// Deliberately small, and deliberately NOT the workspace. Units, findings,
-  /// triage and the AI result all have a home the moment a run finishes (the
-  /// saved session, reopened through History), and startup never auto-restores
-  /// a previous workspace (decision 2026-09-23). Before this draft existed,
-  /// the old `_saveSnapshot` re-encoded the whole workspace — units plus every
-  /// page of text, ~1 MB on the OTES run — on each of a dozen mutations, for a
-  /// reader that no longer existed. The draft is a few hundred bytes, written
-  /// only when one of those things actually changes.
-  Future<void> _saveDraft() async {
-    final payload = jsonEncode({
-      'projectName': state.projectName,
-      'projectInfo': state.projectInfo?.toJson(),
-      'humanIssues': state.humanIssues
-          .map((issue) => issue.toJson())
-          .toList(growable: false),
-      'reportLanguage': state.reportLanguage.wire,
-    });
-    try {
-      await _store.saveDraft(payload);
-    } on Object {
-      // Persistence is best-effort: losing the draft never blocks a review.
-    }
-  }
-
-  /// Reads the draft back into the landing flow (steps 1–2 pre-filled).
-  ///
-  /// Two guards, in this order: never clobber live state and never touch a
-  /// disposed provider.
-  ///
-  /// "Live" means anything the user did before this read landed — a document
-  /// loaded, or a step-1/step-2 field already typed (the read is a store hit,
-  /// but it is still async, and overwriting a name typed in that window would
-  /// be the same bug the old restore had to guard against).
-  Future<void> _restoreDraft() async {
-    try {
-      final raw = await _store.loadDraft();
-      if (!ref.mounted || raw == null || state.hasDocument) return;
-      if (state.projectName.isNotEmpty ||
-          state.projectInfo != null ||
-          state.humanIssues.isNotEmpty) {
-        return;
-      }
-      final payload = jsonDecode(raw) as Map<String, dynamic>;
-      // The language is a preference, not step-1/2 work, so it is applied
-      // BEFORE the typed-fields guard below: a name typed in the read window
-      // must not cost the choice. A draft that predates the field (key absent)
-      // is a no-op — mapping absence through `fromWire` would write Vietnamese
-      // over a language the user already picked. The one input that can lose
-      // here is a Vietnamese choice made inside the same read window as a draft
-      // that carries 'en'; it falls back to the app default, not to another
-      // language.
-      final language = _decodeReportLanguage(payload);
-      if (language != null) {
-        state = state.copyWith(reportLanguage: language);
-      }
-      final name = (payload['projectName'] as String?)?.trim() ?? '';
-      final info = _decodeProjectInfo(payload);
-      final issues = _decodeHumanIssues(payload);
-      if (name.isEmpty && info == null && issues.isEmpty) return;
-      state = state.copyWith(
-        projectName: name,
-        projectInfo: info,
-        clearProjectInfo: info == null,
-        humanIssues: issues,
-      );
-      // §F.3 has no page texts to compare against before a document is loaded;
-      // recomputing keeps the rule "findings always travel with the
-      // declaration that justified them" true even on this path.
-      _refreshProjectInfoFindings();
-    } on Object {
-      // A draft is a convenience, not a dependency: an unreadable one must
-      // never block the app from starting.
-    }
-  }
-
-  /// Returns false when the history write failed, so the caller does not
-  /// claim "saved on this device" over an empty history: `setStringList` can
-  /// refuse (storage full, a blocked web origin) and the old code reported
-  /// success regardless, which made a finished run look like it vanished.
-  Future<bool> _saveSession(WorkspaceReviewResult result) async {
-    final payload = jsonEncode({
-      'fileName': state.fileName,
-      'pageCount': state.pageCount,
-      'sizeLabel': state.sizeLabel,
-      'isDemo': state.isDemo,
-      'units': state.units.map((u) => u.toJson()).toList(),
-      'syllabusFindings': state.syllabusFindings
-          .map((finding) => finding.toJson())
-          .toList(growable: false),
-      'referenceFindings': state.referenceFindings
-          .map((finding) => finding.toJson())
-          .toList(growable: false),
-      // Blueprint findings persist like the other two families so older
-      // snapshots (no such key) restore an empty list instead of breaking.
-      'blueprintFindings': state.blueprintFindings
-          .map((finding) => finding.toJson())
-          .toList(growable: false),
-      'findingStatus': state.findingStatus.map(
-        (id, status) => MapEntry(id, status.name),
-      ),
-      'diagramPageCount': state.diagramPageCount,
-      'result': result.toJson(),
-      'documentFingerprint': state.documentFingerprint,
-      'parserVersion': state.parserVersion,
-      'uploadUri': _uploadUri ?? state.uploadUri,
-      'pageTexts': state.pageTexts,
-      // Same rule as the snapshot: findings derived from the declaration
-      // travel with the declaration itself.
-      'projectInfo': state.projectInfo?.toJson(),
-      // The session's History row is grouped under this name — without it,
-      // a finished run would fall into "Chưa gán project" after being
-      // created inside a project.
-      'projectName': state.projectName,
-      // Same rule as the snapshot: the merged Report tab reads this list,
-      // so the session must carry it too.
-      'humanIssues': state.humanIssues
-          .map((issue) => issue.toJson())
-          .toList(growable: false),
-    });
-    try {
-      await _store.save(
-        SavedSession(
-          id: 'sess-${DateTime.now().microsecondsSinceEpoch}',
-          fileName: state.fileName,
-          fingerprint: state.documentFingerprint,
-          parserVersion: state.parserVersion,
-          payloadJson: payload,
-          createdAt: DateTime.now(),
-        ),
-      );
-    } on Object catch (error) {
-      state = state.copyWith(
-        error: 'Review finished, but it could not be saved to history: $error',
-      );
-      return false;
-    }
-    await loadHistory();
-    await _loadRecentSessions();
-    return true;
   }
 }
 
