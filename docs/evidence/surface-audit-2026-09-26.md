@@ -13,8 +13,12 @@ Ba việc, một chỗ ghi:
 **Kết luận chung:** không bề mặt nào — modal hay trong trang — tự cắt chiều
 cao. 54/54 phép đo trên các đích đến đều `reachable=true` (nội dung dài hơn cửa
 sổ thì luôn có scroll của trang để tới), và 36/36 phép đo modal phủ kín cửa sổ.
+
 Cái còn lại là **năm** chỗ tràn ngang chỉ ở khổ 390 px (§3.1 và §4.1) — lỗi bố
-cục, không phải lỗi chiều cao.
+cục, không phải lỗi chiều cao. **Cả năm đã sửa và đo lại trong ngày: 4 lỗi ở
+390 → 0, ở 1200 vẫn 0** (§3.1, §4.1). Đo lại còn lộ thêm **một** chỗ thứ sáu
+cùng lớp mà bản audit gốc bỏ sót vì nó không dựng overflow error nào (§3.1.1) —
+nên con số "năm" ở trên là con số của *bản audit*, không phải của code sau sửa.
 
 Phía modal: 18 bề mặt (17 modal thật + biến thể `centerBody` dùng chung cho 3
 confirm lồng nhau) phủ kín cửa sổ ở **cả** 390×844 và 1280×900, và repo không
@@ -23,8 +27,7 @@ còn API bottom sheet nào — `showModalBottomSheet`, `DraggableScrollableSheet
 trong chú thích và trong một test khẳng định chúng vắng mặt,
 `app/test/desktop/qa_p1_adversarial_test.dart:547`).
 
-Cái *còn*: **năm** chỗ tràn ngang đều chỉ ở khổ 390 px — bốn trong modal (§3.1),
-một trong trang Báo cáo (§4.1) — và một luật đã chết (§3.2).
+Còn lại sau khi sửa: một luật đã chết (§3.2).
 
 ## 1. Ảnh chụp source sheet
 
@@ -118,20 +121,47 @@ Ngoài ra, không phải sheet: 2 menu ngữ cảnh `showMenu` (`desktop_context
 
 ## 3. Phát hiện kèm theo (chưa sửa)
 
-### 3.1 Bốn chỗ tràn ngang ở khổ 390
+### 3.1 Bốn chỗ tràn ngang ở khổ 390 — ĐÃ SỬA, đo lại 2026-09-26
 
 Khổ 1280×900: **0** lỗi bố cục. Khổ 390×844: 4 lỗi, đều là `RenderFlex`
 phương ngang:
 
-| Nơi | Mức tràn | Dựng bởi |
+| Nơi | Mức tràn | Dựng bởi | Vá bằng |
+|---|---|---|---|
+| `rubric_editor.dart` `_section` | 28 px và 33 px (hai mục) | `Row(Text(tiêu đề), Spacer(), WBadge)` với tiêu đề tiếng Việt dài | `Expanded` + `maxLines: 2` + `ellipsis`; badge giữ chiều rộng nội tại |
+| `rubric_editor.dart` `_actions` | 107 px | hàng nút cuối modal | `Wrap` (`spacing` + `runSpacing`), mỗi nút giữ bề rộng nội tại |
+| `criteria_manager.dart` `_dropdowns` | 88 px | `DropdownButtonFormField<CriterionScope>` | `Row`+`Expanded` → `Column` một cột, không nhánh theo khổ |
+
+**Đo lại (cùng harness, `git stash` ba file rồi chạy lại):**
+
+| Trạng thái | 390×844 | 1200×900 |
 |---|---|---|
-| `rubric_editor.dart:181` | 28 px và 33 px (hai mục) | `_section` — `Row(Text(tiêu đề), Spacer(), WBadge)` với tiêu đề tiếng Việt dài |
-| `rubric_editor.dart:230` | 107 px | `_actions` — hàng nút cuối modal |
-| `criteria_manager.dart:452` | 88 px | `DropdownButtonFormField<CriterionScope>` trong criterion editor |
+| Trước | 4 lỗi: 33 px, 107 px (rubric) · 91 px (criterion editor) · 15 px (report) | 0 |
+| Sau | **0** | **0** |
+
+Hai con số **không** khớp tuyệt đối với bảng trên, và lý do đáng ghi: `91 px` thay
+cho `88 px`. Audit gốc đo criterion editor ở trạng thái `canEdit == false`
+(`MockReviewApi`), nên dropdown render với nhãn rỗng; bản đo lại mở nó qua
+`canEdit == true`, tức đúng nhãn tiếng Việt "Từng yêu cầu"/"Cả tài liệu" —
+dài hơn. Cùng một lớp lỗi, cùng một widget, số đo đúng hơn.
 
 Cả hai modal mở được từ hàng nút ở đầu trang "Chuẩn Syllabus & Thang điểm"
 (`syllabus_rubric_view.dart:89` và `:94`), không có nhánh ẩn theo khổ — nên đây
 là lỗi thật ở khổ điện thoại: debug hiện sọc vàng/đen, release bị cắt chữ.
+
+### 3.1.1 Một chỗ thứ sáu cùng lớp, audit đếm lỡ
+
+`criteria_manager.dart` hàng nút cuối (`Thêm tiêu chí` + `Khôi phục mặc
+định`) là `Row` + `Expanded`. Ở khổ 390, `Expanded` để lại cho nút **chính**
+`28.2 px` — nhỏ hơn luôn 30 px padding ngang của `WButton`, nên nhãn "Thêm tiêu
+chí" bị `ellipsis` mất sạch và cái nút là một viên thuốc rỗng.
+
+**Audit không thấy chỗ này** vì nó đếm *overflow error*: một `Expanded` bị bóp
+cạn thì không dựng `RenderFlex overflowed` nào — nên "0 lỗi" ở đây **không**
+đồng nghĩa "không bị cắt". Đo bằng `tester.getSize(FilledButton).width` thì ra
+con số: **28.2 px @390 → 224.3 px** sau khi đổi `Row`+`Expanded` thành `Wrap`.
+
+Bài học cho lần audit sau: đếm overflow là điều kiện cần, không phải đủ.
 
 ### 3.2 Một luật đã chết
 
@@ -183,11 +213,15 @@ Chiều cao panel (716 → 622 → 574 → 848) là chiều cao *nội dung*, kh
 trần: nó co theo chỗ xuống dòng của chữ, và ở khổ hẹp panel nằm trong scroll
 của trang. Ở mọi khổ đúng **một** instance — không bao giờ hiện hai lần.
 
-### 4.1 Phát hiện: một tràn ngang nữa, cũng chỉ ở khổ 390
+### 4.1 Phát hiện: một tràn ngang nữa, cũng chỉ ở khổ 390 — ĐÃ SỬA
 
-| Nơi | Khổ | Mức | Dựng bởi |
-|---|---|---|---|
-| `report_view.dart:287` | 390×844; 0 ở 8 khổ còn lại | 15 px phải | `Row` sáu chip `_count(...)` (AI / Luật / Người / Cao / Vừa / Nhẹ) — hàng chip cứng, không `Wrap` |
+| Nơi | Khổ | Mức | Dựng bởi | Vá bằng |
+|---|---|---|---|---|
+| `report_view.dart` | 390×844; 0 ở 8 khổ còn lại | 15 px phải | `Row` sáu chip `_count(...)` (AI / Luật / Người / Cao / Vừa / Nhẹ) — hàng chip cứng, không `Wrap` | `Wrap` + `runSpacing`; mỗi chip đã tự mang `EdgeInsets.only(right: AppSpacing.md)` nên làm luôn vai trò gap |
+
+Đo lại: **15 px → 0** ở 390, và 0 ở 1200 (khối trang Báo cáo dựng trên
+container **đã chấm xong một lượt** — chip toàn số `0` thì hẹp, và hẹp thì
+không tràn, tức một lần chạy xanh mà không chứng minh gì).
 
 Đây là lỗi thứ năm cùng một lớp với bốn lỗi ở §3.1: một `Row` cứng ở khổ điện
 thoại, không phải lỗi riêng của trang Báo cáo.

@@ -284,7 +284,12 @@ Widget _overallPanel({
               style: theme.textTheme.labelSmall?.copyWith(color: colors.muted),
             ),
             const SizedBox(height: AppSpacing.sm),
-            Row(
+            // A Wrap, not a Row: six count chips overflowed 15 px at 390
+            // (surface audit 2026-09-26 §4.1). Each chip carries its own
+            // right margin (AppSpacing.md) so it doubles as the gap, and
+            // runSpacing covers the wrapped lines.
+            Wrap(
+              runSpacing: AppSpacing.sm,
               children: [
                 _count('AI', aiCount, colors.amber, theme, colors),
                 _count('Luật', offlineCount, colors.blue, theme, colors),

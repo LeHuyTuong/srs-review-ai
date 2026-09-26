@@ -85,19 +85,26 @@ class _CriteriaManager extends ConsumerWidget {
             data: (rows) => _CriteriaList(rows: rows, canEdit: canEdit),
           ),
           const SizedBox(height: AppSpacing.lg),
-          Row(
+          // A Wrap, not a `Row` + `Expanded`, and for a different reason than
+          // the overflows above: the secondary button's label is wide enough
+          // that Expanded left the PRIMARY one 28.2 px at 390 — narrower than
+          // WButton's own 30 px of horizontal padding, so "Thêm tiêu chí"
+          // rendered as a blank pill with nothing to tap. No RenderFlex
+          // overflow is reported for that, which is why the surface audit
+          // (which counts overflow errors) never saw it; it was measured here
+          // as `getSize(FilledButton).width`. Both buttons keep their
+          // intrinsic width and the pair wraps to a second line on a phone.
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
             children: [
-              Expanded(
-                child: WButton.primary(
-                  label: 'Thêm tiêu chí',
-                  icon: Icons.add,
-                  expanded: true,
-                  onPressed: canEdit
-                      ? () => showCriterionEditor(context, ref)
-                      : null,
-                ),
+              WButton.primary(
+                label: 'Thêm tiêu chí',
+                icon: Icons.add,
+                onPressed: canEdit
+                    ? () => showCriterionEditor(context, ref)
+                    : null,
               ),
-              const SizedBox(width: AppSpacing.sm),
               WButton.secondary(
                 label: 'Khôi phục mặc định',
                 icon: Icons.settings_backup_restore,
@@ -446,38 +453,43 @@ class _CriterionEditorState extends ConsumerState<_CriterionEditor> {
     const SizedBox(height: AppSpacing.sm),
   ];
 
-  Widget _dropdowns() => Row(
+  /// One dropdown per full-width row, at every window width. Two Expanded
+  /// fields shared one row and each overflowed 88 px at 390 (surface audit
+  /// 2026-09-26 §3.1) — the label plus the selected Vietnamese label do not
+  /// fit half a phone. A Wrap cannot replace the Row here: its children are
+  /// sized loose-wide, so a form field would just take the whole width and
+  /// the pair would never sit side by side anyway. The form is otherwise
+  /// single-column, so this row becomes single-column too — one behaviour,
+  /// no viewport branch.
+  Widget _dropdowns() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Expanded(
-        child: DropdownButtonFormField<CriterionScope>(
-          initialValue: _scope,
-          decoration: const InputDecoration(
-            labelText: 'Áp dụng cho',
-            isDense: true,
-            border: OutlineInputBorder(),
-          ),
-          items: [
-            for (final scope in CriterionScope.values)
-              DropdownMenuItem(value: scope, child: Text(scope.labelVi)),
-          ],
-          onChanged: (next) => setState(() => _scope = next ?? _scope),
+      DropdownButtonFormField<CriterionScope>(
+        initialValue: _scope,
+        decoration: const InputDecoration(
+          labelText: 'Áp dụng cho',
+          isDense: true,
+          border: OutlineInputBorder(),
         ),
+        items: [
+          for (final scope in CriterionScope.values)
+            DropdownMenuItem(value: scope, child: Text(scope.labelVi)),
+        ],
+        onChanged: (next) => setState(() => _scope = next ?? _scope),
       ),
-      const SizedBox(width: AppSpacing.sm),
-      Expanded(
-        child: DropdownButtonFormField<CriterionSeverity>(
-          initialValue: _severity,
-          decoration: const InputDecoration(
-            labelText: 'Mức độ',
-            isDense: true,
-            border: OutlineInputBorder(),
-          ),
-          items: [
-            for (final severity in CriterionSeverity.values)
-              DropdownMenuItem(value: severity, child: Text(severity.labelVi)),
-          ],
-          onChanged: (next) => setState(() => _severity = next ?? _severity),
+      const SizedBox(height: AppSpacing.sm),
+      DropdownButtonFormField<CriterionSeverity>(
+        initialValue: _severity,
+        decoration: const InputDecoration(
+          labelText: 'Mức độ',
+          isDense: true,
+          border: OutlineInputBorder(),
         ),
+        items: [
+          for (final severity in CriterionSeverity.values)
+            DropdownMenuItem(value: severity, child: Text(severity.labelVi)),
+        ],
+        onChanged: (next) => setState(() => _severity = next ?? _severity),
       ),
     ],
   );

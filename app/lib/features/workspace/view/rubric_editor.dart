@@ -173,17 +173,30 @@ class _RubricEditorState extends ConsumerState<_RubricEditor> {
     );
   }
 
+  /// Title takes what it needs and the badge keeps its intrinsic width: a
+  /// Spacer() row overflowed 28/33 px at 390 when the trailing badge joined a
+  /// long Vietnamese title (surface audit 2026-09-26 §3.1). Text wraps before
+  /// it can overflow; ellipsis is the hard guarantee.
   Widget _section(
     BuildContext context,
     String title,
     String? trailing,
     bool ok,
   ) => Row(
+    crossAxisAlignment: CrossAxisAlignment.center,
     children: [
-      Text(title, style: Theme.of(context).textTheme.titleSmall),
-      const Spacer(),
-      if (trailing != null)
+      Expanded(
+        child: Text(
+          title,
+          style: Theme.of(context).textTheme.titleSmall,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+      if (trailing != null) ...[
+        const SizedBox(width: AppSpacing.sm),
         WBadge(label: trailing, tint: ok ? WBadgeTint.green : WBadgeTint.amber),
+      ],
     ],
   );
 
@@ -227,19 +240,23 @@ class _RubricEditorState extends ConsumerState<_RubricEditor> {
     _ => key,
   };
 
-  Widget _actions(bool enabled) => Row(
-    mainAxisAlignment: MainAxisAlignment.end,
+  /// A Wrap, not a Row: the three buttons overflowed 107 px at 390 (surface
+  /// audit 2026-09-26 §3.1). Wrapping keeps every button its intrinsic width;
+  /// the gap moves into `spacing` because SizedBox separators cannot express
+  /// "only between runs".
+  Widget _actions(bool enabled) => Wrap(
+    alignment: WrapAlignment.end,
+    spacing: AppSpacing.sm,
+    runSpacing: AppSpacing.sm,
     children: [
       WButton.secondary(
         label: 'Khôi phục mặc định',
         onPressed: _saving || !enabled ? null : _reset,
       ),
-      const SizedBox(width: AppSpacing.sm),
       WButton.secondary(
         label: 'Đóng',
         onPressed: _saving ? null : () => Navigator.of(context).pop(),
       ),
-      const SizedBox(width: AppSpacing.sm),
       WButton.primary(
         label: _saving ? 'Đang lưu…' : 'Lưu',
         onPressed: _saving || !enabled ? null : _save,
