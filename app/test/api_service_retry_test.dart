@@ -351,44 +351,50 @@ void main() {
   // host, because a config read inherited the review retry loop and the 90s
   // review timeout. The user could not tell a slow proxy from a hung app.
   group('ApiService config reads', () {
-    test('a dead proxy fails the criteria read in one attempt, not three', () async {
-      final adapter = _FakeAdapter(
-        Queue<Object>.of(<Object>[_Action.dropped, _Action.ok, _Action.ok]),
-      );
+    test(
+      'a dead proxy fails the criteria read in one attempt, not three',
+      () async {
+        final adapter = _FakeAdapter(
+          Queue<Object>.of(<Object>[_Action.dropped, _Action.ok, _Action.ok]),
+        );
 
-      await expectLater(
-        _service(adapter).fetchCriteria(),
-        throwsA(
-          isA<ApiException>().having(
-            (error) => error.message,
-            'message',
-            contains('Cannot reach the review proxy'),
+        await expectLater(
+          _service(adapter).fetchCriteria(),
+          throwsA(
+            isA<ApiException>().having(
+              (error) => error.message,
+              'message',
+              contains('Cannot reach the review proxy'),
+            ),
           ),
-        ),
-      );
-      expect(
-        adapter.calls,
-        1,
-        reason:
-            'the screen has a "Thử lại" button; a hidden retry only delays the'
-            ' message and the user can neither see nor cancel it',
-      );
-    });
+        );
+        expect(
+          adapter.calls,
+          1,
+          reason:
+              'the screen has a "Thử lại" button; a hidden retry only delays the'
+              ' message and the user can neither see nor cancel it',
+        );
+      },
+    );
 
-    test('the rubric read is cut short by its own deadline, not the 90s one', () {
-      expect(
-        AppConfig.configReadTimeout,
-        lessThan(const Duration(seconds: 10)),
-        reason:
-            'the read inherits connectTimeout (10s) per attempt, so a deadline'
-            ' at or above it cannot shorten a hanging proxy at all',
-      );
-      expect(
-        AppConfig.configReadTimeout,
-        greaterThan(const Duration(milliseconds: 500)),
-        reason: 'a real round trip to a LAN proxy must still fit inside it',
-      );
-    });
+    test(
+      'the rubric read is cut short by its own deadline, not the 90s one',
+      () {
+        expect(
+          AppConfig.configReadTimeout,
+          lessThan(const Duration(seconds: 10)),
+          reason:
+              'the read inherits connectTimeout (10s) per attempt, so a deadline'
+              ' at or above it cannot shorten a hanging proxy at all',
+        );
+        expect(
+          AppConfig.configReadTimeout,
+          greaterThan(const Duration(milliseconds: 500)),
+          reason: 'a real round trip to a LAN proxy must still fit inside it',
+        );
+      },
+    );
 
     test(
       'a refused proxy surfaces a message a user can act on, quickly',

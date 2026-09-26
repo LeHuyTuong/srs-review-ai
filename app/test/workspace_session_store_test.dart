@@ -204,11 +204,10 @@ void main() {
       await prefs.setString(slotA, '{"generation":9,"sessions":[');
 
       final recovered = await store.list();
-      expect(
-        recovered.map((s) => s.id),
-        ['b', 'a'],
-        reason: 'the mirror must keep the history readable',
-      );
+      expect(recovered.map((s) => s.id), [
+        'b',
+        'a',
+      ], reason: 'the mirror must keep the history readable');
 
       // The damaged replica was re-published, so the next read finds two good
       // copies again — the window with a single copy is closed here.

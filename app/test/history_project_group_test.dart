@@ -41,11 +41,10 @@ void main() {
     ]);
     expect(groups, hasLength(2));
     expect(groups[0].key, 'Đợt 1');
-    expect(
-      groups[0].value.map((s) => s.id),
-      ['a1', 'a2'],
-      reason: 'rows inside a group keep store order (newest first)',
-    );
+    expect(groups[0].value.map((s) => s.id), [
+      'a1',
+      'a2',
+    ], reason: 'rows inside a group keep store order (newest first)');
     expect(groups[1].key, 'Đợt 2');
     expect(groups[1].value.map((s) => s.id), ['b1', 'b2']);
   });
