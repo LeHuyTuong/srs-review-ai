@@ -5,6 +5,54 @@
 > migration từng bước. Refactor bảo toàn 100% hành vi công khai (UI flow, API
 > path/JSON, parser semantics, cache key, rate limit, mock mode, pacing).
 
+## 0. As-built — đã thực hiện xong (2026-09-26)
+
+Kế hoạch ở các mục 1–10 dưới đây là bản viết trước khi sửa; mục này là kết quả
+thực tế, để hai bản không lệch nhau im lặng.
+
+| Hạng mục | Trước | Sau |
+|---|---|---|
+| `app/lib/data/` | 50 file, 5 capability trộn | **không còn** — 6 component headless |
+| `workspace_view_model.dart` | 2.063 dòng, 1 class | 692 dòng: state + copyWith + façade |
+| Controller use case | — | 7 file, 71–418 dòng (+ base 71 dòng) |
+| `server/app/main.py` | 1.164 dòng | ~120 dòng: bootstrap + router + composition root |
+| Tầng server | 1 package phẳng | `api/ application/ domain/ infrastructure/ config/ contracts/` |
+| Guardrails luật layering | bám `data/` (no-op sau khi move) | bám component + route seam đã cập nhật |
+
+**Commit:** `215da54` (app: 6 component) → `86a695d` (notifier thành façade trên
+7 controller); server `6dd304d` (contracts/domain/infrastructure/config) +
+`e21e961` (api/ + application/).
+
+**Kiểm chứng:** `flutter analyze --fatal-infos` sạch, `dart format` sạch, **902
+test app pass** (không test nào phải sửa), server **212 passed / 1 skipped**,
+`ruff check` + `ruff format --check` sạch, `tools/check_guardrails.py` pass cả 7
+nhóm, `server/tests/test_layering.py` (AST + pin 20 endpoint) pass.
+
+**Khác với kế hoạch ban đầu, và vì sao:**
+
+1. **7 controller, không phải 6.** `ReviewRunController` vẫn 590 dòng vì nửa của
+   nó là vision pass; grep xác nhận hai nửa không gọi nhau, nên tách
+   `DiagramAuditController` (còn 418 dòng) là ranh giới sạch, không phải chia nhỏ
+   hình thức.
+2. **Controller là `part` của cùng library với notifier, không phải library
+   riêng.** Riverpod đánh dấu `Notifier.ref`/`Notifier.state` là `@protected`, và
+   controller cần cả nội bộ session (`_document`, `_pdfBytes`, `_log`,
+   `_scheduleToastClear`). Notifier mở đúng hai cửa `workspaceRef` /
+   `workspaceState`; mọi thứ còn lại giữ nguyên đóng gói, thay vì public hoá nội
+   bộ để có vẻ "sạch".
+3. **Ba decoder payload thành hàm top-level** trong library
+   (`_decodeProjectInfo`, `_decodeHumanIssues`, `_decodeReportLanguage`): Dart
+   không cho static member và instance member trùng tên, mà chúng là hàm thuần
+   trên một persisted payload — không thuộc về class nào.
+4. **Shim tương thích giữ lại** ở đường dẫn server cũ (`app.schemas`, `app.cache`,
+   `app.llm.*`, …). Chúng chỉ re-export; test cũ chạy nguyên, và xoá được ở một
+   major sau.
+
+**Còn nợ (mục 10 ghi tiếp):** shim đường dẫn cũ; `_document`/`_pdfBytes`/`_store`
+vẫn nằm trên notifier (đúng theo thiết kế — chúng là session, không phải use
+case); `docs/arch-*-notes.md` là bản khảo sát trước refactor, đã được viết lại
+đường dẫn nhưng số đo vẫn là của lần khảo sát 2026-09-25.
+
 ## 1. Kiến trúc hiện tại (đo được từ import graph, 2026-09-25)
 
 ### Flutter `app/lib` (~32.5k dòng)

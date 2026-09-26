@@ -1,5 +1,7 @@
 # Ghi chú Kiến trúc Backend & Contract
 
+> **Cập nhật 2026-09-26 (ADR 0013):** đường dẫn file trong bản này đã được viết lại theo cây component mới (`data/` không còn tồn tại). Cây đích và bảng mapping đầy đủ nằm ở [`architecture-refactored.md`](architecture-refactored.md); bản này giữ nguyên các số đo và bảng endpoint của lần khảo sát.
+
 > Ngày phân tích: 2026-09-12  
 > Phạm vi: `srs-review-ai/` (trừ `.venv`, `.pytest_cache`, `.ruff_cache`)
 
@@ -153,16 +155,16 @@ static String get apiBaseUrl {
 ### Auth Mechanism
 - **Shared token model** — không JWT, không OAuth, không session cookies.
 - **Server** (`server/app/main.py` line 57-63): `require_app_token()` — no-op khi `APP_TOKEN` unset, 401 nếu `X-App-Token` sai.
-- **Client** (`app/lib/data/services/api_service.dart` line 44-47): gửi 2 headers:
+- **Client** (`app/lib/requirement_review/services/api_service.dart` line 44-47): gửi 2 headers:
   - `X-App-Token` — shared secret
   - `X-User-Id` — identity cho rate limit (fallback về IP)
 
 ### API Client / Service Classes
-- **Interface:** `app/lib/data/services/review_api.dart` — `isProxyUp()`, `fetchRubric()`, `review()`, `ask()`
+- **Interface:** `app/lib/requirement_review/services/review_api.dart` — `isProxyUp()`, `fetchRubric()`, `review()`, `ask()`
 - **Implementations:**
   - `ApiService` (`api_service.dart`) — real HTTP qua Dio, retry exponential backoff, error translation
   - `MockReviewApi` (`mock_review_api.dart`) — offline deterministic, rule-based
-- **Repository:** `app/lib/data/repositories/review_repository.dart` — concurrent review (bounded 4), `ReviewProgress` stream, cancellation
+- **Repository:** `app/lib/requirement_review/repositories/review_repository.dart` — concurrent review (bounded 4), `ReviewProgress` stream, cancellation
 
 ### Endpoints App Gọi
 | Method | Path | Dart Method | Mục đích |
@@ -183,10 +185,10 @@ shared_preferences   In-memory cache            Structured JSON
 ### MVVM Architecture
 - **View:** `app/lib/features/workspace/view/`
 - **ViewModel:** `app/lib/features/workspace/view_model/`
-- **Repository:** `app/lib/data/repositories/`
-- **Service:** `app/lib/data/services/`
-- **Models:** `app/lib/data/models/` (hand-written, strict parsing)
-- **Checks:** `app/lib/data/checks/` (deterministic F7/F8/F9 rules)
+- **Repository:** `app/lib/document_import/repositories/`, `app/lib/requirement_review/repositories/`
+- **Service:** `app/lib/document_import/services/`, `app/lib/requirement_review/services/`, `app/lib/review_history/services/`
+- **Models:** `models/` trong từng component (hand-written, strict parsing)
+- **Checks:** `app/lib/deterministic_checks/` (deterministic F7/F8/F9 rules)
 
 ---
 

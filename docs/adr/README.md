@@ -17,6 +17,8 @@ Mỗi quyết định kỹ thuật có một file, đánh số tăng dần, khô
 | [0011](0011-persistence-server-cache-and-app-history.md) | Bỏ "không có DB": cache server bằng SQLite (stdlib), lịch sử app bằng sembast sau interface `SessionStore` | Accepted |
 | [0012](0012-issue-criterion-identity.md) | Finding mang hai thứ: `criterion_id` (tiêu chí, sửa được) và `type` (lớp lỗi, enum đóng + `other`); nhãn sai thì uốn, không làm hỏng unit | Accepted |
 
-**Số tiếp theo: 0013.**
+| [0013](0013-component-boundaries-flutter-server.md) | Ranh giới component thật: `app/lib/` thành 6 component headless + `WorkspaceViewModel` thành façade trên 7 controller; `server/app/` thành api/application/domain/infrastructure/config/contracts | Accepted |
+
+**Số tiếp theo: 0014.**
 
 Luật chấm SRS/SDS **không** ghi ở đây — chúng nằm ở `review-rules/RULEBOOK.md` với hệ version riêng (§10). ADR chỉ dành cho quyết định về *code* của repo này.

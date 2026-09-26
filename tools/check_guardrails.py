@@ -8,7 +8,9 @@ Runs pre-commit:  tools/install-hooks.sh
 Seven rules:
   1. SECRETS   — no API key ever enters git history.
   2. NO DIRECT LLM — the Flutter app may only talk to our own proxy (AC6).
-  3. LAYERING  — MVVM boundaries from the Flutter architecture guide.
+  3. LAYERING  — the component boundaries from docs/architecture-refactored.md
+     (ADR 0013): six headless components under app/lib/, one-way only, with
+     the workspace controllers as the only bridge to the presentation layer.
   4. PINS      — dependency versions whose majors are known traps.
   5. CONTRACT  — schema, Python and Dart agree on one contract version.
   6. DESIGN TOKENS — colors and radii live only in core/theme/.
@@ -166,49 +168,106 @@ class LayerRule:
     name: str
     # a file is in scope when every fragment of `applies_to` appears in its path
     applies_to: tuple[str, ...]
+    # fragments matched against the import URI
     forbidden: tuple[str, ...]
     reason: str
+    # files inside `applies_to` that the rule deliberately lets through
+    exclude: tuple[str, ...] = ()
+
+
+# The six components of app/lib/. They are leaves: presentation and core may
+# depend on them, they may not depend on presentation, and none of them is
+# allowed to reach into another component's services or repositories.
+COMPONENTS = (
+    "document_import/",
+    "requirement_review/",
+    "deterministic_checks/",
+    "diagram_audit/",
+    "review_history/",
+    "report_export/",
+)
+COMPONENT_PATHS = tuple(f"app/lib/{component}" for component in COMPONENTS)
+FLUTTER_WIDGET_LIBS = (
+    "package:flutter/material.dart",
+    "package:flutter/widgets.dart",
+    "package:flutter/cupertino.dart",
+)
+
+
+def component_rules(path: str) -> list[LayerRule]:
+    """One-way rules for a single component directory."""
+    return [
+        LayerRule(
+            name="component-no-features",
+            applies_to=(path,),
+            forbidden=("features/",),
+            reason="a component sits below presentation: views and controllers depend on it, "
+            "never the other way",
+        ),
+        LayerRule(
+            name="component-no-widgets",
+            applies_to=(path,),
+            forbidden=FLUTTER_WIDGET_LIBS,
+            reason="components are headless — parsing, checks, review, history and report "
+            "building must run in a plain Dart test (package:flutter/foundation.dart is the "
+            "one allowed Flutter import)",
+        ),
+        LayerRule(
+            name="models-are-values",
+            applies_to=(f"{path}models/",),
+            forbidden=("package:dio/", "/services/", "/repositories/"),
+            reason="models are plain values: no transport, no service, no repository — that "
+            "is what lets every layer import them",
+        ),
+    ]
 
 
 LAYER_RULES = [
     LayerRule(
-        name="view-no-services",
+        name="view-no-machine-parts",
         applies_to=("app/lib/features/", "/view/"),
-        forbidden=("data/services/", "package:dio/"),
-        reason="Views must go through a ViewModel; only repositories/services may touch transport",
+        forbidden=(
+            "document_import/repositories/",
+            "document_import/services/",
+            "requirement_review/repositories/",
+            "requirement_review/services/",
+            "review_history/services/",
+            "package:dio/",
+        ),
+        reason="a view renders state; parsing, transport and persistence are a controller call "
+        "on the ViewModel's façade, never a direct import",
     ),
     LayerRule(
-        name="view-no-repositories",
+        name="view-no-controllers",
         applies_to=("app/lib/features/", "/view/"),
-        forbidden=("data/repositories/",),
-        reason="Views must go through a ViewModel; domain values live in data/models/, "
-        "not in the repository that produces them",
+        forbidden=("view_model/controllers/",),
+        reason="views talk to the notifier, whose public surface is what the tests pin; reaching "
+        "into a controller skips the façade",
     ),
     LayerRule(
         name="viewmodel-no-widgets",
         applies_to=("app/lib/features/", "/view_model/"),
-        forbidden=("package:flutter/material.dart", "package:flutter/cupertino.dart", "/view/"),
-        reason="ViewModels hold UI state, not widgets — keep them testable without a widget tree",
+        forbidden=(*FLUTTER_WIDGET_LIBS, "/view/", "package:dio/"),
+        reason="ViewModels and their use-case controllers hold UI state, not widgets or "
+        "transport — they stay testable without a widget tree",
     ),
     LayerRule(
-        name="data-no-features",
-        applies_to=("app/lib/data/",),
-        forbidden=("features/",),
-        reason="the data layer must not depend on the UI layer",
-    ),
-    LayerRule(
-        name="data-no-material",
-        applies_to=("app/lib/data/",),
-        forbidden=("package:flutter/material.dart",),
-        reason="models/services/repositories must stay widget-free",
-    ),
-    LayerRule(
-        name="repository-no-picker-ui",
-        applies_to=("app/lib/data/models/",),
-        forbidden=("package:dio/", "data/services/"),
-        reason="models are plain values; they must not know about transport",
+        name="core-no-component-machinery",
+        applies_to=("app/lib/core/",),
+        forbidden=tuple(
+            f"{component}services/" for component in COMPONENTS
+        )
+        + tuple(f"{component}repositories/" for component in COMPONENTS)
+        + tuple(f"{component}parsing/" for component in COMPONENTS)
+        + ("features/", "package:dio/"),
+        reason="core is the shared foundation: it may reference a component's value types (the "
+        "theme colours a Severity), but never its parsing, transport or persistence. Only the "
+        "composition root (providers.dart) and the routing table (router/) may name concrete "
+        "components — that is what makes them the two places a new capability is wired in",
+        exclude=("core/providers.dart", "core/router/"),
     ),
 ]
+LAYER_RULES.extend(rule for path in COMPONENT_PATHS for rule in component_rules(path))
 
 
 def check_layering(files: list[Path]) -> list[Violation]:
@@ -219,6 +278,8 @@ def check_layering(files: list[Path]) -> list[Violation]:
         rel = path.relative_to(REPO).as_posix()
         for rule in LAYER_RULES:
             if not all(fragment in rel for fragment in rule.applies_to):
+                continue
+            if any(fragment in rel for fragment in rule.exclude):
                 continue
             for number, line in read_lines(path):
                 match = IMPORT.match(line)
@@ -290,8 +351,10 @@ def check_pins() -> list[Violation]:
 def check_contract_version() -> list[Violation]:
     violations: list[Violation] = []
     schema = REPO / "contracts" / "review.schema.json"
-    server = REPO / "server" / "app" / "schemas.py"
-    dart = REPO / "app" / "lib" / "data" / "models" / "review_models.dart"
+    server = REPO / "server" / "app" / "contracts" / "schemas.py"
+    dart = REPO / "app" / "lib" / "requirement_review" / "models" / "review_models.dart"
+    # server/app/schemas.py is a compatibility shim that re-exports this one; the
+    # version constant lives with the layer that owns the contract.
 
     versions: dict[str, str | None] = {}
     versions["schema"] = extract(schema, r'"x-contract-version":\s*"([^"]+)"')
@@ -422,14 +485,14 @@ NATIVE_PLUGIN_RULES: tuple[NativePluginRule, ...] = (
         "nobody awaits, so the verdict has to be asked for before the plugin is touched",
         adapters=(
             NativePluginAdapter(
-                path="app/lib/data/services/page_image_renderer.dart",
+                path="app/lib/diagram_audit/services/page_image_renderer.dart",
                 seams=(
                     (
-                        "app/lib/data/services/page_image_renderer.dart",
+                        "app/lib/diagram_audit/services/page_image_renderer.dart",
                         r"typedef PdfDocumentOpener =[\s\S]{0,80}?Function\(",
                     ),
                     (
-                        "app/lib/data/services/page_image_renderer.dart",
+                        "app/lib/diagram_audit/services/page_image_renderer.dart",
                         r"typedef PdfSupportProbe =[\s\S]{0,80}?Function\(",
                     ),
                 ),
@@ -444,14 +507,14 @@ NATIVE_PLUGIN_RULES: tuple[NativePluginRule, ...] = (
         "stub to fall back to",
         adapters=(
             NativePluginAdapter(
-                path="app/lib/data/services/session_database_platform_io.dart",
+                path="app/lib/review_history/services/session_database_platform_io.dart",
                 seams=(
                     (
-                        "app/lib/data/services/session_database_platform.dart",
+                        "app/lib/review_history/services/session_database_platform.dart",
                         r"export 'session_database_platform_stub\.dart'",
                     ),
                     (
-                        "app/lib/data/services/session_database_platform_stub.dart",
+                        "app/lib/review_history/services/session_database_platform_stub.dart",
                         r"throw UnsupportedError",
                     ),
                 ),
@@ -465,24 +528,24 @@ NATIVE_PLUGIN_RULES: tuple[NativePluginRule, ...] = (
         "through an injected picker or an injected dialog",
         adapters=(
             NativePluginAdapter(
-                path="app/lib/data/services/file_picker_service.dart",
+                path="app/lib/document_import/services/file_picker_service.dart",
                 seams=(
                     (
-                        "app/lib/data/repositories/document_repository.dart",
+                        "app/lib/document_import/repositories/document_repository.dart",
                         r"FilePickerService\? picker",
                     ),
                 ),
                 seam_note="DocumentRepository's injectable picker",
             ),
             NativePluginAdapter(
-                path="app/lib/data/services/report_exporter.dart",
+                path="app/lib/report_export/report_exporter.dart",
                 seams=(
                     (
-                        "app/lib/data/services/report_exporter.dart",
+                        "app/lib/report_export/report_exporter.dart",
                         r"typedef SaveFileDialog =[\s\S]{0,80}?Function\(",
                     ),
                     (
-                        "app/lib/data/services/report_exporter.dart",
+                        "app/lib/report_export/report_exporter.dart",
                         r"typedef ShareSheet =[\s\S]{0,80}?Function\(",
                     ),
                 ),
@@ -516,20 +579,20 @@ NATIVE_PLUGIN_RULES: tuple[NativePluginRule, ...] = (
                 seam_note="the override that supplies the loaded instance",
             ),
             NativePluginAdapter(
-                path="app/lib/data/services/session_store.dart",
+                path="app/lib/review_history/services/session_store.dart",
                 seams=(
                     (
-                        "app/lib/data/services/session_store.dart",
+                        "app/lib/review_history/services/session_store.dart",
                         r"SharedPreferencesSessionStore\(this\._prefs\)",
                     ),
                 ),
                 seam_note="the constructor that takes the prefs instance",
             ),
             NativePluginAdapter(
-                path="app/lib/data/services/session_database.dart",
+                path="app/lib/review_history/services/session_database.dart",
                 seams=(
                     (
-                        "app/lib/data/services/session_database.dart",
+                        "app/lib/review_history/services/session_database.dart",
                         r"required SharedPreferences prefs",
                     ),
                 ),

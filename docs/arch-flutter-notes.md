@@ -1,5 +1,7 @@
 # Phân tích Kiến trúc App Flutter — SRS Review AI
 
+> **Cập nhật 2026-09-26 (ADR 0013):** đường dẫn file trong bản này đã được viết lại theo cây component mới (`data/` không còn tồn tại). Cây đích và bảng mapping đầy đủ nằm ở [`architecture-refactored.md`](architecture-refactored.md); bản này giữ nguyên các số đo và bảng endpoint của lần khảo sát.
+
 > Dự án: `srs-review-ai/app`
 > SDK: Dart ^3.12.2 · Flutter (material design, variable fonts Manrope & DMSans)
 > Ngày phân tích: 2026-09-12
@@ -22,24 +24,26 @@ lib/
 │   │   └── app_router.dart        # go_router + StatefulShellRoute
 │   ├── theme/                     # app_theme, tokens, glass, workspace_colors
 │   └── widgets/                   # chrome_insets, content_shell, glass_surface
-├── data/                          # data layer (pure, không phụ thuộc UI)
-│   ├── models/                    # domain & wire models
-│   ├── services/                  # HTTP, file picker, parse, export, session store
-│   ├── repositories/              # document_repository, review_repository
-│   ├── checks/                    # rubric_config, syllabus_checks (offline rules)
-│   └── parsing/                   # requirement_splitter
+├── document_import/               # component 1: chọn file, parse, tách requirement
+├── requirement_review/            # component 2: orchestration lượt chấm, API client, result
+├── deterministic_checks/          # component 3: syllabus/reference/format/project-info checks
+├── diagram_audit/                 # component 4: phát hiện sơ đồ, render trang, vision audit
+├── review_history/                # component 5: SessionStore (sembast + fallback prefs)
+├── report_export/                 # component 6: Markdown/JSON/HTML/DOCX + chuỗi song ngữ
 └── features/
-    └── workspace/                 # feature duy nhất hiện tại
+    └── workspace/                 # presentation duy nhất hiện tại
         ├── view/                  # 10 view files (shell, tabs, sheets, widgets)
-        ├── view_model/            # workspace_view_model.dart (Notifier 981 dòng)
-        └── models/                # workspace-specific models (unit, findings, ask, report)
+        ├── view_model/            # workspace_view_model.dart — Notifier + façade 692 dòng
+        │   └── controllers/       # 7 use case: draft, import, review run, diagram audit,
+        │                          #   history, export, ask + base WorkspaceController
+        └── models/                # model đặc thù màn hình (ask, demo units)
 ```
 
 **Nhận xét:**
-- **Feature-first**: mỗi feature tự chứa `view/`, `view_model/`, `models/` — rõ ràng, dễ mở rộng thêm feature mới.
-- **MVVM**: `view/` chỉ render + gọi command; `view_model/` (`WorkspaceViewModel extends Notifier`) nắm toàn bộ state + logic; `models/` là immutable value objects.
-- **Clean-ish ở data layer**: `Repository` → `Service` → `Dio`, với interface `ReviewApi` làm seam giữa real/mock (dependency inversion).
-- **Không có domain layer riêng biệt** — domain models nằm chung trong `data/models/`.
+- **Component-first**: sáu component headless dưới `app/lib/` (mỗi cái tự chứa `models/` + `services/` + `repositories/`), cộng `core/` (config, routing, DI, theme, widget chung) và `features/` (presentation). ADR 0013 là quyết định; `docs/architecture-refactored.md` là bản đồ đầy đủ.
+- **MVVM giữ nguyên nhưng tách trách nhiệm**: `view/` chỉ render + gọi command; `WorkspaceViewModel extends Notifier` giữ state và là façade một dòng cho 7 controller use case; `models/` là immutable value objects.
+- **Clean-ish ở tầng component**: `Repository` → `Service` → `Dio`, với interface `ReviewApi` làm seam giữa real/mock (dependency inversion).
+- **Không có domain layer riêng biệt** — value type của từng capability nằm trong `models/` của component đó (`document_import/models/`, `requirement_review/models/`, …).
 
 ---
 
@@ -82,12 +86,12 @@ lib/
 
 | Service | File | Vai trò |
 |---|---|---|
-| `ApiService implements ReviewApi` | `data/services/api_service.dart` | HTTP thật qua Dio → FastAPI proxy |
-| `MockReviewApi implements ReviewApi` | `data/services/mock_review_api.dart` | Offline rules-based mock |
-| `FilePickerService` | `data/services/file_picker_service.dart` | Chọn file PDF/DOCX |
-| `ParseService implements DocumentParser` | `data/services/parse_service.dart` | Parse PDF/DOCX → SrsDocument |
-| `ReportExporter` | `data/services/report_exporter.dart` | Xuất markdown ra file |
-| `SessionStore` (abstract) | `data/services/session_store.dart` | Lưu session/snapshot |
+| `ApiService implements ReviewApi` | `requirement_review/services/api_service.dart` | HTTP thật qua Dio → FastAPI proxy |
+| `MockReviewApi implements ReviewApi` | `requirement_review/services/mock_review_api.dart` | Offline rules-based mock |
+| `FilePickerService` | `document_import/services/file_picker_service.dart` | Chọn file PDF/DOCX |
+| `ParseService implements DocumentParser` | `document_import/repositories/parse_service.dart` | Parse PDF/DOCX → SrsDocument |
+| `ReportExporter` | `report_export/report_exporter.dart` | Xuất markdown ra file |
+| `SessionStore` (abstract) | `review_history/services/session_store.dart` | Lưu session/snapshot |
 
 ### Base URL / Endpoint chính
 
@@ -97,7 +101,7 @@ lib/
 - iOS/other: `http://localhost:8000`
 - Override qua `--dart-define=API_BASE_URL=http://192.168.x.x:8000` (dùng cho thiệt bị thật cùng WiFi)
 
-**Endpoints** (định nghĩa trong `ReviewApi` interface — `data/services/review_api.dart`):
+**Endpoints** (định nghĩa trong `ReviewApi` interface — `requirement_review/services/review_api.dart`):
 
 | Method | Path | Mục đích | Implementation |
 |---|---|---|---|
@@ -144,9 +148,9 @@ lib/
 
 ## 5. Domain Entity / Model chính
 
-Tất cả nằm trong `data/models/` (domain) và `features/workspace/models/` (feature-specific).
+Mỗi component sở hữu model của nó: `document_import/models/`, `requirement_review/models/`, `deterministic_checks/models/`, `diagram_audit/models/`.
 
-### Domain models (`data/models/`)
+### Models theo component
 
 | Model | File | Vai trò |
 |---|---|---|
@@ -191,7 +195,7 @@ Tất cả nằm trong `data/models/` (domain) và `features/workspace/models/` 
 - **Fallback rubric** (`RubricConfig.fallback`): app vẫn hoạt động khi proxy offline.
 
 ### 6.2 Local Persistence (Session Store)
-- **Interface `SessionStore`** (`data/services/session_store.dart`) với 2 impl:
+- **Interface `SessionStore`** (`review_history/services/session_store.dart`) với 2 impl:
   - `SharedPreferencesSessionStore` — production, lưu sessions + snapshot.
   - `InMemorySessionStore` — testing.
 - **30-session cap** (match brief's server endpoint).
