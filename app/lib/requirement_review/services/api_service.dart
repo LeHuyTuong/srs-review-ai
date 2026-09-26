@@ -4,6 +4,8 @@
 /// proxy architecture (research 07 §2) and it is what makes AC6 checkable.
 library;
 
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 
 import '../../core/app_config.dart';
@@ -283,8 +285,38 @@ class ApiService implements ReviewApi {
     }
   }
 
-  Future<Map<String, dynamic>> _get(String path) =>
-      _withRetry(() => _getOnce(path));
+  /// Config reads — `/rubric`, `/criteria` — with the screen's own deadline and
+  /// NO hidden retry.
+  ///
+  /// The retry in [_withRetry] exists for work that was going to cost the user
+  /// real time or quota: a dropped connection mid-review should be re-sent. A
+  /// config read is neither. Retrying it only delayed the message, and measured on
+  /// 2026-09-26 a dead proxy kept the criteria screen on a spinner for 7.4s
+  /// (refused port) to ~31s (unreachable host) before the user learned anything.
+  /// The screen already has a "Thử lại" button, so one click is strictly better
+  /// than a retry the user cannot see and cannot cancel.
+  /// Config reads — `/rubric`, `/criteria` — with the screen's own deadline and
+  /// NO hidden retry.
+  ///
+  /// The retry in [_withRetry] exists for work that was going to cost the user
+  /// real time or quota: a dropped connection mid-review should be re-sent. A
+  /// config read is neither. Retrying it only delayed the message, and measured on
+  /// 2026-09-26 a dead proxy kept the criteria screen on a spinner for 7.4s
+  /// (refused port) to ~31s (unreachable host) before the user learned anything.
+  /// The screen already has a "Thử lại" button, so one click is strictly better
+  /// than a retry the user cannot see and cannot cancel.
+  Future<Map<String, dynamic>> _get(String path) async {
+    try {
+      return await _getOnce(path).timeout(AppConfig.configReadTimeout);
+    } on TimeoutException {
+      throw ApiException(
+        'The review proxy at $effectiveBaseUrl did not answer in '
+        '${AppConfig.configReadTimeout.inSeconds}s. '
+        'Start it with "uvicorn app.main:app --reload" in server/, '
+        'or switch on mock mode.',
+      );
+    }
+  }
 
   Future<Map<String, dynamic>> _getOnce(String path) async {
     try {

@@ -42,6 +42,16 @@ class AppConfig {
   static const Duration requestTimeout = Duration(seconds: 90);
   static const Duration connectTimeout = Duration(seconds: 10);
 
+  /// Deadline for reading CONFIG from the proxy (`/rubric`, `/criteria`).
+  ///
+  /// Measured 2026-09-26 with the proxy down: `fetchCriteria` burned 7.4s against
+  /// a refused port and ~31s against a host that blackholes packets, because the
+  /// request inherited the review timeout. That is the wrong trade for a panel
+  /// that only has to draw a checklist: 90s exists because a review run is long,
+  /// and a config read is not one. Four seconds is far above a real round trip
+  /// to a LAN proxy and far below "did the app just hang?".
+  static const Duration configReadTimeout = Duration(seconds: 4);
+
   /// Client-side guard so a stray loop cannot burn the free-tier quota.
   ///
   /// Intended to be EQUAL to the proxy's `rate_limit_per_day`

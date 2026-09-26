@@ -12,6 +12,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:srs_review_ai/core/app_config.dart';
 import 'package:srs_review_ai/requirement_review/models/review_models.dart';
 import 'package:srs_review_ai/requirement_review/services/api_service.dart';
 
@@ -343,5 +344,81 @@ void main() {
         reason: 'cancelling must stop the work, not quietly restart it',
       );
     });
+  });
+
+  // The bug this group exists for (2026-09-26): the criteria screen sat on a
+  // spinner for 7.4s against a refused port and ~31s against an unreachable
+  // host, because a config read inherited the review retry loop and the 90s
+  // review timeout. The user could not tell a slow proxy from a hung app.
+  group('ApiService config reads', () {
+    test('a dead proxy fails the criteria read in one attempt, not three', () async {
+      final adapter = _FakeAdapter(
+        Queue<Object>.of(<Object>[_Action.dropped, _Action.ok, _Action.ok]),
+      );
+
+      await expectLater(
+        _service(adapter).fetchCriteria(),
+        throwsA(
+          isA<ApiException>().having(
+            (error) => error.message,
+            'message',
+            contains('Cannot reach the review proxy'),
+          ),
+        ),
+      );
+      expect(
+        adapter.calls,
+        1,
+        reason:
+            'the screen has a "Thử lại" button; a hidden retry only delays the'
+            ' message and the user can neither see nor cancel it',
+      );
+    });
+
+    test('the rubric read is cut short by its own deadline, not the 90s one', () {
+      expect(
+        AppConfig.configReadTimeout,
+        lessThan(const Duration(seconds: 10)),
+        reason:
+            'the read inherits connectTimeout (10s) per attempt, so a deadline'
+            ' at or above it cannot shorten a hanging proxy at all',
+      );
+      expect(
+        AppConfig.configReadTimeout,
+        greaterThan(const Duration(milliseconds: 500)),
+        reason: 'a real round trip to a LAN proxy must still fit inside it',
+      );
+    });
+
+    test(
+      'a refused proxy surfaces a message a user can act on, quickly',
+      () async {
+        // Port 9 is the discard port: nothing listens, so the connection is
+        // refused rather than left to time out. A real socket is the point —
+        // the fake adapter would not exercise the retry loop this guards.
+        final service = ApiService(baseUrl: 'http://127.0.0.1:9');
+        final stopwatch = Stopwatch()..start();
+
+        await expectLater(
+          service.fetchCriteria(),
+          throwsA(
+            isA<ApiException>().having(
+              (error) => error.message,
+              'message',
+              allOf(contains('uvicorn app.main:app'), contains('mock mode')),
+            ),
+          ),
+        );
+        stopwatch.stop();
+
+        expect(
+          stopwatch.elapsed,
+          lessThan(const Duration(seconds: 5)),
+          reason:
+              'measured 7367ms before the fix — three refused attempts. The'
+              ' bound is what keeps the screen off a spinner.',
+        );
+      },
+    );
   });
 }
