@@ -1,0 +1,101 @@
+Resolving dependencies...
+Downloading packages...
+  android_file_picker 1.1.0 (2.0.0 available)
+  archive 4.2.0 (4.3.0 available)
+  clock 1.1.2 (1.1.3 available)
+  code_assets 1.2.1 (2.1.0 available)
+  cross_file 0.3.5+5 (0.4.0 available)
+  dbus 0.7.15 (0.8.0 available)
+  file_picker 12.2.0 (13.1.0 available)
+  file_picker_darwin 1.1.0 (2.1.2 available)
+  file_picker_linux 1.1.0 (2.0.1 available)
+  file_picker_platform_interface 3.3.0 (4.0.0 available)
+  file_picker_web 3.1.0 (4.0.0 available)
+  go_router 17.5.0 (18.0.1 available)
+  hooks 2.0.2 (2.2.0 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  objective_c 9.5.0 (9.6.0 available)
+  record_use 0.6.0 (1.1.1 available)
+  stack_trace 1.12.1 (1.12.2 available)
+  syncfusion_flutter_core 34.2.7 (34.2.9 available)
+  syncfusion_flutter_pdf 34.2.7 (34.2.9 available)
+  test_api 0.7.12 (0.7.14 available)
+  windows_file_picker 1.2.0 (2.0.0 available)
+Got dependencies!
+21 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading D:/Dev/PRM393-mobile/srs-review-ai/app/test/tmp_page_surface_audit_test.dart
+00:00 +0: in-page surfaces at 390px
+AUDIT 390 tab/inventory: root=374x1999 (window 390x844) viewport=844 maxScroll=1975 panels=1 first=358x716@x16 reachable=true
+AUDIT 390 tab/findings: root=374x56343 (window 390x844) viewport=844 maxScroll=56319 panels=1 first=358x716@x16 reachable=true
+AUDIT 390 tab/syllabus: root=374x6612 (window 390x844) viewport=844 maxScroll=6588 panels=1 first=358x716@x16 reachable=true
+AUDIT 390 history: root=390x844 (window 390x844) viewport=844 maxScroll=0 panels=0 reachable=true
+AUDIT 390 rubric: root=390x3490 (window 390x844) viewport=844 maxScroll=2646 panels=0 reachable=true
+AUDIT 390 report: root=390x43830 (window 390x844) viewport=844 maxScroll=42986 panels=0 reachable=true
+AUDIT 390: 1 overflow site(s) of 1 error(s)
+AUDIT 390 error :: branch3 :: A RenderFlex overflowed by 15 pixels on the right @ lib/features/workspace/view/report_view.dart:287:13
+00:03 +1: in-page surfaces at 600px
+AUDIT 600 tab/inventory: root=584x1803 (window 600x844) viewport=844 maxScroll=1685 panels=1 first=568x622@x16 reachable=true
+AUDIT 600 tab/findings: root=584x46285 (window 600x844) viewport=844 maxScroll=46167 panels=1 first=568x622@x16 reachable=true
+AUDIT 600 tab/syllabus: root=584x4431 (window 600x844) viewport=844 maxScroll=4313 panels=1 first=568x622@x16 reachable=true
+AUDIT 600 history: root=600x844 (window 600x844) viewport=844 maxScroll=0 panels=0 reachable=true
+AUDIT 600 rubric: root=600x2451 (window 600x844) viewport=844 maxScroll=1607 panels=0 reachable=true
+AUDIT 600 report: root=600x29082 (window 600x844) viewport=844 maxScroll=28238 panels=0 reachable=true
+AUDIT 600: 0 overflow site(s) of 0 error(s)
+00:04 +2: in-page surfaces at 768px
+AUDIT 768 tab/inventory: root=752x1803 (window 768x900) viewport=900 maxScroll=1557 panels=1 first=508x622@x244 reachable=true
+AUDIT 768 tab/findings: root=752x47545 (window 768x900) viewport=900 maxScroll=47299 panels=1 first=508x622@x244 reachable=true
+AUDIT 768 tab/syllabus: root=752x4770 (window 768x900) viewport=900 maxScroll=4524 panels=1 first=508x622@x244 reachable=true
+AUDIT 768 history: root=768x900 (window 768x900) viewport=900 maxScroll=0 panels=0 reachable=true
+AUDIT 768 rubric: root=768x2611 (window 768x900) viewport=900 maxScroll=1711 panels=0 reachable=true
+AUDIT 768 report: root=768x34532 (window 768x900) viewport=900 maxScroll=33632 panels=0 reachable=true
+AUDIT 768: 0 overflow site(s) of 0 error(s)
+00:05 +3: in-page surfaces at 1024px
+AUDIT 1024 tab/inventory: root=1008x1215 (window 1024x900) viewport=900 maxScroll=921 panels=1 first=764x574@x244 reachable=true
+AUDIT 1024 tab/findings: root=1008x42413 (window 1024x900) viewport=900 maxScroll=42119 panels=1 first=764x574@x244 reachable=true
+AUDIT 1024 tab/syllabus: root=1008x3646 (window 1024x900) viewport=900 maxScroll=3352 panels=1 first=764x574@x244 reachable=true
+AUDIT 1024 history: root=1024x900 (window 1024x900) viewport=900 maxScroll=0 panels=0 reachable=true
+AUDIT 1024 rubric: root=1024x2091 (window 1024x900) viewport=900 maxScroll=1191 panels=0 reachable=true
+AUDIT 1024 report: root=1024x26642 (window 1024x900) viewport=900 maxScroll=25742 panels=0 reachable=true
+AUDIT 1024: 0 overflow site(s) of 0 error(s)
+00:06 +4: in-page surfaces at 1100px
+AUDIT 1100 tab/inventory: root=768x1547 (window 1100x900) viewport=900 maxScroll=663 panels=1 first=300x848@x784 reachable=true
+AUDIT 1100 tab/findings: root=1084x42101 (window 1100x900) viewport=481 maxScroll=41233 panels=0 reachable=true
+AUDIT 1100 tab/syllabus: root=768x4474 (window 1100x900) viewport=900 maxScroll=3590 panels=1 first=300x848@x784 reachable=true
+AUDIT 1100 history: root=1100x900 (window 1100x900) viewport=900 maxScroll=0 panels=0 reachable=true
+AUDIT 1100 rubric: root=1100x1976 (window 1100x900) viewport=900 maxScroll=1076 panels=0 reachable=true
+AUDIT 1100 report: root=1100x26444 (window 1100x900) viewport=900 maxScroll=25544 panels=0 reachable=true
+AUDIT 1100: 0 overflow site(s) of 0 error(s)
+00:08 +5: in-page surfaces at 1280px
+AUDIT 1280 tab/inventory: root=948x1319 (window 1280x900) viewport=900 maxScroll=460 panels=1 first=300x848@x964 reachable=true
+AUDIT 1280 tab/findings: root=1264x40957 (window 1280x900) viewport=437 maxScroll=40089 panels=0 reachable=true
+AUDIT 1280 tab/syllabus: root=948x3820 (window 1280x900) viewport=900 maxScroll=2936 panels=1 first=300x848@x964 reachable=true
+AUDIT 1280 history: root=1280x900 (window 1280x900) viewport=900 maxScroll=0 panels=0 reachable=true
+AUDIT 1280 rubric: root=1280x1702 (window 1280x900) viewport=900 maxScroll=802 panels=0 reachable=true
+AUDIT 1280 report: root=1280x23246 (window 1280x900) viewport=900 maxScroll=22346 panels=0 reachable=true
+AUDIT 1280: 0 overflow site(s) of 0 error(s)
+00:09 +6: in-page surfaces at 1440px
+AUDIT 1440 tab/inventory: root=1052x1259 (window 1440x900) viewport=900 maxScroll=460 panels=1 first=300x848@x1068 reachable=true
+AUDIT 1440 tab/findings: root=1368x40831 (window 1440x900) viewport=437 maxScroll=39963 panels=0 reachable=true
+AUDIT 1440 tab/syllabus: root=1052x3710 (window 1440x900) viewport=900 maxScroll=2826 panels=1 first=300x848@x1068 reachable=true
+AUDIT 1440 history: root=1440x900 (window 1440x900) viewport=900 maxScroll=0 panels=0 reachable=true
+AUDIT 1440 rubric: root=1440x1662 (window 1440x900) viewport=900 maxScroll=762 panels=0 reachable=true
+AUDIT 1440 report: root=1440x23210 (window 1440x900) viewport=900 maxScroll=22310 panels=0 reachable=true
+AUDIT 1440: 0 overflow site(s) of 0 error(s)
+00:10 +7: in-page surfaces at 1600px
+AUDIT 1600 tab/inventory: root=1132x1259 (window 1600x900) viewport=900 maxScroll=460 panels=1 first=300x848@x1148 reachable=true
+AUDIT 1600 tab/findings: root=1448x40831 (window 1600x900) viewport=437 maxScroll=39963 panels=0 reachable=true
+AUDIT 1600 tab/syllabus: root=1132x3710 (window 1600x900) viewport=900 maxScroll=2826 panels=1 first=300x848@x1148 reachable=true
+AUDIT 1600 history: root=1600x900 (window 1600x900) viewport=900 maxScroll=0 panels=0 reachable=true
+AUDIT 1600 rubric: root=1600x1662 (window 1600x900) viewport=900 maxScroll=762 panels=0 reachable=true
+AUDIT 1600 report: root=1600x23210 (window 1600x900) viewport=900 maxScroll=22310 panels=0 reachable=true
+AUDIT 1600: 0 overflow site(s) of 0 error(s)
+00:11 +8: in-page surfaces at 2000px
+AUDIT 2000 tab/inventory: root=1332x1259 (window 2000x900) viewport=900 maxScroll=460 panels=1 first=300x848@x1348 reachable=true
+AUDIT 2000 tab/findings: root=1648x40831 (window 2000x900) viewport=437 maxScroll=39963 panels=0 reachable=true
+AUDIT 2000 tab/syllabus: root=1332x3710 (window 2000x900) viewport=900 maxScroll=2826 panels=1 first=300x848@x1348 reachable=true
+AUDIT 2000 history: root=2000x900 (window 2000x900) viewport=900 maxScroll=0 panels=0 reachable=true
+AUDIT 2000 rubric: root=2000x1662 (window 2000x900) viewport=900 maxScroll=762 panels=0 reachable=true
+AUDIT 2000 report: root=2000x23210 (window 2000x900) viewport=900 maxScroll=22310 panels=0 reachable=true
+AUDIT 2000: 0 overflow site(s) of 0 error(s)
+00:13 +9: All tests passed!

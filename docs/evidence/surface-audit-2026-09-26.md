@@ -1,23 +1,30 @@
-# Bề mặt modal: ảnh chụp source sheet + audit toàn bộ modal (2026-09-26)
+# Bề mặt app: ảnh chụp source sheet, audit modal và audit bề mặt trong trang (2026-09-26)
 
-Hai việc, một lần đo:
+Ba việc, một chỗ ghi:
 
 1. **Ảnh chụp** full-screen source sheet ở khổ điện thoại và khổ rộng — bề mặt
    cuối cùng từng là `DraggableScrollableSheet`, đã chuyển sang full-screen
    ngày 2026-09-25.
-2. **Audit** mọi modal còn lại xem bề mặt nào vẫn tự cắt chiều cao thay vì phủ
-   kín màn hình.
+2. **Audit modal** xem bề mặt nào vẫn tự cắt chiều cao thay vì phủ kín màn hình
+   (§2).
+3. **Audit bề mặt trong trang** — panel readiness, bảng inventory, các tab và
+   hai trang còn lại — ở 9 khổ từ 390 tới 2000 px (§4).
 
-**Kết luận:** không còn bề mặt nào cắt chiều cao. 18 bề mặt (17 modal thật +
-biến thể `centerBody` dùng chung cho 3 confirm lồng nhau) phủ kín cửa sổ ở **cả**
-390×844 và 1280×900 — 36/36 phép đo `fills=true`. Repo cũng không còn API bottom
-sheet nào: `showModalBottomSheet`, `DraggableScrollableSheet`, `BottomSheet`,
-`isScrollControlled` xuất hiện **0 lần** trong `app/lib` (chỉ còn trong chú thích
-và trong một test khẳng định chúng vắng mặt,
+**Kết luận chung:** không bề mặt nào — modal hay trong trang — tự cắt chiều
+cao. 54/54 phép đo trên các đích đến đều `reachable=true` (nội dung dài hơn cửa
+sổ thì luôn có scroll của trang để tới), và 36/36 phép đo modal phủ kín cửa sổ.
+Cái còn lại là **năm** chỗ tràn ngang chỉ ở khổ 390 px (§3.1 và §4.1) — lỗi bố
+cục, không phải lỗi chiều cao.
+
+Phía modal: 18 bề mặt (17 modal thật + biến thể `centerBody` dùng chung cho 3
+confirm lồng nhau) phủ kín cửa sổ ở **cả** 390×844 và 1280×900, và repo không
+còn API bottom sheet nào — `showModalBottomSheet`, `DraggableScrollableSheet`,
+`BottomSheet`, `isScrollControlled` xuất hiện **0 lần** trong `app/lib` (chỉ còn
+trong chú thích và trong một test khẳng định chúng vắng mặt,
 `app/test/desktop/qa_p1_adversarial_test.dart:547`).
 
-Cái *còn* là 4 chỗ tràn ngang ở khổ 390 (§3) — lỗi bố cục, không phải lỗi chiều
-cao — và một luật đã chết (§3.2).
+Cái *còn*: **năm** chỗ tràn ngang đều chỉ ở khổ 390 px — bốn trong modal (§3.1),
+một trong trang Báo cáo (§4.1) — và một luật đã chết (§3.2).
 
 ## 1. Ảnh chụp source sheet
 
@@ -136,7 +143,64 @@ caller nào** trong production. Chỗ duy nhất còn gọi là unit test của 
 `docs/uiux/audit-2026-09-14-m3-flutter-arch.md`). App không còn sheet lẫn dialog
 căn giữa, nên luật này đang giữ một quyết định đã chết.
 
-## 4. Chạy lại
+## 4. Audit bề mặt trong trang
+
+Cùng khung đo như §2, nhưng đi qua **đích đến của shell** thay vì mở modal:
+9 khổ (390, 600, 768, 1024, 1100, 1280, 1440, 1600, 2000) × 7 bề mặt (4 đích
+đến, riêng đích đến Đánh giá có 3 sub-tab) = **54 phép đo**, trên container đã
+chấm xong một lượt chạy demo (để panel có dữ liệu thật, không phải trạng thái
+rỗng). Mỗi phép đo ghi: nội dung đo được rộng×cao bao nhiêu, scroll của trang
+còn bao nhiêu nội dung phía dưới (`maxScrollExtent`), panel readiness nằm ở đâu
+và to bao nhiêu, và mọi lỗi bố cục (gán theo đích đến đang dựng).
+
+**Kết luận:** không bề mặt trong trang nào tự cắt chiều cao — 54/54
+`reachable=true`, không có chỗ nào nội dung nằm dưới màn hình mà không có cách
+tới. Log thô: `in-page-surface-audit-2026-09-26.txt`.
+
+| Đích đến / sub-tab | 390×844 | 768×900 | 1100×900 | 1440×900 | 2000×900 |
+|---|---|---|---|---|---|
+| `InventoryTab` (Danh sách yêu cầu) | 374×1999 · 1975 | 752×1803 · 1557 | 768×1547 · 663 | 1052×1259 · 460 | 1332×1259 · 460 |
+| `FindingsTab` (Kết quả & Lỗi) | 374×56343 · 56319 | 752×47545 · 47299 | 1084×42101 · 41233 | 1368×40831 · 39963 | 1648×40831 · 39963 |
+| `SyllabusTab` (Kiểm tra Syllabus) | 374×6612 · 6588 | 752×4770 · 4524 | 768×4474 · 3590 | 1052×3710 · 2826 | 1332×3710 · 2826 |
+| `ReviewHistoryView` (Lịch sử) | 390×844 · 0 | 768×900 · 0 | 1100×900 · 0 | 1440×900 · 0 | 1600×900 · 0 |
+| `SyllabusRubricView` (Chuẩn & Thang điểm) | 390×3490 · 2646 | 768×2611 · 1711 | 1100×1976 · 1076 | 1440×1662 · 762 | 1600×1662 · 762 |
+| `ReportView` (Báo cáo tổng hợp) | 390×43830 · 42986 | 768×34532 · 33632 | 1100×26444 · 25544 | 1440×23210 · 22310 | 1600×23210 · 22310 |
+
+Số thứ nhất là kích thước **nội dung** đo được (rộng×cao, px logic); số sau dấu
+`·` là `maxScrollExtent` của scroll trang. Khổ 390 có scroll riêng nên bảng chỉ
+in 390/768/1100/1440/2000 cho gọn; 600/1024/1280/1600 nằm trong log.
+
+**Panel readiness (`ReadinessPanel`) — không có trần nào:**
+
+| Khổ | Số instance | Kích thước | Vị trí |
+|---|---|---|---|
+| 390 | 1 | 358×716 @x8 | trong cột nội dung, xếp dưới tab |
+| 600 · 768 · 1024 | 1 | 568×622 · 508×622 · 764×574 | như trên, full bề rộng cột |
+| 1100 · 1280 | 1 | 300×848 @x784 | tách cột trong trang (inner split) |
+| 1440 · 1600 · 2000 | 1 | 300×848 @x1068 · x1348 | **ray phải của shell** — đúng thiết kế, panel rời cột nội dung từ 1440 |
+
+Chiều cao panel (716 → 622 → 574 → 848) là chiều cao *nội dung*, không phải
+trần: nó co theo chỗ xuống dòng của chữ, và ở khổ hẹp panel nằm trong scroll
+của trang. Ở mọi khổ đúng **một** instance — không bao giờ hiện hai lần.
+
+### 4.1 Phát hiện: một tràn ngang nữa, cũng chỉ ở khổ 390
+
+| Nơi | Khổ | Mức | Dựng bởi |
+|---|---|---|---|
+| `report_view.dart:287` | 390×844; 0 ở 8 khổ còn lại | 15 px phải | `Row` sáu chip `_count(...)` (AI / Luật / Người / Cao / Vừa / Nhẹ) — hàng chip cứng, không `Wrap` |
+
+Đây là lỗi thứ năm cùng một lớp với bốn lỗi ở §3.1: một `Row` cứng ở khổ điện
+thoại, không phải lỗi riêng của trang Báo cáo.
+
+### 4.2 Quan sát: trang Kết quả & Lỗi dài ~56.000 px ở khổ điện thoại
+
+`FindingsTab` ở 390×844 đo được 374×56343: **toàn bộ** danh sách finding được
+layout một lần (không lazy) cho một lượt chấm 40 unit. Đây là số đo *layout*,
+không phải thời gian khung hình — nó nói cây widget rất lớn, chứ không nói màn
+hình giật. Ghi lại vì đây là bề mặt dài nhất app và là ứng viên đầu tiên nếu
+cần lazy hoá.
+
+## 5. Chạy lại
 
 - **Ảnh chụp**: bật dev server cổng cố định
   (`powershell -ExecutionPolicy Bypass -File app\tool\dev_web.ps1`), rồi chạy
@@ -144,11 +208,22 @@ căn giữa, nên luật này đang giữ một quyết định đã chết.
   cổng 54613, profile và ba ảnh). Script làm đúng ba việc: mở
   `?smoke=semantics` ở khổ đích, bấm "Mở tài liệu mẫu" → hàng `UC01`, chụp; khổ
   phone chụp thêm một lần sau khi cuộn.
-- **Audit**: dựng lại một widget test như §2 (danh sách bề mặt + hàm mở nằm trong
-  bảng), chạy `flutter test` ở hai khổ. Bề mặt nào không phủ kín sẽ xuất hiện
-  trong `failures`; lỗi bố cục in ra qua `FlutterError.onError` đã chặn.
+- **Audit modal (§2)**: dựng lại một widget test như §2 (danh sách bề mặt + hàm
+  mở nằm trong bảng), chạy `flutter test` ở hai khổ. Bề mặt nào không phủ kín sẽ
+  xuất hiện trong `failures`; lỗi bố cục in ra qua `FlutterError.onError` đã chặn.
+- **Audit bề mặt trong trang (§4)**: widget test tạm thứ hai — container đã chấm
+  xong (`loadDemo()` + `runReview()` với `MockReviewApi(latency: zero)`), pump
+  `MaterialApp.router(routerConfig: buildRouter())`, rồi đi qua 4 đích đến bằng
+  `tester.state<StatefulNavigationShellState>(find.byType(StatefulNavigationShell)).goBranch(i)`
+  (chú ý: `goBranch` nhận **tham số vị trí**, không phải `index:`) và qua 3
+  sub-tab bằng `workspaceTabProvider`. Mỗi bề mặt ghi: extent nội dung (duyệt mọi
+  `RenderBox` dưới widget gốc), scroll trang (scrollable **dọc** có viewport lớn
+  nhất, kể cả scrollable cha do shell cung cấp — lọc theo trục, vì cái đầu tiên
+  tìm được thường là dải filter ngang), và lỗi bố cục. **Gán nhãn TRƯỚC khi
+  pump**: lần chạy đầu của tôi gán nhãn sau, nên lỗi của đích đến đang dựng bị
+  gán cho đích đến trước đó.
 
-## 5. Ghi chú trung thực
+## 6. Ghi chú trung thực
 
 - Ảnh chụp từ **dev build** (web-server), không phải bản release; sọc vàng/đen của
   `RenderFlex` chỉ hiện ở debug, nên ảnh không "thấy" được §3.1 — phát hiện đó đến
@@ -161,3 +236,14 @@ căn giữa, nên luật này đang giữ một quyết định đã chết.
 - Kết luận "không còn bottom sheet" là kết quả grep toàn `app/lib` cho bốn API
   (`showModalBottomSheet`, `DraggableScrollableSheet`, `BottomSheet`,
   `isScrollControlled`), không phải đọc từng màn hình.
+- Audit bề mặt trong trang đo trên **một trạng thái dữ liệu**: tài liệu mẫu +
+  một lượt chấm 40 unit với mock provider. Các trạng thái khác (đang chạy, chưa
+  có tài liệu, lỗi mạng, phiên khôi phục) chưa đo.
+- "Extent" là tổng các hộp đã layout, nên nó **không** phân biệt đã vẽ hay chưa:
+  một box nằm dưới màn hình vẫn được tính. Đó là chủ ý — câu hỏi là "có tới được
+  không", không phải "đã vẽ chưa".
+- Lỗi bố cục chỉ được đếm khi Flutter **báo** (debug mode). Một widget bị cắt im
+  lặng bởi `ClipRect`/`OverflowBox` sẽ không xuất hiện trong số này — nên "0 lỗi"
+  không đồng nghĩa "không có gì bị cắt".
+- Năm chỗ tràn ngang (§3.1 và §4.1) đều chỉ ở khổ 390 px. Chưa đo 320 px
+  (iPhone SE 1) hay các khổ điện thoại hẹp hơn.
