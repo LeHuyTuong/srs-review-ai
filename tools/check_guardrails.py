@@ -5,7 +5,7 @@ Run locally:      python3 tools/check_guardrails.py
 Runs in CI:       .github/workflows/ci.yml
 Runs pre-commit:  tools/install-hooks.sh
 
-Seven rules:
+Eight rules:
   1. SECRETS   — no API key ever enters git history.
   2. NO DIRECT LLM — the Flutter app may only talk to our own proxy (AC6).
   3. LAYERING  — the component boundaries from docs/architecture-refactored.md
@@ -16,6 +16,8 @@ Seven rules:
   6. DESIGN TOKENS — colors and radii live only in core/theme/.
   7. NATIVE PLUGINS — a plugin is imported only in a file that exposes a way
      to replace it (a probe, an injected fake, a conditional stub).
+  8. FULL-SCREEN SURFACES — every modal fills the screen; the bottom-sheet
+     family is banned in app/lib (ADR 0014).
 
 This file is excluded from its own scans; keep example keys out of it anyway.
 """
@@ -681,6 +683,57 @@ def check_native_plugins(files: list[Path]) -> list[Violation]:
 
 
 # --------------------------------------------------------------------------
+# 8. FULL-SCREEN SURFACES — every modal fills the screen (ADR 0014)
+# --------------------------------------------------------------------------
+# Every modal opens through showFullScreenSurface / WFullScreenSurface
+# (app/lib/core/widgets/full_screen_surface.dart — the only showDialog call
+# site in the app). The bottom-sheet family is the surface model that lost:
+# its height is negotiated (isScrollControlled, fractions), so long content
+# ends up in an inner scroll of a moving panel. Measured 2026-09-26: 18
+# surfaces x {390x844, 1280x900} all fill the window, and the four APIs below
+# occurred 0 times in app/lib (docs/evidence/surface-audit-2026-09-26.md).
+#
+# `showBottomSheet` needs its own needle: `BottomSheet(` does not match it
+# (the preceding `w` breaks the identifier boundary). Comments are skipped —
+# source_sheet.dart's doc comment names DraggableScrollableSheet to explain
+# what the source sheet is NOT. Tests (app/test/) are out of scope: that is
+# where the absence of these APIs is asserted.
+
+FORBIDDEN_SURFACE = re.compile(
+    r"(?<![\w$])"
+    r"(showModalBottomSheet|showBottomSheet|DraggableScrollableSheet"
+    r"|BottomSheet\(|isScrollControlled)"
+    r"(?![\w$])"
+)
+
+
+def check_full_screen_surfaces(files: list[Path]) -> list[Violation]:
+    violations: list[Violation] = []
+    app_lib = REPO / "app" / "lib"
+    for path in files:
+        if path.suffix != ".dart" or not path.is_relative_to(app_lib):
+            continue
+        rel = path.relative_to(REPO).as_posix()
+        for number, line in read_lines(path):
+            stripped = line.strip()
+            if stripped.startswith("//") or stripped.startswith("///"):
+                continue  # documentation may name what is forbidden
+            match = FORBIDDEN_SURFACE.search(line)
+            if match:
+                violations.append(
+                    Violation(
+                        "full-screen-surfaces",
+                        rel,
+                        number,
+                        f"'{match.group(1)}' — every modal is a full-screen surface: open it via "
+                        "showFullScreenSurface / WFullScreenSurface "
+                        "(app/lib/core/widgets/full_screen_surface.dart, ADR 0014)",
+                    )
+                )
+    return violations
+
+
+# --------------------------------------------------------------------------
 # plumbing
 # --------------------------------------------------------------------------
 def read_lines(path: Path) -> list[tuple[int, str]]:
@@ -727,6 +780,7 @@ def main() -> int:
         "contract version agreement": check_contract_version,
         "design tokens (colors/radii in core/theme/)": lambda: check_design_tokens(files),
         "native plugins behind a probe or fake": lambda: check_native_plugins(files),
+        "full-screen modal surfaces (no bottom sheets)": lambda: check_full_screen_surfaces(files),
     }
 
     total: list[Violation] = []

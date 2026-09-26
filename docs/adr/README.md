@@ -18,7 +18,8 @@ Mỗi quyết định kỹ thuật có một file, đánh số tăng dần, khô
 | [0012](0012-issue-criterion-identity.md) | Finding mang hai thứ: `criterion_id` (tiêu chí, sửa được) và `type` (lớp lỗi, enum đóng + `other`); nhãn sai thì uốn, không làm hỏng unit | Accepted |
 
 | [0013](0013-component-boundaries-flutter-server.md) | Ranh giới component thật: `app/lib/` thành 6 component headless + `WorkspaceViewModel` thành façade trên 7 controller; `server/app/` thành api/application/domain/infrastructure/config/contracts | Accepted |
+| [0014](0014-full-screen-modal-surfaces.md) | Mọi modal là bề mặt full-screen qua `showFullScreenSurface`/`WFullScreenSurface`; cấm họ bottom sheet trong `app/lib` (luật 8 guardrail) | Accepted |
 
-**Số tiếp theo: 0014.**
+**Số tiếp theo: 0015.**
 
 Luật chấm SRS/SDS **không** ghi ở đây — chúng nằm ở `review-rules/RULEBOOK.md` với hệ version riêng (§10). ADR chỉ dành cho quyết định về *code* của repo này.
