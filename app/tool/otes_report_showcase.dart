@@ -15,15 +15,15 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/contradiction_pass.dart';
-import 'package:srs_review_ai/data/checks/reference_checks.dart';
-import 'package:srs_review_ai/data/checks/rubric_config.dart';
-import 'package:srs_review_ai/data/checks/syllabus_checks.dart';
-import 'package:srs_review_ai/data/models/deterministic_finding.dart';
-import 'package:srs_review_ai/data/services/parse_service.dart';
-import 'package:srs_review_ai/features/workspace/models/html_report.dart';
-import 'package:srs_review_ai/features/workspace/models/report_export.dart';
-import 'package:srs_review_ai/features/workspace/models/workspace_unit.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/contradiction_pass.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/reference_checks.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/rubric_config.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/syllabus_checks.dart';
+import 'package:srs_review_ai/deterministic_checks/models/deterministic_finding.dart';
+import 'package:srs_review_ai/document_import/models/workspace_unit.dart';
+import 'package:srs_review_ai/document_import/repositories/parse_service.dart';
+import 'package:srs_review_ai/report_export/html_report.dart';
+import 'package:srs_review_ai/report_export/report_export.dart';
 
 final String _sourcePath =
     Platform.environment['OTES_PDF'] ??

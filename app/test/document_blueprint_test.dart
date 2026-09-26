@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/diagram_type_classifier.dart'
+import 'package:srs_review_ai/deterministic_checks/checks/diagram_type_classifier.dart'
     show DiagramKind;
-import 'package:srs_review_ai/data/models/deterministic_finding.dart';
-import 'package:srs_review_ai/data/models/document_blueprint.dart';
+import 'package:srs_review_ai/deterministic_checks/models/deterministic_finding.dart';
+import 'package:srs_review_ai/document_import/models/document_blueprint.dart';
 
 void main() {
   const srsSection = SectionRange(

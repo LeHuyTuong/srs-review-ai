@@ -8,11 +8,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:srs_review_ai/core/providers.dart';
 import 'package:srs_review_ai/core/router/app_router.dart';
-import 'package:srs_review_ai/data/models/loaded_document.dart';
-import 'package:srs_review_ai/data/models/srs_document.dart';
-import 'package:srs_review_ai/data/repositories/document_repository.dart';
-import 'package:srs_review_ai/data/services/mock_review_api.dart';
-import 'package:srs_review_ai/data/services/session_store.dart';
+import 'package:srs_review_ai/document_import/models/loaded_document.dart';
+import 'package:srs_review_ai/document_import/models/srs_document.dart';
+import 'package:srs_review_ai/document_import/repositories/document_repository.dart';
+import 'package:srs_review_ai/requirement_review/services/mock_review_api.dart';
+import 'package:srs_review_ai/review_history/services/session_store.dart';
 
 class _StubImportRepository extends DocumentRepository {
   @override

@@ -22,14 +22,14 @@ library;
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/rubric_config.dart';
-import 'package:srs_review_ai/data/models/deterministic_finding.dart';
-import 'package:srs_review_ai/data/models/loaded_document.dart';
-import 'package:srs_review_ai/data/models/srs_document.dart';
-import 'package:srs_review_ai/data/repositories/document_repository.dart';
-import 'package:srs_review_ai/data/services/file_picker_service.dart';
-import 'package:srs_review_ai/data/services/parse_service.dart';
-import 'package:srs_review_ai/features/workspace/models/workspace_findings.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/rubric_config.dart';
+import 'package:srs_review_ai/deterministic_checks/models/deterministic_finding.dart';
+import 'package:srs_review_ai/document_import/models/loaded_document.dart';
+import 'package:srs_review_ai/document_import/models/srs_document.dart';
+import 'package:srs_review_ai/document_import/repositories/document_repository.dart';
+import 'package:srs_review_ai/document_import/repositories/parse_service.dart';
+import 'package:srs_review_ai/document_import/services/file_picker_service.dart';
+import 'package:srs_review_ai/requirement_review/models/workspace_findings.dart';
 
 RequirementItem _uc(String id, String text, {String? section}) =>
     RequirementItem(

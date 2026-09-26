@@ -4,7 +4,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/rubric_config.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/rubric_config.dart';
 
 /// Only the keys `fromJson` actually reads; the full document is the proxy's.
 Map<String, dynamic> _rubricJson({Map<String, dynamic>? limits}) => {

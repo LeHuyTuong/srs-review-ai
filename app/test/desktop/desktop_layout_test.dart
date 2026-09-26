@@ -14,9 +14,9 @@ import 'package:srs_review_ai/core/layout/app_breakpoint.dart';
 import 'package:srs_review_ai/core/providers.dart';
 import 'package:srs_review_ai/core/router/app_router.dart';
 import 'package:srs_review_ai/core/widgets/content_shell.dart';
-import 'package:srs_review_ai/data/services/session_store.dart';
 import 'package:srs_review_ai/features/workspace/view/workspace_widgets.dart';
 import 'package:srs_review_ai/features/workspace/view_model/workspace_view_model.dart';
+import 'package:srs_review_ai/review_history/services/session_store.dart';
 
 import '../support/desktop_test_platform.dart';
 

@@ -7,11 +7,11 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/diagram_type_classifier.dart';
-import 'package:srs_review_ai/data/models/diagram_audit.dart';
-import 'package:srs_review_ai/data/models/document_map.dart';
-import 'package:srs_review_ai/data/models/srs_document.dart';
-import 'package:srs_review_ai/data/services/vision_review_service.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/diagram_type_classifier.dart';
+import 'package:srs_review_ai/diagram_audit/models/diagram_audit.dart';
+import 'package:srs_review_ai/diagram_audit/models/document_map.dart';
+import 'package:srs_review_ai/diagram_audit/services/vision_review_service.dart';
+import 'package:srs_review_ai/document_import/models/srs_document.dart';
 
 Map<String, dynamic> _figureJson({
   String kind = 'drawing',

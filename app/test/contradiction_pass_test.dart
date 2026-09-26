@@ -10,10 +10,10 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/contradiction_pass.dart';
-import 'package:srs_review_ai/data/models/deterministic_finding.dart';
-import 'package:srs_review_ai/data/models/review_models.dart';
-import 'package:srs_review_ai/data/models/srs_document.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/contradiction_pass.dart';
+import 'package:srs_review_ai/deterministic_checks/models/deterministic_finding.dart';
+import 'package:srs_review_ai/document_import/models/srs_document.dart';
+import 'package:srs_review_ai/requirement_review/models/review_models.dart';
 
 const _pass = ContradictionPass();
 

@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/rubric_config.dart';
-import 'package:srs_review_ai/data/checks/syllabus_checks.dart';
-import 'package:srs_review_ai/data/models/deterministic_finding.dart';
-import 'package:srs_review_ai/data/models/review_models.dart';
-import 'package:srs_review_ai/data/models/srs_document.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/rubric_config.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/syllabus_checks.dart';
+import 'package:srs_review_ai/deterministic_checks/models/deterministic_finding.dart';
+import 'package:srs_review_ai/document_import/models/srs_document.dart';
+import 'package:srs_review_ai/requirement_review/models/review_models.dart';
 
 SrsDocument _documentWith(List<RequirementItem> requirements) => SrsDocument(
   fileName: 'test.pdf',

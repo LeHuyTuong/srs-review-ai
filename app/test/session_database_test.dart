@@ -14,8 +14,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_io.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:srs_review_ai/data/services/session_database.dart';
-import 'package:srs_review_ai/data/services/session_store.dart';
+import 'package:srs_review_ai/review_history/services/session_database.dart';
+import 'package:srs_review_ai/review_history/services/session_store.dart';
 
 SavedSession _session(
   String id, {

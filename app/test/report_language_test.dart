@@ -24,19 +24,19 @@ import 'package:archive/archive.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:srs_review_ai/core/providers.dart';
-import 'package:srs_review_ai/data/models/deterministic_finding.dart';
-import 'package:srs_review_ai/data/models/human_issue.dart';
-import 'package:srs_review_ai/data/models/report_language.dart';
-import 'package:srs_review_ai/data/models/review_models.dart';
-import 'package:srs_review_ai/data/models/review_progress.dart';
-import 'package:srs_review_ai/data/services/session_store.dart';
-import 'package:srs_review_ai/features/workspace/models/docx_report.dart';
-import 'package:srs_review_ai/features/workspace/models/html_report.dart';
-import 'package:srs_review_ai/features/workspace/models/report_export.dart';
-import 'package:srs_review_ai/features/workspace/models/report_strings.dart';
-import 'package:srs_review_ai/features/workspace/models/workspace_findings.dart';
-import 'package:srs_review_ai/features/workspace/models/workspace_unit.dart';
+import 'package:srs_review_ai/deterministic_checks/models/deterministic_finding.dart';
+import 'package:srs_review_ai/document_import/models/workspace_unit.dart';
 import 'package:srs_review_ai/features/workspace/view_model/workspace_view_model.dart';
+import 'package:srs_review_ai/report_export/docx_report.dart';
+import 'package:srs_review_ai/report_export/html_report.dart';
+import 'package:srs_review_ai/report_export/report_export.dart';
+import 'package:srs_review_ai/report_export/report_strings.dart';
+import 'package:srs_review_ai/requirement_review/models/human_issue.dart';
+import 'package:srs_review_ai/requirement_review/models/report_language.dart';
+import 'package:srs_review_ai/requirement_review/models/review_models.dart';
+import 'package:srs_review_ai/requirement_review/models/review_progress.dart';
+import 'package:srs_review_ai/requirement_review/models/workspace_findings.dart';
+import 'package:srs_review_ai/review_history/services/session_store.dart';
 
 // --------------------------------------------------------------- the fixture
 //

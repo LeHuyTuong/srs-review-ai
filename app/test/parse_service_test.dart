@@ -12,8 +12,8 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/models/srs_document.dart';
-import 'package:srs_review_ai/data/services/parse_service.dart';
+import 'package:srs_review_ai/document_import/models/srs_document.dart';
+import 'package:srs_review_ai/document_import/repositories/parse_service.dart';
 
 const String _wordNamespace =
     'http://schemas.openxmlformats.org/wordprocessingml/2006/main';

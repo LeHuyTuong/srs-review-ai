@@ -1,8 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/diagram_type_classifier.dart';
-import 'package:srs_review_ai/data/models/deterministic_finding.dart';
-import 'package:srs_review_ai/data/models/review_models.dart' show Severity;
-import 'package:srs_review_ai/features/workspace/models/document_verdict.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/diagram_type_classifier.dart';
+import 'package:srs_review_ai/deterministic_checks/models/deterministic_finding.dart';
+import 'package:srs_review_ai/requirement_review/models/document_verdict.dart';
+import 'package:srs_review_ai/requirement_review/models/review_models.dart'
+    show Severity;
 
 DeterministicFinding _row(
   CheckId check, {

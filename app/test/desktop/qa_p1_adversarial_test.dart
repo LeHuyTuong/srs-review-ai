@@ -25,13 +25,13 @@ import 'package:srs_review_ai/core/providers.dart';
 import 'package:srs_review_ai/core/theme/app_theme.dart';
 import 'package:srs_review_ai/core/widgets/app_ink_well.dart';
 import 'package:srs_review_ai/core/widgets/full_screen_surface.dart';
-import 'package:srs_review_ai/data/services/mock_review_api.dart';
-import 'package:srs_review_ai/data/services/session_store.dart';
-import 'package:srs_review_ai/features/workspace/models/workspace_findings.dart';
 import 'package:srs_review_ai/features/workspace/view/findings_tab.dart';
 import 'package:srs_review_ai/features/workspace/view/inventory_tab.dart';
 import 'package:srs_review_ai/features/workspace/view/workspace_widgets.dart';
 import 'package:srs_review_ai/features/workspace/view_model/workspace_view_model.dart';
+import 'package:srs_review_ai/requirement_review/models/workspace_findings.dart';
+import 'package:srs_review_ai/requirement_review/services/mock_review_api.dart';
+import 'package:srs_review_ai/review_history/services/session_store.dart';
 
 import '../support/desktop_test_platform.dart';
 

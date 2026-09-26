@@ -14,7 +14,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/features/workspace/models/workspace_findings.dart';
+import 'package:srs_review_ai/requirement_review/models/workspace_findings.dart';
 
 void main() {
   group('FindingStatus — five-state ledger (goal §3)', () {

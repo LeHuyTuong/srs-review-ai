@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/criteria_catalog.dart';
-import 'package:srs_review_ai/data/models/deterministic_finding.dart';
+import 'package:srs_review_ai/deterministic_checks/criteria_catalog.dart';
+import 'package:srs_review_ai/deterministic_checks/models/deterministic_finding.dart';
 
 /// The catalog is the user-facing checklist of evaluation criteria. Its one
 /// job that can silently rot is coverage: a new [CheckId] that never appears

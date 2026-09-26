@@ -156,7 +156,7 @@ Tất cả nằm trong `data/models/` (domain) và `features/workspace/models/` 
 | `LoadedDocument` | `loaded_document.dart` | SrsDocument + deterministic findings + sizeBytes + path |
 | `ReviewResult` | `review_models.dart` | Kết quả review 1 requirement: score (0-10), issues, model, cached, mock, droppedIssueCount |
 | `ReviewIssue` | `review_models.dart` | 1 issue: type, severity, quote, suggestion, verification, similarity |
-| `IssueType` | `review_models.dart` | Enum: ambiguity, vagueness, untestable, incomplete, inconsistent, duplicate |
+| `IssueType` | `review_models.dart` | Enum: ambiguity, vagueness, untestable, incomplete, inconsistent, duplicate, other. The defect CLASS; the criterion a finding answers travels separately in `ReviewIssue.criterionId` (ADR 0012) |
 | `Severity` | `review_models.dart` | Enum: low, medium, high (có weight để sort) |
 | `Verification` | `review_models.dart` | Enum: exact, fuzzy |
 | `AskResponse` | `review_models.dart` | Grounded Q&A response: answer, grounded, citations, model |

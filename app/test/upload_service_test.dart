@@ -8,7 +8,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/services/upload_service.dart';
+import 'package:srs_review_ai/document_import/services/upload_service.dart';
 
 class _ScriptedAdapter implements HttpClientAdapter {
   _ScriptedAdapter(this._script);

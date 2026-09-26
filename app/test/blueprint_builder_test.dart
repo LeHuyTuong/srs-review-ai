@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/diagram_type_classifier.dart'
+import 'package:srs_review_ai/deterministic_checks/checks/diagram_type_classifier.dart'
     show DiagramKind;
-import 'package:srs_review_ai/data/models/document_blueprint.dart';
-import 'package:srs_review_ai/data/parsing/blueprint_builder.dart';
-import 'package:srs_review_ai/data/parsing/table_of_contents.dart';
+import 'package:srs_review_ai/document_import/models/document_blueprint.dart';
+import 'package:srs_review_ai/document_import/parsing/blueprint_builder.dart';
+import 'package:srs_review_ai/document_import/parsing/table_of_contents.dart';
 
 /// A miniature capstone report: index on the front pages, body behind it, and
 /// printed page numbers that line up with `pageTexts` (index 0 = printed 1).

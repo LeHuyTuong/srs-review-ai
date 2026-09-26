@@ -7,16 +7,16 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/rubric_config.dart';
-import 'package:srs_review_ai/data/models/diagram_audit.dart';
-import 'package:srs_review_ai/data/models/review_models.dart';
-import 'package:srs_review_ai/data/models/review_progress.dart';
-import 'package:srs_review_ai/data/models/srs_document.dart';
-import 'package:srs_review_ai/data/repositories/review_repository.dart';
-import 'package:srs_review_ai/data/services/api_service.dart';
-import 'package:srs_review_ai/data/services/mock_review_api.dart';
-import 'package:srs_review_ai/data/services/page_image_renderer.dart';
-import 'package:srs_review_ai/data/services/review_api.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/rubric_config.dart';
+import 'package:srs_review_ai/diagram_audit/models/diagram_audit.dart';
+import 'package:srs_review_ai/diagram_audit/services/page_image_renderer.dart';
+import 'package:srs_review_ai/document_import/models/srs_document.dart';
+import 'package:srs_review_ai/requirement_review/models/review_models.dart';
+import 'package:srs_review_ai/requirement_review/models/review_progress.dart';
+import 'package:srs_review_ai/requirement_review/repositories/review_repository.dart';
+import 'package:srs_review_ai/requirement_review/services/api_service.dart';
+import 'package:srs_review_ai/requirement_review/services/mock_review_api.dart';
+import 'package:srs_review_ai/requirement_review/services/review_api.dart';
 
 void main() {
   group('ReviewRepository page images', () {

@@ -10,11 +10,11 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/quality_checks.dart';
-import 'package:srs_review_ai/data/checks/syllabus_checks.dart';
-import 'package:srs_review_ai/data/checks/text_fold.dart';
-import 'package:srs_review_ai/data/models/deterministic_finding.dart';
-import 'package:srs_review_ai/data/services/parse_service.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/quality_checks.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/syllabus_checks.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/text_fold.dart';
+import 'package:srs_review_ai/deterministic_checks/models/deterministic_finding.dart';
+import 'package:srs_review_ai/document_import/repositories/parse_service.dart';
 
 String _hex(String s) =>
     'U+${s.codeUnitAt(0).toRadixString(16).toUpperCase().padLeft(4, '0')}';

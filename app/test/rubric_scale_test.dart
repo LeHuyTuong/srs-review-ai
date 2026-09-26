@@ -10,7 +10,7 @@
 // 3. The override count comes from the proxy, so the form can say whether the
 //    numbers on screen are the seed's or somebody's edits.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/rubric_config.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/rubric_config.dart';
 
 Map<String, dynamic> rubricJson({
   Map<String, double>? weights,

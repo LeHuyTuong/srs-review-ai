@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/reference_checks.dart';
-import 'package:srs_review_ai/data/checks/rubric_config.dart';
-import 'package:srs_review_ai/data/checks/syllabus_checks.dart';
-import 'package:srs_review_ai/data/models/review_progress.dart';
-import 'package:srs_review_ai/data/models/srs_document.dart';
-import 'package:srs_review_ai/data/services/api_service.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/reference_checks.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/rubric_config.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/syllabus_checks.dart';
+import 'package:srs_review_ai/document_import/models/srs_document.dart';
 import 'package:srs_review_ai/features/workspace/view/workspace_widgets.dart';
+import 'package:srs_review_ai/requirement_review/models/review_progress.dart';
+import 'package:srs_review_ai/requirement_review/services/api_service.dart';
 
 void main() {
   test('runtime messages preserve file names, counts and retry windows', () {

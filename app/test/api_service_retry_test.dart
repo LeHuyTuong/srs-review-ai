@@ -12,8 +12,8 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/models/review_models.dart';
-import 'package:srs_review_ai/data/services/api_service.dart';
+import 'package:srs_review_ai/requirement_review/models/review_models.dart';
+import 'package:srs_review_ai/requirement_review/services/api_service.dart';
 
 /// What the fake transport should do on a given attempt.
 enum _Action { ok, dropped }

@@ -3,7 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pdfx/pdfx.dart';
-import 'package:srs_review_ai/data/services/page_image_renderer.dart';
+import 'package:srs_review_ai/diagram_audit/services/page_image_renderer.dart';
 
 void main() {
   group('PageImageRenderOptions', () {

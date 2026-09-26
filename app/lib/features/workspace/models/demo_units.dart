@@ -7,7 +7,7 @@
 /// demonstrated offline — no file picker, no network, no quota.
 library;
 
-import '../../../data/models/srs_document.dart';
+import '../../../document_import/models/srs_document.dart';
 
 const String demoFileName = 'OTES_SRS_v1.0.pdf';
 const int demoPageCount = 114;

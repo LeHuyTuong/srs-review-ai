@@ -7,11 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:srs_review_ai/core/providers.dart';
-import 'package:srs_review_ai/data/models/project_info.dart';
-import 'package:srs_review_ai/data/services/mock_review_api.dart';
-import 'package:srs_review_ai/data/services/session_store.dart';
+import 'package:srs_review_ai/document_import/models/project_info.dart';
 import 'package:srs_review_ai/features/workspace/view/workspace_modals.dart';
 import 'package:srs_review_ai/features/workspace/view_model/workspace_view_model.dart';
+import 'package:srs_review_ai/requirement_review/services/mock_review_api.dart';
+import 'package:srs_review_ai/review_history/services/session_store.dart';
 
 ProviderContainer _container(InMemorySessionStore store) => ProviderContainer(
   overrides: [

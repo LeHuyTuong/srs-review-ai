@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/diagram_detector.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/diagram_detector.dart';
 
 /// [DiagramDetector] decisions, not string mechanics.
 ///

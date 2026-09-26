@@ -4,7 +4,7 @@ library;
 
 import 'package:flutter/material.dart';
 
-import '../../data/models/review_models.dart' show Severity;
+import '../../requirement_review/models/review_models.dart' show Severity;
 import '../platform/app_platform.dart';
 import 'app_tokens.dart';
 import 'glass_tokens.dart';

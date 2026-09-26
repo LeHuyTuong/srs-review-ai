@@ -11,9 +11,9 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
-import 'package:srs_review_ai/data/models/loaded_document.dart';
-import 'package:srs_review_ai/data/models/srs_document.dart';
-import 'package:srs_review_ai/data/repositories/document_repository.dart';
+import 'package:srs_review_ai/document_import/models/loaded_document.dart';
+import 'package:srs_review_ai/document_import/models/srs_document.dart';
+import 'package:srs_review_ai/document_import/repositories/document_repository.dart';
 
 // ---------------------------------------------------------------------------
 // oversized parsed documents (per-run cap fixtures)

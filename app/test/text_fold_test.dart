@@ -3,7 +3,7 @@
 // tool/probe_vague_otes.dart); these fixtures encode both forms of the
 // same words so NFC-only or NFD-only matching can never regress silently.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/text_fold.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/text_fold.dart';
 
 void main() {
   group('foldVietnamese', () {

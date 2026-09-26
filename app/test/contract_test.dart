@@ -8,8 +8,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/rubric_config.dart';
-import 'package:srs_review_ai/data/models/review_models.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/rubric_config.dart';
+import 'package:srs_review_ai/requirement_review/models/review_models.dart';
 
 Map<String, dynamic> _fixture(String name) {
   final file = File('../contracts/fixtures/$name');
@@ -126,7 +126,7 @@ void main() {
 
   test('the local rubric fallback matches server/app/rubric.json', () {
     final rubric =
-        jsonDecode(File('../server/app/rubric.json').readAsStringSync())
+        jsonDecode(File('../server/app/config/rubric.json').readAsStringSync())
             as Map<String, dynamic>;
     final parsed = RubricConfig.fromJson(rubric);
 

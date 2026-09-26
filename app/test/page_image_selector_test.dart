@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/diagram_detector.dart';
-import 'package:srs_review_ai/data/services/image_budget.dart';
-import 'package:srs_review_ai/data/services/page_image_selector.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/diagram_detector.dart';
+import 'package:srs_review_ai/diagram_audit/services/image_budget.dart';
+import 'package:srs_review_ai/diagram_audit/services/page_image_selector.dart';
 
 void main() {
   const diagramText =

@@ -8,8 +8,8 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/services/session_store.dart';
 import 'package:srs_review_ai/features/workspace/view/review_history_view.dart';
+import 'package:srs_review_ai/review_history/services/session_store.dart';
 
 /// A row the way the app writes it today: project recorded beside the payload.
 SavedSession _row(String id, {String? projectName, String? payloadJson}) =>

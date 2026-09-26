@@ -18,11 +18,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:srs_review_ai/core/providers.dart';
 import 'package:srs_review_ai/core/router/app_router.dart';
-import 'package:srs_review_ai/data/services/session_store.dart';
 import 'package:srs_review_ai/features/workspace/models/workspace_tab.dart';
 import 'package:srs_review_ai/features/workspace/view/workspace_shortcuts.dart';
 import 'package:srs_review_ai/features/workspace/view_model/workspace_shortcut_commands.dart';
 import 'package:srs_review_ai/features/workspace/view_model/workspace_tab_controller.dart';
+import 'package:srs_review_ai/review_history/services/session_store.dart';
 
 import '../support/desktop_test_platform.dart';
 

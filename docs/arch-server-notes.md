@@ -81,7 +81,7 @@ Bảo vệ chung cho POST: `X-App-Token` header (401 nếu sai), giới hạn pa
 | `contracts/fixtures/ask_response.json` | Ví dụ payload AskResponse |
 
 ### Enum quan trọng
-- `IssueType`: ambiguity, vagueness, untestable, incomplete, inconsistent, duplicate
+- `IssueType`: ambiguity, vagueness, untestable, incomplete, inconsistent, duplicate, other (lớp lỗi; server uốn giá trị lạ về `other` thay vì làm hỏng unit — ADR 0012). Mã tiêu chí mà finding trả lời nằm ở field riêng `Issue.criterion_id`, không phải ở `type`
 - `Severity`: low, medium, high
 - `Verification`: exact, fuzzy (`rejected` chỉ ở server-side)
 - `CheckId`: uc_count, language, uc_size (deterministic checks)

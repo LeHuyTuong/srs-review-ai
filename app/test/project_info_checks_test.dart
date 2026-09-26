@@ -10,11 +10,12 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/project_info_checks.dart';
-import 'package:srs_review_ai/data/models/deterministic_finding.dart';
-import 'package:srs_review_ai/data/models/document_blueprint.dart';
-import 'package:srs_review_ai/data/models/project_info.dart';
-import 'package:srs_review_ai/data/models/review_models.dart' show Severity;
+import 'package:srs_review_ai/deterministic_checks/checks/project_info_checks.dart';
+import 'package:srs_review_ai/deterministic_checks/models/deterministic_finding.dart';
+import 'package:srs_review_ai/document_import/models/document_blueprint.dart';
+import 'package:srs_review_ai/document_import/models/project_info.dart';
+import 'package:srs_review_ai/requirement_review/models/review_models.dart'
+    show Severity;
 
 /// A readable two-page cover: page 0 carries title + supervisor, page 1 the
 /// student line. Comfortably above the 3-line scan gate.

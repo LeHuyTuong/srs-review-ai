@@ -6,8 +6,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/diagram_type_classifier.dart';
-import 'package:srs_review_ai/data/services/parse_service.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/diagram_type_classifier.dart';
+import 'package:srs_review_ai/document_import/repositories/parse_service.dart';
 
 void main() {
   test('gate diagnostics: isCaptionIndex + intermediates per page', () async {

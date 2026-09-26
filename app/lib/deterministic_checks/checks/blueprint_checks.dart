@@ -1,0 +1,459 @@
+/// Document-index checks (0 token) — the ones that read the `List of Tables` /
+/// `List of Figures` / chapter list instead of requirement prose.
+///
+/// Why they earn their place next to F7/F8/F9: the AI pass only ever sees
+/// requirement text, so a structural defect that lives in the index is
+/// invisible to it by construction. Two tables announcing the same use case,
+/// a figure number that skips 40, a missing SRS chapter — all of it is
+/// detectable in milliseconds, offline, before a single token is spent. On a
+/// real capstone LoT this family found three duplicated use-case captions and
+/// a broken figure run.
+///
+/// Contract: only failures are emitted (a blueprint check that passes produces
+/// no finding), matching `QualityChecks`. Callers treat "no finding" as pass and
+/// never have to filter a passing row out of the ledger.
+library;
+
+import '../../document_import/models/document_blueprint.dart';
+import '../../requirement_review/models/review_models.dart' show Severity;
+import '../models/deterministic_finding.dart';
+import 'diagram_type_classifier.dart' show DiagramKind;
+import 'text_fold.dart';
+
+/// A report part a frame expects, matched against the chapter TITLE — never a
+/// page number or a letter. Reports divide themselves by page and letter their
+/// parts differently; the only thing a check may pin down is the title.
+class ExpectedSection {
+  const ExpectedSection(this.name, this.patternSource, this.severity);
+
+  /// The part's name, used as the finding subject ("Software Requirement
+  /// Specification").
+  final String name;
+
+  /// Kept as source and compiled on demand, so instances can be `const` and
+  /// the default frame can be a const list (RegExp has no const constructor).
+  final String patternSource;
+  final Severity severity;
+
+  RegExp get pattern => RegExp(patternSource, caseSensitive: false);
+}
+
+class BlueprintChecks {
+  /// [expectedSections] is the frame a report is judged against, and
+  /// deliberately a parameter: the default mirrors one capstone outline, but a
+  /// report built on a different structure must not be told it is "missing"
+  /// parts it was never asked to write. [BlueprintChecks.missingSections]
+  /// additionally self-disables when the document speaks no part of the frame.
+  ///
+  /// [maxGap] is the largest jump inside one section's run that still counts
+  /// as a missing number rather than a new run (see [BlueprintChecks.numberingGaps]).
+  const BlueprintChecks({
+    this.expectedSections = defaultExpectedSections,
+    this.alternativeFrames = const [srsReportExpectedSections],
+    this.maxGap = 3,
+  });
+
+  /// The frame this instance judges against first.
+  final List<ExpectedSection> expectedSections;
+
+  /// Frames tried when the document speaks a different outline. A standalone
+  /// SRS (the official capstone template: Product Overview → User
+  /// Requirements → Functional → Non-Functional → Appendix) matches none of
+  /// the five-part report frame, so with only [expectedSections] the check
+  /// went silent on exactly the document type most students upload. The
+  /// frame with the most declared parts wins; ties go to [expectedSections].
+  final List<List<ExpectedSection>> alternativeFrames;
+
+  /// A gap wider than this counts as "the index started a new run" rather than
+  /// a missing artifact. Verified against a real capstone LoT/LoF: the genuine
+  /// gaps are 1–2 apart (39 -> 41), while the wide jumps (Table 23 -> Table 40)
+  /// are chapters whose tables simply start again.
+  final int maxGap;
+
+  /// The default frame — the five parts one capstone outline declares. Titles
+  /// only: one document calls part B "Project Management Plan", the next
+  /// "Software Project Management Plan", and a third renumbers everything.
+  static const List<ExpectedSection> defaultExpectedSections = [
+    ExpectedSection('Introduction', r'introduction', Severity.medium),
+    ExpectedSection(
+      'Project Management Plan',
+      r'project management|management plan',
+      Severity.medium,
+    ),
+    ExpectedSection(
+      'Software Requirement Specification',
+      r'software requirement specification|requirement specification|\bsrs\b',
+      Severity.high,
+    ),
+    ExpectedSection(
+      'Software Design Description',
+      r'design description|\bsdd\b|system design',
+      Severity.medium,
+    ),
+    ExpectedSection(
+      'System Implementation & Test',
+      r'implementation|system test|test plan|testing',
+      Severity.medium,
+    ),
+  ];
+
+  /// The official standalone-SRS outline (FPT capstone template), for a
+  /// document that is the SRS rather than the five-part report around it.
+  /// Patterns are matched on folded titles, hence the accent-less Vietnamese.
+  /// "Functional Requirements" must not be satisfied by the non-functional
+  /// chapter, so that pattern refuses any title that says `non-functional`.
+  static const List<ExpectedSection> srsReportExpectedSections = [
+    ExpectedSection(
+      'Product Overview',
+      r'product overview|overview|introduction|tong quan|gioi thieu',
+      Severity.medium,
+    ),
+    ExpectedSection(
+      'User Requirements',
+      r'user requirement|use case|yeu cau nguoi dung',
+      Severity.high,
+    ),
+    ExpectedSection(
+      'Functional Requirements',
+      r'^(?!.*non[\s-]?functional).*functional requirement|yeu cau chuc nang',
+      Severity.high,
+    ),
+    ExpectedSection(
+      'Non-Functional Requirements',
+      r'non[\s-]?functional|quality attribute|phi chuc nang',
+      Severity.high,
+    ),
+    ExpectedSection(
+      'Requirement Appendix',
+      r'appendix|business rule|phu luc',
+      Severity.low,
+    ),
+  ];
+
+  /// How many parts of a frame must match before the frame applies. A single
+  /// "Introduction" is a word almost every document has; two matching parts
+  /// means the document really was built on this frame.
+  static const int minFrameMatches = 2;
+
+  List<DeterministicFinding> runAll(DocumentBlueprint? blueprint) {
+    if (blueprint == null || blueprint.isEmpty) return const [];
+    return [
+      ...duplicateCaptions(blueprint),
+      ...numberingGaps(blueprint),
+      ...missingSections(blueprint),
+      ...unclassifiedFigures(blueprint),
+      ...captionPageMismatches(blueprint),
+      ...tablePositionDrift(blueprint),
+    ];
+  }
+
+  // ------------------------------------------------------ duplicate captions
+
+  /// Two tables the index names identically. Grouped by
+  /// [ArtifactRef.normalizedCaption] so `USE CASE – Kick a student out of
+  /// group` and `Use Case - Kick a Student out of Group` are one defect.
+  ///
+  /// [Severity.medium]: a duplicated caption means two use cases are
+  /// indistinguishable in every traceability view the team builds later.
+  List<DeterministicFinding> duplicateCaptions(DocumentBlueprint blueprint) {
+    final byCaption = <String, List<ArtifactRef>>{};
+    for (final artifact in blueprint.tables) {
+      if (artifact.normalizedCaption.isEmpty) continue;
+      byCaption.putIfAbsent(artifact.normalizedCaption, () => []).add(artifact);
+    }
+
+    final findings = <DeterministicFinding>[];
+    for (final entry in byCaption.entries) {
+      final group = entry.value;
+      if (group.length < 2) continue;
+      // Both languages, because the listing is interpolated into a message
+      // whose twin must not read "Table 3 (trang 41)" in an English report.
+      final listing = group
+          .map((a) => '${a.label} (trang ${a.printedPage})')
+          .join(', ');
+      final listingEn = group
+          .map((a) => '${a.label} (page ${a.printedPage})')
+          .join(', ');
+      findings.add(
+        DeterministicFinding(
+          check: CheckId.duplicateCaption,
+          passed: false,
+          severity: Severity.medium,
+          messageEn:
+              '${group.length} tables share the name '
+              '"${group.first.caption}": $listingEn. Each use case needs its own '
+              'name, otherwise it cannot be told apart in any traceability '
+              'table.',
+          messageVi:
+              '${group.length} bảng dùng cùng tên "${group.first.caption}": '
+              '$listing. Mỗi use case phải có tên riêng, nếu không thì không '
+              'phân biệt được trong mọi bảng truy vết.',
+          subject: group.first.normalizedCaption,
+          actual: group.length,
+        ),
+      );
+    }
+    return findings;
+  }
+
+  // --------------------------------------------------------- numbering gaps
+
+  /// A missing number inside a run — `Figure 39` then `Figure 41`.
+  ///
+  /// Only reported when the two neighbours sit in the same section and the gap
+  /// is [maxGap] or less. Without both conditions the check is noise: a real
+  /// 94-figure LoF produced eight "gaps", seven of which were simply the next
+  /// chapter starting its own numbering.
+  ///
+  /// [Severity.low]: authors renumber, and the index is not the artifact.
+  List<DeterministicFinding> numberingGaps(DocumentBlueprint blueprint) {
+    final findings = <DeterministicFinding>[];
+    for (final kind in ArtifactKind.values) {
+      final artifacts =
+          blueprint.artifacts.where((a) => a.kind == kind).toList()
+            ..sort((a, b) => a.number.compareTo(b.number));
+      for (var i = 1; i < artifacts.length; i++) {
+        final previous = artifacts[i - 1];
+        final current = artifacts[i];
+        if (current.number == previous.number) continue; // duplicates are C1
+        final gap = current.number - previous.number - 1;
+        if (gap < 1 || gap > maxGap) continue;
+        if (previous.sectionId == null ||
+            previous.sectionId != current.sectionId) {
+          continue;
+        }
+        final missing = [
+          for (var n = previous.number + 1; n < current.number; n++)
+            kind == ArtifactKind.figure ? 'Figure $n' : 'Table $n',
+        ];
+        findings.add(
+          DeterministicFinding(
+            check: CheckId.numberingGap,
+            passed: false,
+            severity: Severity.low,
+            messageEn:
+                '${current.label} jumps from ${previous.label} '
+                '(missing ${missing.join(', ')}). Check whether that '
+                'table/figure was deleted without refreshing the index.',
+            messageVi:
+                '${current.label} nhảy từ ${previous.label} '
+                '(thiếu ${missing.join(', ')}). Kiểm tra xem bảng/hình đó có bị '
+                'xoá mà quên cập nhật mục lục không.',
+            subject:
+                '${kind == ArtifactKind.figure ? 'figure' : 'table'}'
+                ':${previous.number}-${current.number}',
+            actual: gap,
+          ),
+        );
+      }
+    }
+    return findings;
+  }
+
+  // ------------------------------------------------------- missing sections
+
+  /// Report parts the chapter list never declares. [Severity.high] for the SRS
+  /// part — no requirements chapter means there is nothing else to grade.
+  ///
+  /// The check judges a frame, not a document class: it only runs when the
+  /// document demonstrably speaks the frame (at least [minFrameMatches]
+  /// expected parts found). A report built on its own structure would fail
+  /// every pattern at once, and flagging all of them would teach users to
+  /// ignore the check — the failure direction that kills a checker.
+  List<DeterministicFinding> missingSections(DocumentBlueprint blueprint) {
+    if (blueprint.sections.isEmpty) return const [];
+    // The frame the document speaks most of. Strictly more matches to switch
+    // away from the primary frame, so an outline that fits both equally is
+    // still judged as the report it was configured as.
+    var frame = expectedSections;
+    var declared = _declaredParts(blueprint, frame);
+    for (final alternative in alternativeFrames) {
+      final alternativeDeclared = _declaredParts(blueprint, alternative);
+      if (alternativeDeclared.length > declared.length) {
+        frame = alternative;
+        declared = alternativeDeclared;
+      }
+    }
+    // The frame applies when enough of it shows up. `minFrameMatches` for a
+    // full-size frame (one "Introduction" alone proves nothing); half the parts
+    // for a small one (a 2-part frame can only ever be half missing, and that
+    // half is exactly what the check must catch).
+    final halfFrame = (frame.length + 1) ~/ 2;
+    final threshold = minFrameMatches < halfFrame ? minFrameMatches : halfFrame;
+    if (declared.length < threshold) return const [];
+
+    final findings = <DeterministicFinding>[];
+    for (final expected in frame) {
+      if (declared.contains(expected)) continue;
+      findings.add(
+        DeterministicFinding(
+          check: CheckId.missingSection,
+          passed: false,
+          severity: expected.severity,
+          messageEn:
+              'The index has no "${expected.name}" part. A capstone report '
+              'must declare every one of these parts.',
+          messageVi:
+              'Mục lục không có phần "${expected.name}". Báo cáo đồ án phải '
+              'khai báo đủ các phần này.',
+          subject: expected.name,
+        ),
+      );
+    }
+    return findings;
+  }
+
+  /// Matched on FOLDED titles (lowercase, ASCII — see text_fold.dart), so a
+  /// frame names `yeu cau phi chuc nang` once and matches `Yêu cầu phi chức
+  /// năng` however the PDF encoded its diacritics. English is unaffected.
+  Set<ExpectedSection> _declaredParts(
+    DocumentBlueprint blueprint,
+    List<ExpectedSection> frame,
+  ) {
+    final declared = <ExpectedSection>{};
+    for (final expected in frame) {
+      final pattern = expected.pattern;
+      final found = blueprint.sections.any(
+        (section) => pattern.hasMatch(foldVietnamese(section.title)),
+      );
+      if (found) declared.add(expected);
+    }
+    return declared;
+  }
+
+  // ---------------------------------------------------- unclassified figures
+
+  /// Figures whose caption names no diagram kind, so the vision pass cannot
+  /// pick a judge for them from the index alone.
+  List<DeterministicFinding> unclassifiedFigures(DocumentBlueprint blueprint) {
+    final findings = <DeterministicFinding>[];
+    for (final figure in blueprint.figures) {
+      if (figure.diagramKind != DiagramKind.unknown) continue;
+      findings.add(
+        DeterministicFinding(
+          check: CheckId.unclassifiedFigure,
+          passed: false,
+          severity: Severity.low,
+          messageEn:
+              '${figure.label} ("${figure.caption}") does not say what kind of '
+              'diagram it is. Name the diagram type in the caption (class '
+              'diagram, sequence diagram, ERD…) so the system scores it '
+              'against the right criteria.',
+          messageVi:
+              '${figure.label} ("${figure.caption}") không nói rõ đây là loại '
+              'sơ đồ gì. Đặt caption theo loại sơ đồ (class diagram, sequence '
+              'diagram, ERD…) để hệ thống chấm đúng bộ tiêu chí.',
+          subject: figure.label,
+        ),
+      );
+    }
+    return findings;
+  }
+
+  // -------------------------------------------------- stale index page numbers
+
+  /// Entries the builder could not find where the index said they would be.
+  ///
+  /// Gated on [DocumentBlueprint.trusted]: when the offset itself could not be
+  /// verified, an unresolved artifact says nothing about the document — it says
+  /// the index has no page numbers to verify against.
+  List<DeterministicFinding> captionPageMismatches(
+    DocumentBlueprint blueprint,
+  ) {
+    if (!blueprint.trusted) return const [];
+    final findings = <DeterministicFinding>[];
+    for (final artifact in blueprint.artifacts) {
+      if (artifact.isResolved) continue;
+      // Rulebook §F.6: a caption found elsewhere in the body is a MOVED
+      // artifact, not a stale index — tablePositionDrift reports it
+      // precisely. One artifact must not produce two findings.
+      if (artifact.foundPageIndex != null) continue;
+      findings.add(
+        DeterministicFinding(
+          check: CheckId.captionPageMismatch,
+          passed: false,
+          severity: Severity.low,
+          messageEn:
+              'The index says ${artifact.label} is on page '
+              '${artifact.printedPage}, but no caption was found near that '
+              'page. The index may not have been refreshed after the content '
+              'changed (Update Field in Word).',
+          messageVi:
+              'Mục lục ghi ${artifact.label} ở trang ${artifact.printedPage} '
+              'nhưng không tìm thấy caption quanh trang đó. Có thể mục lục chưa '
+              'được cập nhật lại sau khi sửa nội dung (bấm Update Field trong '
+              'Word).',
+          subject: artifact.label,
+          actual: artifact.printedPage,
+        ),
+      );
+    }
+    return findings;
+  }
+
+  // ------------------------------------------------------- moved artifacts
+
+  /// Rulebook §F.6 — the index points at a page whose caption is not near it
+  /// while the caption EXISTS somewhere else in the body: the artifact moved
+  /// (typically dragged to the end of the document while the index kept its
+  /// old page), which is a different defect from [captionPageMismatches]
+  /// ("the caption is nowhere at all").
+  ///
+  /// [BlueprintBuilder] only fills [ArtifactRef.foundPageIndex] after its
+  /// ±[BlueprintBuilder.captionSearchWindow] search missed, so every hit here
+  /// is beyond that window by construction — no threshold in this check.
+  ///
+  /// Gated on [DocumentBlueprint.trusted], same as [captionPageMismatches]:
+  /// on an unverified offset both "claimed" and "found" pages are guesses.
+  List<DeterministicFinding> tablePositionDrift(DocumentBlueprint blueprint) {
+    if (!blueprint.trusted) return const [];
+    final findings = <DeterministicFinding>[];
+    for (final artifact in blueprint.artifacts) {
+      final found = artifact.foundPageIndex;
+      if (found == null) continue;
+      final claimed = artifact.printedPage - 1 + blueprint.pageOffset;
+      final foundPrinted = found - blueprint.pageOffset + 1;
+      final delta = found - claimed;
+      SectionRange? expected;
+      for (final section in blueprint.sections) {
+        if (section.containsPrintedPage(artifact.printedPage)) {
+          expected = section;
+          break;
+        }
+      }
+      final actual = blueprint.sectionOf(found);
+      final sectionNoteEn =
+          expected != null && actual != null && expected.id != actual.id
+          ? ' The caption sits in chapter "${actual.title}" instead of the '
+                'chapter "${expected.title}" the index implies.'
+          : '';
+      final sectionNoteVi =
+          expected != null && actual != null && expected.id != actual.id
+          ? ' Caption nằm ở chương "${actual.title}" thay vì chương '
+                '"${expected.title}" mà mục lục ngầm gán.'
+          : '';
+      findings.add(
+        DeterministicFinding(
+          check: CheckId.tablePositionDrift,
+          passed: false,
+          severity: Severity.medium,
+          messageEn:
+              'The index says ${artifact.label} is on page '
+              '${artifact.printedPage}, but the caption is on page '
+              '$foundPrinted (off by ${delta > 0 ? '+' : ''}$delta pages). The '
+              'table/figure may have moved without the index being refreshed '
+              '— check visually before editing.$sectionNoteEn',
+          messageVi:
+              'Mục lục ghi ${artifact.label} ở trang ${artifact.printedPage}, '
+              'nhưng caption nằm ở trang $foundPrinted (lệch '
+              '${delta > 0 ? '+' : ''}$delta trang). Bảng/hình có thể đã bị '
+              'dời mà mục lục chưa được cập nhật — kiểm tra bằng mắt trước '
+              'khi sửa.$sectionNoteVi',
+          subject: artifact.label,
+          actual: found,
+        ),
+      );
+    }
+    return findings;
+  }
+}

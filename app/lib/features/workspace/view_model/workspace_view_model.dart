@@ -15,36 +15,35 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/app_config.dart';
 import '../../../core/providers.dart';
-import '../../../data/checks/blueprint_checks.dart';
-import '../../../data/checks/format_layout_checks.dart';
-import '../../../data/checks/project_info_checks.dart';
-import '../../../data/checks/reference_checks.dart';
-import '../../../data/checks/rubric_config.dart';
-import '../../../data/checks/syllabus_checks.dart';
-import '../../../data/checks/verifier.dart';
-import '../../../data/models/deterministic_finding.dart';
-import '../../../data/models/document_map.dart';
-import '../../../data/models/human_issue.dart';
-import '../../../data/models/project_info.dart';
-import '../../../data/models/report_language.dart';
-import '../../../data/models/review_models.dart' show Severity;
-import '../../../data/models/review_progress.dart';
-import '../../../data/models/srs_document.dart';
-import '../../../data/services/report_exporter.dart';
-import '../../../data/services/session_store.dart';
-import '../../../data/services/vision_review_service.dart';
-
+import '../../../deterministic_checks/checks/blueprint_checks.dart';
+import '../../../deterministic_checks/checks/format_layout_checks.dart';
+import '../../../deterministic_checks/checks/project_info_checks.dart';
+import '../../../deterministic_checks/checks/reference_checks.dart';
+import '../../../deterministic_checks/checks/rubric_config.dart';
+import '../../../deterministic_checks/checks/syllabus_checks.dart';
+import '../../../deterministic_checks/models/deterministic_finding.dart';
+import '../../../deterministic_checks/verifier.dart';
+import '../../../diagram_audit/models/document_map.dart';
+import '../../../diagram_audit/services/vision_review_service.dart';
+import '../../../document_import/models/project_info.dart';
+import '../../../document_import/models/srs_document.dart';
+import '../../../document_import/models/workspace_unit.dart';
+import '../../../report_export/docx_report.dart';
+import '../../../report_export/html_report.dart';
+import '../../../report_export/report_export.dart';
+import '../../../report_export/report_exporter.dart';
+import '../../../requirement_review/models/human_issue.dart';
+import '../../../requirement_review/models/report_language.dart';
+import '../../../requirement_review/models/review_models.dart' show Severity;
+import '../../../requirement_review/models/review_progress.dart';
+import '../../../requirement_review/models/workspace_findings.dart';
+import '../../../review_history/services/session_store.dart';
 import '../models/ask_document.dart';
 import '../models/demo_units.dart';
-import '../models/docx_report.dart';
-import '../models/html_report.dart';
-import '../models/report_export.dart';
-import '../models/workspace_findings.dart';
-import '../models/workspace_unit.dart';
 
 /// Views need the SavedSession shape to render history rows; they reach it
 /// through the ViewModel layer, never by importing data/services directly.
-export '../../../data/services/session_store.dart' show SavedSession;
+export '../../../review_history/services/session_store.dart' show SavedSession;
 
 /// The ids the demo keeps visible as unclassified, mirroring the brief's
 /// two malformed synthetic ids.

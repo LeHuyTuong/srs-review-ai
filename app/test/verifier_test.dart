@@ -9,10 +9,10 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/verifier.dart';
-import 'package:srs_review_ai/data/models/deterministic_finding.dart';
-import 'package:srs_review_ai/data/models/review_models.dart';
-import 'package:srs_review_ai/features/workspace/models/workspace_findings.dart';
+import 'package:srs_review_ai/deterministic_checks/models/deterministic_finding.dart';
+import 'package:srs_review_ai/deterministic_checks/verifier.dart';
+import 'package:srs_review_ai/requirement_review/models/review_models.dart';
+import 'package:srs_review_ai/requirement_review/models/workspace_findings.dart';
 
 const _verifier = Verifier();
 

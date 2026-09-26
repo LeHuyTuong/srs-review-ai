@@ -18,7 +18,7 @@ import '../../../core/providers.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
 import '../../../core/widgets/full_screen_surface.dart';
-import '../../../data/models/ai_criterion.dart';
+import '../../../deterministic_checks/models/ai_criterion.dart';
 import 'workspace_widgets.dart';
 
 Future<void> showCriteriaManagerModal(BuildContext context, WidgetRef ref) =>

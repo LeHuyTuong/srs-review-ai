@@ -3,11 +3,12 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/models/deterministic_finding.dart';
-import 'package:srs_review_ai/data/models/review_models.dart' show Severity;
-import 'package:srs_review_ai/features/workspace/models/document_verdict.dart';
-import 'package:srs_review_ai/features/workspace/models/html_report.dart';
-import 'package:srs_review_ai/features/workspace/models/report_export.dart';
+import 'package:srs_review_ai/deterministic_checks/models/deterministic_finding.dart';
+import 'package:srs_review_ai/report_export/html_report.dart';
+import 'package:srs_review_ai/report_export/report_export.dart';
+import 'package:srs_review_ai/requirement_review/models/document_verdict.dart';
+import 'package:srs_review_ai/requirement_review/models/review_models.dart'
+    show Severity;
 
 DeterministicFinding _pass(CheckId c, {String? subject}) =>
     DeterministicFinding.both(

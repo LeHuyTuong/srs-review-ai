@@ -16,19 +16,19 @@ import 'package:srs_review_ai/core/providers.dart';
 import 'package:srs_review_ai/core/router/app_router.dart';
 import 'package:srs_review_ai/core/theme/app_theme.dart';
 import 'package:srs_review_ai/core/widgets/glass_surface.dart';
-import 'package:srs_review_ai/data/models/loaded_document.dart';
-import 'package:srs_review_ai/data/models/review_models.dart';
-import 'package:srs_review_ai/data/models/srs_document.dart';
-import 'package:srs_review_ai/data/repositories/document_repository.dart';
-import 'package:srs_review_ai/data/repositories/review_repository.dart';
-import 'package:srs_review_ai/data/services/mock_review_api.dart';
-import 'package:srs_review_ai/data/services/page_image_renderer.dart';
-import 'package:srs_review_ai/data/services/review_api.dart';
-import 'package:srs_review_ai/data/services/session_store.dart';
+import 'package:srs_review_ai/diagram_audit/services/page_image_renderer.dart';
+import 'package:srs_review_ai/document_import/models/loaded_document.dart';
+import 'package:srs_review_ai/document_import/models/srs_document.dart';
+import 'package:srs_review_ai/document_import/repositories/document_repository.dart';
 import 'package:srs_review_ai/features/workspace/view/workspace_modals.dart';
 import 'package:srs_review_ai/features/workspace/view/workspace_shell.dart';
 import 'package:srs_review_ai/features/workspace/view/workspace_widgets.dart';
 import 'package:srs_review_ai/features/workspace/view_model/workspace_view_model.dart';
+import 'package:srs_review_ai/requirement_review/models/review_models.dart';
+import 'package:srs_review_ai/requirement_review/repositories/review_repository.dart';
+import 'package:srs_review_ai/requirement_review/services/mock_review_api.dart';
+import 'package:srs_review_ai/requirement_review/services/review_api.dart';
+import 'package:srs_review_ai/review_history/services/session_store.dart';
 
 import 'support/srs_fixtures.dart';
 

@@ -1,11 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/reference_checks.dart';
-import 'package:srs_review_ai/data/models/deterministic_finding.dart';
-import 'package:srs_review_ai/data/models/review_models.dart';
-import 'package:srs_review_ai/data/models/srs_document.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/reference_checks.dart';
+import 'package:srs_review_ai/deterministic_checks/models/deterministic_finding.dart';
+import 'package:srs_review_ai/document_import/models/srs_document.dart';
 import 'package:srs_review_ai/features/workspace/view_model/workspace_view_model.dart';
+import 'package:srs_review_ai/requirement_review/models/review_models.dart';
 
 /// The fields added in M2 plumbing (Round 4) need explicit coverage — the
 /// `WorkspaceState` shape is consumed by tests, snapshots, and UI in dozens

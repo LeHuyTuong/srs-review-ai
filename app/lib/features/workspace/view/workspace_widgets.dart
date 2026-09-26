@@ -9,8 +9,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
 import '../../../core/widgets/app_ink_well.dart';
-import '../../../data/models/review_models.dart' show Severity;
-import '../../../data/models/review_progress.dart';
+import '../../../requirement_review/models/review_models.dart' show Severity;
+import '../../../requirement_review/models/review_progress.dart';
 import 'workspace_messages_vi.dart';
 
 export 'workspace_messages_vi.dart';

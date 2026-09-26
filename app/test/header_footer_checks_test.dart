@@ -1,8 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/header_footer_checks.dart';
-import 'package:srs_review_ai/data/models/deterministic_finding.dart';
-import 'package:srs_review_ai/data/models/review_models.dart' show Severity;
-import 'package:srs_review_ai/data/models/srs_document.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/header_footer_checks.dart';
+import 'package:srs_review_ai/deterministic_checks/models/deterministic_finding.dart';
+import 'package:srs_review_ai/document_import/models/srs_document.dart';
+import 'package:srs_review_ai/requirement_review/models/review_models.dart'
+    show Severity;
 
 /// One furniture-bearing page: a running header, three body lines and the
 /// page number extraction puts last. Five readable lines is exactly the

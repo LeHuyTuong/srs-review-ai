@@ -10,8 +10,8 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../../core/platform/app_platform.dart';
-import '../models/workspace_findings.dart';
-import '../models/workspace_unit.dart';
+import '../../../document_import/models/workspace_unit.dart';
+import '../../../requirement_review/models/workspace_findings.dart';
 import 'workspace_widgets.dart';
 
 /// What the user picked from an inventory row's menu.

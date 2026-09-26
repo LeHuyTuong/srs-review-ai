@@ -17,7 +17,7 @@ import '../../../core/providers.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/workspace_colors.dart';
 import '../../../core/widgets/full_screen_surface.dart';
-import '../../../data/checks/rubric_config.dart';
+import '../../../deterministic_checks/checks/rubric_config.dart';
 import 'workspace_widgets.dart';
 
 Future<void> showRubricEditor(BuildContext context, WidgetRef ref) =>

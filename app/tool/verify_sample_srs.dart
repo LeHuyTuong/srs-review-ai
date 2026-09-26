@@ -11,15 +11,15 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/blueprint_checks.dart';
-import 'package:srs_review_ai/data/checks/diagram_detector.dart';
-import 'package:srs_review_ai/data/checks/reference_checks.dart';
-import 'package:srs_review_ai/data/checks/rubric_config.dart';
-import 'package:srs_review_ai/data/checks/syllabus_checks.dart';
-import 'package:srs_review_ai/data/models/deterministic_finding.dart';
-import 'package:srs_review_ai/data/parsing/blueprint_builder.dart';
-import 'package:srs_review_ai/data/parsing/table_of_contents.dart';
-import 'package:srs_review_ai/data/services/parse_service.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/blueprint_checks.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/diagram_detector.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/reference_checks.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/rubric_config.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/syllabus_checks.dart';
+import 'package:srs_review_ai/deterministic_checks/models/deterministic_finding.dart';
+import 'package:srs_review_ai/document_import/parsing/blueprint_builder.dart';
+import 'package:srs_review_ai/document_import/parsing/table_of_contents.dart';
+import 'package:srs_review_ai/document_import/repositories/parse_service.dart';
 
 void _printFindings(String title, List<DeterministicFinding> findings) {
   print('--- $title (${findings.length}) ---');

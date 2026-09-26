@@ -57,10 +57,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:srs_review_ai/core/providers.dart';
 import 'package:srs_review_ai/core/router/app_router.dart';
 import 'package:srs_review_ai/core/theme/app_theme.dart';
-import 'package:srs_review_ai/data/services/session_store.dart';
 import 'package:srs_review_ai/features/workspace/view/readiness_panel.dart';
 import 'package:srs_review_ai/features/workspace/view/workspace_shortcuts.dart';
 import 'package:srs_review_ai/features/workspace/view_model/workspace_view_model.dart';
+import 'package:srs_review_ai/review_history/services/session_store.dart';
 
 /// Captured at 2x: at 1x the small type (11-12px labels) is unreadable once the
 /// PNG is scaled to fit a review window, and 2x matches a Retina surface.

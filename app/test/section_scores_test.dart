@@ -3,14 +3,14 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/models/deterministic_finding.dart';
-import 'package:srs_review_ai/data/models/review_models.dart';
-import 'package:srs_review_ai/data/models/review_progress.dart';
-import 'package:srs_review_ai/data/models/srs_document.dart';
-import 'package:srs_review_ai/features/workspace/models/report_export.dart';
-import 'package:srs_review_ai/features/workspace/models/section_scores.dart';
-import 'package:srs_review_ai/features/workspace/models/workspace_findings.dart';
-import 'package:srs_review_ai/features/workspace/models/workspace_unit.dart';
+import 'package:srs_review_ai/deterministic_checks/models/deterministic_finding.dart';
+import 'package:srs_review_ai/document_import/models/srs_document.dart';
+import 'package:srs_review_ai/document_import/models/workspace_unit.dart';
+import 'package:srs_review_ai/report_export/report_export.dart';
+import 'package:srs_review_ai/requirement_review/models/review_models.dart';
+import 'package:srs_review_ai/requirement_review/models/review_progress.dart';
+import 'package:srs_review_ai/requirement_review/models/section_scores.dart';
+import 'package:srs_review_ai/requirement_review/models/workspace_findings.dart';
 
 ReviewResult _result(
   String id,

@@ -7,16 +7,16 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../data/checks/rubric_config.dart';
-import '../data/models/ai_criterion.dart';
-import '../data/repositories/document_repository.dart';
-import '../data/repositories/review_repository.dart';
-import '../data/services/api_service.dart';
-import '../data/services/document_map_service.dart';
-import '../data/services/mock_review_api.dart';
-import '../data/services/page_image_renderer.dart';
-import '../data/services/review_api.dart';
-import '../data/services/session_store.dart';
+import '../deterministic_checks/checks/rubric_config.dart';
+import '../deterministic_checks/models/ai_criterion.dart';
+import '../diagram_audit/services/page_image_renderer.dart';
+import '../document_import/repositories/document_repository.dart';
+import '../document_import/services/document_map_service.dart';
+import '../requirement_review/repositories/review_repository.dart';
+import '../requirement_review/services/api_service.dart';
+import '../requirement_review/services/mock_review_api.dart';
+import '../requirement_review/services/review_api.dart';
+import '../review_history/services/session_store.dart';
 import 'app_config.dart';
 
 /// Runtime demo switch. Starts from the build-time flag but stays flippable on

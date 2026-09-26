@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/services/image_budget.dart';
+import 'package:srs_review_ai/diagram_audit/services/image_budget.dart';
 
 /// [ImageBudget] decisions, not bookkeeping.
 ///

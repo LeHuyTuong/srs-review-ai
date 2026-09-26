@@ -1,15 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/diagram_detector.dart';
-import 'package:srs_review_ai/data/checks/diagram_type_classifier.dart'
+import 'package:srs_review_ai/deterministic_checks/checks/diagram_detector.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/diagram_type_classifier.dart'
     show DiagramKind;
-import 'package:srs_review_ai/data/checks/rubric_config.dart';
-import 'package:srs_review_ai/data/checks/syllabus_checks.dart';
-import 'package:srs_review_ai/data/models/srs_document.dart';
-import 'package:srs_review_ai/data/parsing/blueprint_builder.dart';
-import 'package:srs_review_ai/data/parsing/table_of_contents.dart';
-import 'package:srs_review_ai/data/services/image_budget.dart';
-import 'package:srs_review_ai/data/services/page_image_selector.dart';
-import 'package:srs_review_ai/data/services/vision_review_service.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/rubric_config.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/syllabus_checks.dart';
+import 'package:srs_review_ai/diagram_audit/services/image_budget.dart';
+import 'package:srs_review_ai/diagram_audit/services/page_image_selector.dart';
+import 'package:srs_review_ai/diagram_audit/services/vision_review_service.dart';
+import 'package:srs_review_ai/document_import/models/srs_document.dart';
+import 'package:srs_review_ai/document_import/parsing/blueprint_builder.dart';
+import 'package:srs_review_ai/document_import/parsing/table_of_contents.dart';
 
 /// A miniature document whose index declares an SRS chapter (printed page 2,
 /// index 1) and a design chapter (printed page 5, index 4), with one UC inside

@@ -4,7 +4,7 @@ library;
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/services/parse_service.dart';
+import 'package:srs_review_ai/document_import/repositories/parse_service.dart';
 
 // ignore_for_file: avoid_print
 void main() {

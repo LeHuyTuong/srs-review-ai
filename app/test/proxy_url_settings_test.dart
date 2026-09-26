@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:srs_review_ai/core/providers.dart';
-import 'package:srs_review_ai/data/services/api_service.dart';
+import 'package:srs_review_ai/requirement_review/services/api_service.dart';
 
 void main() {
   // SharedPreferences plugin needs a mock channel in unit tests.

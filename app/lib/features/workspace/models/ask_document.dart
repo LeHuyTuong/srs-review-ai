@@ -5,8 +5,8 @@
 /// ranked by keyword hits, exactly like the brief's ask modal promises.
 library;
 
-import '../../../data/models/review_models.dart' show Citation;
-import 'workspace_unit.dart';
+import '../../../document_import/models/workspace_unit.dart';
+import '../../../requirement_review/models/review_models.dart' show Citation;
 
 const List<String> _stopwords = [
   'what',

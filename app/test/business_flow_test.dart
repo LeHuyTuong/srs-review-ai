@@ -8,19 +8,19 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:srs_review_ai/core/providers.dart';
-import 'package:srs_review_ai/data/checks/rubric_config.dart';
-import 'package:srs_review_ai/data/models/deterministic_finding.dart';
-import 'package:srs_review_ai/data/models/diagram_audit.dart';
-import 'package:srs_review_ai/data/models/review_models.dart';
-import 'package:srs_review_ai/data/services/api_service.dart';
-import 'package:srs_review_ai/data/services/mock_review_api.dart';
-import 'package:srs_review_ai/data/services/review_api.dart';
-import 'package:srs_review_ai/data/services/session_database.dart';
-import 'package:srs_review_ai/data/services/session_store.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/rubric_config.dart';
+import 'package:srs_review_ai/deterministic_checks/models/deterministic_finding.dart';
+import 'package:srs_review_ai/diagram_audit/models/diagram_audit.dart';
 import 'package:srs_review_ai/features/workspace/models/ask_document.dart';
-import 'package:srs_review_ai/features/workspace/models/report_export.dart';
-import 'package:srs_review_ai/features/workspace/models/workspace_findings.dart';
 import 'package:srs_review_ai/features/workspace/view_model/workspace_view_model.dart';
+import 'package:srs_review_ai/report_export/report_export.dart';
+import 'package:srs_review_ai/requirement_review/models/review_models.dart';
+import 'package:srs_review_ai/requirement_review/models/workspace_findings.dart';
+import 'package:srs_review_ai/requirement_review/services/api_service.dart';
+import 'package:srs_review_ai/requirement_review/services/mock_review_api.dart';
+import 'package:srs_review_ai/requirement_review/services/review_api.dart';
+import 'package:srs_review_ai/review_history/services/session_database.dart';
+import 'package:srs_review_ai/review_history/services/session_store.dart';
 
 ProviderContainer _container(SessionStore store, {ReviewApi? api}) =>
     ProviderContainer(

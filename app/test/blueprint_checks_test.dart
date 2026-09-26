@@ -1,9 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/checks/blueprint_checks.dart';
-import 'package:srs_review_ai/data/models/deterministic_finding.dart';
-import 'package:srs_review_ai/data/models/document_blueprint.dart';
-import 'package:srs_review_ai/data/models/review_models.dart' show Severity;
-import 'package:srs_review_ai/data/parsing/blueprint_builder.dart';
+import 'package:srs_review_ai/deterministic_checks/checks/blueprint_checks.dart';
+import 'package:srs_review_ai/deterministic_checks/models/deterministic_finding.dart';
+import 'package:srs_review_ai/document_import/models/document_blueprint.dart';
+import 'package:srs_review_ai/document_import/parsing/blueprint_builder.dart';
+import 'package:srs_review_ai/requirement_review/models/review_models.dart'
+    show Severity;
 
 /// The five report parts this check family expects, all present.
 const List<SectionRange> _fullOutline = [

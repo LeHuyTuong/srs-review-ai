@@ -8,8 +8,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/models/project_info.dart';
-import 'package:srs_review_ai/data/models/review_models.dart'
+import 'package:srs_review_ai/document_import/models/project_info.dart';
+import 'package:srs_review_ai/requirement_review/models/review_models.dart'
     show ContractException;
 
 Map<String, dynamic> _fixture() {

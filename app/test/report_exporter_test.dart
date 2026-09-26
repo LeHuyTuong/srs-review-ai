@@ -13,7 +13,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/data/services/report_exporter.dart';
+import 'package:srs_review_ai/report_export/report_exporter.dart';
 
 void main() {
   test('save hands the file name, MIME type and bytes to the dialog', () async {

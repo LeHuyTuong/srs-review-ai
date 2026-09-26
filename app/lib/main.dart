@@ -8,8 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/providers.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
-import 'data/services/session_database.dart';
 import 'features/workspace/view/workspace_shortcuts.dart';
+import 'review_history/services/session_database.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

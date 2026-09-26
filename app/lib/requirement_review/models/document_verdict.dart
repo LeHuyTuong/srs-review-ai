@@ -1,0 +1,226 @@
+/// Feature 2: the sds-reviewer 10-point scale (rubric Mục E), computed
+/// from ledger rows only — zero tokens, zero network, deterministic.
+///
+/// Mục E verbatim (`sds-reviewer/references/rubric.md`):
+///   Sàn 5: rubric A đủ 7 mục
+///   +2: diagram pass — notation đúng, không lỗi nghiêm trọng từng ảnh
+///   +2: cross-artifact pass — 0 🔴 mục B, FK matrix sạch
+///   +1: traceability thật (UC→design→test)
+///   Mức trừ: −1 mỗi 🔴 FLOW/ERD ảnh hưởng dữ liệu thật
+///            (see [deductingFamilies] — "FLOW" is emitted as SM / SEQ-CLS)
+///
+/// HONEST DEVIATIONS (the app reviews SRS, not SDS — see
+/// docs/evidence/rubric-vs-skills-map.md row 4):
+///  * "rubric A 7 mục" is an SDS structure checklist. Its SRS analogue in
+///    this app is the seven deterministic buckets in [floorCriteria] —
+///    each named after the quality criterion it proves, not after an SDS
+///    section the document class does not have.
+///  * traceability (UC→design→test) can never be earned yet: there is no
+///    test-artifact parser in the app, so [TraceabilityComponent] is
+///    null for every input. Not a TODO — a documented permanent null
+///    until feature 1-style cross-document data exists. Ceiling today
+///    is therefore 9, and the render says so.
+///  * deductions count per LEDGER ROW (one audited page), not per red
+///    finding on the page: a page with three red FK lines costs −1, not
+///    −3. Conservative relative to the rubric; measured on the batch of
+///    2026-09-14 where p180 carried three reds in one row.
+library;
+
+import '../../../deterministic_checks/models/deterministic_finding.dart';
+import '../../../requirement_review/models/review_models.dart' show Severity;
+
+/// One named bucket of the floor: what it proves, which checks prove it.
+class FloorCriterion {
+  const FloorCriterion(this.name, this.checks);
+
+  /// Human-readable criterion (mirrors an IEEE-830 quality criterion).
+  final String name;
+
+  /// Checks that must ALL have run; the criterion passes when none of
+  /// them carries a failed row.
+  final List<CheckId> checks;
+}
+
+/// The seven SRS-analogue criteria. Kept as data so a wrong mapping
+/// shows up as exactly one failed test on exactly one criterion.
+const List<FloorCriterion> floorCriteria = [
+  FloorCriterion('count plausible', [CheckId.ucCount]),
+  FloorCriterion('uc granularity', [CheckId.ucSize]),
+  FloorCriterion('language', [CheckId.language]),
+  FloorCriterion('unambiguous', [CheckId.ambiguousWording]),
+  FloorCriterion('complete', [
+    CheckId.placeholderTbd,
+    CheckId.missingPostcondition,
+    CheckId.missingActor,
+  ]),
+  // duplicateIds only: crossArtifactName lives in its own +2 bucket, and
+  // scoring the same rows twice would inflate the total past the rubric.
+  FloorCriterion('consistent', [CheckId.duplicateIds]),
+  FloorCriterion('prioritized', [CheckId.missingPriority]),
+];
+
+/// Ledger families whose red rows cost a point, as subject prefixes.
+///
+/// The rubric line is "−1 mỗi 🔴 FLOW/ERD ảnh hưởng dữ liệu thật": a red that
+/// asserts something wrong about the data or about runtime behaviour, as
+/// opposed to a red about how the document is written.
+///
+/// **`FLOW-` was never generated.** It was written here from the rubric's
+/// prose, but [DiagramKind] emits only ERD / SM / SEQ-CLS / UC / PKG / DOC —
+/// so from the first release until 2026-09-15 every state-machine and
+/// sequence red silently cost nothing, and the deduction rule covered data
+/// defects only. `SM-` and `SEQ-CLS-` are the families the rubric's "FLOW"
+/// actually names. Fixing it makes documents with broken state machines or
+/// broken sequences score lower than they did, which is the point.
+///
+/// Rule for extending this list: a family belongs here only if its reds are
+/// claims about the *system*, not about the *document*. `DOC-` and `PKG-`
+/// stay out — a missing caption or an orphan package is a writing defect,
+/// already paid for by forfeiting the +2.
+const List<String> deductingFamilies = ['ERD-', 'SM-', 'SEQ-CLS-'];
+
+/// State of one score component: earned / failed / not assessable.
+enum ComponentState { passed, failed, unassessed }
+
+/// The full verdict. [total] is null unless the floor is assessable —
+/// a number without a floor would be a fabrication.
+class DocumentVerdict {
+  const DocumentVerdict({
+    required this.floor,
+    required this.diagram,
+    required this.crossArtifact,
+    required this.traceability,
+    required this.deductions,
+    required this.earnedPoints,
+    required this.unassessedCount,
+  });
+
+  static const int floorPoints = 5;
+  static const int bonusPoints = 2;
+  static const int traceabilityPoints = 1;
+
+  final ComponentState floor;
+  final ComponentState diagram;
+  final ComponentState crossArtifact;
+  final ComponentState traceability;
+
+  /// Count of deducted rows (each −1).
+  final int deductions;
+
+  /// Raw score before clamping; null when the floor is unassessed.
+  final int? earnedPoints;
+
+  /// How many of the four components rendered as "unassessed".
+  final int unassessedCount;
+
+  /// Clamped 0..10, or null when unassessable.
+  int? get total => earnedPoints?.clamp(0, 10);
+
+  /// "9/10 (partial — 1 component unassessed)" / "7/10" / "unassessed".
+  String get display {
+    final t = total;
+    if (t == null) return 'unassessed (no deterministic checks have run yet)';
+    if (unassessedCount == 0) return '$t/10';
+    return '$t/10 (partial — $unassessedCount component'
+        '${unassessedCount == 1 ? '' : 's'} unassessed)';
+  }
+
+  Map<String, Object?> toJson() => {
+    'total': total,
+    'display': display,
+    'floor': floor.name,
+    'diagram': diagram.name,
+    'cross_artifact': crossArtifact.name,
+    'traceability': traceability.name,
+    'deductions': deductions,
+  };
+}
+
+/// Compute the Mục E score from ledger rows. Pure and total: any row set
+/// (including empty) yields a verdict, never throws.
+DocumentVerdict computeVerdict(List<DeterministicFinding> rows) {
+  bool ran(CheckId c) => rows.any((r) => r.check == c);
+  bool anyFail(CheckId c) => rows.any((r) => r.check == c && !r.passed);
+
+  // Floor: every criterion must be assessable (all its checks ran) and
+  // none failed. One failed criterion → floor lost (the "5" is all-or-
+  // nothing, exactly like the rubric's wording "đủ 7 mục").
+  final floorAssessable = floorCriteria.every((crit) => crit.checks.every(ran));
+  final floorEarned =
+      floorAssessable &&
+      floorCriteria.every((crit) => !crit.checks.any(anyFail));
+  final floor = !floorAssessable
+      ? ComponentState.unassessed
+      : floorEarned
+      ? ComponentState.passed
+      : ComponentState.failed;
+
+  // +2 diagram: needs audited pages; any high row (≥1 red finding) fails.
+  final diagramRows = rows.where((r) => r.check == CheckId.diagramAudit);
+  final ComponentState diagram;
+  if (diagramRows.isEmpty) {
+    diagram = ComponentState.unassessed;
+  } else {
+    diagram = diagramRows.every((r) => r.passed)
+        ? ComponentState.passed
+        : ComponentState.failed;
+  }
+
+  // +2 cross-artifact: the naming-drift chain. FK matrix / seq↔class /
+  // status-vocabulary chains are not implemented (1/7 chain, map row 6),
+  // so passing this earns the bonus only against what CAN be checked —
+  // the deviation is recorded here and in the plan, not hidden.
+  final xRows = rows.where((r) => r.check == CheckId.crossArtifactName);
+  final ComponentState crossArtifact;
+  if (xRows.isEmpty) {
+    crossArtifact = ComponentState.unassessed;
+  } else {
+    crossArtifact = xRows.every((r) => r.passed)
+        ? ComponentState.passed
+        : ComponentState.failed;
+  }
+
+  // +1 traceability: no test-artifact input exists in this app.
+  const traceability = ComponentState.unassessed;
+
+  // −1 each: diagram rows with reds (high) in a data-or-behaviour family.
+  final deductionRows = diagramRows.where(
+    (r) =>
+        !r.passed &&
+        r.severity == Severity.high &&
+        deductingFamilies.any((f) => (r.subject ?? '').startsWith(f)),
+  );
+  final deductions = deductionRows.length;
+
+  final unassessed = [
+    floor,
+    diagram,
+    crossArtifact,
+    traceability,
+  ].where((c) => c == ComponentState.unassessed).length;
+
+  final int? earned;
+  if (floor == ComponentState.unassessed) {
+    earned = null;
+  } else {
+    var p = floor == ComponentState.passed ? DocumentVerdict.floorPoints : 0;
+    if (diagram == ComponentState.passed) p += DocumentVerdict.bonusPoints;
+    if (crossArtifact == ComponentState.passed) {
+      p += DocumentVerdict.bonusPoints;
+    }
+    if (traceability == ComponentState.passed) {
+      p += DocumentVerdict.traceabilityPoints;
+    }
+    earned = p - deductions;
+  }
+
+  return DocumentVerdict(
+    floor: floor,
+    diagram: diagram,
+    crossArtifact: crossArtifact,
+    traceability: traceability,
+    deductions: deductions,
+    earnedPoints: earned,
+    unassessedCount: unassessed,
+  );
+}

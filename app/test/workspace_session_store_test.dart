@@ -6,7 +6,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:srs_review_ai/data/services/session_store.dart';
+import 'package:srs_review_ai/review_history/services/session_store.dart';
 
 void main() {
   group('InMemorySessionStore', () {
