@@ -1,0 +1,74 @@
+Resolving dependencies...
+Downloading packages...
+  android_file_picker 1.1.0 (2.0.0 available)
+  archive 4.2.0 (4.3.0 available)
+  clock 1.1.2 (1.1.3 available)
+  code_assets 1.2.1 (2.1.0 available)
+  cross_file 0.3.5+5 (0.4.0 available)
+  dbus 0.7.15 (0.8.0 available)
+  file_picker 12.2.0 (13.1.0 available)
+  file_picker_darwin 1.1.0 (2.1.2 available)
+  file_picker_linux 1.1.0 (2.0.1 available)
+  file_picker_platform_interface 3.3.0 (4.0.0 available)
+  file_picker_web 3.1.0 (4.0.0 available)
+  go_router 17.5.0 (18.0.1 available)
+  hooks 2.0.2 (2.2.0 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  objective_c 9.5.0 (9.6.0 available)
+  record_use 0.6.0 (1.1.1 available)
+  stack_trace 1.12.1 (1.12.2 available)
+  syncfusion_flutter_core 34.2.7 (34.2.9 available)
+  syncfusion_flutter_pdf 34.2.7 (34.2.9 available)
+  test_api 0.7.12 (0.7.14 available)
+  windows_file_picker 1.2.0 (2.0.0 available)
+Got dependencies!
+21 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading D:/Dev/PRM393-mobile/srs-review-ai/app/test/tmp_modal_surface_audit_test.dart
+00:00 +0: phone 390x844: every modal surface fills the window
+AUDIT import: surface=390.0x844.0 window=390.0x844.0 fills=true
+AUDIT review: surface=390.0x844.0 window=390.0x844.0 fills=true
+AUDIT export: surface=390.0x844.0 window=390.0x844.0 fills=true
+AUDIT settings: surface=390.0x844.0 window=390.0x844.0 fills=true
+AUDIT help: surface=390.0x844.0 window=390.0x844.0 fills=true
+AUDIT document info: surface=390.0x844.0 window=390.0x844.0 fills=true
+AUDIT ask: surface=390.0x844.0 window=390.0x844.0 fills=true
+AUDIT syllabus check detail: surface=390.0x844.0 window=390.0x844.0 fills=true
+AUDIT execution logs: surface=390.0x844.0 window=390.0x844.0 fills=true
+AUDIT document preview: surface=390.0x844.0 window=390.0x844.0 fills=true
+AUDIT project info form: surface=390.0x844.0 window=390.0x844.0 fills=true
+AUDIT criteria manager: surface=390.0x844.0 window=390.0x844.0 fills=true
+AUDIT rubric editor: surface=390.0x844.0 window=390.0x844.0 fills=true
+AUDIT criterion editor: surface=390.0x844.0 window=390.0x844.0 fills=true
+AUDIT shortcuts: surface=390.0x844.0 window=390.0x844.0 fills=true
+AUDIT source sheet: surface=390.0x844.0 window=390.0x844.0 fills=true
+AUDIT human issue: surface=390.0x844.0 window=390.0x844.0 fills=true
+AUDIT centered confirm (shared chrome of the 3 nested confirms): surface=390.0x844.0 window=390.0x844.0 fills=true
+AUDIT nested criterion delete: no delete affordance (canEdit=false)
+AUDIT layout errors: 4
+AUDIT layout error :: A RenderFlex overflowed by 28 pixels on the right
+AUDIT layout error :: A RenderFlex overflowed by 33 pixels on the right
+AUDIT layout error :: A RenderFlex overflowed by 107 pixels on the right
+AUDIT layout error :: A RenderFlex overflowed by 88 pixels on the right
+00:01 +1: desktop 1280x900: every modal surface fills the window
+AUDIT import: surface=1280.0x900.0 window=1280.0x900.0 fills=true
+AUDIT review: surface=1280.0x900.0 window=1280.0x900.0 fills=true
+AUDIT export: surface=1280.0x900.0 window=1280.0x900.0 fills=true
+AUDIT settings: surface=1280.0x900.0 window=1280.0x900.0 fills=true
+AUDIT help: surface=1280.0x900.0 window=1280.0x900.0 fills=true
+AUDIT document info: surface=1280.0x900.0 window=1280.0x900.0 fills=true
+AUDIT ask: surface=1280.0x900.0 window=1280.0x900.0 fills=true
+AUDIT syllabus check detail: surface=1280.0x900.0 window=1280.0x900.0 fills=true
+AUDIT execution logs: surface=1280.0x900.0 window=1280.0x900.0 fills=true
+AUDIT document preview: surface=1280.0x900.0 window=1280.0x900.0 fills=true
+AUDIT project info form: surface=1280.0x900.0 window=1280.0x900.0 fills=true
+AUDIT criteria manager: surface=1280.0x900.0 window=1280.0x900.0 fills=true
+AUDIT rubric editor: surface=1280.0x900.0 window=1280.0x900.0 fills=true
+AUDIT criterion editor: surface=1280.0x900.0 window=1280.0x900.0 fills=true
+AUDIT shortcuts: surface=1280.0x900.0 window=1280.0x900.0 fills=true
+AUDIT source sheet: surface=1280.0x900.0 window=1280.0x900.0 fills=true
+AUDIT human issue: surface=1280.0x900.0 window=1280.0x900.0 fills=true
+AUDIT centered confirm (shared chrome of the 3 nested confirms): surface=1280.0x900.0 window=1280.0x900.0 fills=true
+AUDIT nested criterion delete: no delete affordance (canEdit=false)
+AUDIT layout errors: 0
+00:02 +2: All tests passed!
