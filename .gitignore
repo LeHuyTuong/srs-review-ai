@@ -118,3 +118,14 @@ skills/sds-reviewer/
 # Runtime data on the host, never source: plan 9 §7 — on Vercel this directory
 # does not survive a cold start, which is exactly why it stays ignored.
 server/.submissions/
+
+# ---------- Local-only conveniences kept on disk, never in the repo ----------
+# The two run.bat shortcuts hard-code an absolute path (D:\Dev\PRM393-mobile\
+# srs-review-ai\...) and log to *.log (already ignored), so committing them
+# would hand every clone a broken path. Kept as local shortcuts by owner
+# decision 2026-09-27. The root-level *.mp4 is a screen capture (21.2 MB); the
+# owner chose to keep it for reference, so it is ignored rather than deleted —
+# root scope only, so a video inside a docs folder can still be committed.
+/*.mp4
+/app/run.bat
+/server/run_server.bat
