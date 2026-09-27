@@ -147,8 +147,8 @@ ADR **phải trả lời tường minh** bốn câu, nếu không có câu trả
    đánh dấu đã đọc trên máy này **không** sang máy khác. Chấp nhận có chủ đích, ghi
    thẳng thay vì dựng nửa vời.
 
-**AC:** ADR tồn tại + có dòng index; tìm từ khoá `thu hồi` phải ra câu trả lời tường
-minh; tìm `self-host` phải ra điều kiện host.
+**AC:** ADR tồn tại + có dòng index; tìm từ khoá `revocation` phải ra câu trả lời tường
+minh; tìm `self-hosted` phải ra điều kiện host.
 **Dừng khi:** câu nào ADR trả lời bằng "chưa biết" → biến câu đó thành câu hỏi cho
 người dùng, **đừng tự đoán rồi viết vào ADR như đã chốt**.
 
@@ -362,7 +362,7 @@ tệ hơn cả làm nửa.
 |---|---|---|
 | AC-12.1 | Cây làm việc sạch, commit theo lớp | `git status` không còn rác; roadmap có số đo kèm ngày |
 | AC-12.2 | 3 suite xanh **sau khi commit** | app, server, guardrails, exit 0 |
-| AC-12.3 | ADR 0016 trả lời 4 câu tường minh | tìm `thu hồi`, `self-host` đều ra câu trả lời |
+| AC-12.3 | ADR 0016 trả lời 4 câu tường minh | tìm `revocation`, `self-hosted` đều ra câu trả lời |
 | AC-12.4 | Hai loại 404 giống hệt nhau | test khẳng định **bằng chứng bằng nhau**, không phải "cùng status" |
 | AC-12.5 | Field mới nhìn thấy được qua route | test đọc-qua-route, không test store |
 | AC-12.6 | Lịch sử đúng **hình dạng từng mẩu tin** | test khẳng định dict, không đếm số mẩu |
