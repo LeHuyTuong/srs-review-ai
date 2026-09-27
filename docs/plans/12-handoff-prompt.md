@@ -391,3 +391,93 @@ Báo cáo theo §5: **tách riêng bước 1 và bước 3**, số đo kèm lệ
 lệnh ruff), và **ánh xạ từng test ra tên test cụ thể** — đừng bảo "đã viết test".
 ````
 
+---
+
+## Chế độ H — WP5: ba màn hình giáo viên (rủi ro cao nhất của plan)
+
+Phần lớn prompt này là **những thứ đã dò ra và tốn công**, nên đừng dò lại. Chúng
+đo trên cây sau WP4.
+
+````markdown
+Tiếp tục plan 12 — **WP5** (app giáo viên). Số đo chốt: app 946/946 · server 287 passed
++ 1 skipped · guardrails 8/8, 681 file · `ruff check` + `ruff format --check` sạch ·
+`git status` sạch, commit mới nhất `1ac7231`.
+
+Nguồn chuẩn: plan 12 §2 WP5, ADR-0015 (`AppRole` tách khỏi `AppPlatform`),
+ADR-0016 (lớp là capability, quyết định append), ADR-0017 (full CRUD, `write_key`).
+
+# Chín thứ đã dò sẵn — đừng dò lại
+
+1. **`file`/`unfile`/`decide` trả ROW MỎNG, không phải submission.** Filing trả
+   `{id, class_id, updatedAt}`; quyết định trả `{id, status, decidedAt, updatedAt,
+   class_id}` — **không** có group/project/revision/history. Parse thẳng vào model
+   submission là nhận row rỗng **không báo lỗi**, và chỉ lộ ra thành cái tên trống
+   trên màn hình. Luật: mutation chỉ trả `void`, view-model **đọc lại lớp** sau mọi lần
+   ghi, và lần đọc đó là sự thật.
+2. **`ApiException` không mang `detail`** (chỉ có `message` + `statusCode`), nên app
+   không phân biệt được `not_in_class` với `class_missing` — mà WP5 cần phân biệt vì
+   hai lý do dẫn tới hai hành động khác nhau. Sửa: thêm `detail` vào `ApiException`
+   và cho `_translate` chép `response.data["detail"]` vào đó, rồi client map detail →
+   lý do. Phải có test: hai 409 cho ra **hai** lý do khác nhau, và lý do
+   `class_missing` **giữ nguyên sự mơ hồ** "thiếu lớp hoặc sai khoá" (tách nó ra là
+   biến đường ghi thành máy dò tồn tại, đúng thứ ADR-0017 đã đóng).
+3. **`_write` trong `ApiService` KHÔNG có nhánh PATCH** (chỉ POST/PUT/DELETE), mà
+   đổi tên lớp là `PATCH /classes/{id}`. Thêm nhánh PATCH, **và** một tham số tuỳ
+   chọn `writeKey` gắn header `X-Class-Key` — đừng tạo client HTTP thứ hai.
+4. **Hình dạng JSON server trả về**: `POST /classes` → `{id, name, createdAt,
+   updatedAt, write_key, url}`; `GET /classes/{id}` → `{id, name, createdAt,
+   updatedAt, submissions[]}` với mỗi phần tử `{id, group, project, revision, status,
+   createdAt, updatedAt, has_report, score}`; `PATCH` → không có `submissions`;
+   `DELETE` → `{deleted, unfiled, dangling[]}`; `GET /classes/{id}/activity` →
+   `{id, events[]}`, mỗi event `{submission_id, group, event, revision, at}`.
+5. **`WButton` nằm trong `features/workspace/view/workspace_widgets.dart`** — dùng nó ở
+   view của feature khác là phụ thuộc chéo giữa feature. Màn hình giáo viên hãy dùng
+   Material button (`FilledButton`/`TextButton`) + `AppSpacing`/`AppRadius`/`ColorScheme`.
+6. **`core/providers.dart` và `core/router/` là composition root duy nhất** được
+   guardrail miễn trừ (`exclude=` trong luật `core-no-component-machinery`). Chỉ hai
+   chỗ đó được import máy móc của component; wire `teacherApiProvider` /
+   `teacherStoreProvider` ở đó. View chỉ import view-model, view-model không được
+   import dio.
+7. **`buildRouter()` hiện không nhận tham số** và mọi test đang gọi nó. Đổi thành
+   `buildRouter({AppRoleScope scope = const AppRoleScope.student()})` — **có giá trị
+   mặc định**, tham số bắt buộc sẽ phá mọi call site. `AppPlatform` **không được đổi
+   một chữ** (test của ADR-0015 giữ lời hứa).
+8. **Store giữ `class_id` + `write_key` + watermark nên đụng luật plugin native.**
+   `shared_preferences` chỉ được import ở file đã đăng ký trong `NATIVE_PLUGIN_RULES`
+   **kèm seam**. Làm đúng đường này: `TeacherStore` là interface, có
+   `MemoryTeacherStore` cho test, và hàm seam
+   `TeacherStore openTeacherStore(SharedPreferences prefs)` — rồi **đăng ký file đó**
+   trong `tools/check_guardrails.py` với seam regex khớp đúng hàm đó. Đừng thêm ngoại lệ.
+9. **Khuôn test điện thoại**:
+   `tester.view.physicalSize = const Size(390, 844);
+   tester.view.devicePixelRatio = 1; addTearDown(tester.view.reset);`
+   và **đo kích thước**: `tester.getSize(<nút>).width` so bề rộng nhãn. Đã có nút còn
+   **28,2 px** ở bề rộng 390, nhỏ hơn padding 30 px của nút, nhãn bị `ellipsis` mất
+   sạch — và **không** dựng `RenderFlex overflowed` nào, nên audit đếm overflow không
+   thấy. Hàng nút dùng **`Wrap`**, không `Row` + `Expanded`. Đo trên dữ liệu **đã
+   chấm** (`loadDemo()` + `runReview()`), vì đo trên container chưa chấm thì chip toàn
+   số `0`, hẹp, không tràn: xanh mà không chứng minh gì.
+
+# Còn bốn điều phải hiện đúng trên màn hình, không được giấu
+
+- Báo cáo giáo viên xem phải mang cờ **"điểm chưa được kiểm định"** (chưa có gold set).
+- Hộp thư là **hộp thư kéo khi mở app**, không phải push; watermark "đã đọc" là của
+  **máy này**. Chữ trên UI phải nói đúng điều đó.
+- `unfiled` khác 0 → **một dòng cảnh báo nhẹ, không modal**; bình thường thì im lặng.
+- Hai lý do 409 → **hai message khác nhau**, một dòng, không modal (xem mục 2).
+
+# Điều kiện dừng
+
+Dừng hỏi tôi: cần tiền/quota; cần xoá file không rõ nguồn gốc; phát hiện mâu thuẫn giữa
+ADR và code; hoặc sửa làm đỏ test không liên quan mà chưa hiểu nguyên nhân. Ngoài phạm vi
+WP5 thì **ghi lại để báo, đừng làm luôn**.
+
+# Báo cáo
+
+Theo §5 của plan, và thêm: **đo width thật của từng nút ở 390×844** (in ra số đo trong
+báo cáo, không chỉ "không overflow"), **ánh xạ từng AC sang tên test cụ thể**, và
+`flutter analyze --fatal-infos --fatal-warnings` + `dart format` phải sạch (CI kiểm
+cả hai).
+````
+
+
