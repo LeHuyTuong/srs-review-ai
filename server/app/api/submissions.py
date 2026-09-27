@@ -121,7 +121,11 @@ def create_submission(
         note=payload.note,
     )
     if payload.class_id:
-        created = store.assign_class(created["id"], payload.class_id)
+        # announce=False: filing WITH a class is one act — the row's own
+        # "submitted" entry already announces it. A second history entry for
+        # the same act would make the activity feed say "two things
+        # happened" when the group did one (WP4, AC a).
+        created = store.assign_class(created["id"], payload.class_id, announce=False)
     log.info(
         "submission %s created for group %s (class %s)",
         created["id"],
