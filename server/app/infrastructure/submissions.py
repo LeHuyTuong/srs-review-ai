@@ -52,6 +52,26 @@ class SubmissionTooLargeError(SubmissionError):
     """The review payload exceeds the configured ceiling."""
 
 
+class SubmissionNotInClassError(SubmissionError):
+    """A decision was asked for a submission that belongs to no class.
+
+    409, not 404: the submission exists — what is missing is the teacher
+    authority a class carries. No class, no decision (plan 12 WP3).
+    """
+
+
+class SubmissionClassMissingError(SubmissionError):
+    """A decision was asked for a submission whose class is gone or denies the key.
+
+    409 ``class_missing`` when the class row is gone; the SAME exception
+    carries a wrong key, so a bad key cannot confirm that a class exists.
+    """
+
+
+class SubmissionDecisionError(SubmissionError):
+    """A decision value outside the closed ADR-0016 vocabulary."""
+
+
 _ID_LENGTH = 16
 """`secrets.token_urlsafe(16)` is 128 bits. The share store uses the same
 width, so one enumeration attack against either store is the same attack."""
@@ -66,6 +86,12 @@ for probing the filesystem."""
 
 def _is_safe(key: str) -> bool:
     return bool(key) and len(key) <= 64 and bool(_SAFE_ID.fullmatch(key))
+
+
+DECISION_STATUSES: tuple[str, ...] = ("approved", "changes_requested")
+"""The closed vocabulary of a teacher decision (ADR-0016, decision 2), written
+in ONE place. The next status anyone needs is an ADR amendment, not a string
+here — both this store and the route's request model close over these two."""
 
 
 def _now() -> str:
@@ -310,6 +336,75 @@ class SubmissionStore:
         payload = self.get(submission_id)
         payload["class_id"] = ""
         payload["updatedAt"] = _now()
+        self._write(payload)
+        return payload
+
+    def decide(
+        self,
+        submission_id: str,
+        *,
+        decision: str,
+        note: str = "",
+        class_key: str | None = None,
+        class_store: Any = None,
+    ) -> dict[str, Any]:
+        """Record the teacher's decision on this round (ADR-0016, decision 2).
+
+        Append, never overwrite: ``status`` becomes the decision, one history
+        entry is appended with the Tầng-1 shape ``{revision, at, status,
+        event}``, and the previous round's decision (if any) stays in
+        ``history`` untouched. ``decidedAt`` is the SAME clock reading as
+        ``updatedAt`` — one ``_now()`` per write, so a second-boundary
+        crossing cannot make them disagree (the exact trap the Tầng-1 work
+        paid for).
+
+        The decision note lives in its own field, NOT the group's ``note``:
+        overwriting that would destroy the group's submission note, which is
+        the same loss option G of ADR-0016 exists to prevent.
+
+        Authority is the CONTAINING CLASS's write key (plan 12 WP3): the app
+        token is a shared secret the group's own app holds, so accepting it
+        here would let a group approve its own work — the hole ADR-0017
+        closed for class writes, re-opened on a worse path. The store takes
+        the class store as a parameter rather than importing it: no store
+        reaches into another store's internals.
+        """
+        payload = self.get(submission_id)
+        class_id = str(payload.get("class_id") or "")
+        if not class_id:
+            raise SubmissionNotInClassError(submission_id)
+        if class_store is None:
+            raise SubmissionClassMissingError(submission_id, class_id)
+        try:
+            class_store.verify_key(class_id, class_key or "")
+        except Exception as exc:
+            # An unknown or malformed class id, or a wrong key: the route maps
+            # ALL of these to the SAME 409 class_missing — a wrong key must not
+            # confirm that a class exists, because a missing class answers
+            # identically (the write path must not become an oracle).
+            raise SubmissionClassMissingError(submission_id, class_id) from exc
+        if decision not in DECISION_STATUSES:
+            # Closed vocabulary: rejected before anything is written.
+            raise SubmissionDecisionError(
+                f"decision {decision!r} is outside the closed ADR-0016 vocabulary {DECISION_STATUSES}"
+            )
+        stamp = _now()
+        payload["status"] = decision
+        payload["decidedAt"] = stamp
+        payload["decision_note"] = note.strip()
+        payload["updatedAt"] = stamp
+        history = payload.get("history")
+        if not isinstance(history, list):
+            history = []
+        history.append(
+            {
+                "revision": int(payload.get("revision", 1) or 1),
+                "at": stamp,
+                "status": decision,
+                "event": "decided",
+            }
+        )
+        payload["history"] = history
         self._write(payload)
         return payload
 

@@ -17,13 +17,17 @@ left to be discovered.
 from __future__ import annotations
 
 import logging
+from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Response
 from pydantic import BaseModel, Field
 
 from ..config.settings import Settings, get_settings
 from ..infrastructure.submissions import (
+    SubmissionClassMissingError,
+    SubmissionDecisionError,
     SubmissionNotFoundError,
+    SubmissionNotInClassError,
     SubmissionTooLargeError,
 )
 from . import deps
@@ -77,6 +81,21 @@ class ReviseRequest(BaseModel):
 
     project: str = Field(default="", max_length=200)
     upload_uri: str = Field(default="", max_length=200)
+
+
+class DecisionRequest(BaseModel):
+    """A teacher's decision on one round (ADR-0016, decision 2).
+
+    The vocabulary is closed at the STORE as well (``DECISION_STATUSES``);
+    pydantic's 422 here is the first gate, the store's check the second — a
+    caller bypassing this model (a future internal caller) still cannot mint
+    a third status.
+    """
+
+    model_config = {"extra": "forbid"}
+
+    decision: Literal["approved", "changes_requested"]
+    note: str = Field(default="", max_length=500)
 
 
 @router.post(
@@ -156,6 +175,60 @@ def revise(
     return {**created, "url": f"/submissions/{created['id']}"}
 
 
+@router.post("/submissions/{submission_id}/decision")
+def decide_submission(
+    submission_id: str,
+    payload: DecisionRequest,
+    x_class_key: str | None = Header(default=None),
+    store=Depends(deps.submission_store),
+    classes=Depends(deps.class_store),
+) -> dict:
+    """Record the teacher's decision on one round.
+
+    Authority is the CONTAINING CLASS's write key in ``X-Class-Key`` — not
+    the app token, which the group's own app also holds; accepting it here
+    would let a group approve its own work (plan 12 WP3, ADR-0017's hole on
+    a worse path). The failure map:
+
+    * 404 — the id is malformed or unknown: ONE shape, as everywhere else.
+    * 409 ``not_in_class`` — the submission belongs to no class, so there is
+      no teacher authority to speak of; letting it through would re-open the
+      hole this route exists to close.
+    * 409 ``class_missing`` — the class row is gone, or the key does not
+      match it (a wrong key must not confirm the class exists).
+    * 422 — a decision outside the closed ADR-0016 vocabulary.
+    """
+    try:
+        decided = store.decide(
+            submission_id,
+            decision=payload.decision,
+            note=payload.note,
+            class_key=x_class_key,
+            class_store=classes,
+        )
+    except SubmissionNotInClassError as exc:
+        raise HTTPException(status_code=409, detail="not_in_class") from exc
+    except SubmissionClassMissingError as exc:
+        raise HTTPException(status_code=409, detail="class_missing") from exc
+    except SubmissionDecisionError as exc:
+        raise HTTPException(status_code=422, detail="decision: not an ADR-0016 status") from exc
+    except SubmissionNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Not Found") from exc
+    log.info(
+        "submission %s decided: %s (class %s)",
+        decided["id"],
+        decided["status"],
+        decided.get("class_id", ""),
+    )
+    return {
+        "id": decided["id"],
+        "status": decided["status"],
+        "decidedAt": decided["decidedAt"],
+        "updatedAt": decided["updatedAt"],
+        "class_id": decided.get("class_id", ""),
+    }
+
+
 @router.get("/submissions/{submission_id}")
 def read_submission(
     submission_id: str,
@@ -182,6 +255,8 @@ def read_submission(
         "upload_uri": record.get("upload_uri", ""),
         "note": record.get("note", ""),
         "class_id": record.get("class_id", ""),
+        "decidedAt": record.get("decidedAt"),
+        "decision_note": record.get("decision_note", ""),
         "previous_id": record.get("previous_id"),
         # Time and the round thread: a teacher sorts a list by these and
         # decides whether a round is worth re-reading. The HTML twin stays
