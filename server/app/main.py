@@ -29,7 +29,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import ask, diagram, health, review, uploads
+from .api import ask, diagram, health, review, submissions, uploads
 from .config.criteria import CriteriaStore
 from .config.rubric_store import RubricStore
 from .config.settings import get_settings
@@ -38,6 +38,7 @@ from .infrastructure.diagram import DiagramResponse
 from .infrastructure.llm.router import build_provider
 from .infrastructure.ratelimit import RateLimiter
 from .infrastructure.share import ShareStore
+from .infrastructure.submissions import SubmissionStore
 from .infrastructure.store import SqliteCache
 from .infrastructure.uploads import UploadStore
 
@@ -86,6 +87,12 @@ _upload_store = UploadStore(
 )
 
 _share_store = ShareStore(_settings.share_dir)
+_submission_store = SubmissionStore(_settings.submission_dir, _settings.submission_max_bytes)
+
+# Submission records (plan 9, P2). A group uploads through /uploads/presign,
+# then names the blob here so the review that follows is addressable by one
+# capability id — the same posture as /share, and with the same serverless
+# caveat recorded in the store's docstring.
 
 # The editable evaluation criteria. Its own sqlite file, NOT the review cache:
 # the cache is pruned by an LRU cap, and a criterion the pruner evicted would be
@@ -105,6 +112,7 @@ app.include_router(diagram.router)
 app.include_router(diagram.documents_router)
 app.include_router(uploads.router)
 app.include_router(uploads.share_router)
+app.include_router(submissions.router)
 
 __all__ = [
     "CONTRACT_VERSION",

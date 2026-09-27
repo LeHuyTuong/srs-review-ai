@@ -163,6 +163,21 @@ class Settings(BaseSettings):
     )
     """Where shared HTML reports live on disk."""
 
+    # --- Submissions (plan 9, P2) ---
+    submission_dir: Path = Field(
+        default=SERVER_ROOT / ".submissions",
+        validation_alias=AliasChoices("SRS_SUBMISSION_DIR"),
+    )
+    """Where submission records live. Same caveat as the share dir: a serverless
+    filesystem is read-only outside /tmp, so on Vercel these do not survive a
+    cold start. Flagged in plan 9 §7 as a P4 prerequisite, not fixed here."""
+
+    submission_max_bytes: int = Field(
+        default=4 * 1024 * 1024,
+        validation_alias=AliasChoices("SRS_SUBMISSION_MAX_BYTES"),
+    )
+    """A stored review is the HTML twin plus a handful of numbers, same order of
+    magnitude as a shared report."""
     share_max_bytes: int = Field(
         default=4 * 1024 * 1024,
         validation_alias=AliasChoices("SRS_SHARE_MAX_BYTES"),

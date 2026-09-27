@@ -1,0 +1,275 @@
+﻿"""Submission store — a group's uploaded document plus the review that followed.
+
+Why this exists (plan 9, P2)
+============================
+The system was one user, one device: the group imports a file, the review runs
+on their phone, and the result dies with the app. Two `/share` and `/uploads`
+primitives already carry a document to somebody else — but neither remembers
+WHICH submission it was.
+
+A submission is exactly the missing noun: one immutable snapshot of a group's
+artifact plus whatever the review found in it, addressed by a capability id.
+
+The security posture, stated plainly
+====================================
+* **Reading is capability-only.** The id is 128 bits of ``secrets`` entropy and
+  IS the credential, exactly like ``/share/{id}`` (plan 6 R2). There is no
+  account, no session, no role.
+* **Writing requires the app token**, like every other mutating route.
+* Consequence, written down so nobody mistakes it for a design: anyone holding
+  the link can read the submission, and the store cannot tell a teacher from a
+  classmate. That is acceptable for a capstone exercise and is NOT acceptable
+  for real coursework. P4 replaces it with real identity; this round does not
+  pretend to have it.
+
+Why on disk at all
+==================
+Because ``UploadStore`` and ``ShareStore`` already are, and because the two
+survive a process restart. They do NOT survive a serverless cold start — see
+``docs/plans/9-consistency-first-2026-09-26.md`` §7, which flags the host
+decision as a prerequisite for P4 rather than pretending config can fix it.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import secrets
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+
+class SubmissionError(Exception):
+    """Base for the store's failures."""
+
+
+class SubmissionNotFoundError(SubmissionError):
+    """No submission under that id — or the id was malformed."""
+
+
+class SubmissionTooLargeError(SubmissionError):
+    """The review payload exceeds the configured ceiling."""
+
+
+_ID_LENGTH = 16
+"""`secrets.token_urlsafe(16)` is 128 bits. The share store uses the same
+width, so one enumeration attack against either store is the same attack."""
+
+_SAFE_ID = re.compile(r"^[A-Za-z0-9_-]+$")
+"""A key that is NOT this shape is a traversal attempt, not a lookup miss.
+
+Both failures answer 404 with the same body: a caller must not be able to tell
+"this id does not exist" from "this id is a path", or the 404 becomes an oracle
+for probing the filesystem."""
+
+
+def _is_safe(key: str) -> bool:
+    return bool(key) and len(key) <= 64 and bool(_SAFE_ID.fullmatch(key))
+
+
+def _now() -> str:
+    """Server clock, second precision, `Z` suffix.
+
+    The server owns the clock. A client-supplied time would let a group set
+    its device ahead and jump to the top of a teacher's queue — which is
+    cheating dressed as a display bug.
+    """
+    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _backfill_time(payload: dict[str, Any], path: Path) -> None:
+    """Give rows written before timestamps existed a time that admits its doubt.
+
+    Files predating this change carry no time at all. Their mtime is the best
+    evidence available, and it is NOT the moment of submission: the row may
+    have been rewritten later, and mtime moves. So the row is stamped
+    `timeApproximate` and the app says "khong ro thoi gian" instead of
+    presenting a guess as fact. An input that quietly changes the answer is
+    worse than one that admits it is missing.
+    """
+    if payload.get("createdAt"):
+        return
+    try:
+        stamp = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+    except OSError:
+        return
+    iso = stamp.isoformat(timespec="seconds").replace("+00:00", "Z")
+    payload["createdAt"] = iso
+    payload["updatedAt"] = iso
+    payload["timeApproximate"] = True
+    if not isinstance(payload.get("history"), list):
+        payload["history"] = [
+            {
+                "revision": int(payload.get("revision", 1) or 1),
+                "at": iso,
+                "status": str(payload.get("status", "submitted")),
+                "event": "backfilled",
+                "approximate": True,
+            }
+        ]
+
+
+class SubmissionStore:
+    """One JSON document per submission, on disk.
+
+    Framework-free, like ``UploadStore`` and ``ShareStore``: the routes own the
+    HTTP, this owns the bytes. Swap the backend for S3 and the routes do not
+    change.
+    """
+
+    def __init__(self, submission_dir: Path | str, max_bytes: int) -> None:
+        self.dir = Path(submission_dir)
+        self.max_bytes = max_bytes
+        self._index: dict[str, dict[str, Any]] = {}
+        self._loaded = False
+
+    # ---------------------------------------------------------------- paths
+
+    def _path(self, submission_id: str) -> Path:
+        if not _is_safe(submission_id):
+            raise SubmissionNotFoundError(submission_id)
+        return self.dir / f"{submission_id}.json"
+
+    def _load(self) -> None:
+        if self._loaded:
+            return
+        self._loaded = True
+        if not self.dir.exists():
+            return
+        for path in self.dir.glob("*.json"):
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                # A damaged row is skipped, not fatal: one unreadable file must
+                # not take the whole store down with it.
+                continue
+            if isinstance(payload, dict) and isinstance(payload.get("id"), str):
+                _backfill_time(payload, path)
+                self._index[payload["id"]] = payload
+
+    def _write(self, payload: dict[str, Any]) -> None:
+        self.dir.mkdir(parents=True, exist_ok=True)
+        self._path(payload["id"]).write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        self._index[payload["id"]] = payload
+
+    # ----------------------------------------------------------------- api
+
+    def create(
+        self,
+        *,
+        group: str,
+        project: str = "",
+        upload_uri: str = "",
+        note: str = "",
+    ) -> dict[str, Any]:
+        """Record a new submission and return it with its capability id.
+
+        The id is minted here, not by the caller, so a client can never choose
+        a predictable one.
+        """
+        self._load()
+        submission_id = secrets.token_urlsafe(_ID_LENGTH)
+        # One clock reading per write. Three calls can straddle a second
+        # boundary, which would make createdAt != updatedAt for a row that
+        # never changed — and a test asserting the two are equal would fail
+        # once every few thousand runs.
+        stamp = _now()
+        payload: dict[str, Any] = {
+            "id": submission_id,
+            "group": group.strip(),
+            "project": project.strip(),
+            "upload_uri": upload_uri.strip(),
+            "note": note.strip(),
+            "revision": 1,
+            "status": "submitted",
+            "createdAt": stamp,
+            "updatedAt": stamp,
+            "history": [
+                {"revision": 1, "at": stamp, "status": "submitted", "event": "submitted"}
+            ],
+        }
+        self._write(payload)
+        return payload
+
+    def get(self, submission_id: str) -> dict[str, Any]:
+        self._load()
+        if not _is_safe(submission_id):
+            raise SubmissionNotFoundError(submission_id)
+        found = self._index.get(submission_id)
+        if found is None:
+            raise SubmissionNotFoundError(submission_id)
+        return dict(found)
+
+    def attach_review(self, submission_id: str, review: dict[str, Any]) -> dict[str, Any]:
+        """Store a finished review and open the submission for a next round.
+
+        The stored report is the HTML twin the app already exports, so the
+        reader sees exactly what the group saw — no second renderer to drift.
+        """
+        self._load()
+        payload = self.get(submission_id)
+        body = json.dumps(review, ensure_ascii=False).encode("utf-8")
+        if len(body) > self.max_bytes:
+            raise SubmissionTooLargeError(
+                f"review is {len(body)} bytes; the limit is {self.max_bytes} bytes"
+            )
+        payload["review"] = review
+        payload["status"] = "reviewed"
+        payload["updatedAt"] = _now()
+        history = payload.get("history")
+        if not isinstance(history, list):
+            history = []
+        history.append(
+            {
+                "revision": int(payload.get("revision", 1) or 1),
+                "at": payload["updatedAt"],
+                "status": "reviewed",
+                "event": "reviewed",
+            }
+        )
+        payload["history"] = history
+        self._write(payload)
+        return payload
+
+    def next_revision(
+        self, submission_id: str, *, group: str, project: str = "", upload_uri: str = ""
+    ) -> dict[str, Any]:
+        """A group's second attempt: same identity, revision + 1.
+
+        Deliberately NOT an in-place overwrite. The chain-2/chain-3 work needs
+        "what changed since the last round", and that is unrecoverable once the
+        old row is replaced.
+        """
+        self._load()
+        previous = self.get(submission_id)
+        payload = self.create(
+            group=group or previous.get("group", ""),
+            project=project or previous.get("project", ""),
+            upload_uri=upload_uri,
+        )
+        payload["revision"] = int(previous.get("revision", 1)) + 1
+        payload["previous_id"] = submission_id
+        # Carry the thread forward. A teacher reading one row must be able to
+        # see how many rounds came before; starting history fresh at every
+        # revision would make round three look like round one.
+        prior = previous.get("history")
+        thread = list(prior) if isinstance(prior, list) else []
+        thread.append(
+            {
+                "revision": payload["revision"],
+                "at": payload["updatedAt"],
+                "status": payload["status"],
+                "event": "revised",
+            }
+        )
+        payload["history"] = thread
+        self._write(payload)
+        return payload
+
+    def reset(self) -> None:
+        """Test seam — drop the in-memory index and re-read on next access."""
+        self._index.clear()
+        self._loaded = False

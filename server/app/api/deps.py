@@ -74,6 +74,12 @@ def share_store():
     return _share_store
 
 
+def submission_store():
+    from ..main import _submission_store
+
+    return _submission_store
+
+
 def criteria():
     from ..main import _criteria
 
@@ -119,5 +125,6 @@ __all__ = [
     "review_cache",
     "rubric",
     "share_store",
+    "submission_store",
     "upload_store",
 ]
