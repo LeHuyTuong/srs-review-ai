@@ -178,6 +178,16 @@ class Settings(BaseSettings):
     )
     """A stored review is the HTML twin plus a handful of numbers, same order of
     magnitude as a shared report."""
+
+    class_dir: Path = Field(
+        default=SERVER_ROOT / ".classes",
+        validation_alias=AliasChoices("SRS_CLASS_DIR"),
+    )
+    """Where class rosters live. Same caveat as the submission dir: a serverless
+    filesystem is read-only outside /tmp, so on Vercel these do not survive a
+    cold start (ADR-0016 §3 — file-on-disk is the persistence story, self-host
+    is the requirement)."""
+
     share_max_bytes: int = Field(
         default=4 * 1024 * 1024,
         validation_alias=AliasChoices("SRS_SHARE_MAX_BYTES"),

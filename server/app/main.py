@@ -29,17 +29,18 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import ask, diagram, health, review, submissions, uploads
+from .api import ask, classes, diagram, health, review, submissions, uploads
 from .config.criteria import CriteriaStore
 from .config.rubric_store import RubricStore
 from .config.settings import get_settings
 from .contracts.schemas import CONTRACT_VERSION, ReviewResult
+from .infrastructure.classes import ClassStore
 from .infrastructure.diagram import DiagramResponse
 from .infrastructure.llm.router import build_provider
 from .infrastructure.ratelimit import RateLimiter
 from .infrastructure.share import ShareStore
-from .infrastructure.submissions import SubmissionStore
 from .infrastructure.store import SqliteCache
+from .infrastructure.submissions import SubmissionStore
 from .infrastructure.uploads import UploadStore
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -89,6 +90,10 @@ _upload_store = UploadStore(
 _share_store = ShareStore(_settings.share_dir)
 _submission_store = SubmissionStore(_settings.submission_dir, _settings.submission_max_bytes)
 
+# Class rosters (plan 12 WP2, ADR-0017). One file per class; membership lives
+# on the submission rows, so this store owns only the class's own fields.
+_class_store = ClassStore(_settings.class_dir)
+
 # Submission records (plan 9, P2). A group uploads through /uploads/presign,
 # then names the blob here so the review that follows is addressable by one
 # capability id — the same posture as /share, and with the same serverless
@@ -113,6 +118,7 @@ app.include_router(diagram.documents_router)
 app.include_router(uploads.router)
 app.include_router(uploads.share_router)
 app.include_router(submissions.router)
+app.include_router(classes.router)
 
 __all__ = [
     "CONTRACT_VERSION",

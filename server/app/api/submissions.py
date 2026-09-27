@@ -24,7 +24,6 @@ from pydantic import BaseModel, Field
 from ..config.settings import Settings, get_settings
 from ..infrastructure.submissions import (
     SubmissionNotFoundError,
-    SubmissionStore,
     SubmissionTooLargeError,
 )
 from . import deps
@@ -52,6 +51,13 @@ class CreateSubmissionRequest(BaseModel):
         description="`upload://<key>` of the document this submission covers.",
     )
     note: str = Field(default="", max_length=500)
+    class_id: str = Field(
+        default="",
+        max_length=64,
+        description="File this submission into a class. An unknown class is a "
+        "422 naming this field — never a silent drop, which would file work "
+        "into a void the teacher can never see (ADR-0017 decision 5).",
+    )
 
 
 class AttachReviewRequest(BaseModel):
@@ -79,16 +85,30 @@ class ReviseRequest(BaseModel):
     dependencies=[Depends(deps.require_app_token)],
 )
 def create_submission(
-    payload: CreateSubmissionRequest, store=Depends(deps.submission_store)
+    payload: CreateSubmissionRequest,
+    store=Depends(deps.submission_store),
+    classes=Depends(deps.class_store),
 ) -> dict:
     """Record a submission and return the capability URL to hand out."""
+    if payload.class_id and not classes.exists(payload.class_id):
+        # A 422 THAT NAMES THE FIELD (WP2 AC g). Dropping the field silently
+        # would file the group's work into a class that does not exist — the
+        # teacher never sees it and the group never learns why.
+        raise HTTPException(status_code=422, detail="class_id: no such class")
     created = store.create(
         group=payload.group,
         project=payload.project,
         upload_uri=payload.upload_uri,
         note=payload.note,
     )
-    log.info("submission %s created for group %s", created["id"], created["group"])
+    if payload.class_id:
+        created = store.assign_class(created["id"], payload.class_id)
+    log.info(
+        "submission %s created for group %s (class %s)",
+        created["id"],
+        created["group"],
+        payload.class_id or "-",
+    )
     return {**created, "url": f"/submissions/{created['id']}"}
 
 
@@ -161,6 +181,7 @@ def read_submission(
         "status": record.get("status", "submitted"),
         "upload_uri": record.get("upload_uri", ""),
         "note": record.get("note", ""),
+        "class_id": record.get("class_id", ""),
         "previous_id": record.get("previous_id"),
         # Time and the round thread: a teacher sorts a list by these and
         # decides whether a round is worth re-reading. The HTML twin stays

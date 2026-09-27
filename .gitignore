@@ -119,6 +119,9 @@ skills/sds-reviewer/
 # does not survive a cold start, which is exactly why it stays ignored.
 server/.submissions/
 
+# Class rosters (plan 12 WP2) — same runtime-data posture as .submissions/.
+server/.classes/
+
 # ---------- Local-only conveniences kept on disk, never in the repo ----------
 # The two run.bat shortcuts hard-code an absolute path (D:\Dev\PRM393-mobile\
 # srs-review-ai\...) and log to *.log (already ignored), so committing them

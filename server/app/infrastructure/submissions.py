@@ -1,4 +1,4 @@
-﻿"""Submission store — a group's uploaded document plus the review that followed.
+"""Submission store — a group's uploaded document plus the review that followed.
 
 Why this exists (plan 9, P2)
 ============================
@@ -35,7 +35,7 @@ from __future__ import annotations
 import json
 import re
 import secrets
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -75,7 +75,7 @@ def _now() -> str:
     its device ahead and jump to the top of a teacher's queue — which is
     cheating dressed as a display bug.
     """
-    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 def _backfill_time(payload: dict[str, Any], path: Path) -> None:
@@ -91,7 +91,7 @@ def _backfill_time(payload: dict[str, Any], path: Path) -> None:
     if payload.get("createdAt"):
         return
     try:
-        stamp = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+        stamp = datetime.fromtimestamp(path.stat().st_mtime, tz=UTC)
     except OSError:
         return
     iso = stamp.isoformat(timespec="seconds").replace("+00:00", "Z")
@@ -187,9 +187,7 @@ class SubmissionStore:
             "status": "submitted",
             "createdAt": stamp,
             "updatedAt": stamp,
-            "history": [
-                {"revision": 1, "at": stamp, "status": "submitted", "event": "submitted"}
-            ],
+            "history": [{"revision": 1, "at": stamp, "status": "submitted", "event": "submitted"}],
         }
         self._write(payload)
         return payload
@@ -213,9 +211,7 @@ class SubmissionStore:
         payload = self.get(submission_id)
         body = json.dumps(review, ensure_ascii=False).encode("utf-8")
         if len(body) > self.max_bytes:
-            raise SubmissionTooLargeError(
-                f"review is {len(body)} bytes; the limit is {self.max_bytes} bytes"
-            )
+            raise SubmissionTooLargeError(f"review is {len(body)} bytes; the limit is {self.max_bytes} bytes")
         payload["review"] = review
         payload["status"] = "reviewed"
         payload["updatedAt"] = _now()
@@ -252,6 +248,11 @@ class SubmissionStore:
         )
         payload["revision"] = int(previous.get("revision", 1)) + 1
         payload["previous_id"] = submission_id
+        # A revision belongs to the same class as the round it revises: the
+        # class filed ROUND ONE, and losing the link here would drop round two
+        # out of every class listing. Membership lives on the row (ADR-0017,
+        # option E), so each new row carries the field forward.
+        payload["class_id"] = str(previous.get("class_id", "") or "")
         # Carry the thread forward. A teacher reading one row must be able to
         # see how many rounds came before; starting history fresh at every
         # revision would make round three look like round one.
@@ -268,6 +269,59 @@ class SubmissionStore:
         payload["history"] = thread
         self._write(payload)
         return payload
+
+    # ----------------------------------------------------------- class link
+
+    def assign_class(self, submission_id: str, class_id: str) -> dict[str, Any]:
+        """File this submission under a class (ADR-0017, option E).
+
+        Membership lives on the submission row — the class file carries no
+        member list — so assigning is writing ONE field here, and a
+        submission is in at most one class because the field is one string
+        that gets replaced, not a list that grows. Re-assigning to another
+        class just overwrites the field; unassigning clears it.
+        """
+        payload = self.get(submission_id)
+        payload["class_id"] = class_id
+        payload["updatedAt"] = _now()
+        history = payload.get("history")
+        if not isinstance(history, list):
+            history = []
+        history.append(
+            {
+                "revision": int(payload.get("revision", 1) or 1),
+                "at": payload["updatedAt"],
+                "status": str(payload.get("status", "submitted")),
+                "event": "class_assigned",
+            }
+        )
+        payload["history"] = history
+        self._write(payload)
+        return payload
+
+    def unassign_class(self, submission_id: str) -> dict[str, Any]:
+        """Clear this submission's class link (the DELETE-class path).
+
+        The submission survives — DELETE unfiles, it never deletes (ADR-0017
+        decision 4): the group keeps its artifact, its id and its share links.
+        No history entry: nothing happened to the submission itself, the
+        class it used to belong to is what changed.
+        """
+        payload = self.get(submission_id)
+        payload["class_id"] = ""
+        payload["updatedAt"] = _now()
+        self._write(payload)
+        return payload
+
+    def all_rows(self) -> dict[str, dict[str, Any]]:
+        """The whole index, loaded on demand.
+
+        The class routes derive membership by scanning this (ADR-0017, option
+        E's accepted cost). Public on purpose: the class store receives it as
+        a parameter instead of reaching into another store's privates.
+        """
+        self._load()
+        return self._index
 
     def reset(self) -> None:
         """Test seam — drop the in-memory index and re-read on next access."""

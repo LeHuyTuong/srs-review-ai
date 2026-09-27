@@ -80,6 +80,12 @@ def submission_store():
     return _submission_store
 
 
+def class_store():
+    from ..main import _class_store
+
+    return _class_store
+
+
 def criteria():
     from ..main import _criteria
 
@@ -117,6 +123,7 @@ __all__ = [
     "UploadStore",
     "build_provider",
     "caller_id",
+    "class_store",
     "criteria",
     "diagram_cache",
     "ensure_bounded",
