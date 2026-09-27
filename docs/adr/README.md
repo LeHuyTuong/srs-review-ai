@@ -21,7 +21,8 @@ Mỗi quyết định kỹ thuật có một file, đánh số tăng dần, khô
 | [0014](0014-full-screen-modal-surfaces.md) | Mọi modal là bề mặt full-screen qua `showFullScreenSurface`/`WFullScreenSurface`; cấm họ bottom sheet trong `app/lib` (luật 8 guardrail) | Accepted |
 | [0015](0015-role-vs-form-factor-and-phone-sheets.md) | `AppRole` (build + phiên) tách khỏi `AppPlatform` (thiết bị); lệnh cấm bottom sheet giữ nguyên phạm vi, không nới cho phone | Accepted |
 | [0016](0016-class-roster-and-teacher-decisions.md) | Lớp học là `class_id` capability (**không thu hồi được**); quyết định của giáo viên **append** không ghi đè; đúng khi **self-hosted**; "đã đọc" là việc của máy | Accepted |
+| [0017](0017-class-crud-and-write-key.md) | Lớp học là **full CRUD**; ghi khác app token (mỗi lớp có `write_key` riêng, so bằng `compare_digest`); `class_id` nằm trên **submission** chứ không có list trong file lớp; `DELETE` lớp **không xoá bài nhóm** | Accepted |
 
-**Số tiếp theo: 0017.**
+**Số tiếp theo: 0018.**
 
 Luật chấm SRS/SDS **không** ghi ở đây — chúng nằm ở `review-rules/RULEBOOK.md` với hệ version riêng (§10). ADR chỉ dành cho quyết định về *code* của repo này.
