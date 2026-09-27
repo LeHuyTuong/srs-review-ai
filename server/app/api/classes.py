@@ -138,6 +138,29 @@ def read_class(
     }
 
 
+@router.get("/classes/{class_id}/activity")
+def read_activity(
+    class_id: str,
+    store=Depends(deps.class_store),
+    submissions=Depends(deps.submission_store),
+) -> dict:
+    """The class's event feed, newest first. No token: the id is the credential.
+
+    NOT push — there is no FCM/APNs and no worker scanning anything. This is
+    a pull-derived feed: the app asks when it opens, the server computes it
+    from the histories on the spot (ADR-0016 decision 5). "How many are
+    unread" is the PHONE's watermark question (decision 4): the server never
+    stores read state and never names a reader, so the first-open behaviour
+    is decided in the app, not here. This route returns the full feed in a
+    fixed order and nothing more.
+    """
+    try:
+        events = store.activity(class_id, submissions.all_rows())
+    except ClassNotFoundError:
+        raise _class_404() from None
+    return {"id": class_id, "events": events}
+
+
 @router.patch("/classes/{class_id}", dependencies=[Depends(require_class_key)])
 def rename_class(
     class_id: str,
@@ -204,12 +227,12 @@ def file_submission(
     Uses ``assign_class`` — the same writer ``POST /submissions`` uses, so
     both paths go through the identical membership write.
     """
-    try:
-        # verify_key does BOTH checks — the class must exist AND the key must
-        # be its own. Presence of any header is not authority.
-        store.verify_key(class_id, write_key)
-    except (ClassNotFoundError, ClassKeyError):
-        raise _class_404() from None
+    # verify_key answers BOTH checks — the class must exist AND the key must
+    # be its own. Presence of any header is not authority. False covers both,
+    # so the stranger's answer is indistinguishable; it RAISES on real
+    # failures, which stay 500s rather than wearing the 404.
+    if not store.verify_key(class_id, write_key):
+        raise _class_404()
     try:
         filed = submissions.assign_class(payload.submission_id, class_id)
     except SubmissionNotFoundError:
@@ -230,10 +253,8 @@ def unfile_submission(
     submissions=Depends(deps.submission_store),
 ) -> dict:
     """Remove one submission from the roster. The submission itself survives."""
-    try:
-        store.verify_key(class_id, write_key)
-    except (ClassNotFoundError, ClassKeyError):
-        raise _class_404() from None
+    if not store.verify_key(class_id, write_key):
+        raise _class_404()
     try:
         row = submissions.get(submission_id)
     except SubmissionNotFoundError:

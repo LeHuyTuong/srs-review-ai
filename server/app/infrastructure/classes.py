@@ -224,17 +224,25 @@ class ClassStore:
         """The stored class — never the plaintext key, which no longer exists."""
         return self._require(class_id)
 
-    def verify_key(self, class_id: str, write_key: str) -> None:
-        """Raise unless ``write_key`` is THIS class's key.
+    def verify_key(self, class_id: str, write_key: str) -> bool:
+        """True when ``write_key`` is THIS class's key.
+
+        False covers BOTH "the class does not exist" and "the key does not
+        match" — one answer, as before, so a wrong key still cannot confirm
+        that a class exists. It RAISES only for real failures (a disk error,
+        a bug): folding those into ``False`` would dress a broken disk as a
+        missing class, which is the error path the decision route must not
+        paper over — real failures must reach the logs as a 500.
 
         For routes whose store call does not itself take the key (the filing
         verbs): presence of ANY header is not authority — the header must
-        match the class's own hash, or the answer is the same 404 as a
-        stranger's.
+        match the class's own hash, or the answer is the stranger's answer.
         """
-        payload = self._require(class_id)
-        if not _key_matches(write_key, payload.get("write_key_hash", "")):
-            raise ClassKeyError(class_id)
+        try:
+            payload = self._require(class_id)
+        except ClassNotFoundError:
+            return False
+        return _key_matches(write_key, payload.get("write_key_hash", ""))
 
     def rename(self, class_id: str, *, write_key: str, name: str) -> dict[str, Any]:
         """Rename, and only rename (ADR-0017 decision 3).
@@ -289,6 +297,64 @@ class ClassStore:
         self._path(class_id).unlink(missing_ok=True)
         self._index.pop(class_id, None)
         return {"unfiled": unfiled, "dangling": dangling}
+
+    def activity(self, class_id: str, submission_index: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+        """The class's event feed, derived from member histories — never stored.
+
+        ADR-0016 decision 5: the feed is COMPUTED on read, newest first, from
+        the ``history`` each submission already keeps. No second timeline to
+        keep in sync, and a backfilled legacy row simply appears as old.
+        What the caller does with it ("how many are unread?") is the phone's
+        watermark business (decision 4) — this method returns the FULL feed,
+        every time, and knows nothing about what anyone has seen. The
+        first-open behaviour that depends on the watermark is therefore
+        decided in the app (WP5), not here.
+
+        Ordering: ``at`` DESC, then ``revision`` DESC, then ``submission_id``
+        — a DETERMINISTIC tie-break, because ``_now()`` is second-precision
+        and several events in one second are the rule, not the exception.
+        Without it the order inside a second is glob order and every test
+        that asserts it flakes. This mirrors the lesson the listing test
+        already paid for in WP2.
+
+        One event, one announcement: an entry is announced by the row whose
+        revision it carries. ``next_revision`` deliberately copies the whole
+        thread forward so ONE row reads as a full history — but a feed that
+        scans every row would then announce round 1's submission TWICE (under
+        the old row and the revision row). The rule keeps the copy (Tầng 1
+        untouched) and makes the feed count each act once: the revision row
+        announces only its own round's events, earlier rounds are announced
+        by the rows that lived them, and those rows still exist.
+        """
+        rows = self._member_rows(class_id, submission_index)
+        events: list[dict[str, Any]] = []
+        for row in rows:
+            submission_id = str(row.get("id", ""))
+            row_revision = int(row.get("revision", 1) or 1)
+            history = row.get("history")
+            if not isinstance(history, list):
+                continue
+            for entry in history:
+                if not isinstance(entry, dict):
+                    continue
+                if int(entry.get("revision", 1) or 1) != row_revision:
+                    # a copied thread entry — the older round's own row
+                    # already announces it
+                    continue
+                events.append(
+                    {
+                        "submission_id": submission_id,
+                        "group": row.get("group", ""),
+                        "event": entry.get("event", ""),
+                        "revision": int(entry.get("revision", 1) or 1),
+                        "at": str(entry.get("at") or ""),
+                    }
+                )
+        events.sort(
+            key=lambda e: (e["at"], e["revision"], e["submission_id"]),
+            reverse=True,
+        )
+        return events
 
     def exists(self, class_id: str) -> bool:
         """The one check ``POST /submissions`` needs: does this class exist?

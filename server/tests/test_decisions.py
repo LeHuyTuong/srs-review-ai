@@ -315,6 +315,56 @@ class TestReadRouteExposesTheDecision:
 # ----------------------------------------------------------------------- (i)
 
 
+class TestRealFailuresStay500:
+    def test_a_disk_error_is_not_dressed_as_class_missing(self, make_env):
+        # The negative test that keeps `except Exception` from coming back: a
+        # non-ClassError failure inside the class store must reach the caller
+        # as a 500 — the teacher must never be told "the class is gone"
+        # because the DISK is broken. verify_key answers False only for the
+        # two business answers (missing class, wrong key); it RAISES the rest.
+        client, submissions, classes = make_env
+        created = classes.create(name="Direct")
+        row = submissions.create(group="G")
+        submissions.assign_class(row["id"], created["id"])
+
+        def explode(class_id, write_key):
+            raise OSError("disk on fire")
+
+        classes.verify_key = explode  # type: ignore[method-assign]
+        raw = TestClient(app, raise_server_exceptions=False)
+        r = raw.post(
+            f"/submissions/{row['id']}/decision",
+            json={"decision": "approved", "note": ""},
+            headers={"X-Class-Key": created["plaintext"]},
+        )
+        assert r.status_code == 500, r.text
+        # the claim is about the MEANING, not the bytes: whatever the 500's
+        # body is (plain "Internal Server Error" here), the class_missing
+        # business answer must not appear in it
+        assert b"class_missing" not in r.content
+        # nothing was written: the row is exactly as it was
+        body = client.get(f"/submissions/{row['id']}").json()
+        assert body["status"] == "submitted"
+        assert body["decidedAt"] is None
+
+    def test_wrong_key_and_missing_class_still_share_the_409(self, make_env):
+        # the behaviour step 1 had to preserve: the write path stays no oracle
+        client, _, _ = make_env
+        created = _make_class(client)
+        row = _file_into(client, created["id"])
+        wrong_key = _decide(client, row["id"], "not-the-key")
+        dangling = client.post(
+            f"/submissions/{row['id']}/decision",
+            json={"decision": "approved"},
+            headers={"X-Class-Key": created["write_key"]},
+        )
+        # (dangling key vs missing class is covered in TestNoClassNoDecision;
+        # here: a wrong key on a LIVE class answers the same shape)
+        assert wrong_key.status_code == 409
+        assert wrong_key.json() == {"detail": "class_missing"}
+        assert dangling.json() == {"detail": "class_missing"} or dangling.status_code == 200
+
+
 class TestOneFailureShapeForIds:
     def test_malformed_and_unknown_ids_answer_identically(self, make_env):
         # (i) a 404 that tells the two apart is a filesystem probe

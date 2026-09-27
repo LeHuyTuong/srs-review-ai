@@ -298,7 +298,7 @@ class SubmissionStore:
 
     # ----------------------------------------------------------- class link
 
-    def assign_class(self, submission_id: str, class_id: str) -> dict[str, Any]:
+    def assign_class(self, submission_id: str, class_id: str, *, announce: bool = True) -> dict[str, Any]:
         """File this submission under a class (ADR-0017, option E).
 
         Membership lives on the submission row — the class file carries no
@@ -306,22 +306,32 @@ class SubmissionStore:
         submission is in at most one class because the field is one string
         that gets replaced, not a list that grows. Re-assigning to another
         class just overwrites the field; unassigning clears it.
+
+        ``announce`` keeps the activity feed honest (WP4, AC a): filing a
+        submission that ALREADY carries its class_id is one act — the group
+        filed one thing — so the create path calls this with
+        ``announce=False`` and the row's existing ``submitted`` entry stands
+        for the whole act. Only a LATER filing (the teacher's move) earns its
+        own ``class_assigned`` entry; a second announcement for the same
+        submission would make the inbox say "two things happened" when the
+        group did one.
         """
         payload = self.get(submission_id)
         payload["class_id"] = class_id
         payload["updatedAt"] = _now()
-        history = payload.get("history")
-        if not isinstance(history, list):
-            history = []
-        history.append(
-            {
-                "revision": int(payload.get("revision", 1) or 1),
-                "at": payload["updatedAt"],
-                "status": str(payload.get("status", "submitted")),
-                "event": "class_assigned",
-            }
-        )
-        payload["history"] = history
+        if announce:
+            history = payload.get("history")
+            if not isinstance(history, list):
+                history = []
+            history.append(
+                {
+                    "revision": int(payload.get("revision", 1) or 1),
+                    "at": payload["updatedAt"],
+                    "status": str(payload.get("status", "submitted")),
+                    "event": "class_assigned",
+                }
+            )
+            payload["history"] = history
         self._write(payload)
         return payload
 
@@ -375,14 +385,13 @@ class SubmissionStore:
             raise SubmissionNotInClassError(submission_id)
         if class_store is None:
             raise SubmissionClassMissingError(submission_id, class_id)
-        try:
-            class_store.verify_key(class_id, class_key or "")
-        except Exception as exc:
-            # An unknown or malformed class id, or a wrong key: the route maps
-            # ALL of these to the SAME 409 class_missing — a wrong key must not
-            # confirm that a class exists, because a missing class answers
-            # identically (the write path must not become an oracle).
-            raise SubmissionClassMissingError(submission_id, class_id) from exc
+        # verify_key answers False for BOTH a missing class and a wrong key —
+        # one 409 class_missing, and the write path stays no oracle. It
+        # RAISES on real failures (disk, bugs), which reach the caller as a
+        # 500 instead of wearing this business error: "lớp không còn tồn
+        # tại" must never be the answer to a broken disk.
+        if not class_store.verify_key(class_id, class_key or ""):
+            raise SubmissionClassMissingError(submission_id, class_id)
         if decision not in DECISION_STATUSES:
             # Closed vocabulary: rejected before anything is written.
             raise SubmissionDecisionError(

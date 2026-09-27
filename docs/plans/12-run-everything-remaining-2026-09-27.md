@@ -294,6 +294,8 @@ nhóm nộp vòng 2, activity có mục mới **khác** mục cũ (không phải
 
 **Ghi chú từ WP2 (đã chốt):** `DELETE /classes/{id}` trả kèm số `unfiled` và danh sách `dangling`. Màn hình lớp **hiện một dòng cảnh báo** khi `unfiled` khác 0 — nhẹ, không modal, và im lặng khi mọi thứ bình thường.
 
+**Ghi chú từ WP3 (đã chốt):** hai lý do 409 của `POST /submissions/{id}/decision` hiện thành **hai message khác nhau**, mỗi cái một dòng, không modal: `not_in_class` — “Bài này chưa được gán vào lớp nào” (hành động: vào lớp, gán bài); `class_missing` — “Lớp không còn tồn tại, hoặc khoá nhập không đúng” (hành động: tạo lại lớp / nhập lại khoá). Message thứ hai **giữ nguyên sự mơ hồ** “thiếu lớp *hoặc* sai khoá” — tách thành hai lý do riêng là biến đường ghi thành máy dò tồn tại, đúng thứ ADR 0017 đã đóng.
+
 Đây là chỗ plan này dễ hỏng nhất, và lý do không phải logic: **toàn bộ test UI hiện
 tại ngồi ở desktop** (`app/test/desktop/`, `app_breakpoint_test.dart` đo 9 bề rộng).
 Plan này dời trọng tâm sang **điện thoại**, nghĩa là vào vùng chưa từng có ai đo.
