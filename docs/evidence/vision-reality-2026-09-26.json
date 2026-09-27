@@ -1,0 +1,223 @@
+{
+  "measured_on": "2026-09-26",
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "d2",
+  "render_scale_requested": 4.0,
+  "pages_per_doc": 4,
+  "docs": [
+    {
+      "doc": "HisWise-EN",
+      "file": "3b662b387392412f81870547ac69ac73-_HisWise_SDS Document.pdf",
+      "rows": [
+        {
+          "page_index": 9,
+          "kind": "image",
+          "png_kb": 60,
+          "truth_alnum_chars": 0,
+          "elements": 16,
+          "relations": 27,
+          "unreadable": 0,
+          "readable_ratio": 1.0,
+          "elements_per_1k_truth": 16.0,
+          "sample_elements": [
+            "Components src/components",
+            "Layout Components",
+            "Pattern Components",
+            "Auth Components",
+            "Shared UI Components Theme provider",
+            "Shared Components",
+            "App Router",
+            "State & Routing"
+          ],
+          "unreadable_sample": [],
+          "elapsed_s": 7.4,
+          "cached": false,
+          "total_tokens": 2535
+        },
+        {
+          "page_index": 6,
+          "kind": "image",
+          "png_kb": 413,
+          "truth_alnum_chars": 0,
+          "elements": 24,
+          "relations": 23,
+          "unreadable": 0,
+          "readable_ratio": 1.0,
+          "elements_per_1k_truth": 24.0,
+          "sample_elements": [
+            "HisWise",
+            "Guest",
+            "Student",
+            "Admin",
+            "AI Service",
+            "View homepage information",
+            "Register",
+            "Login"
+          ],
+          "unreadable_sample": [],
+          "elapsed_s": 3.3,
+          "cached": false,
+          "total_tokens": 1823
+        },
+        {
+          "page_index": 8,
+          "kind": "image",
+          "png_kb": 45,
+          "truth_alnum_chars": 0,
+          "elements": 17,
+          "relations": 8,
+          "unreadable": 0,
+          "readable_ratio": 1.0,
+          "elements_per_1k_truth": 17.0,
+          "sample_elements": [
+            "Bankend [sic]",
+            "Config",
+            "Security",
+            "Feature",
+            "Admin",
+            "Auth",
+            "User",
+            "Folder"
+          ],
+          "unreadable_sample": [],
+          "elapsed_s": 3.2,
+          "cached": false,
+          "total_tokens": 1488
+        },
+        {
+          "page_index": 11,
+          "kind": "image",
+          "png_kb": 60,
+          "truth_alnum_chars": 0,
+          "elements": 5,
+          "relations": 4,
+          "unreadable": 0,
+          "readable_ratio": 1.0,
+          "elements_per_1k_truth": 5.0,
+          "sample_elements": [
+            "User",
+            "Folder",
+            "Document",
+            "Setting",
+            "Refresh_token"
+          ],
+          "unreadable_sample": [],
+          "elapsed_s": 2.4,
+          "cached": false,
+          "total_tokens": 1371
+        }
+      ]
+    },
+    {
+      "doc": "OTES-VI",
+      "file": "5935d26a28934c6dae2af51adcb3e381-OTES_officially_document.docx_compressed.pdf",
+      "rows": [
+        {
+          "page_index": 175,
+          "kind": "image",
+          "png_kb": 532,
+          "truth_alnum_chars": 0,
+          "elements": 7,
+          "relations": 0,
+          "unreadable": 0,
+          "readable_ratio": 1.0,
+          "elements_per_1k_truth": 7.0,
+          "sample_elements": [
+            "Exam Mode",
+            "Group Mode",
+            "View Attendence [sic]",
+            "Cao Van Phu - SE1269",
+            "Default",
+            "Grid 1",
+            "Grid 2"
+          ],
+          "unreadable_sample": [],
+          "elapsed_s": 2.5,
+          "cached": false,
+          "total_tokens": 1344
+        },
+        {
+          "page_index": 215,
+          "kind": "image",
+          "png_kb": 1040,
+          "truth_alnum_chars": 0,
+          "elements": 9,
+          "relations": 0,
+          "unreadable": 0,
+          "readable_ratio": 1.0,
+          "elements_per_1k_truth": 9.0,
+          "sample_elements": [
+            "Exam Mode",
+            "Class Mode",
+            "View Attendance",
+            "Group List",
+            "Export Excel",
+            "Group 1",
+            "Tran Van Binh - SE63547",
+            "None of Group"
+          ],
+          "unreadable_sample": [],
+          "elapsed_s": 2.8,
+          "cached": false,
+          "total_tokens": 1366
+        },
+        {
+          "page_index": 173,
+          "kind": "image",
+          "png_kb": 607,
+          "truth_alnum_chars": 0,
+          "elements": 10,
+          "relations": 0,
+          "unreadable": 0,
+          "readable_ratio": 1.0,
+          "elements_per_1k_truth": 10.0,
+          "sample_elements": [
+            "SE1269 PRO192",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7"
+          ],
+          "unreadable_sample": [],
+          "elapsed_s": 3.1,
+          "cached": false,
+          "total_tokens": 1363
+        },
+        {
+          "page_index": 179,
+          "kind": "image",
+          "png_kb": 542,
+          "truth_alnum_chars": 0,
+          "elements": 18,
+          "relations": 0,
+          "unreadable": 9,
+          "readable_ratio": 0.667,
+          "elements_per_1k_truth": 18.0,
+          "sample_elements": [
+            "Review student",
+            "Exam Mode",
+            "Class: SE1269 DBI202",
+            "Student of class: 4",
+            "Online: 1",
+            "Offline: 3",
+            "Mute All",
+            "Mute Me"
+          ],
+          "unreadable_sample": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ],
+          "elapsed_s": 2.1,
+          "cached": false,
+          "total_tokens": 1402
+        }
+      ]
+    }
+  ]
+}
