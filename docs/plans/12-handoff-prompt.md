@@ -184,3 +184,60 @@ WP6 (đo chain 1 trên OTES) cần file OTES thật + tôi duyệt chi phí; thi
 `blocked`. WP8 cần tôi duyệt chi phí. Không tự chạy lệnh tốn tiền.
 ````
 
+
+---
+
+## Chế độ E — chạy tiếp từ chỗ đang dừng (dành cho chính bạn)
+
+Dùng chế độ này khi bạn vừa làm xong một WP và muốn nhảy sang WP kế tiếp mà
+không cần đọc lại cả plan. Cập nhật các số trong **ngoặc** trước khi dán.
+
+````markdown
+Tiếp tục plan 12. Trạng thái đã đo trong session này:
+
+- Đã xong: WP0 (dọn + commit 7 lớp), WP1 (ADR 0016), và ADR 0017 (lớp là full CRUD,
+  write key riêng, membership nằm trên submission, DELETE không xoá bài nhóm).
+- Số đo chốt: app 946/946 · server 238 collected, exit 0, 1 skip · guardrails 8/8, 676 file.
+- `git status` sạch, commit mới nhất `2a1fdd5`.
+
+Bây giờ làm **WP2** — server: lớp học (roster), full CRUD. Nguồn chuẩn là
+`docs/plans/12-run-everything-remaining-2026-09-27.md` §2 WP2 và
+`docs/adr/0017-class-crud-and-write-key.md`. Đọc cả hai trước khi viết dòng code đầu
+tiên, cùng `server/app/infrastructure/submissions.py` để bám khuôn store sẵn có.
+
+Cần tạo/sửa: `server/app/infrastructure/classes.py` (mới), `server/app/api/classes.py`
+(mới), wire store trong `main.py` → getter trong `deps.py` **+ thêm tên vào `__all__`**,
+setting thư mục lớp cạnh `submission_dir` trong `config/settings.py`,
+`SubmissionStore.assign_class/unassign_class`, `POST /submissions` nhận `class_id`,
+và **view đọc submission phải lộ `class_id`** (nó là whitelist — thêm vào store mà quên
+route thì không ai thấy, không lỗi, không test đỏ).
+
+Bảy route, mỗi động tác một uỹ quyền: `POST /classes` (app token) trả `class_id` +
+`write_key` **một lần duy nhất**; `GET /classes/{id}` không token; `PATCH`/`DELETE`/
+gán/bỏ gán cần header `X-Class-Key`, **không** phải app token; lưu `sha256(write_key)`
+và so bằng `secrets.compare_digest`; `class_id` sai dạng hoặc không tồn tại phải trả
+**giống hệt nhau**.
+
+Bắt buộc có đủ 10 test a–j ở mục AC của WP2. Ba cái hay bị bỏ nhất, đừng bỏ:
+**(c)** `write_key` chỉ xuất hiện đúng một lần; **(d)** `PATCH` gửi kèm `class_id` phải
+422 chứ không bị bỏ qua im lặng; **(e)** sau `DELETE` mọi submission vẫn đọc được bằng
+id riêng và `class_id` rỗng. Thêm test âm cho mọi hành vi — xanh vì danh sách rỗng là
+xanh bằng thông tin bằng không.
+
+Luật kỹ thuật: `pytest` chỉ có trong `server/.venv`; file `.py` là **CRLF** nên sửa
+nhiều dòng bằng script Python đọc/ghi `newline=""` (hoặc patch từng dòng một);
+**đọc lại file sau khi vá**; script mà in tiếng Việt thì phải
+`sys.stdout.reconfigure(encoding="utf-8", errors="replace")` trước mọi `print`;
+script tạm thì **xoá xong viết lại toàn bộ một lần**, đừng sửa bằng `old_text` (công
+cụ sẽ tạo file mới chỉ với đoạn vừa thay). Script dừng **trước khi ghi file** nếu một
+site không khớp đúng một lần.
+
+Dừng và hỏi tôi, đừng tự quyết: cần tiền/quota; cần xoá file không rõ nguồn gốc; phát
+hiện mâu thuẫn giữa ADR 0017 và code hiện có; hoặc sửa của bạn làm đỏ test không liên
+quan mà bạn chưa hiểu nguyên nhân. Sửa phát sinh ngoài phạm vi WP2 thì **ghi lại để
+báo, đừng làm luôn**.
+
+Báo cáo theo §5 của plan: đã làm / số đo kèm lệnh đã chạy / chặn / câu hỏi cần tôi
+quyết — và **ánh xạ từng test a–j sang tên test cụ thể**, đừng bảo "đã viết test".
+````
+
