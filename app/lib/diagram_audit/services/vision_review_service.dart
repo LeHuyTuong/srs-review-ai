@@ -26,6 +26,7 @@ import '../../document_import/models/srs_document.dart';
 import '../../requirement_review/models/review_models.dart' show Severity;
 import '../models/diagram_audit.dart';
 import '../models/document_map.dart';
+import 'cross_artifact_checker.dart';
 
 /// Sends one audit request; production wiring is [ApiService.diagramAudit],
 /// tests inject a scripted fake.
@@ -363,6 +364,22 @@ class VisionReviewService {
     final familyOrdinal = <String, int>{};
     final findings = <DeterministicFinding>[];
     final failures = <String>[];
+    // Plan 9 P0b: the relationships vision actually READ, kept instead of
+    // discarded. Before this, a diagram read produced one text row and the
+    // inventory it carried was thrown away at the end of the loop — so the
+    // cross-artifact chains had nothing to compare against the document.
+    final readRelationships = <DiagramRelationship>[];
+    // Pages the model refused to guess at. Excluded from BOTH counts of chain 2
+    // (scoring.md:125) — an unread page is missing evidence, not a defect.
+    final unreadablePages = <int>[];
+    // Chain 3 inputs, collected while auditing. The class side comes from
+    // CLASS pages and the sequence side from SEQUENCE pages, because comparing
+    // a sequence figure to itself would always score 1.0 and prove nothing.
+    final sequenceLifelines = <String>[];
+    final sequenceMessages = <String>[];
+    final auditedClassNames = <String>{};
+    final declaredOperations = <String>{};
+    var sequenceUnreadable = false;
 
     for (final candidate in withinBudget) {
       final tentativeLabel = candidate.kind.family;
@@ -393,6 +410,64 @@ class VisionReviewService {
         final next = (familyOrdinal[label] ?? 0) + 1;
         familyOrdinal[label] = next;
         final subject = "$label-${next.toString().padLeft(2, '0')}";
+        // Keep what the vision pass read. `unreadable` non-empty means the
+        // model refused to guess on this page, so it is EXCLUDED from chain 2
+        // rather than scored as a set of mismatches.
+        //
+        // Chain 2 counts ERD relationships against the text, so only an ERD
+        // page may feed it. An activity edge or a sequence call is a different
+        // claim about the system; scoring one as a foreign key would mark a
+        // diagram wrong for not documenting a relationship it never made.
+        if (result.unreadable.isNotEmpty) {
+          unreadablePages.add(candidate.pageIndex);
+        } else if (candidate.kind == DiagramKind.erd) {
+          readRelationships.addAll(
+            result.relations.map(
+              (r) => DiagramRelationship(
+                source: r.source,
+                target: r.target,
+                label: r.label,
+                arrowheadSide: r.arrowheadSide,
+              ),
+            ),
+          );
+        }
+        // Chain 3 inputs, split BY DIAGRAM KIND — not by family. Sequence and
+        // class share the SAME family `SEQ-CLS` (both are deducted from one
+        // scoring family, see diagram_type_classifier.dart:28-29), so the
+        // earlier `tentativeLabel == 'SEQ-CLS'` test was true for BOTH kinds:
+        // every page's elements landed in both sides and the chain scored a
+        // figure against itself — always ~1.0, for a document nobody had
+        // cross-checked. The kind says which side a page feeds.
+        final kind = candidate.kind;
+        if (kind == DiagramKind.sequence) {
+          if (result.unreadable.isNotEmpty) {
+            sequenceUnreadable = true;
+          } else {
+            sequenceLifelines.addAll(result.elements);
+            sequenceMessages.addAll(
+              result.relations
+                  .where((r) => r.label.trim().isNotEmpty)
+                  .map((r) => r.label),
+            );
+          }
+        } else if (kind == DiagramKind.classDiagram) {
+          if (result.unreadable.isEmpty) {
+            auditedClassNames.addAll(result.elements);
+            // Only a class figure DECLARES operations. Letting a sequence
+            // message count as a declared operation would satisfy rule 3
+            // ("message names a declared operation", scoring.md:119) by
+            // construction: the message would be its own evidence.
+            declaredOperations.addAll(
+              result.relations
+                  .where((r) => r.label.trim().isNotEmpty)
+                  .map((r) => r.label),
+            );
+          }
+        }
+        // ERD pages carry entities and relationship labels. Neither is a class
+        // nor a declared operation, so they feed neither side of chain 3 —
+        // chain 2 is what reads them.
         findings.add(
           _row(subject: subject, candidate: candidate, result: result),
         );
@@ -406,6 +481,63 @@ class VisionReviewService {
       }
     }
 
+    // Chains 2 and 3 are scored ONCE across the whole run, not per page: a ratio
+    // only means something over the complete diagram set. A run that audited
+    // nothing measurable emits NO row — never a fabricated "100%".
+    final chain2 = CrossArtifactChecker.scoreFkMatrix(
+      relationships: readRelationships,
+      document: document,
+    );
+    if (chain2.ratio != null) {
+      final pct = (chain2.ratio! * 100).round();
+      final misses = chain2.unmatched.isEmpty
+          ? ''
+          : ' Missing from the text: ${chain2.unmatched.join('; ')}.';
+      findings.add(
+        chain2.toFinding(
+          subject: 'chain2-erd',
+          english:
+              'ERD relationships vs the document text: $pct% of '
+              '${chain2.halvesNoteEn}.$misses',
+          vietnamese:
+              'Quan hệ ERD so với phần chữ của tài liệu: $pct% '
+              '${chain2.halvesNoteVi}.$misses',
+        ),
+      );
+    }
+
+    // Chain 3 needs BOTH halves of its input: a sequence figure (lifelines and
+    // call messages) AND the class diagram it claims to be built on. The class
+    // side is collected from every audited CLASS page, so the comparison is
+    // cross-artifact rather than one figure against itself.
+    if (sequenceLifelines.isNotEmpty && auditedClassNames.isNotEmpty) {
+      final chain3 = CrossArtifactChecker.scoreSequenceVsClass(
+        sequence: SequenceInventory(
+          lifelines: sequenceLifelines,
+          messages: sequenceMessages,
+          unreadable: sequenceUnreadable,
+        ),
+        classNames: auditedClassNames,
+        operations: declaredOperations,
+      );
+      if (chain3.ratio != null) {
+        final pct = (chain3.ratio! * 100).round();
+        final misses = chain3.unmatched.isEmpty
+            ? ''
+            : ' Unresolved: ${chain3.unmatched.join('; ')}.';
+        findings.add(
+          chain3.toFinding(
+            subject: 'chain3-sequence',
+            english:
+                'Sequence diagram vs the class diagram: $pct% '
+                '${chain3.halvesNoteEn}.$misses',
+            vietnamese:
+                'Sơ đồ sequence so với class diagram: $pct% '
+                '${chain3.halvesNoteVi}.$misses',
+          ),
+        );
+      }
+    }
     return VisionAuditOutcome(
       findings: findings,
       failures: failures,

@@ -165,7 +165,23 @@ enum CheckId {
   /// after the ±window search missed, reported only on a trusted index, and
   /// it silences [captionPageMismatch] for the same artifact: one artifact,
   /// one finding.
-  tablePositionDrift;
+  tablePositionDrift,
+
+  /// Plan 9 P0b — cross-artifact chain 2 (FK matrix), the first check that
+  /// joins a VISION read to the document text. `/diagram` reports each ERD
+  /// relation with its label and which end carries the crow's foot;
+  /// `CrossArtifactChecker` compares that against the relationship names the
+  /// requirement text declares.
+  ///
+  /// This is the join the whole "AI reviews the artifacts, not one file"
+  /// claim rests on: before it, [crossArtifactName] only ever compared
+  /// requirement text to requirement text, and every diagram read was
+  /// discarded once its row was written.
+  ///
+  /// Requires vision evidence, so it is a PENDING-VISION row until an audit
+  /// actually resolved it — and P0a (docs/evidence/vision-reality-2026-09-26.md)
+  /// is the measurement that made wiring it honest.
+  fkMatrixMismatch;
 
   // NOT here, deliberately: `idFormat` (rulebook 1.5 §4, id shape).
   // `requirement_splitter._canonicalId` rewrites every parsed id to
@@ -184,6 +200,7 @@ enum CheckId {
     CheckId.duplicateIds => 'duplicate_ids',
     CheckId.missingPostcondition => 'missing_postcondition',
     CheckId.crossArtifactName => 'cross_artifact_name',
+    CheckId.fkMatrixMismatch => 'fk_matrix_mismatch',
     CheckId.missingActor => 'missing_actor',
     CheckId.ambiguousWording => 'ambiguous_wording',
     CheckId.placeholderTbd => 'placeholder_tbd',
@@ -229,6 +246,7 @@ enum CheckId {
     CheckId.headingNumbering => 'Heading numbering',
     CheckId.pageNumbering => 'Page numbering',
     CheckId.tablePositionDrift => 'Artifact moved from index page',
+    CheckId.fkMatrixMismatch => 'ERD relationship vs text',
   };
 
   /// True for the §F.5 format & layout checks. They are STORED in

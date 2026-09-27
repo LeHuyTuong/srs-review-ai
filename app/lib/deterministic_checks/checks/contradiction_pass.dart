@@ -29,6 +29,7 @@
 ///     originals to this pass.
 library;
 
+import '../../diagram_audit/services/cross_artifact_checker.dart';
 import '../../document_import/models/srs_document.dart';
 import '../../requirement_review/models/review_models.dart';
 import '../models/deterministic_finding.dart';
@@ -107,29 +108,29 @@ class ContradictionPass {
   /// Returns the first capitalised multi-word phrase in [title], or
   /// null when nothing capitalised exists. The detector is intentionally
   /// shallow — it does not parse, does not lemmatise, does not
-  /// disambiguate. "Customer Profile" returns "Customer Profile";
-  /// "the quick brown fox" returns null.
+  /// disambiguate.
+  ///
+  /// Bilingual since 2026-09-26 (plan 9 P1). The old pattern was ASCII-only,
+  /// so on the Vietnamese OTES it matched nothing and chain 1 reported a
+  /// **false 0** — measured in
+  /// docs/evidence/r13_otes_deterministic_ceiling.md:29, where the honest
+  /// reading was "this check found nothing", not "this document is clean".
+  /// A silent zero is worse than a false positive, so Vietnamese capitals
+  /// (Sinh viên, Khách hàng, Tác nhân) are matched now, following the
+  /// precedent `missingActor` already set with its EN+VN phrase list.
   static String? _extractEntityName(String title) {
-    final match = RegExp(r'[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*').firstMatch(title);
+    final match = RegExp(
+      r'[A-ZÀ-Ỹ][a-zà-ỹ]+(?:\s+[A-ZÀ-Ỹ][a-zà-ỹ]+)*',
+    ).firstMatch(title);
     return match?.group(0);
   }
 
-  /// Naive stem: lowercase, collapse whitespace, strip a trailing `s`
-  /// off each word so "Customers" and "Customer" collapse to the same
-  /// key. The strip is intentionally simple — "is" / "as" / "bus" are
-  /// not protected, but those words never appear as entity stems in a
-  /// real SRS, and a rare false positive on a name like "Bus" is a
-  /// cheaper failure mode than missing the cross-section variant.
-  static String _stem(String name) {
-    final words = name.toLowerCase().split(RegExp(r'\s+'));
-    return words
-        .map(
-          (w) => (w.length > 1 && w.endsWith('s'))
-              ? w.substring(0, w.length - 1)
-              : w,
-        )
-        .join(' ');
-  }
+  /// Delegates to the ONE normaliser every cross-artifact comparison uses
+  /// (`CrossArtifactChecker.stemOf`). A second copy here is how the diagram
+  /// side and the text side drift into disagreeing about what "the same
+  /// name" means — a false negative on every genuine match, and nothing in
+  /// review would catch it.
+  static String _stem(String name) => stemOf(name);
 }
 
 class _Cluster {

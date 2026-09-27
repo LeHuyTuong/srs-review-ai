@@ -54,6 +54,9 @@ class Criterion {
 /// The family a check belongs to, derived from the [CheckId] getters so the
 /// checklist and the dashboard grouping can never disagree.
 CriterionFamily familyFor(CheckId check) {
+  // Chain 2 needs a vision read of the ERD before it can compare a
+  // relationship label to the text, so it is priced like the audit itself.
+  if (check == CheckId.fkMatrixMismatch) return CriterionFamily.vision;
   if (check == CheckId.diagramAudit) return CriterionFamily.vision;
   if (check.isFormatCheck) return CriterionFamily.format;
   if (check.isBlueprintCheck) return CriterionFamily.blueprint;
@@ -84,6 +87,10 @@ const List<Criterion> kCriteriaChecklist = [
   Criterion(
     CheckId.crossArtifactName,
     'Cùng một thực thể bị đặt nhiều tên khác nhau giữa các mục.',
+  ),
+  Criterion(
+    CheckId.fkMatrixMismatch,
+    'Nhãn quan hệ trong ERD có xuất hiện trong phần chữ của tài liệu hay không (chain 2, đo bằng tỷ lệ).',
   ),
   Criterion(
     CheckId.missingActor,

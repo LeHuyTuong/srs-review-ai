@@ -1520,6 +1520,9 @@ class _SyllabusCheckDetail extends StatelessWidget {
       'Use Case thiếu hậu điều kiện khiến người kiểm thử không xác định được trạng thái hệ thống khi luồng hoàn tất.',
     CheckId.crossArtifactName =>
       'Cùng một khái niệm có nhiều tên ở các phần khác nhau, gây khó khăn khi đối chiếu thực thể giữa các sơ đồ.',
+    CheckId.fkMatrixMismatch =>
+      'Từ vựng quan hệ trong ERD so với phần chữ của tài liệu (chain 2, scoring.md §5). Đo là TỶ LỆ quan hệ trên sơ đồ mà nhãn của nó xuất hiện trong tài liệu, không phải đếm lỗi từng dòng. Quan hệ không có nhãn hoặc hai đầu không đọc được bị LOẠI khỏi cả tử và mẫu — thiếu bằng chứng không phải lỗi. Trang vision không đọc được không tính là 0.',
+
     CheckId.missingActor =>
       'Use Case thiếu tác nhân nên chưa rõ ai hoặc hệ thống nào khởi động luồng xử lý.',
     CheckId.ambiguousWording =>
@@ -1571,6 +1574,8 @@ class _SyllabusCheckDetail extends StatelessWidget {
       'Thêm mục hậu điều kiện với trạng thái có thể kiểm thử: bản ghi đã lưu, thông báo xác nhận hoặc quyền đã thay đổi.',
     CheckId.crossArtifactName =>
       'Chọn một tên chuẩn cho mỗi thực thể và thay các biến thể còn lại xuyên suốt tài liệu.',
+    CheckId.fkMatrixMismatch =>
+      'Đọc lại các quan hệ trong ERD: hoặc thêm phần mô tả tương ứng vào tài liệu, hoặc bỏ/sửa quan hệ không có nội dung nghiệp vụ đi kèm. Nhãn quan hệ nên là động từ hiện tại (place, contain, own) theo ERD-09 của skill, và phải viết bằng tiếng Anh theo ERD-07.',
     CheckId.missingActor =>
       'Thêm tác nhân cho từng Use Case: khách hàng, quản trị viên, bộ lập lịch hoặc hệ thống ngoài. Nêu vai trò thay vì tên người cụ thể.',
     CheckId.ambiguousWording =>

@@ -48,6 +48,10 @@ class ReportStrings {
       'Cross-artifact entity naming',
       'Tên thực thể không nhất quán',
     ),
+    CheckId.fkMatrixMismatch => pick(
+      'ERD relationship vs text',
+      'Quan he ERD so voi phan chu',
+    ),
     CheckId.missingActor => pick('Missing actor', 'Thiếu actor'),
     CheckId.ambiguousWording => pick('Vague wording', 'Câu chữ mơ hồ'),
     CheckId.placeholderTbd => pick('TBD / placeholder', 'TBD / chỗ trống'),
