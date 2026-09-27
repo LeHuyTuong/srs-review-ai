@@ -18,8 +18,10 @@ repo; gate nào chưa chạy thật thì ghi **MỞ** (luật ROADMAP-AC2).
 
 Test estate đo ngày **2026-09-27**: app **946/946** (`flutter test`), server
 **237 pass + 1 skip** (238 collected; `server/.venv` pytest), guardrails **8/8 nhóm**
-trên 681 file (`python tools/check_guardrails.py`). Hai số 841/841 và 161 pass ghi ở
-bản cập nhật trước đã cũ — chênh lệch là do test mới, không phải regression.
+trên **674 file** (`python tools/check_guardrails.py`, đo sau khi dọn rác WP0 —
+trước khi dọn là 681, chênh đúng bằng số file rác đã xoá). Hai số 841/841 và
+161 pass ghi ở bản cập nhật trước đã cũ — chênh lệch là do test mới, không phải
+regression.
 
 ## Understanding
 
