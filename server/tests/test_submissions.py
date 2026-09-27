@@ -95,9 +95,7 @@ class TestSecurity:
     def test_attaching_and_revising_require_the_app_token(self, make_client):
         client, _ = make_client
         sid = _create(client).json()["id"]
-        assert (
-            client.post(f"/submissions/{sid}/review", json={"html": REPORT}).status_code == 401
-        )
+        assert client.post(f"/submissions/{sid}/review", json={"html": REPORT}).status_code == 401
         assert client.post(f"/submissions/{sid}/revise", json={}).status_code == 401
 
     def test_traversal_ids_are_plain_404s(self, make_client):

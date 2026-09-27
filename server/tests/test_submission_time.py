@@ -64,7 +64,6 @@ def _revise(client, sid):
     return again.json()
 
 
-
 class TestServerClock:
     """The server owns the clock, so a group cannot jump the queue by lying."""
 
@@ -165,4 +164,3 @@ class TestLegacyRows:
         store = SubmissionStore(submission_dir=tmp_path / "subs3", max_bytes=1024)
         good = store.create(group="Good")
         assert store.get(good["id"])["group"] == "Good"
-
