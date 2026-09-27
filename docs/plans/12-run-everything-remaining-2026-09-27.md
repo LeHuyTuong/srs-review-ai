@@ -30,10 +30,11 @@ cd app    && flutter test                                     # 946 test
 python tools\check_guardrails.py                              # 8 nhóm luật, quét mọi file
 ```
 
-**Trạng thái ngày 2026-09-27 (mốc so sánh của plan này):** app **946/946**, server
-**238 collected · exit 0 · 1 skip**, guardrails **8/8**.
-`docs/roadmap.md` vẫn ghi "841/841 · 161 pass" — **số đó đã cũ**, không phải
-regression. Đừng sửa code để "khớp" với số trong docs.
+**Trạng thái ngày 2026-09-27, sau WP2 (mốc so sánh của plan này):** app **946/946**,
+server **262 passed + 1 skipped** (trước WP2: 238), guardrails **8/8**. Ruff trong venv
+khớp pin của CI, và `ruff check` + `ruff format --check` đều sạch.
+`docs/roadmap.md` ghi một con số cũ hơn — **đừng sửa code để khớp với số trong docs**.
+
 
 ## 1. Chín cái bẫy sẽ ăn thời gian của bạn (tất cả đều đã ăn của ai đó)
 
@@ -45,8 +46,11 @@ regression. Đừng sửa code để "khớp" với số trong docs.
 2. **`pytest` không có trên PATH.** `python3 -m pytest` luôn ra
    `No module named pytest`. Chỉ `.venv` (Python 3.11) mới có. Kết luận "test hỏng"
    sau khi gọi `pytest` trần là chẩn đoán sai.
-3. **`ruff` không có trên máy này, nhưng CI chạy** `ruff check .` **và**
-   `ruff format --check .`. Đừng mất công cài; chấp nhận CI phản hồi.
+3. **Chạy đúng hai lệnh của CI trước khi báo xong: `server\.venv\Scripts\ruff.exe
+   check server` và `format --check server`.** Ruff **có** trong venv (0.14.14, khớp pin
+   `ruff~=0.14.0`) dù không có trên PATH. Bỏ qua bước này thì CI đỏ mà bạn không biết —
+   nó đã xảy ra: hai file test mang nợ format từ lúc viết, chỉ lộ ra khi người sau chạy
+   đúng lệnh CI.
 4. **`flutter test` phải chạy sau `dart format`.** CI chạy
    `dart format --output=none --set-exit-if-changed .` và
    `flutter analyze --fatal-infos --fatal-warnings`. Code đúng nhưng chưa format = đỏ.
