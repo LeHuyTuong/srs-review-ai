@@ -241,3 +241,66 @@ Báo cáo theo §5 của plan: đã làm / số đo kèm lệnh đã chạy / ch
 quyết — và **ánh xạ từng test a–j sang tên test cụ thể**, đừng bảo "đã viết test".
 ````
 
+
+---
+
+## Chế độ F — chạy tiếp WP3 (quyết định của giáo viên)
+
+Dùng sau khi WP2 đã xong và CI đã xanh. Cùng cấu trúc Chế độ E, đã điền sẵn phần
+WP3 — trong đó có **một chỗ bạn phải biết là plan vừa được sửa**: uỹ quyền quyết định
+**không phải app token**.
+
+````markdown
+Tiếp tục plan 12 — **WP3** (sau WP2). Trạng thái đã đo:
+
+- Đã xong: WP0 (dọn + commit), WP1 (ADR 0016), WP2 (lớp full CRUD, ADR 0017, 25 test),
+  và commit `c406ea3` dọn nợ format khiến CI đỏ âm thầm.
+- Số đo chốt: app 946/946 · server **262 passed + 1 skipped** · guardrails 8/8, 679 file
+  · `ruff check` + `ruff format --check` **sạch** (ruff **có** trong `server\.venv`,
+  0.14.14; CI chạy đúng hai lệnh đó — chạy chúng trước khi báo xong).
+- `git status` sạch, commit mới nhất `c406ea3`.
+
+Bây giờ làm **WP3 — server: quyết định của giáo viên**. Nguồn chuẩn là
+`docs/plans/12-run-everything-remaining-2026-09-27.md` §2 WP3 (đã viết lại) và
+`docs/adr/0016-class-roster-and-teacher-decisions.md` câu 2. Đọc cả hai trước khi viết
+dòng code đầu tiên.
+
+**Điểm quan trọng nhất, đừng làm sai:** route quyết định dùng **`X-Class-Key` của lớp
+chứa submission**, **KHÔNG** phải app token. App token là shared secret mà bản app của
+nhóm sinh viên cũng giữ; dùng nó ở đây thì nhóm tự duyệt bài của chính mình — đúng lỗ
+hổng ADR 0017 đã đóng cho `DELETE`. Dùng lại `verify_key` đã có ở store lớp, đừng viết
+lại phép so.
+
+Cần làm: `SubmissionStore.decide()`, route `POST /submissions/{id}/decision`,
+`decidedAt` + `note` + cập nhật `status`, **append** vào `history` bằng đúng cơ chế
+Tầng 1, `updatedAt = decidedAt` với **một lần đọc đồng hồ mỗi write**, và lộ các field
+mới ra view đọc (nó là **whitelist** — thêm vào store mà quên route thì app thấy nút
+"Duyệt" còn server không có gì).
+
+Hai trường hợp phải trả **409** kèm lý do, không phải 404 chung: submission chưa thuộc
+lớp nào → `not_in_class` (không có lớp thì không có uỹ quyền giáo viên); submission
+trỏ tới lớp đã bị xoá → `class_missing`. Id sai dạng và id không tồn tại vẫn trả
+**giống hệt nhau**.
+
+Đủ 9 test a–i của WP3. Bốn cái hay bị bỏ, đừng bỏ: **(a)** assert **hình dạng từng mẩu
+tin** trong `history` chứ không đếm số mẩu; **(c)** `app_token` đơn thuần **không** quyết
+được và trả cùng hình dạng lỗi như người lạ; **(f)** `updatedAt == decidedAt ==
+history[-1]["at"]`; **(g)** quyết định lần hai thì `status` là quyết định mới nhất còn
+`history` **giữ cả hai**.
+
+Chỉ dùng hai từ vựng `approved | changes_requested` đã chốt ở ADR 0016 — **không tự
+phát minh trạng thái thứ ba**, nếu thấy cần thì dừng hỏi tôi.
+
+Luật kỹ thuật: sửa file `.py` (CRLF) bằng script đọc/ghi `newline=""` hoặc patch từng
+dòng một, **đọc lại file sau khi vá**; script in tiếng Việt thì cần
+`sys.stdout.reconfigure(encoding="utf-8", errors="replace")`; script tạm thì **xoá xong
+viết lại toàn bộ**, đừng sửa bằng `old_text` (công cụ sẽ tạo file mới chỉ với đoạn vừa
+thay); dừng **trước khi ghi file** nếu một site không khớp đúng một lần.
+
+Dừng hỏi tôi: cần tiền/quota; cần xoá file không rõ nguồn gốc; phát hiện mâu thuẫn giữa
+ADR và code; hoặc sửa của bạn làm đỏ test không liên quan mà chưa hiểu nguyên nhân.
+
+Báo cáo theo §5: đã làm / số đo kèm lệnh đã chạy (kể cả hai lệnh ruff) / chặn / câu
+hỏi — và **ánh xạ từng test a–i ra tên test cụ thể**, đừng bảo "đã viết test".
+````
+

@@ -229,24 +229,46 @@ CRUD đủ bốn động tác, mỗi động tác mang uỹ quyền riêng).
 ### WP3 — Server: quyết định của giáo viên (1–2 giờ)
 
 Không có cái này thì vòng lặp giáo viên dừng ở "đọc" — bấm Duyệt là nút chết.
+**Mục này viết lại sau ADR 0017:** uỹ quyền quyết định **KHÔNG** phải app token.
 
-**File:** `server/app/infrastructure/submissions.py` (thêm `decide()`),
-`server/app/api/submissions.py` (route mới), test mới.
+**File:** `server/app/infrastructure/submissions.py` (`decide()`),
+`server/app/api/submissions.py` (route), dùng lại `verify_key` đã có ở store lớp,
+test mới.
 
-- `POST /submissions/{id}/decision` — app token. Body: `{"decision": "approved" | "changes_requested", "note": ""}`.
-- Ghi vào `history` **bằng đúng cơ chế Tầng 1**: **append**, mỗi mẩu có
-  `{revision, at, status, event}`; `updatedAt = _now()`; **một lần đọc đồng hồ mỗi
-  write** (không gọi `_now()` nhiều lần trong cùng một ghi — dễ cắt ngang ranh giới giây).
-- Cập nhật `status`. **Chỉ dùng từ vựng đã chốt ở ADR 0016 câu 2** — không tự phát minh
-  trạng thái thứ ba.
-- Xem lại route đọc: `status` mới phải hiện ra ở `GET /submissions/{id}` (và bất kỳ
-  view nào khác đọc nó).
+- `POST /submissions/{id}/decision` — **`X-Class-Key` của lớp chứa submission đó**,
+  **không phải app token**. Body: `{"decision": "approved"|"changes_requested", "note": ""}`.
+  Lý do: app token là *shared secret* mà **bản app của nhóm cũng giữ** — dùng nó ở đây
+  thì nhóm tự duyệt bài của chính mình. Đúng lỗ hổng ADR 0017 đã đóng cho `DELETE`;
+  không được mở lại ở đường ghi này.
+- Submission **chưa thuộc lớp nào** → **409** nêu lý do `not_in_class`: không có lớp
+  thì không tồn tại uỹ quyền giáo viên nào, và cho qua chính là mở lại lỗ trên.
+  Submission trỏ tới lớp **đã bị xoá** → 409 `class_missing`.
+- Ghi vào `history` **bằng đúng cơ chế Tầng 1**: **append**, mỗi mẩu
+  `{revision, at, status, event}`; `updatedAt = decidedAt = _now()` — **một lần đọc
+  đồng hồ mỗi write** (gọi `_now()` nhiều lần dễ cắt ngang ranh giới giây).
+- `status` là quyết định **mới nhất**; quyết định cũ vẫn nằm trong `history` (giáo viên
+  đổi ý thì lịch sử không bị xoá). Chỉ dùng đúng hai từ vựng ADR 0016 câu 2 — **không
+  phát minh trạng thái thứ ba**.
+- View đọc là **whitelist**: `status`, `decidedAt`, `note`, `history` phải lộ ra ở
+  `GET /submissions/{id}`. Không thì giáo viên thấy nút "Duyệt" trong app còn server
+  thì không có gì.
 
-**AC:** (a) test khẳng định **hình dạng từng mẩu tin** trong `history`, không phải đếm
-số mẩu (bẫn `list.extend(dict)` đã ăn một lần rồi); (b) quyết định sai giá trị → 422
-chứ không phải im lặng bỏ qua; (c) quyết định lên `previous_id` cũng vẫn đọc được
-và vẫn còn lịch sử; (d) `updatedAt` thay đổi sau quyết định.
-**Dừng khi:** nếu bạn phát minh trạng thái ngoài ADR → đó là ADR chưa xong, quay lại.
+**AC — test bắt buộc:**
+- (a) **hình dạng từng mẩu tin** trong `history`, không đếm số mẩu (bẫn `list.extend(dict)`
+  đã ăn một lần rồi).
+- (b) quyết định sai giá trị → 422, không phải im lặng bỏ qua.
+- (c) **`app_token` đơn thuần KHÔNG quyết được**, trả cùng hình dạng lỗi như người lạ;
+  `X-Class-Key` của lớp **khác** cũng không quyết được cho lớp này.
+- (d) chưa thuộc lớp → 409 `not_in_class`; lớp đã xoá → 409 `class_missing`.
+- (e) quyết định lên submission của `previous_id` vẫn đọc được, lịch sử còn nguyên.
+- (f) `updatedAt == decidedAt == history[-1]["at"]` — bằng chứng "một lần đọc đồng hồ".
+- (g) quyết định lần hai: `status` là quyết định mới nhất, `history` **giữ cả hai**.
+- (h) đọc-qua-route thấy `decidedAt` + `note`, không chỉ `status`.
+- (i) id sai dạng và id không tồn tại trả **giống hệt nhau**.
+
+**Dừng khi:** cần thêm trạng thái ngoài `approved|changes_requested` → ADR chưa xong,
+quay lại hỏi. Test (c) đỏ vì bạn cho app token quyền → bạn đã mở lại đúng lỗ hổng
+ADR 0017 đóng.
 
 ### WP4 — Server: activity + watermark (1–2 giờ)
 
@@ -269,6 +291,8 @@ nhóm nộp vòng 2, activity có mục mới **khác** mục cũ (không phải
 
 
 ### WP5 — App: ba màn hình giáo viên (1–2 ngày) — **rủi ro cao nhất của plan**
+
+**Ghi chú từ WP2 (đã chốt):** `DELETE /classes/{id}` trả kèm số `unfiled` và danh sách `dangling`. Màn hình lớp **hiện một dòng cảnh báo** khi `unfiled` khác 0 — nhẹ, không modal, và im lặng khi mọi thứ bình thường.
 
 Đây là chỗ plan này dễ hỏng nhất, và lý do không phải logic: **toàn bộ test UI hiện
 tại ngồi ở desktop** (`app/test/desktop/`, `app_breakpoint_test.dart` đo 9 bề rộng).
