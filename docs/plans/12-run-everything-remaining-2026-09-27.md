@@ -153,47 +153,74 @@ minh; tìm `self-hosted` phải ra điều kiện host.
 người dùng, **đừng tự đoán rồi viết vào ADR như đã chốt**.
 
 
-### WP2 — Server: lớp học (roster) (2–3 giờ)
+### WP2 — Server: lớp học (roster) — **full CRUD** (3–4 giờ)
 
 Lớp là tầng dữ liệu mà **không có nó thì "danh sách lớp" chỉ là một màn hình rỗng**.
+Phạm vi này viết lại theo **ADR-0017** (quyết định: giáo viên tạo lớp ngay trong app,
+CRUD đủ bốn động tác, mỗi động tác mang uỹ quyền riêng).
 
 **File:** `server/app/infrastructure/classes.py` (mới), `server/app/api/classes.py`
 (mới), `server/app/main.py` (khởi tạo store), `server/app/api/deps.py` (getter +
-`__all__`), `server/app/config/settings.py` (thư mục lưu), test mới.
-
-**Cách làm (bắt buộc bám theo, không phát minh):**
-- `ClassStore` viết **giống hệt khuôn `SubmissionStore`**: mỗi lớp một file JSON,
-  `_is_safe()` chặn path traversal, file hỏng thì bỏ qua chứ **không** làm sập store.
-  Đừng viết lại cơ chế đã có sẵn và đã có test.
-- ID do **server mint** (`secrets.token_urlsafe(16)`), không bao giờ nhận id từ client.
-- Wire store theo đúng đường đã có: module-level trong `main.py` → getter trong
-  `deps.py` → **thêm tên vào `__all__` của `deps.py`** (thiếu dòng này là route import
-  lỗi lúc chạy chứ lúc test có thể không thấy).
+`__all__`), `server/app/config/settings.py` (thư mục lưu),
+`server/app/infrastructure/submissions.py` (`assign_class` / `unassign_class`),
+`server/app/api/submissions.py` (nhận `class_id`), test mới.
 
 **Route:**
 
-| Route | Auth | Việc |
+| Route | Uỹ quyền | Việc |
 |---|---|---|
-| `POST /classes` | app token (`deps.require_app_token`) | Tạo lớp, trả `class_id` + tên lớp |
-| `GET /classes/{class_id}` | **không** (id là credential) | Danh sách submission của lớp, **mới nhất trước** |
-| `POST /submissions` *(mở rộng)* | app token | Nhận thêm `class_id` để gắn vào roster |
+| `POST /classes` | app token | Tạo lớp → trả `class_id` **+ `write_key`** (chỉ trả đúng một lần) |
+| `GET /classes/{class_id}` | **không** (id là credential) | Lớp + danh sách submission, **mới nhất trước** |
+| `PATCH /classes/{class_id}` | `X-Class-Key` | Đổi tên. **Không** đổi `class_id` |
+| `DELETE /classes/{class_id}` | `X-Class-Key` | Gỡ lớp; submission thành *chưa gán* |
+| `POST /classes/{id}/submissions` | `X-Class-Key` | Gán một submission vào lớp |
+| `DELETE /classes/{id}/submissions/{sid}` | `X-Class-Key` | Bỏ gán |
+| `POST /submissions` *(mở rộng)* | app token | Nhận `class_id`; lớp không tồn tại → **422** nêu tên field |
 
-**Ba luật, cả ba đều là lỗi đã từng xảy ra ở chỗ khác:**
-1. **`class_id` sai → một message thống nhất.** `id dạng đúng nhưng không tồn tại` và
-   `id sai dạng` phải trả **giống hệt nhau**. Đây là bài học đã vá ở P2: phân biệt
-   hai loại lỗi là biến 404 thành đầu dò filesystem.
-2. **Thêm field vào store là phải thêm vào mọi view đọc.** `read_submission` là
-   **whitelist** — thêm vào store mà không thêm vào route thì người đọc không bao
-   giờ thấy, im lặng, không đỏ. Bất kỳ field mới nào cũng cần **test đọc-qua-route**.
-3. **Xếp hàng bằng `createdAt`/`updatedAt` của Tầng 1** (đã có, `server/app/infrastructure/submissions.py`).
-   Không xếp bằng `revision` (đó là số vòng, không phải thời gian) và không xếp bằng
-   thứ tự glob của file.
+**Cách làm (bám khuôn `SubmissionStore`, không phát minh):**
+- `ClassStore`: mỗi lớp một file JSON, `_is_safe()` chặn path traversal, file hỏng thì
+  bỏ qua chứ không làm sập store. **ID do server mint** (`token_urlsafe(16)`), không
+  nhận id từ client.
+- **Wire store** đúng đường cũ: module-level trong `main.py` → getter ở `deps.py` →
+  **thêm tên vào `__all__` của `deps.py`** (thiếu dòng này thì route lỗi lúc chạy).
+- **`write_key`**: sinh cùng lúc với `class_id`, chỉ trả về **một lần** ở response tạo;
+  lưu `sha256(write_key)`; so bằng `secrets.compare_digest`. Lấy file store ra không
+  có quyền ghi.
 
-**AC:** (a) test chứng minh hai loại 404 giống hệt nhau; (b) test `createdAt` của
-mọi phần tử trong `GET /classes/{id}` tồn tại và **giảm dần**; (c) submission không
-thuộc lớp nào thì không xuất hiện trong lớp nào; (d) `class_id` sai dạng không đọc
-được file ngoài thư mục store.
-**Dừng khi:** nếu ADR 0016 chưa có câu 1 và câu 3 → quay lại WP1.
+**Ba luật, cả ba là lỗi đã từng xảy ra ở chỗ khác:**
+1. **Mọi phép ghi cần uỹ quyền riêng, không dùng app token cho lớp.** App token là
+   *shared secret* — nếu `PATCH`/`DELETE` nhận nó thì **mọi bản app đang cài (kể cả
+   bản của nhóm) đều xoá được lớp của giáo viên**. Đây là năng lực mới trao cho mọi
+   bản cài hiện có, và nó sẽ đến mà không ai báo.
+2. **`class_id` nằm trên submission, không có danh sách trong file lớp.** Hai nơi phải
+   khớp nhau thì sẽ lệch, và không có gì chặn một submission nằm trong hai lớp.
+3. **`DELETE` lớp không được xoá bài của nhóm.** Xoá lớp = clear `class_id` ở các
+   submission (chúng vẫn đọc được bằng link riêng) rồi xoá row lớp. Nút xoá thuộc về
+   giáo viên nhưng nhắm vào tài liệu của nhóm.
+
+**AC — test bắt buộc (mỗi cái là một hành vi, không phải một mã):**
+- (a) `class_id` sai dạng và `class_id` đúng dạng nhưng không tồn tại trả **giống hệt
+  nhau** — 404 phân biệt hai loại là đầu dò filesystem (đã vá ở P2, đừng tái nhập).
+- (b) **Cũng phải đúng trên đường ghi**: giữ `write_key` của lớp A thì đổi tên được A,
+  và gặp lớp B bằng **cùng hình dạng lỗi** như người lạ — đường ghi không được biến
+  thành máy dò tồn tại.
+- (c) `write_key` chỉ xuất hiện **đúng một lần** ở response tạo; đọc lại lớp không có nó.
+- (d) `PATCH` đổi tên **không** đổi `class_id`; gửi kèm id trong body là **422**, không
+  phải bị bỏ qua im lặng.
+- (e) Sau `DELETE`: mỗi submission vẫn đọc được bằng id riêng, `class_id` rỗng, và
+  không xuất hiện trong danh sách lớp nào.
+- (f) `GET /classes/{id}` sắp `createdAt` **giảm dần**, và mọi phần tử có
+  `createdAt` — xếp hàng bằng `revision` (số vòng, không phải thời gian) là sai.
+- (g) `POST /submissions` với `class_id` không tồn tại → 422 nêu tên field.
+- (h) Xem lại route đọc của submission: `class_id` mới **phải lộ ra** ở
+  `GET /submissions/{id}` — nó là whitelist, thêm vào store mà quên route thì người
+  đọc không bao giờ thấy, không lỗi, không test đỏ.
+- (i) `class_id` sai dạng không đọc được file ngoài thư mục store.
+- (j) Xoá lớp là **write-many**: nếu một file submission hỏng giữa chừng, các
+  submission còn lại vẫn đọc được và lớp vẫn bị xoá — việc chịu lỗi phải là chủ ý,
+  không phải im lặng mất dữ liệu.
+
+**Dừng khi:** nếu ADR 0017 chưa có → quay lại WP1 (viết ADR trước, code sau).
 
 ### WP3 — Server: quyết định của giáo viên (1–2 giờ)
 
