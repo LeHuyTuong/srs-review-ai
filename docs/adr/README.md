@@ -20,7 +20,8 @@ Mỗi quyết định kỹ thuật có một file, đánh số tăng dần, khô
 | [0013](0013-component-boundaries-flutter-server.md) | Ranh giới component thật: `app/lib/` thành 6 component headless + `WorkspaceViewModel` thành façade trên 7 controller; `server/app/` thành api/application/domain/infrastructure/config/contracts | Accepted |
 | [0014](0014-full-screen-modal-surfaces.md) | Mọi modal là bề mặt full-screen qua `showFullScreenSurface`/`WFullScreenSurface`; cấm họ bottom sheet trong `app/lib` (luật 8 guardrail) | Accepted |
 | [0015](0015-role-vs-form-factor-and-phone-sheets.md) | `AppRole` (build + phiên) tách khỏi `AppPlatform` (thiết bị); lệnh cấm bottom sheet giữ nguyên phạm vi, không nới cho phone | Accepted |
+| [0016](0016-class-roster-and-teacher-decisions.md) | Lớp học là `class_id` capability (**không thu hồi được**); quyết định của giáo viên **append** không ghi đè; đúng khi **self-hosted**; "đã đọc" là việc của máy | Accepted |
 
-**Số tiếp theo: 0016.**
+**Số tiếp theo: 0017.**
 
 Luật chấm SRS/SDS **không** ghi ở đây — chúng nằm ở `review-rules/RULEBOOK.md` với hệ version riêng (§10). ADR chỉ dành cho quyết định về *code* của repo này.
