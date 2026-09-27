@@ -16,7 +16,10 @@ repo; gate nào chưa chạy thật thì ghi **MỞ** (luật ROADMAP-AC2).
 | M4 · sơ đồ có ngân sách | Đạt phần render/preview/budget; **MỞ** precision/recall ảnh | `docs/evidence/m4-renderer-spike.md`; preview modal + deep-link (`18cc102`, `c388d00`); token usage đo thật cả hai đầu (`c05b983`); renderer được probe trước khi dùng, thiếu renderer thì báo thẳng (`bf44431`, `2559a59`). Chưa có tập ảnh annotated để đo precision/recall của auto-select |
 | M5 · export + nghiệm thu | Một phần; **MỞ** 3 gate nghiệm thu | Report tab + report twins MD/JSON/HTML parity (`8cac725`, qa-signoff). Còn mở: (1) E2E desktop đích chạy LLM path trên code sau 2026-09-21 — sign-off 09-14 ghi rõ không đo lại LLM path; (2) đối chiếu thủ công 10 citations; (3) holdout đúng nghĩa — CarbonX/HisWise đã chạy thật (`reviews/`, 2026-09-15) nhưng cùng thời kỳ hiệu chuẩn thang điểm, chưa phải tài liệu mới sau khi chốt luật |
 
-Test estate tại ngày cập nhật: app **841/841**, server **161 pass + 1 skip**.
+Test estate đo ngày **2026-09-27**: app **946/946** (`flutter test`), server
+**237 pass + 1 skip** (238 collected; `server/.venv` pytest), guardrails **8/8 nhóm**
+trên 681 file (`python tools/check_guardrails.py`). Hai số 841/841 và 161 pass ghi ở
+bản cập nhật trước đã cũ — chênh lệch là do test mới, không phải regression.
 
 ## Understanding
 

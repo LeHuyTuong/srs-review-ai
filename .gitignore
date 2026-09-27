@@ -95,3 +95,26 @@ skills/__MACOSX/
 # lọt vào một `git add -A`.
 skills/srs-reviewer/
 skills/sds-reviewer/
+
+# ---------- Local run logs and hand-captured CLI output ----------
+# a1/a2.out.txt + full.err.txt were one-off captures while debugging the vision
+# chain; dev_web.out/err come from app/tool/dev_web.ps1 runs. All machine output,
+# not evidence — evidence lives in docs/evidence/ with a date in its name.
+# Patterns kept narrow on purpose: a blanket *.txt would swallow the notes-*.json
+# neighbours and review-rules material.
+/app/*.out.txt
+/app/*.err.txt
+/app/tool/logs/
+
+# Provider replies cached by docs/evidence/scripts/probe_vision_reality.py.
+# Regenerated on the next run; the numbers it produced are the committed JSON.
+/docs/evidence/scripts/.vision-probe-cache.json
+
+# Freebuff client metadata (workspace-scoped project id, 37 bytes). Not repo
+# content — ignored rather than deleted so the client keeps its project mapping.
+/.freebuff/
+
+# Submission records written by the server (parity with server/.shares/ above).
+# Runtime data on the host, never source: plan 9 §7 — on Vercel this directory
+# does not survive a cold start, which is exactly why it stays ignored.
+server/.submissions/
