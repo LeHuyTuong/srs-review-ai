@@ -304,3 +304,90 @@ Báo cáo theo §5: đã làm / số đo kèm lệnh đã chạy (kể cả hai 
 hỏi — và **ánh xạ từng test a–i ra tên test cụ thể**, đừng bảo "đã viết test".
 ````
 
+
+---
+
+## Chế độ G — vá lỗi đường lỗi, ghi quyết 409, rồi WP4
+
+Ba việc theo thứ tự. **Làm xong bước 1 và báo cáo ngắn, rồi mới sang bước 3** — bước 1
+là sửa lỗi trong code vừa viết, không phải mở rộng tính năng, và nó là điều kiện để
+WP4 đứng trên nền đúng.
+
+````markdown
+Tiếp tục plan 12. Trạng thái đã đo: WP0–WP3 xong, app 946/946 · server **278 passed +
+1 skipped** · guardrails 8/8, 680 file · `ruff check` + `ruff format --check` sạch (ruff
+**có** trong `server\.venv`, 0.14.14; CI chạy đúng hai lệnh đó, chạy trước khi báo xong)
+· `git status` sạch, commit mới nhất `de2bb10`.
+
+# Bước 1 — vá `except Exception` trong `SubmissionStore.decide()`
+
+`server/app/infrastructure/submissions.py` (khoảng dòng 378) đang bọc
+`class_store.verify_key(...)` trong `except Exception` rồi luôn ném
+`SubmissionClassMissingError`. Hậu quả: **mọi lỗi thật cũng ra 409 `class_missing`** —
+lỗi đĩa `OSError`, `AttributeError` do code sai, hay bug trong `compare_digest` — nên
+giáo viên thấy "lớp không còn tồn tại" (hành động sai) và nguyên nhân thật biến mất
+khỏi log. Đây đúng là loại "chịu lỗi phải chủ ý, không phải im lặng" mà AC (j) WP2 đã
+cảnh báo: chịu lỗi thì chủ ý, nhưng **phạm vi** thì rộng hơn ý muốn.
+
+Cách sửa (chọn cách này, đừng chọn cách khác): đổi `ClassStore.verify_key` sang **trả
+`bool`** — `True` nghĩa là key đúng, `False` gồm cả "lớp không tồn tại" và "sai key",
+vẫn một kết quả duy nhất như trước. Rồi `decide()` **không còn `try` nào**:
+`if not class_store.verify_key(class_id, class_key or ""): raise
+SubmissionClassMissingError(...)`. Lợi ích thật là **xoá hẳn đường lỗi dễ nuốt** thay
+vì thu hẹp nó, và nó giữ đúng ý ADR 0017 option E (một store không chạm vào store
+khác). Ba chỗ gọi phải sửa theo: `api/classes.py` (2 chỗ) và `infrastructure/submissions.py`
+(1 chỗ) — kiểm lại bằng grep, đừng tin danh sách này.
+
+Bắt buộc có **test âm**: khi store lớp ném một lỗi KHÔNG thuộc họ `ClassError` (ví dụ
+`OSError`), route phải trả **500**, không phải 409. Test này bảo vệ luật "lỗi thật không
+được mặc áo lỗi nghiệp vụ"; thiếu nó thì `except Exception` sẽ quay lại ở lần sửa sau.
+Giữ nguyên hành vi đã test: key sai và lớp mất vẫn trả **cùng một** 409 `class_missing`
+(đường ghi không được làm máy dò tồn tại), và 9 test cũ của WP3 vẫn xanh.
+
+# Bước 2 — ghi quyết hiển thị 409 vào plan 12
+
+Trong mục WP5 của `docs/plans/12-run-everything-remaining-2026-09-27.md`, thêm một dòng
+ghi chốt: **hai lý do 409 hiện thành hai message khác nhau** — `not_in_class` ("Bài này
+chưa được gán vào lớp nào" → vào lớp, gán bài) và `class_missing` ("Lớp không còn tồn
+tại, hoặc khoá nhập không đúng" → tạo lại lớp / nhập lại khoá). Cả hai **một dòng, không
+modal**. Message thứ hai **phải giữ nguyên sự mơ hồ** "thiếu lớp *hoặc* sai khoá" —
+tách thành hai lý do riêng là biến đường ghi thành máy dò tồn tại, đúng thứ ADR 0017 đã
+đóng.
+
+# Bước 3 — WP4: activity + watermark
+
+Nguồn chuẩn: plan 12 §2 WP4 và `docs/adr/0016-class-roster-and-teacher-decisions.md`
+câu 4. Ba điều chỉnh được nói thẳng trước, vì chúng là chỗ dễ làm sai:
+
+1. **Đừng thêm bảng `read_state` phía server.** ADR 0016 câu 4 đã chốt: "đã đọc" là
+   watermark phía app. Nếu bạn thấy cần nó, đó là ADR chưa xong — dừng hỏi tôi.
+   Vì thế luật "lần mở app đầu tiên không báo 12 thông báo cũ" **không test được ở
+   server**; nó thuộc WP5. Ở đây chỉ cần chứng minh feed **đầy đủ và đúng thứ tự**.
+2. **`_now()` chỉ chính xác tới giây**, nên nhiều sự kiện sẽ **trùng `at`**. Feed phải
+   có **tie-break xác định** (ví dụ `at` giảm dần, rồi `revision` giảm dần, rồi
+   `submission_id`) — nếu không, thứ tự là tuỳ ý và test sẽ lúc xanh lúc đỏ tuỳ
+   tốc độ máy. Test của bạn cũng phải tự dựng mốc thời gian **khác nhau từng giây**,
+   đừng dựa vào việc hai lần ghi liên tiếp rơi vào hai giây khác nhau (đã có người mắc
+   đúng lỗi này ở WP2).
+3. `GET /classes/{class_id}/activity` — **không cần uỹ quyền** (id là credential, đúng
+   như `GET /classes/{id}`), và `class_id` sai dạng / không tồn tại phải trả **giống hệt
+   nhau** như mọi route lớp khác.
+
+Đủ 3 test a–c của WP4: nộp mới → **đúng một** mục mới; nộp vòng 2 → mục mới **khác**
+mục cũ chứ không phải cùng một mục bị ghi đè; thứ tự giảm dần với dữ liệu tự dựng có thứ
+tự ngược. Cộng thêm: quyết định của giáo viên (event `decided` từ WP3) xuất hiện trong
+feed, và lớp rỗng trả **danh sách rỗng** chứ không phải lỗi.
+
+Luật kỹ thuật: sửa file `.py` (CRLF) bằng script đọc/ghi `newline=""` hoặc patch từng
+dòng một, **đọc lại file sau khi vá**; script in tiếng Việt cần
+`sys.stdout.reconfigure(encoding="utf-8", errors="replace")`; script tạm thì **xoá xong
+viết lại toàn bộ**, đừng sửa bằng `old_text`; dừng **trước khi ghi file** nếu một site
+không khớp đúng một lần.
+
+Dừng hỏi tôi: cần tiền/quota; cần xoá file không rõ nguồn gốc; thấy mâu thuẫn giữa ADR
+và code; hoặc sửa làm đỏ test không liên quan mà chưa hiểu nguyên nhân.
+
+Báo cáo theo §5: **tách riêng bước 1 và bước 3**, số đo kèm lệnh đã chạy (kể cả hai
+lệnh ruff), và **ánh xạ từng test ra tên test cụ thể** — đừng bảo "đã viết test".
+````
+
