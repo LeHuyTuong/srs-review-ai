@@ -12,6 +12,9 @@ import '../deterministic_checks/models/ai_criterion.dart';
 import '../diagram_audit/services/page_image_renderer.dart';
 import '../document_import/repositories/document_repository.dart';
 import '../document_import/services/document_map_service.dart';
+import '../features/teacher/data/teacher_repository.dart';
+import '../features/teacher/data/teacher_store.dart';
+import '../features/teacher/view_model/teacher_view_model.dart';
 import '../requirement_review/repositories/review_repository.dart';
 import '../requirement_review/services/api_service.dart';
 import '../requirement_review/services/mock_review_api.dart';
@@ -421,3 +424,35 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
 final sessionStoreProvider = Provider<SessionStore>(
   (ref) => SharedPreferencesSessionStore(ref.watch(sharedPreferencesProvider)),
 );
+
+/// ------------------------------------------------------------------ teacher
+///
+/// The teacher client (WP5) talks to the SAME proxy with the same identity
+/// headers, so it reuses [ApiService] rather than growing a second HTTP
+/// client; only the feature layer on top is new. Its own store goes through
+/// the registered `openTeacherStore` seam, exactly like the session store.
+
+/// The base the teacher feature joins capability links against — the same
+/// proxy base the review pipeline uses, Settings override included.
+final teacherApiBaseUrlProvider = Provider<String>((ref) {
+  return ref.watch(proxyUrlProvider) ?? AppConfig.apiBaseUrl;
+});
+
+final teacherApiProvider = Provider<ApiService>((ref) {
+  return ApiService(
+    baseUrl: ref.watch(teacherApiBaseUrlProvider),
+    appToken: ref.watch(appTokenProvider),
+    userId: ref.watch(userIdProvider),
+  );
+});
+
+final teacherRepositoryProvider = Provider<TeacherRepository>(
+  (ref) => TeacherRepository(ref.watch(teacherApiProvider)),
+);
+
+final teacherStoreProvider = Provider<TeacherStore>(
+  (ref) => openTeacherStore(ref.watch(sharedPreferencesProvider)),
+);
+
+final teacherViewModelProvider =
+    NotifierProvider<TeacherViewModel, TeacherState>(TeacherViewModel.new);
