@@ -600,6 +600,16 @@ NATIVE_PLUGIN_RULES: tuple[NativePluginRule, ...] = (
                 ),
                 seam_note="the constructor that takes the prefs instance",
             ),
+            NativePluginAdapter(
+                path="app/lib/features/teacher/data/teacher_store.dart",
+                seams=(
+                    (
+                        "app/lib/features/teacher/data/teacher_store.dart",
+                        r"TeacherStore openTeacherStore\(SharedPreferences prefs\)",
+                    ),
+                ),
+                seam_note="openTeacherStore, the one constructor from a prefs instance",
+            ),
         ),
     ),
 )

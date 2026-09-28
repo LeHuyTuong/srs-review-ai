@@ -16,12 +16,25 @@ import '../models/review_models.dart';
 import 'review_api.dart';
 
 class ApiException implements Exception {
-  ApiException(this.message, {this.statusCode, this.isRetryable = false});
+  ApiException(
+    this.message, {
+    this.statusCode,
+    this.isRetryable = false,
+    this.detail,
+  });
 
   /// Message written for the person in front of the screen, not for a log file.
   final String message;
   final int? statusCode;
   final bool isRetryable;
+
+  /// The proxy's own machine-readable reason (`detail` in its error body),
+  /// when it sent one. The client uses this to pick between DIFFERENT user
+  /// actions — WP5: the two 409 reasons of `POST /submissions/{id}/decision`
+  /// (`not_in_class` → file the submission; `class_missing` → recreate the
+  /// class) are two different sentences on screen, and only this field can
+  /// carry which one happened. `null` when the body named no reason.
+  final String? detail;
 
   @override
   String toString() => message;
@@ -138,19 +151,60 @@ class ApiService implements ReviewApi {
     return RubricConfig.fromJson(data['rubric'] as Map<String, dynamic>);
   }
 
-  /// One entry point for the three write verbs. No retry, on purpose: a criteria
+  /// Public write entry for feature repositories that own their own routes
+  /// (the teacher feature, WP5). Same no-retry rule as [_write]: a repeat of
+  /// a human decision or a filing is a SECOND write, not a retry.
+  Future<Map<String, dynamic>> write(
+    String path, {
+    String method = 'POST',
+    Map<String, dynamic>? body,
+    String? writeKey,
+  }) => _write(method, path, body, writeKey);
+
+  /// Public read entry for feature repositories. Config-read semantics: the
+  /// screen's own 4s deadline and no hidden retry, so a dead proxy answers
+  /// fast instead of hanging the screen.
+  Future<Map<String, dynamic>> get(String path) => _get(path);
+
+  /// One entry point for the four write verbs. No retry, on purpose: a criteria
   /// edit is a human decision, and repeating it behind their back is worse than
   /// showing the error.
   Future<Map<String, dynamic>> _write(
     String method,
     String path, [
     Map<String, dynamic>? body,
+    String? writeKey,
   ]) async {
     try {
+      // The class key rides on EVERY verb that can carry it — the decision
+      // route and filing are POSTs, and forgetting the key there would turn
+      // every decision into a 401 while PATCH worked. `_keyOptions` returns
+      // null when no key is given, so ordinary writes stay byte-identical.
       final response = switch (method) {
-        'POST' => await _dio.post<Map<String, dynamic>>(path, data: body),
-        'PUT' => await _dio.put<Map<String, dynamic>>(path, data: body),
-        _ => await _dio.delete<Map<String, dynamic>>(path),
+        'POST' => await _dio.post<Map<String, dynamic>>(
+          path,
+          data: body,
+          options: _keyOptions(writeKey),
+        ),
+        'PUT' => await _dio.put<Map<String, dynamic>>(
+          path,
+          data: body,
+          options: _keyOptions(writeKey),
+        ),
+        'PATCH' => await _dio.patch<Map<String, dynamic>>(
+          path,
+          data: body,
+          options: _keyOptions(writeKey),
+        ),
+        'DELETE' => await _dio.delete<Map<String, dynamic>>(
+          path,
+          options: _keyOptions(writeKey),
+        ),
+        _ => throw ArgumentError.value(
+          method,
+          'method',
+          'unsupported write verb',
+        ),
       };
       return response.data ??
           (throw ApiException('The proxy returned an empty body.'));
@@ -355,6 +409,16 @@ class ApiService implements ReviewApi {
     }
   }
 
+  /// Header options carrying the class's own `write_key` in `X-Class-Key` —
+  /// the credential ADR-0017 assigns to PATCH/DELETE/filing/decisions. `null`
+  /// when the verb needs no class key, so ordinary writes stay byte-identical
+  /// on the wire.
+  Options? _keyOptions(String? writeKey) {
+    final key = writeKey?.trim() ?? '';
+    if (key.isEmpty) return null;
+    return Options(headers: {'X-Class-Key': key});
+  }
+
   /// 429 message reporting the truthful retry window (M3 gate: báo cửa sổ
   /// có thể gọi lại). The proxy sends Retry-After seconds when the daily
   /// quota is exhausted; without one, fall back to the day-scale hint.
@@ -377,11 +441,25 @@ class ApiService implements ReviewApi {
     return raw == null || raw.isEmpty ? null : int.tryParse(raw);
   }
 
+  /// The proxy's machine-readable reason for this failure, when the body
+  /// carried one (`{"detail": "not_in_class"}`). Read once here so every
+  /// branch below inherits it — including the generic one, which is where an
+  /// unfamiliar status with a named detail lands.
+  static String? _detailOf(Response<dynamic>? response) {
+    final data = response?.data;
+    if (data is Map<String, dynamic>) {
+      final detail = data['detail'];
+      if (detail is String && detail.isNotEmpty) return detail;
+    }
+    return null;
+  }
+
   /// Turns transport failures into sentences a student can act on. Takes the
   /// effective base URL because the useful message names the endpoint the
   /// user actually configured (Settings override or build-time default).
   static ApiException _translate(DioException error, String baseUrl) {
     final status = error.response?.statusCode;
+    final detail = _detailOf(error.response);
     return switch (error.type) {
       DioExceptionType.connectionError ||
       DioExceptionType.connectionTimeout => ApiException(
@@ -399,14 +477,17 @@ class ApiService implements ReviewApi {
         401 => ApiException(
           'The proxy rejected the app token.',
           statusCode: 401,
+          detail: detail,
         ),
         422 => ApiException(
           'The proxy rejected the request payload — the app and proxy contracts disagree.',
           statusCode: 422,
+          detail: detail,
         ),
         429 => ApiException(
           quotaMessage(retryAfterSeconds: _retryAfterSeconds(error.response)),
           statusCode: 429,
+          detail: detail,
         ),
         // 502 means the PROXY already retried the provider and gave up (it
         // paces its own calls and honours the provider's retry window).
@@ -419,6 +500,7 @@ class ApiService implements ReviewApi {
           'The AI provider is throttled or unavailable. The proxy already retried; '
           'wait a moment and re-run the failed requirements.',
           statusCode: 502,
+          detail: detail,
         ),
         // 503 comes from the platform in front of the proxy (cold start,
         // deploy) and is worth one more attempt — nothing was reviewed yet.
@@ -426,10 +508,12 @@ class ApiService implements ReviewApi {
           'The review proxy is temporarily unavailable. Retrying…',
           statusCode: 503,
           isRetryable: true,
+          detail: detail,
         ),
         _ => ApiException(
           'Unexpected proxy error${status == null ? '' : ' (HTTP $status)'}.',
           statusCode: status,
+          detail: detail,
         ),
       },
     };
