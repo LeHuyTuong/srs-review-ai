@@ -292,6 +292,8 @@ nhóm nộp vòng 2, activity có mục mới **khác** mục cũ (không phải
 
 ### WP5 — App: ba màn hình giáo viên (1–2 ngày) — **rủi ro cao nhất của plan**
 
+**Trạng thái (2026-09-28): ĐÃ XONG** — 3 commit: 95af468 (ApiException.detail + PATCH + X-Class-Key, đăng ký seam openTeacherStore), d1953b1 (feature `features/teacher/` + wiring providers/router), 7df2101 (test 390×844). Số đo: app 968/968 · analyze/format sạch · guardrails 8/8 (696 file). Width đo được: Tạo lớp 146,7 px (nhãn 98,7) · Duyệt bài 192,9 px (nhãn 126,9) · Yêu cầu sửa 203,1 px (nhãn 155,1) · chip trạng thái 94,5 px. Hai bug lộ khi đo: AppBar title Row tràn **242 px** ở 390 (sửa thành Text + actions) và POST quyết định thiếu `X-Class-Key` (test bắt, vá cả verb).
+
 **Ghi chú từ WP2 (đã chốt):** `DELETE /classes/{id}` trả kèm số `unfiled` và danh sách `dangling`. Màn hình lớp **hiện một dòng cảnh báo** khi `unfiled` khác 0 — nhẹ, không modal, và im lặng khi mọi thứ bình thường.
 
 **Ghi chú từ WP3 (đã chốt):** hai lý do 409 của `POST /submissions/{id}/decision` hiện thành **hai message khác nhau**, mỗi cái một dòng, không modal: `not_in_class` — “Bài này chưa được gán vào lớp nào” (hành động: vào lớp, gán bài); `class_missing` — “Lớp không còn tồn tại, hoặc khoá nhập không đúng” (hành động: tạo lại lớp / nhập lại khoá). Message thứ hai **giữ nguyên sự mơ hồ** “thiếu lớp *hoặc* sai khoá” — tách thành hai lý do riêng là biến đường ghi thành máy dò tồn tại, đúng thứ ADR 0017 đã đóng.
