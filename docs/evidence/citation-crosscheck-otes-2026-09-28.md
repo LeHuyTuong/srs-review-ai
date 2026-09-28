@@ -34,14 +34,35 @@ PDF phát từng ô theo thứ tự riêng, còn báo cáo ghép lại theo th�
    nguy hiểm** (nội dung thật), nhưng **sai về mặt từ ngữ**: với trích dẫn từ bảng thì "khớp
    nguyên văn" phải là khẳng định về **thứ tự**, mà thứ tự thì lớp text PDF không bảo toàn.
 
-## Vì sao gate vẫn MỞ, và làm gì tiếp
-Chưa chạy đủ 10 trích dẫn có kết luận: mẫu 10 cái có **6 quá ngắn** (<40 ký tự) để
-phán đoán bằng cửa sổ, và mới kiểm **3 nhóm**. Cần:
-- Nới tiêu chí chọn mẫu sang trích dẫn **≥ 8 từ** (thay vì ≥40 ký tự), đủ 10 cái;
-- với mỗi cái, chạy cửa sổ trượt **và** so với mẫu đối chứng;
-- **đề xuất sửa luật**: nhãn kết quả nên tách hai mức — *"khớp nguyên văn"* và
-  *"cùng nội dung, khác thứ tự (bảng)"* — thay vì một nhãn duy nhất. Đây là thay đổi **hành
-  vi hiển thị**, cần một quyết định, không tự ý làm trong lúc đo.
+Đủ 10/10 trích dẫn đạt điều kiện (≥ 8 từ): 232 trích dẫn lấy được, **169** đủ điều kiện
+→ lấy 10 mẫu đầu. Cửa sổ 8 từ: **1** đạt 100% · **5** đạt 55–85% · **4** đạt **0%**.
+
+Bốn cái 0% được kiểm thêm bằng **độ phủ từ** (không quan tâm thứ tự) — vì chúng đều là
+**nội dung bảng** (`fields`, `buttons/hyperlinks`, `slots`, `table row`), mà bảng thì lớp
+text PDF và báo cáo ghép ô theo thứ tự khác nhau:
+
+| Trích dẫn | Cửa sổ | Độ phủ từ | Kết luận |
+|---|---|---|---|
+| **Mẫu đối chứng** (câu do tôi tự chế) | 0/13 = **0%** | 8/20 = 40% | ngưỡng "bịa" |
+| #7 `fields: n, field, read, mandator…` | 0% | **8/8 = 100%** | thật, xáo trộn |
+| #9 `login to the system as valid email…` | 0% | **11/11 = 100%** | thật, xáo trộn |
+| #8 `6-50 password buttons/hyperlinks…` | 0% | 5/6 = 83% (thiếu `validat`) | thật, từ bị cắt ô |
+| #10 `1 slot info y es…` | 0% | 6/8 = 75% (thiếu `es`×2) | thật, ô hỏng |
+
+**Kết luận: 10/10 trích dẫn có thật. Không một bằng chứng nào cho thấy trích dẫn bịa.**
+Cái sai là **nhãn**, không phải nội dung: báo cáo ghi *"khớp nguyên văn"* cho tất cả, mà
+với trích dẫn từ bảng thì cụm đó là khẳng định về **thứ tự** — điều mà lớp text PDF
+không bảo toàn.
+
+**Giới hạn của chính phép đo, nói thẳng:** mẫu đối chứng là một câu tiếng Anh đầy từ
+thông dụng, nên nó ăn **40%** độ phủ từ dù chắc chắn không có trong tài liệu. Vì thế **độ
+phủ từ một mình không phân biệt được**; phải đọc **cả hai**: cửa sổ 0% **và** phủ từ cao
+mới là xáo trộn, còn phủ từ thấp mới là bịa. Một trích dẫn bịa viết bằng từ đúng ngữ cảnh
+sẽ ăn cả hai chỉ số, nên phép đo này **không** thay thế được việc đọc mắt của người.
+
+**Việc còn lại (một quyết định, không phải một phép đo):** tách nhãn kết quả thành hai
+mức — *"khớp nguyên văn"* và *"cùng nội dung, khác thứ tự (bảng)"*. Đây là thay đổi **hành
+vi hiển thị**, nên không tự ý làm trong lúc đang đo.
 
 ## Lệnh đã chạy
 `%TEMP%\check_citations4.py` (đọc báo cáo `.docx` bằng `zipfile` thuần stdlib, không cần
