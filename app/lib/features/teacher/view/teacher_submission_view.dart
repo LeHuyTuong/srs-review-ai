@@ -108,6 +108,32 @@ class _TeacherSubmissionViewState extends ConsumerState<TeacherSubmissionView> {
         ),
         const SizedBox(height: AppSpacing.lg),
         _ScoreCard(detail: detail),
+        const SizedBox(height: AppSpacing.sm),
+        // The review's numbers the proxy stores — the HTML twin stays behind
+        // the sandboxed report route, so these counts are what the reading
+        // view can honestly show.
+        if (detail.findings.isNotEmpty)
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.xs,
+            children: [
+              for (final entry in detail.findings.entries)
+                Chip(
+                  label: Text('${entry.key}: ${entry.value}'),
+                  labelStyle: theme.textTheme.labelSmall,
+                  visualDensity: VisualDensity.compact,
+                ),
+            ],
+          ),
+        if (detail.decisionNote.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Ghi chú quyết định vòng trước: ${detail.decisionNote}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
         const SizedBox(height: AppSpacing.lg),
         if (detail.hasReport)
           OutlinedButton.icon(
