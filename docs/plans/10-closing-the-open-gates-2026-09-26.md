@@ -70,6 +70,16 @@ khi test lộ ra lỗi thật (khi đó ghi lại lỗi trong commit message, kh
 **Ba kết quả có thể xảy ra, và cả ba đều được chấp nhận:**
 
 1. **> 0** → AC4 đóng, ghi số.
+   **KẾT QUẢ ĐO THẬT 2026-09-28: = 0, nên AC4 KHÔNG đóng.**
+   `docs/evidence/chain1-otes-2026-09-28.md`: 91 unit, parser 1.4.4, 63 UC,
+   chain 1 = **0** finding, kèm chẩn đoán bằng probe: 91/91 unit trích được
+   entity, 28 stem, đúng **một** cluster đạt ≥2 mục nhưng chỉ có **một**
+   original (`We`) nên bị cổng ≥2-original chặn **đúng**. Tức check chạy và đọc
+   được văn bản; tài liệu chỉ không có hình dạng mà check nhắm tới. Tiêu chí
+   "**> 0**" sửa thành: *đo trên tài liệu thật và ghi số kèm lý do* — một tiêu
+   chí đòi con số dương trên tài liệu không có dữ liệu đó chỉ dạy repo này một
+   thói quen xấu: bịa metric. Phạm vi của check đã ghi vào
+   `review-rules/adapters/app-port-map.md`.
 2. **= 0** → nghĩa là regex đúng nhưng nguyên nhân gốc **không phải regex**.
    Khi đó phải tìm nguyên nhân thật (nhiều khả năng: `_extractEntityName` chỉ lấy
    từ đầu, hoặc điều kiện "2 mục khác nhau" hiếm gặp trong OTES), **không** sửa

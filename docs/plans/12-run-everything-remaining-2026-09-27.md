@@ -442,7 +442,7 @@ tệ hơn cả làm nửa.
 | AC-12.9 | Báo cáo giáo viên ghi rõ chưa kiểm định | có dòng cảnh báo trên UI, có test |
 | AC-12.10 | Guardrails 8/8 | chạy `tools/check_guardrails.py` |
 | AC-12.11 | Format/analyze sạch | `dart format --output=none --set-exit-if-changed .` + `flutter analyze --fatal-infos --fatal-warnings` |
-| AC-12.12 | AC4 đo trên tài liệu thật | evidence có số **kể cả khi bằng 0** |
+| AC-12.12 | AC4 đo trên tài liệu thật | **Đạt phần đo** — evidence có số **0** kèm chẩn đoán; tiêu chí "> 0" của plan 10 **đã sửa** vì tài liệu không có hình dạng dữ liệu mà check nhắm tới (`chain1-otes-2026-09-28.md`) |
 | AC-12.13 | Bộ dụng cụ gold set **có test âm** | chứng minh ngưỡng 80% thật sự chặn |
 
 **Mốc "hết việc" của toàn plan:** AC-12.1 → 12.3, 12.6, 12.7, 12.8, 12.9, 12.10, 12.11
