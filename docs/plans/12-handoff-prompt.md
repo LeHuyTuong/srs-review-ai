@@ -646,3 +646,84 @@ phạm vi 1.4.1 mà bạn đã ghi vào file evidence (để tôi kiểm chữ, 
 ````
 
 
+---
+
+## Chế độ K — WP6: đo chain 1 trên OTES thật (không tốn một call nào)
+
+Đây là gate M2. Phần **đắt tiền** chưa cần tới: chain 1 là `ContradictionPass` —
+kiểm tra **thuần text**, không qua LLM — nên AC4 đo được **offline hoàn toàn**.
+
+````markdown
+Tiếp tục plan 12 — **WP6** (đo chain 1 trên OTES thật, đóng AC4 của plan 9). Số đo chốt:
+app 968/968 · server 335 passed + 1 skipped · guardrails 8/8, 697 file · `ruff` sạch ·
+`git status` sạch, commit mới nhất `c312b8f`.
+
+# Đã dò sẵn — đừng tìm lại và đừng tốn tiền
+
+- **File**: `D:\Download\OTES_officially_document.docx_compressed.pdf` — **2,73 MB, 217
+  trang, 154.716 ký tự text**. Còn một bản `OTES_officially_document.docx.pdf`
+  (27,37 MB) nhưng **lớp text giống hệt** (cùng 217 trang, cùng 154.716 ký tự) — nén
+  chỉ giảm ảnh. Dùng bản 2,73 MB.
+- Trang đầu xác nhận đúng tài liệu: *"FPT UNIVERSITY / Capstone Project Document /
+  Building Online Teaching And Examination System / Group 9 - IS"*.
+- Marker đo trên **toàn bộ 217 trang**: `Main success scenario` **63 lần**,
+  `Use Case Name` 62, `Actor:` 63, `UC0` 105 lần/66 trang, và **`Business rule` = 0**,
+  `Non-functional` = 0. Nên đừng kỳ vọng tầng `business_rule` có dữ liệu ở tài liệu này.
+- **Text đã trích sẵn** ra `%TEMP%\otes_pages.json` (217 phần tử, key `pages`) bằng
+  `fitz` (PyMuPDF có sẵn trong `server/.venv`; **không có** `pdfplumber` trong venv đó —
+  đừng tìm nó). Nếu file đó mất, trích lại bằng `fitz` theo đúng tên file ở trên.
+- API thật, đọc từ code: `const RequirementSplitter().split(List<String> pageTexts,
+  {TableOfContents? toc})` và `const ContradictionPass().detect(SrsDocument doc)`.
+  **Việc bạn phải tự làm: tìm cách dựng `SrsDocument` từ output của splitter** (đọc
+  `parse_service.dart` / `models/srs_document.dart`). Dựng sai rồi đo thì ra số sai —
+  nên kiểm bằng cách in `units.length` và so với **130 unit** mà parser 1.4.2 từng đo
+  trên chính tài liệu này (`docs/review-parser-coverage-2026-09-21.md`). Lệch nhiều thì
+  **dừng và báo**, đừng đo tiếp bằng bộ dữ liệu không đúng hình dạng.
+
+# Phải ghi ra (kể cả khi kết quả là 0)
+
+File `docs/evidence/chain1-otes-2026-09-28.md` chứa: **số finding chain 1 đo được**,
+cách đếm, lệnh đã chạy, **phiên bản parser** đã dùng (đây là thứ bắt buộc — cùng tài
+liệu nhưng parser khác ra số khác, và đó chính là vết thương 1.4.1 đã ghi ở
+`goldset-instrument-2026-09-27.md`), cùng **vài finding mẫu** (trích nguyên văn đoạn
+text bị chỉ ra, không diễn giải lại). **Số 0 cũng phải ghi** — đó là bằng chứng, còn
+giấu đi là bịa. Và **không** nâng finding lên thang điểm: `requiresVisionEvidence` giữ
+nguyên, verdict **không** cộng chain 2/3 (AC-10.6 của plan 10).
+
+# Ranh giới: đừng chạy thứ tốn tiền trong prompt này
+
+Prompt này **không** chạy review thật. Việc đó là gate M5 (WP8) và cần tôi duyệt trước.
+Cụ thể để bạn không phải đoán:
+- App **gộp 6 unit/call** (`reviewBatchSize = 6`), proxy trần **8 unit/call**
+  (`max_batch_units`), và **giới hạn 50 request/ngày/người** ở proxy
+  (`rate_limit_per_day`). Một lượt 60 unit ≈ **10 call**.
+- Trong `app_config.dart` có một **override chỉ dành cho dev local** nâng trần lên
+  **250** (đặt 2026-09-21) để một lượt OTES đầy đủ vừa một lần chạy, kèm
+  `RATE_LIMIT_PER_DAY` nâng trong `server/.env`. Comment trong file yêu cầu
+  **restore 50 trước khi ship** — nếu bạn đụng vào `.env`, **đừng** sửa nó.
+- **Tám khoá API không làm thay đổi bất cứ thứ gì ở tầng repo**: `gemini_api_key` là
+  **một chuỗi duy nhất**, nên mỗi lượt dùng đúng một khoá, muốn đổi phải sửa
+  `server/.env` giữa các lượt. Và giới hạn 50/ngày tính theo **người gọi**
+  (`caller_id`/host), **không** tính theo khoá — nên tám khoá không nâng được trần đó.
+- **Đừng nâng trần lượt** vì có nhiều khoá. ADR-0005 đã nói: trần là **quyết định thiết
+  kế** (chừa dự phòng cho re-run trong ngày, vì cache hit không tốn quota), không
+  phải hệ quả của số khoá.
+
+# Bẫy đã trả tiền
+
+- Sửa file Dart không cần script Python, nhưng sửa `.py`/`.md` thì file là **CRLF**:
+  dùng script đọc/ghi `newline=""` và **đọc lại file sau khi vá**.
+- Script Python in tiếng Việt phải có
+  `sys.stdout.reconfigure(encoding="utf-8", errors="replace")` **trước mọi print**.
+- Đừng commit thứ gì trông như **nhãn vàng** — đây là đo chain 1, không phải gold set.
+- Đo bằng regex cứng rồi kết luận "số trong báo cáo sai" là nguy hiểm hơn cả tin sai:
+  nghi ngờ phép đo của mình trước, thử 2–3 biến thể marker (`AGENTS.md` đã ghi cụ thể).
+
+# Báo cáo
+
+Theo §5 của plan. Thêm: **số unit đọc được** (so với 130 của parser 1.4.2), **số finding
+chain 1**, và **bản chép nguyên văn 2–3 finding** kèm đoạn text tương ứng. Nếu
+`units.length` lệch xa 130, **đó là kết quả của lượt này** — báo nó, đừng sửa cho khớp.
+````
+
+
