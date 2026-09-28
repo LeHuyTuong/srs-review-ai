@@ -49,6 +49,15 @@ Chạy (thuần stdlib — không cần API key, không tốn quota, không ch�
     python docs/evidence/scripts/goldset_instrument.py sample \\
         --units goldset-raw-units.json --out goldset-sheet-A.csv --n 24
 
+    # 1b. nguồn đã có sẵn trong repo: file dump của shared_preferences (giá trị là một
+    #     chuỗi chứa JSON — mã hoá hai lớp; `--source auto` tự gỡ, `snapshot` ép kiểu).
+    #     Nguồn này chạy trên parser 1.4.1: 168/240 unit là `Section` vì thân UC bị
+    #     tách thành `SEC-…` — đọc cảnh báo phạm vi trong
+    #     docs/evidence/goldset-instrument-2026-09-27.md trước khi kết luận gì.
+    python docs/evidence/scripts/goldset_instrument.py sample --source snapshot \\
+        --units reviews/workspace-snapshot-2026-09-22-parser1.4.1.json \\
+        --out goldset-sheet-A.csv --n 24
+
     # 2. hai người điền sheet-A.csv / sheet-B.csv ĐỘC LẬP, rồi đo khớp
     python docs/evidence/scripts/goldset_instrument.py agreement \\
         --a goldset-sheet-A.csv --b goldset-sheet-B.csv
@@ -246,28 +255,29 @@ def _unit_from_json(raw: object, *, round_label: str, index: int) -> Unit:
     )
 
 
+def _round_from_units(units: object, round_label: str) -> Round:
+    """Một lượt từ mảng unit thô — dùng chung cho **mọi** đường vào (payload phiên,
+    file dump của shared_preferences), nên luật kiểm khoá chỉ có một chỗ."""
+
+    if not isinstance(units, list):
+        raise GoldSetError(f"{round_label}: `units` phải là mảng JSON")
+    parsed = tuple(_unit_from_json(item, round_label=round_label, index=i) for i, item in enumerate(units))
+    seen: dict[str, int] = {}
+    for unit in parsed:
+        seen[unit.key] = seen.get(unit.key, 0) + 1
+    collision = sorted(k for k, v in seen.items() if v > 1)
+    if collision:
+        raise GoldSetError(
+            f"{round_label}: khoá unit bị lặp {collision[:3]} — inventory hỏng, sửa nguồn trước khi lấy mẫu"
+        )
+    return Round(label=round_label, units=parsed)
+
+
 def _rounds_from_object(payload: object, *, label: str) -> list[Round]:
     """Nhận cả payload phiên (`units`), cả danh sách lượt (`rounds`), cả mảng unit."""
 
-    def one(units: object, round_label: str) -> Round:
-        if not isinstance(units, list):
-            raise GoldSetError(f"{round_label}: `units` phải là mảng JSON")
-        parsed = tuple(
-            _unit_from_json(item, round_label=round_label, index=i) for i, item in enumerate(units)
-        )
-        seen: dict[str, int] = {}
-        for unit in parsed:
-            seen[unit.key] = seen.get(unit.key, 0) + 1
-        collision = sorted(k for k, v in seen.items() if v > 1)
-        if collision:
-            raise GoldSetError(
-                f"{round_label}: khoá unit bị lặp {collision[:3]} — inventory hỏng, "
-                "sửa nguồn trước khi lấy mẫu"
-            )
-        return Round(label=round_label, units=parsed)
-
     if isinstance(payload, list):
-        return [one(payload, label)]
+        return [_round_from_units(payload, label)]
     if isinstance(payload, dict):
         if "rounds" in payload:
             entries = payload["rounds"]
@@ -278,10 +288,10 @@ def _rounds_from_object(payload: object, *, label: str) -> list[Round]:
                 if not isinstance(entry, dict) or "units" not in entry:
                     raise GoldSetError(f"{label}: rounds[{i}] phải có khoá `units`")
                 name = str(entry.get("label") or entry.get("round") or f"{label}#{i + 1}")
-                out.append(one(entry["units"], name))
+                out.append(_round_from_units(entry["units"], name))
             return out
         if "units" in payload:
-            return [one(payload["units"], label)]
+            return [_round_from_units(payload["units"], label)]
     raise GoldSetError(f"{label}: không thấy `units` (payload phiên) hay `rounds` (nhiều lượt)")
 
 
@@ -301,6 +311,181 @@ def load_rounds(paths: Iterable[str | Path]) -> list[Round]:
     if not rounds:
         raise GoldSetError("không có lượt nào để lấy mẫu")
     return rounds
+
+
+# --------------------------------------------------------------------------- #
+# Nguồn mẫu 2: file dump của shared_preferences (dữ liệu mã hoá nhiều lớp)
+# --------------------------------------------------------------------------- #
+
+_MAX_DECODE_DEPTH = 6
+"""Số lớp lồng tối đa khi gỡ chuỗi JSON. File dump trong repo cần **3 lớp**:
+`flutter.srs.workspace.sessions` là một mảng các **chuỗi**, mỗi chuỗi là một
+SavedSession, và `payloadJson` của nó lại là một chuỗi JSON nữa chứa `units`."""
+
+
+@dataclass(frozen=True)
+class UnitSource:
+    """Một nơi trong file có `units`.
+
+    `key_path` là đường dẫn tới nó (để in ra khi file có nhiều nguồn), `layers` là số
+    lớp chuỗi JSON đã phải gỡ — con số này nói ra rằng dữ liệu bị mã hoá hai lớp chứ
+    không phải một, thứ mà `json.loads` một lần không nhìn thấy.
+    """
+
+    key_path: str
+    label: str
+    layers: int
+    units: tuple[dict, ...]
+
+
+def _decode_json_string(value: object) -> tuple[object, int]:
+    """Gỡ **một** lớp mã hoá: chuỗi chứa JSON → object. Trả `(giá trị, số lớp đã gỡ)`.
+
+    Giá trị không phải chuỗi, hoặc chuỗi không mở đầu bằng `[`/`{`, hoặc JSON hỏng thì
+    trả về nguyên trạng với 0 lớp — mọi thứ đó chỉ có nghĩa "chỗ này không phải nguồn".
+    """
+
+    if not isinstance(value, str):
+        return value, 0
+    text = value.strip()
+    if not text or text[0] not in "[{":
+        return value, 0
+    try:
+        return json.loads(text), 1
+    except json.JSONDecodeError:
+        return value, 0
+
+
+def _source_label(payload: dict, fallback: str) -> str:
+    """Nhãn lượt: tên tài liệu + 8 ký tự fingerprint.
+
+    Có fingerprint vì hai **vòng** của cùng một tài liệu là hai lượt khác nhau — nhãn
+    trùng nhau sẽ trộn hai vòng vào một lượt trong sheet, và không có gì báo lỗi.
+    """
+
+    name = payload.get("fileName") or payload.get("id") or payload.get("label")
+    if not isinstance(name, str) or not name.strip():
+        return fallback
+    name = name.strip()
+    fingerprint = payload.get("documentFingerprint") or payload.get("fingerprint")
+    if isinstance(fingerprint, str) and fingerprint.strip():
+        return f"{name}#{fingerprint.strip()[:8]}"
+    return name
+
+
+def _scan_for_units(node: object, key_path: str, layers: int, out: list[UnitSource], depth: int = 0) -> None:
+    """Quét đệ quy, gỡ chuỗi JSON ở **mọi** độ sâu, gom mọi nơi có `units`."""
+
+    if depth > _MAX_DECODE_DEPTH:
+        return
+    decoded, unwrapped = _decode_json_string(node)
+    if unwrapped:
+        _scan_for_units(decoded, key_path, layers + unwrapped, out, depth + 1)
+        return
+    if isinstance(decoded, dict):
+        units = decoded.get("units")
+        if isinstance(units, list) and units:
+            where = key_path or "root"
+            out.append(
+                UnitSource(
+                    key_path=where,
+                    label=_source_label(decoded, where),
+                    layers=layers,
+                    units=tuple(units),
+                )
+            )
+            return
+        for key, value in decoded.items():
+            child = f"{key_path}/{key}" if key_path else str(key)
+            _scan_for_units(value, child, layers, out, depth + 1)
+        return
+    if isinstance(decoded, list):
+        if decoded and all(isinstance(item, dict) and "id" in item for item in decoded):
+            where = key_path or "root"
+            out.append(UnitSource(key_path=where, label=where, layers=layers, units=tuple(decoded)))
+            return
+        for index, item in enumerate(decoded):
+            _scan_for_units(item, f"{key_path}[{index}]", layers, out, depth + 1)
+
+
+def find_unit_sources(path: str | Path) -> list[UnitSource]:
+    """Mọi nơi trong file có `units` — **không hardcode tên key**.
+
+    Key nào ở bất kỳ độ sâu nào parse ra object có `units` là mảng thì được nhận, nên
+    file đổi shape lần sau vẫn đọc được; tên key của shared_preferences chỉ là một
+    trường hợp trong số đó. Gỡ chuỗi JSON ở mọi độ sâu (xem `UnitSource.layers`).
+    """
+
+    source = Path(path)
+    if not source.exists():
+        raise GoldSetError(f"không tìm thấy {source}")
+    try:
+        payload = json.loads(source.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise GoldSetError(f"{source}: JSON hỏng — {exc}") from exc
+
+    found: list[UnitSource] = []
+    _scan_for_units(payload, "", 0, found)
+    if not found:
+        shape = (
+            ", ".join(f"{key}={type(value).__name__}" for key, value in payload.items())
+            if isinstance(payload, dict)
+            else type(payload).__name__
+        )
+        raise GoldSetError(
+            f"{source}: không tìm thấy nguồn `units` nào (đã quét tới {_MAX_DECODE_DEPTH} lớp) — "
+            f"cấu trúc đọc được: {shape}"
+        )
+    return found
+
+
+def load_units_from_snapshot(path: str | Path) -> list[Round]:
+    """Chọn nguồn **nhiều unit nhất** trong file dump, trả về đúng dạng `sample_units()`
+    nhận.
+
+    Chọn nguồn lớn nhất chứ không phải nguồn đầu tiên: file dump thật có 4 nguồn (một
+    snapshot + ba session), nguồn đầu tiên trong file tình cờ cũng là nguồn lớn nhất.
+    Khi bằng nhau thì lấy nguồn xuất hiện trước — tất định. `find_unit_sources()` là
+    thứ để **in ra** đã thấy những nguồn nào, thay vì chọn im lặng.
+    """
+
+    sources = find_unit_sources(path)
+    best = max(sources, key=lambda item: len(item.units))
+    return [_round_from_units(list(best.units), best.label)]
+
+
+def _load_source(paths: Sequence[str], source: str) -> tuple[list[Round], list[str]]:
+    """Nạp các file theo `--source`. Trả `(các lượt, các dòng mô tả nguồn để in ra)`.
+
+    `auto` thử kiểu file dump trước (nó bao trùm: gỡ được lớp chuỗi JSON), rồi mới lùi
+    về payload/mảng unit. `snapshot` bắt buộc phải thấy `units`; `units` không gỡ lớp.
+    """
+
+    rounds: list[Round] = []
+    notes: list[str] = []
+    for raw in paths:
+        if source in ("auto", "snapshot"):
+            try:
+                sources = find_unit_sources(raw)
+            except GoldSetError:
+                if source == "snapshot":
+                    raise
+                sources = []
+            if sources:
+                best = max(sources, key=lambda item: len(item.units))
+                others = [item for item in sources if item is not best]
+                note = (
+                    f"{best.key_path} → {len(best.units)} unit, {best.layers} lớp mã hoá, nhãn {best.label!r}"
+                )
+                if others:
+                    note += "; nguồn khác trong file: " + ", ".join(
+                        f"{item.key_path} ({len(item.units)} unit)" for item in others
+                    )
+                notes.append(note)
+                rounds.append(_round_from_units(list(best.units), best.label))
+                continue
+        rounds.extend(load_rounds([raw]))
+    return rounds, notes
 
 
 # --------------------------------------------------------------------------- #
@@ -378,6 +563,7 @@ class Sample:
 
     rows: tuple[SampledUnit, ...]
     counts: dict[str, int]
+    pools: dict[str, int]
     overlaps: int
     duplicate_ids: tuple[str, ...]
     units_total: int
@@ -391,10 +577,21 @@ class Sample:
         lines = [
             f"Lấy mẫu {len(self.rows)}/{self.units_total} unit (xin {self.n_requested}, seed {self.seed})",
             f"  lượt: {', '.join(self.rounds)}",
-            "  đếm theo tầng (mỗi unit chỉ vào một tầng, ưu tiên từ trên xuống):",
+            "  đếm theo tầng — `rút/kho` (kho = số unit của tầng trước khi rút; mỗi unit",
+            "  chỉ vào một tầng, ưu tiên từ trên xuống):",
         ]
         for stratum in STRATA:
-            lines.append(f"    {stratum:<22} {self.counts.get(stratum, 0):>4}  ({STRATUM_VN[stratum]})")
+            lines.append(
+                f"    {stratum:<22} {self.counts.get(stratum, 0):>4}/"
+                f"{self.pools.get(stratum, 0):<4} ({STRATUM_VN[stratum]})"
+            )
+        empty = [s for s in STRATA if self.pools.get(s, 0) == 0]
+        if empty:
+            lines.append(
+                "  tầng rỗng trong nguồn: "
+                + ", ".join(f"{s} ({STRATUM_VN[s]})" for s in empty)
+                + " — sheet không có dòng nào của tầng đó, và đó là sự thật về nguồn"
+            )
         lines.append(
             f"  unit khớp nhiều tầng: {self.overlaps} "
             "(đã gán vào tầng đặc thù nhất, con số này không bị giấu)"
@@ -503,6 +700,7 @@ def sample_units(
     return Sample(
         rows=tuple(rows),
         counts={s: sum(1 for r in rows if r.stratum == s) for s in STRATA},
+        pools=dict(sizes),
         overlaps=overlaps,
         duplicate_ids=tuple(dupes),
         units_total=len(all_units),
@@ -807,7 +1005,9 @@ def precision_recall(
 
 
 def _cmd_sample(args: argparse.Namespace) -> int:
-    rounds = load_rounds(args.units)
+    rounds, notes = _load_source(args.units, args.source)
+    for note in notes:
+        _emit(f"nguồn: {note}")
     sample = sample_units(rounds, n=args.n, seed=args.seed)
     _emit(sample.describe())
     out = Path(args.out)
@@ -852,7 +1052,19 @@ def build_parser() -> argparse.ArgumentParser:
         "--units",
         action="append",
         required=True,
-        help="file JSON có mảng `units` (payload phiên) hoặc `rounds`; lặp lại cho nhiều lượt",
+        help=(
+            "file nguồn (JSON). Lặp lại cho nhiều lượt. `--source auto` đọc được cả file "
+            "dump của shared_preferences, payload phiên, hay mảng unit trần"
+        ),
+    )
+    p_sample.add_argument(
+        "--source",
+        choices=("auto", "snapshot", "units"),
+        default="auto",
+        help=(
+            "auto (mặc định) = tự nhận dạng từng file; snapshot = bắt buộc đọc file dump "
+            "của shared_preferences (gỡ các lớp chuỗi JSON); units = chỉ payload/mảng unit"
+        ),
     )
     p_sample.add_argument("--out", required=True, help="đường dẫn sheet CSV để ghi")
     p_sample.add_argument("--n", type=int, default=DEFAULT_SAMPLE_SIZE)

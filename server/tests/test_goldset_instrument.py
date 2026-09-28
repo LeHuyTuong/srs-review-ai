@@ -19,6 +19,7 @@ import csv
 import importlib.util
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -205,6 +206,8 @@ class TestSampling:
 
         sample = gi.sample_units([_rich_round()], n=6, seed=1)
         assert sum(sample.counts.values()) == len(sample.rows)
+        assert sum(sample.pools.values()) == sample.units_total
+        assert sample.pools[gi.STRATUM_DUPLICATE_UC_ID] == 2  # kho, không phải số rút ra
         assert sample.counts[gi.STRATUM_DUPLICATE_UC_ID] == 1
         assert sample.units_total == 8
         assert sample.distinct_ids == 7
@@ -553,6 +556,31 @@ class TestCli:
         assert "precision=" not in printed
         assert "TP=" not in printed
 
+    def test_cli_reads_the_two_layer_store_with_source_snapshot(self, tmp_path: Path, capsys):
+        path = _write_store(tmp_path, _payload_with_units(6))
+        out = tmp_path / "sheet.csv"
+        code = gi.main(
+            [
+                "sample",
+                "--source",
+                "snapshot",
+                "--units",
+                str(path),
+                "--out",
+                str(out),
+                "--n",
+                "6",
+                "--seed",
+                "1",
+            ]
+        )
+        printed = capsys.readouterr().out
+        assert code == 0
+        assert "lớp mã hoá" in printed  # nói ra dữ liệu bị mã hoá hai lớp
+        assert "đã ghi sheet TRỐNG" in printed
+        with pytest.raises(gi.GoldSetError):
+            gi.read_sheet(out)  # trống thật, không đọc được như sheet đã ký
+
     def test_cli_bad_input_exits_two(self, tmp_path: Path, capsys):
         code = gi.main(["agreement", "--a", str(tmp_path / "nope.csv"), "--b", str(tmp_path / "k.csv")])
         printed = capsys.readouterr().out
@@ -614,6 +642,236 @@ class TestLoading:
         with pytest.raises(gi.GoldSetError) as excinfo:
             gi.load_rounds([bad])
         assert "không thấy `units`" in str(excinfo.value)
+
+
+def _payload_with_units(count: int = 6, *, file_name: str = "OTES.pdf", fingerprint: str = "5acb1fca"):
+    """Payload phiên đúng hình dạng app ghi: `units` + fileName + fingerprint."""
+
+    units = [_unit(f"BR{i:02d}", "Business rule", f"quy tắc {i}", f"k{i}") for i in range(1, count + 1)]
+    return {
+        "fileName": file_name,
+        "pageCount": 162,
+        "units": _units_as_json_for(units),
+        "parserVersion": "1.4.1",
+        "documentFingerprint": fingerprint,
+    }
+
+
+def _units_as_json_for(units) -> list[dict]:
+    return [
+        {
+            "key": u.key,
+            "id": u.unit_id,
+            "title": f"title {u.unit_id}",
+            "text": u.text,
+            "kind": u.kind,
+            "section": "4.2",
+            "pageIndex": 7,
+            "malformed": False,
+            "selected": True,
+            "status": "pending",
+        }
+        for u in units
+    ]
+
+
+def _write_store(
+    tmp_path: Path,
+    payload,
+    *,
+    key: str = "flutter.srs.workspace.snapshot",
+    extra: dict | None = None,
+    name: str = "store.json",
+) -> Path:
+    """File dump của shared_preferences: **giá trị là một chuỗi** chứa JSON.
+
+    Đây là lớp mã hoá thứ hai — `json.loads` một lần chỉ ra `str`, và mọi thứ trong đó
+    vẫn là chữ.
+    """
+
+    store: dict = {key: json.dumps(payload)}
+    if extra:
+        store.update(extra)
+    path = tmp_path / name
+    path.write_text(json.dumps(store), encoding="utf-8")
+    return path
+
+
+class TestSnapshotSource:
+    def test_the_second_encoding_layer_is_unwrapped(self, tmp_path: Path):
+        """Giá trị của shared_preferences là chuỗi chứa JSON: parse một lần là chưa đủ."""
+
+        path = _write_store(
+            tmp_path,
+            _payload_with_units(6),
+            extra={"flutter.srs.proxy.userId": "d41d8cd98f00b204"},
+        )
+        sources = gi.find_unit_sources(path)
+        assert len(sources) == 1
+        assert sources[0].layers == 1  # đã gỡ đúng một lớp chuỗi
+        assert len(sources[0].units) == 6
+
+        rounds = gi.load_units_from_snapshot(path)
+        assert len(rounds) == 1
+        assert [u.unit_id for u in rounds[0].units] == [f"BR{i:02d}" for i in range(1, 7)]
+        assert rounds[0].label == "OTES.pdf#5acb1fca"
+
+    def test_the_key_name_is_not_hardcoded(self, tmp_path: Path):
+        """Đổi tên key và lồng sâu thêm một tầng: vẫn phải đọc được.
+
+        File thật đổi shape lần sau là chuyện bình thường; bám vào tên key của
+        shared_preferences thì lần đó công cụ chết.
+        """
+
+        path = _write_store(tmp_path, _payload_with_units(4), key="prefs/round-A")
+        nested = tmp_path / "nested.json"
+        nested.write_text(
+            json.dumps({"wrapper": json.loads(path.read_text(encoding="utf-8"))}),
+            encoding="utf-8",
+        )
+        rounds = gi.load_units_from_snapshot(nested)
+        assert len(rounds[0].units) == 4
+
+    def test_the_richest_source_wins_and_the_others_are_still_visible(self, tmp_path: Path):
+        """Nhiều nguồn: chọn nguồn nhiều unit nhất, **và** `find_unit_sources` nói ra
+        những nguồn còn lại — chọn im lặng thì không ai biết đã bỏ qua cái gì."""
+
+        path = _write_store(
+            tmp_path,
+            _payload_with_units(3),
+            extra={
+                "flutter.srs.workspace.sessions": [
+                    json.dumps(
+                        {
+                            "id": "s1",
+                            "fileName": "OTES.pdf",
+                            "payloadJson": json.dumps(_payload_with_units(5)),
+                        }
+                    )
+                ]
+            },
+        )
+        sources = gi.find_unit_sources(path)
+        assert len(sources) == 2
+        assert sorted(len(s.units) for s in sources) == [3, 5]
+
+        rounds = gi.load_units_from_snapshot(path)
+        assert len(rounds[0].units) == 5  # nguồn lớn nhất, không phải nguồn đầu tiên
+
+    def test_a_session_list_two_layers_deep_is_found(self, tmp_path: Path):
+        """Hình dạng thật của `flutter.srs.workspace.sessions` trong repo: một mảng các
+        **chuỗi**, mỗi chuỗi là một SavedSession, `payloadJson` của nó lại là chuỗi JSON."""
+
+        path = tmp_path / "sessions.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "flutter.srs.workspace.sessions": [
+                        json.dumps(
+                            {
+                                "id": "sess-1",
+                                "fileName": "OTES.pdf",
+                                "payloadJson": json.dumps(_payload_with_units(6)),
+                            }
+                        )
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        sources = gi.find_unit_sources(path)
+        assert len(sources) == 1
+        assert sources[0].layers == 2  # hai lớp chuỗi, không phải một
+        assert sources[0].key_path.endswith("payloadJson")
+        assert len(sources[0].units) == 6
+        assert gi.load_units_from_snapshot(path)[0].label == "OTES.pdf#5acb1fca"
+
+    def test_a_file_with_no_units_says_what_it_saw(self, tmp_path: Path):
+        """Không có `units` thì lỗi phải nói ra cấu trúc đã đọc được — nếu không, người
+        sau chỉ biết 'không đọc được' và lại phải mở file ra đo bằng tay."""
+
+        path = tmp_path / "alien.json"
+        path.write_text(json.dumps({"a": "x", "b": ["y"]}), encoding="utf-8")
+        with pytest.raises(gi.GoldSetError) as excinfo:
+            gi.find_unit_sources(path)
+        message = str(excinfo.value)
+        assert "không tìm thấy nguồn" in message
+        assert "a=str" in message and "b=list" in message
+
+    def test_a_half_written_json_string_does_not_crash(self, tmp_path: Path):
+        """Chuỗi mở đầu bằng `{` nhưng JSON hỏng (file bị cắt lúc ghi) thì bỏ qua chỗ đó,
+        không được ném ra ngoài."""
+
+        path = tmp_path / "cut.json"
+        path.write_text(
+            json.dumps({"half": '{"units": [{"id": ', "real": json.dumps(_payload_with_units(2))}),
+            encoding="utf-8",
+        )
+        rounds = gi.load_units_from_snapshot(path)
+        assert len(rounds[0].units) == 2
+
+    def test_a_bare_units_file_still_loads_through_the_same_loader(self, tmp_path: Path):
+        path = tmp_path / "bare.json"
+        path.write_text(json.dumps(_units_as_json_for(_rich_round().units)), encoding="utf-8")
+        rounds = gi.load_units_from_snapshot(path)
+        assert len(rounds[0].units) == 8
+        assert gi.find_unit_sources(path)[0].layers == 0  # mảng trần: không lớp nào
+
+
+REAL_SNAPSHOT = ROOT / "reviews" / "workspace-snapshot-2026-09-22-parser1.4.1.json"
+
+
+@pytest.mark.skipif(
+    not REAL_SNAPSHOT.exists(),
+    reason="file bằng chứng không có trên cây này — CI không được đỏ vì nó bị dọn đi",
+)
+class TestTheRealSnapshot:
+    """Đọc **file thật** `reviews/workspace-snapshot-2026-09-22-parser1.4.1.json`.
+
+    Các con số dưới đây là đo được trên file đã commit; nếu ai dump lại file bằng
+    parser khác thì test này đỏ, và đó là điều đúng: cảnh báo phạm vi trong
+    `docs/evidence/goldset-instrument-2026-09-27.md` đang trích đúng những số đó.
+    """
+
+    def test_it_yields_240_units_and_the_first_one_has_text(self):
+        rounds = gi.load_units_from_snapshot(REAL_SNAPSHOT)
+        assert sum(len(round.units) for round in rounds) == 240
+        assert rounds[0].units[0].text.strip() != ""
+        assert "OTES" in rounds[0].label
+
+    def test_the_kind_distribution_is_the_measured_one(self):
+        units = gi.load_units_from_snapshot(REAL_SNAPSHOT)[0].units
+        assert Counter(u.kind for u in units) == Counter(
+            {"Section": 168, "Use case": 61, "Functional": 5, "Non-functional": 4, "Unknown": 2}
+        )
+
+    def test_the_pools_are_the_measured_ones_and_sum_to_the_inventory(self):
+        sample = gi.sample_units(gi.load_units_from_snapshot(REAL_SNAPSHOT), n=24, seed=gi.DEFAULT_SEED)
+        assert sum(sample.pools.values()) == 240
+        assert sample.pools[gi.STRATUM_UC_BODY_SECTION] == 58
+        assert sample.pools[gi.STRATUM_UC_MAIN_FLOW] == 9
+        assert sample.pools[gi.STRATUM_BUSINESS_RULE] == 0  # OTES không có business rule
+        assert sample.distinct_ids == 229
+
+    def test_the_sheet_from_the_real_source_carries_no_label_of_any_kind(self, tmp_path: Path):
+        """Đầu-cuối: nguồn thật → mẫu → sheet **trống**. Không một nhãn nào, kể cả ví dụ."""
+
+        sample = gi.sample_units(gi.load_units_from_snapshot(REAL_SNAPSHOT), n=24, seed=gi.DEFAULT_SEED)
+        path = gi.annotate_sheet(sample, tmp_path / "sheet-A.csv")
+        with path.open(encoding="utf-8", newline="") as handle:
+            rows = list(csv.DictReader(handle))
+
+        assert len(rows) == 24
+        for row in rows:
+            assert row["annotator"] == ""
+            assert row["finding"] == ""
+            assert row["criterion_id"] == ""
+            assert row["note"] == ""
+            assert row["unit_id"].strip() != ""
+            assert row["text"].strip() != ""
+            assert row["source_round"].startswith("OTES")
+        with pytest.raises(gi.GoldSetError):  # và sheet trống không đọc được như đã ký
+            gi.read_sheet(path)
 
 
 class TestIsolation:

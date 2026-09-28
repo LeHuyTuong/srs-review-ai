@@ -4,8 +4,9 @@
 
 | | |
 |---|---|
-| Bộ dụng cụ | `docs/evidence/scripts/goldset_instrument.py` — chạy được end-to-end |
-| Test | `server/tests/test_goldset_instrument.py` — **36 test**, trong đó có test âm chứng minh ngưỡng 80% thật sự chặn |
+| Bộ dụng cụ | `docs/evidence/scripts/goldset_instrument.py` — chạy được end-to-end **trên nguồn thật** |
+| Nguồn mẫu | `reviews/workspace-snapshot-2026-09-22-parser1.4.1.json` — **240 unit**, parser **1.4.1** (đọc cảnh báo phạm vi ở mục 1 trước khi dùng) |
+| Test | `server/tests/test_goldset_instrument.py` — **48 test**, trong đó có test âm chứng minh ngưỡng 80% thật sự chặn, và 4 test đọc chính file nguồn thật |
 | Nhãn vàng | **KHÔNG có.** Chưa ai dán, chưa ai ký |
 | Số precision/recall | **KHÔNG có.** Không một con số nào trong repo (xem mục cuối) |
 | Còn thiếu để đóng M2 | **hai người chấm độc lập** — việc cần con người, không phải code |
@@ -35,6 +36,41 @@ khoá `rounds` nếu muốn trộn nhiều lượt (mỗi phần tử có `label
 python docs/evidence/scripts/goldset_instrument.py sample \
     --units <file-inventory.json> --out goldset-sheet-A.csv --n 24 --seed 20260927
 ```
+
+**Nguồn đã có ngay trong repo** — không cần export gì từ app:
+
+```bash
+# cwd = gốc repo srs-review-ai/
+python docs/evidence/scripts/goldset_instrument.py sample --source snapshot \
+    --units reviews/workspace-snapshot-2026-09-22-parser1.4.1.json \
+    --out goldset-sheet-A.csv --n 24 --seed 20260927
+```
+
+Đo được trên file đó: **240 unit**; phân bố `kind` = `Section` 168 · `Use case` 61 ·
+`Functional` 5 · `Non-functional` 4 · `Unknown` 2; `parserVersion` trong chính file ghi
+**1.4.1**; 0 unit có `text` rỗng. File là dump của `shared_preferences`, nên dữ liệu bị
+**mã hoá hai lớp** (giá trị là một chuỗi chứa JSON) — `--source auto` tự gỡ lớp đó,
+`--source snapshot` bắt buộc đọc kiểu file dump, `--source units` chỉ nhận payload/mảng
+unit thường. Trong file **còn 3 nguồn nữa** ngoài snapshot (ba session: 240/85/126 unit);
+công cụ chọn nguồn nhiều unit nhất **và in ra** những nguồn còn lại, không chọn im lặng.
+Tên key không bị hardcode: key nào (ở bất kỳ độ sâu nào, sau khi gỡ lớp chuỗi) parse ra
+object có `units` là mảng thì được nhận.
+
+Kho theo tầng trên nguồn thật (`rút/kho` do lệnh trên in ra): `section_is_uc_body` 58 ·
+`duplicate_uc_id` 16 · `uc_with_main_flow` 9 · `business_rule` **0** · `nfr_as_prose` 6 ·
+`other` 151 (cộng lại = 240). Tầng `business_rule` rỗng vì OTES không có business rule
+nào — sheet sẽ không có dòng nào của tầng đó, và lệnh in thẳng điều đó ra thay vì để
+người đọc tự đoán.
+
+> **⚠ Phạm vi của nguồn này — đọc trước khi kết luận bất cứ điều gì.**
+> 168/240 unit ở đây là `Section`, và **đó là hệ quả của parser 1.4.1**: thân UC bị tách
+> thành `SEC-…`, đúng cái bẫy mà 1.4.2 đã sửa. Số đo ngay trong nguồn: **53 `Section`
+> mang `Main flow` của một UC**, trong khi chỉ **9/61 UC** còn giữ nó.
+> Vì thế gold set lấy từ nguồn này có phạm vi là **tiêu chí trên từng unit**
+> (`finding` / `criterion_id`), và **không** dùng để kết luận gì về **phân đoạn unit**
+> (một UC có bị cắt thành nhiều unit hay không). Muốn chấm cả phân đoạn thì phải dump
+> lại inventory bằng **parser 1.4.2** — và lúc đó mới cần một nút export trong app; lần
+> này **cố ý không** thêm nút nào vào `app/`.
 
 Script in ra **số đếm theo từng tầng** và cách đếm (số unit mang một ID vs số ID khác
 nhau — vì "63 bảng / 52 ID xuất hiện / 24 ID duy nhất" là ba con số khác nhau cho cùng
@@ -121,14 +157,17 @@ Khi độ khớp dưới ngưỡng, `precision_recall()` ném `GoldSetNotReliabl
 - **Không có số precision/recall nào.** Không phải "chưa công bố" — là **chưa đo**, vì
   chưa có nhãn vàng để đo.
 - **Không có kết luận nào về độ chính xác của engine** trong tài liệu này, và không được
-  rút ra từ 36 test ở trên: chúng kiểm tra **dụng cụ đo**, không đo engine.
+  rút ra từ 48 test ở trên: chúng kiểm tra **dụng cụ đo**, không đo engine.
+- **Nguồn mẫu thì đã có** (240 unit, xem mục 1) — nguồn không còn là thứ chặn WP7.
+  Nhưng nguồn đó chạy trên parser 1.4.1, nên phạm vi của nó bị giới hạn như cảnh báo ở
+  mục 1: **tiêu chí trên từng unit**, không phải phân đoạn unit.
 - **AC-12.13** (bộ dụng cụ có test âm) — **đạt**, bằng chứng là test âm ở mục 2.
   **M2 / AC-C của plan 10 vẫn MỞ** cho tới khi có hai người ký.
 
 ## 4. Chạy lại mọi thứ trong tài liệu này
 
 ```bash
-# 36 test của bộ dụng cụ (cwd = gốc repo)
+# 48 test của bộ dụng cụ (cwd = gốc repo)
 cd server && .venv/Scripts/python.exe -m pytest tests/test_goldset_instrument.py
 
 # cả bộ server

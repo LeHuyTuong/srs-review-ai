@@ -374,6 +374,16 @@ chứng minh bằng dữ liệu **tự dựng**, **chưa lần nào** đưa text
 
 ### WP7 — Gold set: dựng **bộ dụng cụ**, KHÔNG tự tạo gold
 
+**Trạng thái sau phần 2 (2026-09-27):** nguồn mẫu **đã có** và **đã nối vào bộ dụng cụ** —
+`reviews/workspace-snapshot-2026-09-22-parser1.4.1.json`, **240 unit**, phân bố
+`Section` 168 · `Use case` 61 · `Functional` 5 · `Non-functional` 4 · `Unknown` 2; file là
+dump của `shared_preferences` nên giá trị bị **mã hoá hai lớp**, và loader **không hardcode
+tên key** (key nào parse ra object có `units` là mảng thì nhận). Bộ dụng cụ **chạy được
+end-to-end trên nguồn thật** (48 test, gồm 4 test đọc chính file đó). **Thứ còn thiếu chỉ là
+hai người ký.** Cảnh báo phạm vi: nguồn chạy trên parser **1.4.1** nên chỉ dùng để chấm
+**tiêu chí trên từng unit**, **không** dùng để kết luận về phân đoạn unit (đọc
+`docs/evidence/goldset-instrument-2026-09-27.md` mục 1).
+
 **Sự thật phải nói trước khi làm:** gold set là nơi người khác tự chấm; người tự dán
 rồi tự chấm thì đó là **gold set vô giá trị** (plan 10 §3 ghi nguyên văn). Nên WP này
 **không thể hoàn thành một mình** — và bạn **không được giả vờ hoàn thành**.
