@@ -560,3 +560,88 @@ precision/recall nào trong repo.
 ````
 
 
+---
+
+## Chế độ J — nối bộ dụng cụ với nguồn mẫu đã có trong repo (không đụng app)
+
+WP7 đã xong nhưng **chưa dùng được**: nó cần một file JSON có mảng `units`, và trong
+repo chưa ai tạo ra file đó. Nguồn thì **đã có sẵn** — tôi đã dò ra và đo được, nên
+bạn không phải tìm lại.
+
+````markdown
+Tiếp tục plan 12 — **bước nối nguồn mẫu cho bộ dụng cụ gold set (WP7, phần 2)**. Số đo
+chốt: app 946/946 · server 323 passed + 1 skipped · guardrails 8/8, 684 file ·
+`ruff check` + `ruff format --check` sạch · `git status` sạch, commit mới nhất `6d8166c`.
+
+# Đã đo sẵn — đừng dò lại
+
+`reviews/workspace-snapshot-2026-09-22-parser1.4.1.json` (1,73 MB, **đã được commit**).
+Cấu trúc đo được:
+
+- Cấp cao nhất là **3 key của shared_preferences**: `flutter.srs.proxy.userId`,
+  `flutter.srs.workspace.snapshot`, `flutter.srs.workspace.sessions`.
+- `flutter.srs.workspace.snapshot` là **chuỗi** (`str`) chứa JSON — tức dữ liệu bị
+  **mã hoá hai lớp**. Parse một lần là chưa đủ.
+- Bên trong: `fileName, pageCount, sizeLabel, isDemo, units, syllabusFindings,
+  referenceFindings, blueprintFindings, findingStatus, diagramPageCount, result,
+  documentFingerprint`.
+- `units` có **240 phần tử**; mỗi phần tử có `key, id, title, text, kind, section,
+  pageIndex, malformed, selected, status` (unit đầu có `text` dài 861 ký tự ⇒ **có text
+  thật để người ký đọc**).
+- Phân bố `kind`: `Section` 168, `Use case` 61, `Functional` 5, `Non-functional` 4,
+  `Unknown` 2.
+
+# Việc cần làm
+
+1. **Thêm loader vào `docs/evidence/scripts/goldset_instrument.py`** — ví dụ
+   `load_units_from_snapshot(path)`, dùng được bằng cờ `--source snapshot <path>`.
+   - **Đừng hardcode tên key.** File có 3 key; hãy chọn key nào parse ra object có
+     `units` là list — đó là cách chịu được file đổi shape lần sau thay vì chết.
+   - Phải xử lý lớp mã hoá thứ hai (chuỗi JSON bên trong JSON).
+   - Trả về `units` ở đúng hình dạng mà `sample_units()` đã nhận, và **giữ nguyên logic
+     phân tầng** đã có (mọi tầng hiện đang dùng: `section_is_uc_body`, `duplicate_uc_id`,
+     `uc_with_main_flow`, `business_rule`, `nfr_as_prose`, `other`).
+   - Vẫn **thuần stdlib**, vẫn **không** import `app.*` hay `server.*` — test
+     `TestIsolation` quét AST và phải **vẫn xanh**.
+2. **Test mới** trong `server/tests/test_goldset_instrument.py`:
+   - Loader đúng trên **fixture nhỏ tự dựng** có đúng cái hình dạng hai lớp kia
+     (bốc từ `tmp_path`) — đây là test chính, không phụ thuộc file lớn.
+   - Một test đọc **file thật** trong `reviews/`, khẳng định ra **240 unit** và rằng
+     unit đầu có `text` khác rỗng. Cho phép bỏ qua (`skipif`) nếu file vắng mặt, để
+     CI không đỏ vì một file bằng chứng bị dọn đi.
+   - Test end-to-end: từ file thật → lấy mẫu → sinh sheet **trống** (`finding` và
+     `annotator` rỗng). Không được sinh ra nhãn nào.
+3. **Ghi nguồn và cảnh báo phạm vi vào `docs/evidence/goldset-instrument-2026-09-27.md`:**
+   - Nguồn: đường dẫn file, 240 unit, phân bố `kind` đo được, và **parser 1.4.1**.
+   - **Cảnh báo phải nằm trong file, không nằm trong đầu ai đó:** 168 unit `Section` ở
+     đây là **hệ quả của parser 1.4.1** — thân UC bị tách thành `SEC-…`, đúng cái bẫy mà
+     1.4.2 đã sửa. Vì thế gold set lấy từ nguồn này phạm vi là **tiêu chí trên từng
+     unit** (`finding` / `criterion_id`), và **không** dùng để kết luận gì về phân đoạn
+     unit. Nếu sau này cần chấm cả phân đoạn thì phải dump lại bằng 1.4.2, và lúc đó
+     mới cần một nút export trong app — ghi luôn điều đó.
+   - Nhắc lại: **chưa có** số precision/recall nào, và còn thiếu hai người ký.
+4. Cập nhật dòng trạng thái của WP7 trong `docs/plans/12-run-everything-remaining-2026-09-27.md`:
+   nguồn mẫu **đã có**, bộ dụng cụ **chạy được**; thứ còn thiếu chỉ là hai người ký.
+
+# Bẫy đã trả tiền
+
+- Script in tiếng Việt ⇒ `sys.stdout.reconfigure(encoding="utf-8", errors="replace")`
+  **trước mọi print**, không thì chết giữa lúc chạy và trông như "không làm gì".
+- **Đừng tạo nhãn vàng**, kể cả ví dụ minh hoạ. Sheet sinh ra phải **trống**.
+- Không đụng cache thật của server, không cần API key, không tốn quota.
+- Sửa file bằng script đọc/ghi `newline=""`; **đọc lại file sau khi vá**; script tạm thì
+  xoá xong **viết lại toàn bộ một lần**.
+
+# Dừng hỏi tôi
+
+Nếu loader buộc phải đọc `reviews/` bằng cách nào đó không thuần stdlib, hoặc nếu bạn thấy
+cần nối thẳng vào app để lấy payload — dừng hỏi, đừng tự mở rộng phạm vi. Đừng sửa
+gì trong `app/`: nút export chỉ cần khi nào ai đó quyết định chấm cả phân đoạn unit.
+
+# Báo cáo
+
+Theo §5 của plan, thêm: **số unit thật đọc được từ file thật**, và dán lại đoạn cảnh báo
+phạm vi 1.4.1 mà bạn đã ghi vào file evidence (để tôi kiểm chữ, không kiểm ý).
+````
+
+
