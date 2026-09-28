@@ -481,3 +481,82 @@ cả hai).
 ````
 
 
+---
+
+## Chế độ I — WP7: bộ dụng cụ gold set (không cần tiền, không cần người)
+
+Sau WP5 thì ba WP còn lại đều bị chặn bởi thứ nằm ngoài tầm tay: WP6 cần file OTES
+(~28,7 MB, không nằm trong git) **và** người duyệt quota; WP8 cần khoá API thật **và**
+người duyệt chi phí. **WP7 là phần duy nhất tự làm được** — và nó nằm ở
+`docs/evidence/scripts/`, **không giao với app**, nên chạy song song với WP5 được.
+
+````markdown
+Tiếp tục plan 12 — **WP7, phần làm được: bộ dụng cụ gold set**. Số đo chốt: app 946/946
+· server 287 passed + 1 skipped · guardrails 8/8, 681 file · `ruff check` +
+`ruff format --check` sạch · `git status` sạch.
+
+# Sự thật phải nói trước khi làm
+
+**Gold set là nơi người khác tự chấm. Người tự dán rồi tự chấm thì đó là gold set vô
+giá trị** (plan 10 §3 nói nguyên văn). Nên **không tạo nhãn vàng** — không, không cả
+"ví dụ minh hoạ", vì một ví dụ do bạn tự dán sẽ trôi vào sheet thật và làm hỏng đúng
+thứ nó sinh ra. Việc bạn làm và làm được trọn vẹn là **bộ dụng cụ**, để khi có hai
+người ngồi ký thì việc đo chạy được ngay.
+
+# Cần tạo
+
+1. **`docs/evidence/scripts/goldset_instrument.py`** — theo đúng khuôn các probe cùng
+   thư mục: docstring tiếng Việt, có dòng `Chạy:` ghi lệnh chạy thật từ `server/`, và
+   có `main()` để chạy tay.
+   - `sample_units(rounds, n, seed)` — lấy mẫu **phân tầng**, vì OTES có bẫy đã đo:
+     ID trùng có hệ thống (UC04 dùng cho 7+ chức năng, UC021 cho cả "đóng nhóm" lẫn
+     "đuổi học viên"), NFR viết thành văn nên parser ra `section`, và thân UC bị tách
+     thành `SEC-...` khi mất flow. Tầng: (a) use case có main flow, (b) business rule,
+     (c) NFR viết thành văn, (d) use case trùng ID, (e) section unit thực ra là thân
+     UC. **In số đếm theo từng tầng** — mọi phát biểu về số lượng đều phải nói rõ đếm
+     theo cách nào, vì "63 bảng / 52 ID xuất hiện / 24 ID duy nhất" là ba con số khác
+     nhau cho cùng một tài liệu.
+   - `annotate_sheet(...)` — ghi CSV với các cột `unit_id, unit_kind, text, annotator,
+     finding, criterion_id, note`. Cột **`annotator` là bắt buộc**: thiếu nó thì không
+     tính được độ khớp giữa hai người, và không có gì báo lỗi. Sheet phải **trống**,
+     dành cho người điền.
+   - `agreement(sheet_a, sheet_b)` — tỉ lệ dòng mà hai người khớp trên
+     `(finding, criterion_id)`. **Dưới 80% thì phải nói "chưa đủ tin cậy" và TỪ CHỐI**
+     in precision/recall (ngưỡng 80% chốt ở plan 10 §3).
+   - `precision_recall(sheet_human, sheet_system)` — chỉ chạy được khi agreement đã đạt.
+2. **`server/tests/test_goldset_instrument.py`** — vì CI chạy `pytest`, đặt test ở đây
+   thì luật mới được thi hành tự động; import script bằng
+   `importlib.util.spec_from_file_location`.
+   - Lấy mẫu **tất định** với seed cố định, và mỗi tầng khác rỗng trên fixture tự dựng.
+   - **Test âm — quan trọng nhất trong cả WP:** hai sheet cố tình lệch nhau ⇒ agreement
+     dưới 80% ⇒ công cụ **báo "chưa đủ tin cậy" và không in** precision/recall. Một
+     bộ dụng cụ chỉ biết nói "đạt" là bộ dụng cụ vô dụng.
+   - Test dương: hai sheet giống nhau ⇒ 100% và có in số.
+   - precision/recall trên một case nhỏ **tự tính tay**, chứ không so với con số của
+     chính code vừa viết.
+3. **`docs/evidence/goldset-instrument-2026-09-27.md`** — nói thẳng: bộ dụng cụ đã sẵn
+   sàng; **còn thiếu hai người ký**; **chưa có** số precision/recall nào; kèm hướng dẫn
+   cụ thể cho hai người (mở file nào, điền cột nào, đặt file ở đâu, ngưỡng 80% ở đâu).
+
+# Bẫy, đã trả tiền
+
+- **Script này in tiếng Việt, và console này là cp1258** ⇒ `print("Số mẫu…")` sẽ ném
+  `UnicodeEncodeError` **giữa lúc chạy**: phần in trước mất, phần ghi file sau chưa
+  chạy, và traceback bị nuốt thì trông y hệt "script không làm gì". Phải có
+  `sys.stdout.reconfigure(encoding="utf-8", errors="replace")` **trước mọi print**.
+- **Tài liệu tiếng Việt**: khớp tiêu đề bằng `re.M` trên phần tiêu đề, **đừng** so
+  chuỗi tiếng Anh chính xác (`## Understanding`, `Files / Modules Affected`) —
+  `verify_plan_claims.py` đã hỏng vì lý do này **hai lần**.
+- **File OTES không nằm trong git.** Sampler phải nhận đường dẫn làm tham số, và test
+  dùng fixture nhỏ tự dựng — **không** đọc file 28,7 MB thật, và **không** chạm cache
+  thật của server (conftest đã trỏ `SRS_CACHE_DIR` vào thư mục tạm; đừng vòng qua nó).
+- Đừng commit thứ gì **trông như nhãn vàng**.
+
+# Báo cáo
+
+Theo §5 của plan, thêm: **đo khớp thực tế** của hai sheet lệch nhau mà bạn tự dựng
+(bằng bao nhiêu, và vì sao con số đó đúng), và xác nhận rõ **chưa có** số
+precision/recall nào trong repo.
+````
+
+
