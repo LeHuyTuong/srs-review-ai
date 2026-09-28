@@ -65,7 +65,13 @@ người đọc tự đoán.
 > **⚠ Phạm vi của nguồn này — đọc trước khi kết luận bất cứ điều gì.**
 > 168/240 unit ở đây là `Section`, và **đó là hệ quả của parser 1.4.1**: thân UC bị tách
 > thành `SEC-…`, đúng cái bẫy mà 1.4.2 đã sửa. Số đo ngay trong nguồn: **53 `Section`
-> mang `Main flow` của một UC**, trong khi chỉ **9/61 UC** còn giữ nó.
+> mang `Main success scenario` của một UC**, trong khi chỉ **9/61 UC** còn giữ nó.
+> **Cách đếm (để người sau tự tái lập):** cụm thật trong tài liệu là
+> `Main success scenario`, **không** phải `Main flow` — trong 240 unit chỉ **một** unit
+> chứa chữ `flow`. Marker: `main[\s-]{0,3}(success[\s-]{0,3})?(scenario|flow)` không
+> phân biệt hoa thường; phải **cho phép hyphen và xuống dòng** vì PDF ngắt dòng giữa
+> hai từ. Đếm kiểu `main\s+(scenario|flow)` (thiếu từ `success`) cho ra **0** — đó là
+> phép đo sai, không phải tài liệu không có flow.
 > Vì thế gold set lấy từ nguồn này có phạm vi là **tiêu chí trên từng unit**
 > (`finding` / `criterion_id`), và **không** dùng để kết luận gì về **phân đoạn unit**
 > (một UC có bị cắt thành nhiều unit hay không). Muốn chấm cả phân đoạn thì phải dump
