@@ -41,7 +41,15 @@ Con số này phải nói ra, vì cache hit trông y hệt lượt chấm thật
    `generateContent` trong stderr là 0. Chỉ khi thêm một khoảng trắng vào text (làm đổi
    cache key) mới ép được lời gọi thật: **7,6s**.
 
-## M5 holdout: **thiếu tài liệu nguồn**
-`reviews/` chỉ có ledger markdown của OTES/HisWise/CarbonX, **không có file SRS/SDS gốc**;
-`D:\Download` không có tài liệu nào trong số đó. Nên chưa chạy được holdout — đây là
-thiếu đầu vào, không phải hết provider.
+## M5 holdout: được mở **một nửa** — và tôi đã kết luận sai một lần
+Lần đầu tôi ghi "thiếu tài liệu nguồn" sau khi chỉ tìm trong `D:\Download` và `reviews/`.
+Sai. Tài liệu nguồn **có** trong repo:
+
+| Tài liệu | Tình trạng |
+|---|---|
+| **HisWise SDS** (1,04 MB) | `server/3b662b387392412f81870547ac69ac73-_HisWise_SDS Document.pdf` — **có** |
+| CarbonX SRS | **không có**; `reviews/` chỉ có ledger markdown |
+
+Nên: holdout **HisWise làm được ngay**, holdout **CarbonX vẫn kẹt** vì thiếu file gốc.
+Sự nhầm này đáng ghi vì nó đúng mẫu đã lặp nhiều lần trong dự án: kết luận "thiếu đầu vào"
+sau khi mới tìm trong một chỗ. Trước khi ghi một blocker vào bảng gate, phải tìm **toàn bộ đĩa**.
