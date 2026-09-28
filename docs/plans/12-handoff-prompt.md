@@ -399,9 +399,10 @@ Phần lớn prompt này là **những thứ đã dò ra và tốn công**, nên
 đo trên cây sau WP4.
 
 ````markdown
-Tiếp tục plan 12 — **WP5** (app giáo viên). Số đo chốt: app 946/946 · server 287 passed
-+ 1 skipped · guardrails 8/8, 681 file · `ruff check` + `ruff format --check` sạch ·
-`git status` sạch, commit mới nhất `1ac7231`.
+Tiếp tục plan 12 — **WP5** (app giáo viên). Số đo chốt: app 946/946 · server **335 passed
++ 1 skipped** · guardrails **8/8, 684 file** · `ruff check` + `ruff format --check` sạch ·
+`git status` sạch, commit mới nhất `f0d48e9`. (Server đã lên 335 sau WP7; app vẫn 946 vì
+WP7 không đụng `app/` — nếu bạn thấy app đỏ thì đó là do chính bạn, không phải nợ cũ.)
 
 Nguồn chuẩn: plan 12 §2 WP5, ADR-0015 (`AppRole` tách khỏi `AppPlatform`),
 ADR-0016 (lớp là capability, quyết định append), ADR-0017 (full CRUD, `write_key`).
