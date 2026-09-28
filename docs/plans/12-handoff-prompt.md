@@ -726,4 +726,82 @@ chain 1**, và **bản chép nguyên văn 2–3 finding** kèm đoạn text tư�
 `units.length` lệch xa 130, **đó là kết quả của lượt này** — báo nó, đừng sửa cho khớp.
 ````
 
+---
+
+## Chế độ L — WP8 gate 1: chạy LLM path thật trên OTES (TỐN TIỀN — hai pha, phải xin phép)
+
+Đây là gate còn mở lâu nhất của roadmap: sign-off 09-14 ghi rõ **không đo lại LLM path**
+sau 2026-09-21, tức mọi thay đổi về batching / pacing / vision / cache **chưa từng được
+chạy với provider thật**. Prompt này tách làm hai pha để **không tốn một call nào trước
+khi người dùng duyệt**.
+
+````markdown
+Tiếp tục plan 12 — **WP8 gate 1** (E2E chạy LLM path thật trên OTES). Số đo chốt: app
+969/969 · server 335 passed + 1 skipped · guardrails 8/8, 698 file · `ruff` sạch ·
+`git status` sạch, commit mới nhất `b409e21`.
+
+# PHÁ 0 — Tính số call TRƯỚC, rồi DỪNG (không tốn tiền, không cần khoá)
+
+Đây là pha bắt buộc đầu tiên và **kết thúc ở đây** cho tới khi tôi duyệt. Nhiệm vụ:
+dựng lại đúng unit mà app sẽ chấm trên OTES (dùng lại pipeline đã có ở
+`app/test/chain1_otes_real_document_test.dart`: footer strip → TOC → splitter →
+`SrsDocument`), rồi tính và **in ra**:
+
+1. Tổng số unit, và **bao nhiêu unit có ảnh trang** (`pageImageRenderer`/budget đã có
+   sẵn — dùng đúng cách app chọn ảnh, đừng tự đoán).
+2. Số call dự kiến theo đúng luật đã chốt: **unit văn bản gộp 6/call**
+   (`reviewBatchSize = 6`), **unit có ảnh đi một mỗi lượt** (ADR-0010: ảnh trang
+   không bao giờ vào batch), cộng phần ảnh của `/diagram` nếu có.
+3. Công thức: `calls = ceil(text_units / 6) + image_units`. In công thức, các số, và
+   **chi phí ước tính** (số call × bảng giá Gemini mà bạn biết; nếu không biết giá thì
+   nói số call và để tôi quyết đổi tiền).
+
+Sau đó **dừng và báo cáo**. Chưa chạy gì lên provider.
+
+# PHÁ 1 — chỉ chạy sau khi tôi nói "duyệt"
+
+- **Bắt buộc đi qua endpoint thật của proxy** (`POST /review/batch` + `POST /review` cho
+  unit ảnh + `POST /diagram`), **đúng header của app** (`X-App-Token`, `X-User-Id`), và
+  **giữ nguyên batching/pacing của server** — không tắt `ProviderPacer`, không gọi
+  provider trực tiếp. Nếu bỏ qua pacing thì lượt này **không chứng minh** cái nó cần
+  chứng minh, mà chỉ tốn tiền.
+- **Khoá API:** `server/.env` có **một** `gemini_api_key`. Dùng một khoá cho lượt này.
+  **Tuyệt đối** không in, không ghi log, không commit giá trị khoá; luật secrets của
+  guardrail sẽ bắt nếu lọt. Xoá vỏ khoá sau lượt.
+- **Override 250** trong `app_config.dart` chỉ dành cho dev local. Lượt này dùng nó để
+  vừa OTES trong một lần chạy thì **được**, nhưng phải **ghi rõ trong evidence** và
+  **restore về 50** ở commit cuối, kèm dòng xác nhận. Không sửa `RATE_LIMIT_PER_DAY`
+  trong `.env` nếu không cần.
+- **Cache:** chạy lại lượt đã cache là **miễn phí**. Nên nếu có lượt cũ trùng nội dung,
+  khai báo trước để tôi biết phần nào còn tốn tiền.
+
+# Phải ghi ra
+
+`docs/evidence/e2e-llm-path-otes-2026-09-28.md`:
+- Số unit chấm, số **thực sự** gọi provider (khác số dự kiến thì giải thích: 429, retry,
+  unit lỗi), finding theo loại, **độ phủ ảnh** (bao nhiêu trang có/không được chấm ảnh),
+  số lần `readiness`/retry nếu có, và thời gian thực tế.
+- **Có bao nhiêu lần phải xử lý 429** và cơ chế nào đã giữ: đây mới là thứ ADR-0010 nói
+  sẽ giữ được, và nó chỉ chứng minh được bằng lượt thật.
+- **Phạm vi hẹp phải nói rõ:** nếu bạn chạy bằng script gọi endpoint chứ không bấm UI thì
+  **đường UI không được chứng minh** — ghi điều đó, đừng ghi "E2E" theo nghĩa rộng.
+- **Mọi phát biểu về nội dung hình sơ đồ là chưa kiểm chứng** — bạn không đọc được ảnh
+  trong phiên này (đã ghi ở `AGENTS.md`). Chỉ được báo **số lượng và loại finding**, và
+  trích nguyên văn annotation.
+- Cập nhật bảng gate M5 trong `docs/roadmap.md`: gate này chuyển sang "đạt" **hoặc** "chưa
+  đạt + lý do" — tùy kết quả thật, không tự nhận là đạt.
+
+# Dừng hỏi tôi
+
+Trước khi bỏ tiền: số call dự kiến và chi phí (pha 0 chính là để bạn duyệt cái đó). Ngoài
+ra: cần đổi `.env`, cần xoá file không rõ nguồn gốc, hoặc thấy mâu thuẫn giữa ADR và code.
+
+# Báo cáo
+
+Theo §5 của plan. Thêm: **số call thực tế so với dự kiến**, và **xác nhận đã restore
+trần 50** nếu có dùng override.
+````
+
+**Còn một quyết định của bạn chưa trả lời** — không gộp vào prompt này vì nó là về *tiêu chí*, không phải về chạy code: AC4 đo được **0**, nên gate đó **không đạt**. Tôi đã khuyên **(c) + (a)**: giữ nguyên check `crossArtifactName`, ghi rõ phạm vi của nó vào `review-rules/` (nó chỉ bắt được tài liệu có dictionary/class-diagram — HisWise bắn 8, OTES văn xuôi thì 0), rồi sửa AC4 thành đúng thực tế đã đo. Tôi **không** đề xuất mở rộng check chỉ để AC4 xanh: đó là bịa metric để trông có kiểm định.
+
 
