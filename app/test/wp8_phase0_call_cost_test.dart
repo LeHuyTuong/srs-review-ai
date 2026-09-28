@@ -108,5 +108,28 @@ void main() {
       ' => $batchedCalls+$withImage=$totalCalls',
     );
     print('PHASE0 visionPathCalls=NOT_COUNTED (needs rendered pages, not text)');
+
+    // The reviewed list, exported for the paid run. Kept in the same harness on
+    // purpose: the units a run reviews must be the ones THIS pipeline produced,
+    // not a re-parse that might differ. Written outside the repo — it is OTES
+    // text, not repo content.
+    final outFile = File('${Platform.environment['TEMP']}/otes_units.json');
+    outFile.writeAsStringSync(
+      jsonEncode({
+        'source': doc.fileName,
+        'parserVersion': kParserVersion,
+        'units': [
+          for (final req in doc.requirements)
+            {
+              'requirement_id': req.id,
+              'kind': req.kind.name,
+              'text': req.text,
+              'section': req.section,
+              'page_index': req.pageIndex,
+            },
+        ],
+      }),
+    );
+    print('PHASE0 unitsExported=${outFile.path}');
   });
 }
