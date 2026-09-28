@@ -59,8 +59,7 @@ class ProviderPacer:
         self._default_cooldown = max(0.0, default_cooldown_s)
         self._max_cooldown = max(0.0, max_cooldown_s)
         self._jitter = max(0.0, jitter_s)
-        self._tokens = float(self._capacity)
-        self._refilled_at = time.monotonic()
+        self._buckets: dict[str, tuple[float, float]] = {}
         self._lock = asyncio.Lock()
         self._cooldown_until: dict[str, float] = {}
         # A 503 is the service talking, so it must hold models nobody has called
@@ -73,19 +72,28 @@ class ProviderPacer:
         """False when pacing is switched off (calls_per_minute <= 0)."""
         return self._rate > 0.0
 
-    async def acquire(self, model: str) -> None:
-        """Block until one call to *model* may start, then count it."""
+    async def acquire(self, model: str, bucket: str = "") -> None:
+        """Block until one call to *model* may start, then count it.
+
+        *bucket* names the quota the call spends. For Gemini that is the **API
+        key**, because Google meters the free tier per key rather than per
+        process: eight keys carry eight times the rate, and one shared bucket
+        would cap the run at a single key's quota no matter how many are
+        configured. Omitting it keeps the old per-model behaviour, which is
+        what every other provider wants.
+        """
         if not self.enabled:
             return
+        name = bucket or model
         while True:
             async with self._lock:
                 now = time.monotonic()
-                self._refill(now)
+                tokens = self._refill(name, now)
                 ready_at = self._ready_at(model)
-                if self._tokens >= 1.0 and now >= ready_at:
-                    self._tokens -= 1.0
+                if tokens >= 1.0 and now >= ready_at:
+                    self._buckets[name] = (tokens - 1.0, now)
                     return
-                wait = ready_at - now if now < ready_at else (1.0 - self._tokens) / self._rate
+                wait = ready_at - now if now < ready_at else (1.0 - tokens) / self._rate
             # Jitter is added outside the lock so waiters wake at different
             # instants; without it they all wake on the same tick and the
             # bucket hands out a fresh burst. S311 asks for a crypto-grade RNG;
@@ -127,12 +135,18 @@ class ProviderPacer:
     def _ready_at(self, model: str) -> float:
         return max(self._cooldown_until.get(model, 0.0), self._service_wide_until)
 
-    def _refill(self, now: float) -> None:
-        elapsed = now - self._refilled_at
-        if elapsed <= 0:
-            return
-        self._refilled_at = now
-        self._tokens = min(float(self._capacity), self._tokens + elapsed * self._rate)
+    def _refill(self, name: str, now: float) -> float:
+        """Tokens left on bucket *name* at *now*, refilled and stored back.
+
+        Per bucket, not per pacer: the whole point is that two keys may each
+        spend a full burst.
+        """
+        tokens, last = self._buckets.get(name, (float(self._capacity), now))
+        elapsed = now - last
+        if elapsed > 0:
+            tokens = min(float(self._capacity), tokens + elapsed * self._rate)
+        self._buckets[name] = (tokens, now)
+        return tokens
 
 
 # --------------------------------------------------------------------------- #

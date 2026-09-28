@@ -16,6 +16,7 @@ import httpx
 
 from ...config.settings import Settings
 from ...domain.provider import GenerateJsonResult, LlmError
+from .keys import KeyRing, fingerprint, keyring_for
 from .pacing import ProviderPacer, pacer_for
 
 log = logging.getLogger(__name__)
@@ -47,6 +48,9 @@ class GeminiProvider:
         # Shared with every other provider instance in the process — the pace
         # must survive build_provider() being called once per HTTP request.
         self._pacer = pacer if pacer is not None else pacer_for(self.name, settings)
+        # Shared across requests, like the pacer: a ring held on the instance
+        # would forget a dead key on every /review and walk back into it.
+        self._ring: KeyRing = keyring_for(settings.gemini_api_keys)
 
     @property
     def models(self) -> list[str]:
@@ -63,7 +67,7 @@ class GeminiProvider:
         schema: dict[str, Any],
         image_b64: str | None = None,
     ) -> GenerateJsonResult:
-        if not self._settings.gemini_api_key:
+        if not len(self._ring):
             raise LlmError("GEMINI_API_KEY is not configured", retryable=False)
 
         parts: list[dict[str, Any]] = [{"text": user}]
@@ -131,14 +135,37 @@ class GeminiProvider:
         budget = max(0.0, self._settings.provider_max_cooldown_s)
         waited = 0.0
         last: LlmError | None = None
-        for attempt in range(1, attempts + 1):
-            await self._pacer.acquire(model)
+        used = 0
+        budget_attempts = attempts
+        while used < budget_attempts:
+            key = self._ring.pick()
+            if key is None:
+                # Every key is in a quota cooldown. Sleeping is the only option
+                # left, and the pacer owns that, not this loop.
+                log.warning("all %d gemini keys are cooling down", len(self._ring))
+                break
+            await self._pacer.acquire(model, bucket=fingerprint(key))
             try:
-                data = await self._post(url, payload)
+                data = await self._post(url, payload, key)
+                self._ring.release(key)
                 return _extract_json(data, schema), _extract_usage(data)
             except LlmError as exc:
                 last = exc
-                if not exc.retryable or attempt == attempts:
+                if exc.status == 429 and len(self._ring) > 1 and self._ring.available() > 0:
+                    # Quota is metered per KEY, so a 429 is that key's problem
+                    # alone: park it and spend another instead of waiting. A
+                    # rotation does NOT spend a retry attempt, and it cannot
+                    # spin forever because every one of them parks a key.
+                    self._ring.penalize(key, exc.retry_after_s or self._settings.provider_key_cooldown_s)
+                    log.warning(
+                        "gemini key %s out of quota; rotating (%d of %d keys cooling)",
+                        fingerprint(key),
+                        len(self._ring.cooling()),
+                        len(self._ring),
+                    )
+                    continue
+                used += 1
+                if not exc.retryable:
                     break
                 if exc.status in _COOLDOWN_STATUS or exc.retry_after_s is not None:
                     waited += self._pacer.penalize(
@@ -148,11 +175,15 @@ class GeminiProvider:
                     )
                 if waited >= budget:
                     break
-        raise last or LlmError("unreachable", retryable=False)
+        # No `last` means the loop never reached an upstream call: every key was
+        # already in a quota cooldown. That is our own scheduling decision, not a
+        # refusal and not a bad request, so it must stay retryable — reporting it
+        # as fatal would turn "come back later" into a dead review.
+        raise last or LlmError("all gemini keys are in quota cooldown", retryable=True)
 
-    async def _post(self, url: str, payload: dict[str, Any]) -> dict[str, Any]:
+    async def _post(self, url: str, payload: dict[str, Any], key: str) -> dict[str, Any]:
         headers = {
-            "x-goog-api-key": self._settings.gemini_api_key,
+            "x-goog-api-key": key,
             "content-type": "application/json",
         }
         timeout = self._settings.request_timeout_s

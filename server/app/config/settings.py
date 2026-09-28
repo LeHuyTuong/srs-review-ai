@@ -27,6 +27,14 @@ class Settings(BaseSettings):
     )
 
     # --- LLM ---
+    # How long a key that answered 429 is parked before it is tried again. The
+    # daily free-tier quota resets on Google's own clock, so this is deliberately
+    # long: a key that is merely rate-limited comes back on its own much sooner,
+    # and trying it early just spends one more refusal.
+    provider_key_cooldown_s: float = Field(
+        default=900.0,
+        validation_alias=AliasChoices("PROVIDER_KEY_COOLDOWN_S"),
+    )
     gemini_api_key: str = ""
 
     # Verified against ai.google.dev on 2026-09-09: the 2.5 series is now
@@ -197,8 +205,19 @@ class Settings(BaseSettings):
     not a document."""
 
     @property
+    def gemini_api_keys(self) -> list[str]:
+        """Every configured key, in the order they were written.
+
+        `GEMINI_API_KEY` takes a comma- or whitespace-separated list, because
+        Google meters the free tier **per key**: eight keys carry eight quotas.
+        A single key parses to a one-element list, so nothing else has to care
+        whether one key or many are configured.
+        """
+        return [k for k in self.gemini_api_key.replace(",", " ").split() if k]
+
+    @property
     def has_llm_credentials(self) -> bool:
-        return bool(self.gemini_api_key)
+        return bool(self.gemini_api_keys)
 
 
 @lru_cache
