@@ -1,11 +1,12 @@
 # WP8 gate 1 — Lượt E2E đầu tiên sau 2026-09-21: **CHƯA CHỨNG MINH ĐƯỢC** (lượt bị dừng giữa chừng)
 
-**Ngày:** 2026-09-28 · **Kết luận: chưa đạt — nhưng lý do đã thay đổi sau khi đo thêm.**
-Lượt 16 call bị **dừng ở batch 02** vì provider trả **HTTP 503**; một probe **1 call** sau đó
-(với model khác) gặp đúng một lần 503, hệ thống hạ nhiệt 20s, gọi lại và **thành công**.
-Tức 503 là **tạm thời**, và tôi **đã dừng quá sớm** — xem mục "Vì sao 503" ở dưới, nơi
-kết luận cũ của chính file này được ghi lại và lật ngược. Bằng chứng này ghi **cả những
-gì đã chứng minh** lẫn **những gì chưa**, để lần sau không phải đo lại từ đầu.
+**Ngày:** 2026-09-28 · **Kết luận: chưa đạt — và lý do đã được đo hai lần, hai lần khác nhau.**
+Lượt 16 call thứ nhất bị **dừng ở batch 02** vì provider trả **HTTP 503**. Tôi tưởng đó là
+kết luận vĩnh viễn; một probe 1 call ngay sau đó **thành công** sau một lần 503 + hạ nhiệt
+20s, nên tôi đã đính chính là đã **dừng quá sớm**. Nhưng khi chạy lại **đủ 16 batch**,
+cả **16/16** đều hỏng: **92 lần 503, 0 lần 200, 90/91 unit hỏng** trong 21 phút. Tức 503 là
+**tạm thời nhưng kéo dài**, và lượt 21:22:45 chỉ là một **khe hở**. Chi tiết hai lượt ở
+mục dưới; bằng chứng này ghi **cả những gì đã chứng minh** lẫn **những gì chưa**.
 
 ## Nguồn mẫu và kế hoạch (đo trước, không tốn tiền)
 
@@ -93,6 +94,41 @@ log access sẽ tưởng mọi thứ xanh trong khi tầng dưới đang hỏng.
 **Nguyên nhân gốc vẫn chưa xác định** — 503 tạm thời là điều đã đo, còn *vì sao* provider
 trả 503 (vùng, hạn mức, hay bản model) thì lượt này **không** trả lời được. Đừng viết
 thêm.
+
+## Lần chạy thứ hai (cùng ngày) — **16/16 batch hỏng**, và đây là con số thật
+
+Đã chạy lại **đủ 16 batch** trên proxy `127.0.0.1:8078` với `GEMINI_MODEL=gemini-3.1-flash-lite`
+(biến tiến trình, `.env` nguyên vạn), tài lái in **cả `results` lẫn `failed`**:
+
+```
+planned=16  ok200=16  batch_co_fail=16  unit_ok=1  unit_lo=90  tong_seconds=1276  (~21 phút)
+503 từ provider: 92      cooldown 20s: 65      200 OK từ provider: 0
+```
+
+| Mục | Số |
+|---|---|
+| Batch trả 200 | **16/16** |
+| Batch **có** unit hỏng | **16/16** |
+| Unit được chấm thành công | **1** (ở batch 03, cùng batch đó có 5 unit hỏng) |
+| Unit hỏng | **90 / 91** |
+| Thông điệp lỗi | `AI provider unavailable for this batch of requirements.` |
+| `findings_total` | **0** — **không được đọc là "không tìm ra vấn đề"** |
+
+Con số 1 unit thành công nhiều khả năng đến từ **cache** (không có dòng `200 OK` nào
+từ provider trong cả lượt) — nhưng chưa đủ bằng chứng để khẳng định, nên ghi là
+"nhiều khả năng".
+
+**Kết luận sau hai lượt:** provider **503 liên tục** trong một cửa sổ vài chục phút.
+Lần probe 21:22:45 thành công là **một khe hở**, không phải trạng thái ổn định. Nghĩa là
+**chạy lại lúc này sẽ vô ích** — nhưng khác với lần trước, lần này cái kết luận đó có
+**bằng chứng**: 92 lần 503, 0 lần 200, 65 lần hạ nhiệt, 90/91 unit hỏng.
+
+**Điều hệ thống đã giữ được (và chỉ chứng minh được bằng lượt thật):** 21 phút, 16
+lần thất bại liên tiếp, và nó **không** retry mù, **không** tự tăng tốc, **không** đốt
+thêm tiền vô ích — mỗi lần đều dừng 20 giây rồi thử lại đúng số lần cho phép.
+
+**Nguyên nhân gốc vẫn chưa xác định.** Hai lượt không phân biệt được "hạn mức khoá",
+"vùng", hay "bản model" — cần thử khoá khác mà lượt này không làm.
 
 ## Lệnh đã chạy
 
