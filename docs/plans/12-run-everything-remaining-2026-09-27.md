@@ -355,6 +355,8 @@ provider mới → dừng sửa, đọc lại bẫy số 8 ở §1 thay vì vá 
 
 ### WP6 — Đo chain 1 trên OTES thật (đóng AC4 của plan 10)
 
+**Trạng thái (2026-09-28): XONG, kết quả 0** — test đo `app/test/chain1_otes_real_document_test.dart` chạy pipeline của app trên text OTES 217 trang (fitz, `%TEMP%\otes_pages.json`): parser **1.4.4**, **91 unit** (63/63 UC; hồ sơ 130 là của 1.4.2), **chain 1 = 0 finding** — 0 thật có chẩn đoán: 91/91 unit đều trích được entity, chỉ 1 cluster đạt ≥2 mục (stem `we`, 1 original) nên bị cổng ≥2-originals chặn đúng; văn OTES không có hình dạng hai-nhãn-một-khái-niệm mà check bắt. Bằng chứng + lệnh tái chạy: `docs/evidence/chain1-otes-2026-09-28.md`. 0 call LLM, không đụng `.env`, app **969/969**.
+
 `docs/plans/10` §0 nói thẳng: AC4 *"số finding chain 1 trên OTES > 0"* mới chỉ được
 chứng minh bằng dữ liệu **tự dựng**, **chưa lần nào** đưa text OTES thật vào
 `ContradictionPass`. Đây là gate M2.
