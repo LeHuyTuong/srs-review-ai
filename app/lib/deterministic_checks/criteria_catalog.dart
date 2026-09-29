@@ -161,4 +161,8 @@ const List<Criterion> kCriteriaChecklist = [
     CheckId.pageNumbering,
     'Số trang thấy ở dòng cuối mỗi trang (tài liệu ≥ 6 trang).',
   ),
+  Criterion(
+    CheckId.recordTableNumbering,
+    'Bảng có cột số thứ tự số-trần (01, 02…) không lặp số hàng và không nhảy số.',
+  ),
 ];

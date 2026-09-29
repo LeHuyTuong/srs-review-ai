@@ -181,7 +181,15 @@ enum CheckId {
   /// Requires vision evidence, so it is a PENDING-VISION row until an audit
   /// actually resolved it — and P0a (docs/evidence/vision-reality-2026-09-26.md)
   /// is the measurement that made wiring it honest.
-  fkMatrixMismatch;
+  fkMatrixMismatch,
+
+  /// Rulebook §G.3 (1.8 LOCKED) — inside a record table that uses BARE-digit
+  /// row ids (`01 / 02 / …`, the HisWise shape), numbering must be unique and
+  /// monotonic. A repeated number (medium) is the bare-digit twin of the
+  /// `UC04 ×7` defect `duplicateIds` already catches for prefixed ids: no
+  /// other check can see it, because the bare rows never become units (the
+  /// parser swallows the whole table into one `SEC-…` — §G.2's unported  /// contract). A jump (low) may be a skipped row or a table split across  /// pages by the extractor; the detector reads page text directly and never  /// changes segmentation. Indexes (a `Page` column header) are pointers,  /// not records, and stay silent.
+  recordTableNumbering;
 
   // NOT here, deliberately: `idFormat` (rulebook 1.5 §4, id shape).
   // `requirement_splitter._canonicalId` rewrites every parsed id to
@@ -219,6 +227,7 @@ enum CheckId {
     CheckId.headingNumbering => 'heading_numbering',
     CheckId.pageNumbering => 'page_numbering',
     CheckId.tablePositionDrift => 'table_position_drift',
+    CheckId.recordTableNumbering => 'record_table_numbering',
   };
 
   String get label => switch (this) {
@@ -247,6 +256,7 @@ enum CheckId {
     CheckId.pageNumbering => 'Page numbering',
     CheckId.tablePositionDrift => 'Artifact moved from index page',
     CheckId.fkMatrixMismatch => 'ERD relationship vs text',
+    CheckId.recordTableNumbering => 'Record table numbering',
   };
 
   /// True for the §F.5 format & layout checks. They are STORED in
@@ -289,7 +299,8 @@ enum CheckId {
     CheckId.headerFooterConsistency ||
     CheckId.projectInfoMismatch ||
     CheckId.headingNumbering ||
-    CheckId.pageNumbering => true,
+    CheckId.pageNumbering ||
+    CheckId.recordTableNumbering => true,
     _ => false,
   };
 }

@@ -97,6 +97,10 @@ class ReportStrings {
       'Artifact moved from index page',
       'Bảng/hình bị dời khỏi trang mục lục',
     ),
+    CheckId.recordTableNumbering => pick(
+      'Record table numbering',
+      'Đánh số bảng ghi-trường',
+    ),
   };
 
   /// `UnitKind` label for the inventory table.

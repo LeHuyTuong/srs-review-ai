@@ -24,6 +24,7 @@ library;
 import '../../document_import/models/srs_document.dart';
 import '../../requirement_review/models/review_models.dart' show Severity;
 import '../models/deterministic_finding.dart';
+import 'record_table_checks.dart';
 
 class ReferenceChecks {
   const ReferenceChecks();
@@ -37,6 +38,10 @@ class ReferenceChecks {
     ...duplicateIds(document),
     ...missingPostcondition(document),
     ...missingActor(document),
+    // §G.3 (1.8 LOCKED) rides the reference family: a repeated bare-digit
+    // row id is a consistency smell exactly like a repeated `UC-04`, just
+    // one no id-based check can see. Reads page text; no parser change.
+    ...const RecordTableChecks().recordTableNumbering(document.pageTexts),
   ];
 
   // ---------------------------------------------------------------- duplicateIds

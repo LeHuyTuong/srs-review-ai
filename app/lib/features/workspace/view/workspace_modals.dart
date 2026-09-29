@@ -1562,6 +1562,8 @@ class _SyllabusCheckDetail extends StatelessWidget {
       'Không thấy số trang ở dòng cuối của trang nào, hoặc số trang lặp/giảm từ 3 lần trở lên (rulebook §F.5b). Heuristic trên text trích xuất — footer có thể không nằm ở dòng cuối của text layer; kiểm tra bằng mắt với bản in. Tài liệu dưới 6 trang không bị chấm.',
     CheckId.tablePositionDrift =>
       'Mục lục khai bảng/hình ở một trang nhưng caption không nằm quanh trang đó (cửa sổ ±3) trong khi tìm thấy ở nơi khác trong tài liệu — bảng bị dời mà mục lục chưa Update Field (rulebook §F.6). Không có List of Tables (DOCX/PDF không mục lục) thì check im lặng; bảng không được đánh caption thì check không nhìn thấy. Chạy khi mục lục đã được xác thực.',
+    CheckId.recordTableNumbering =>
+      'Bảng ghi-trường (cột ID/No mang số trần 01, 02…) lặp số hàng hoặc nhảy số (rulebook §G.3). Đọc trên text trích xuất — bảng có thể trải qua nhiều trang và trang nối không lặp header, từng đoạn được đọc như một bảng; dãy số giảm được coi là bảng kế, không phải lỗi. Heuristic — kiểm tra bằng mắt với bản in.',
   };
 
   String get _fix => switch (finding.check) {
@@ -1615,6 +1617,8 @@ class _SyllabusCheckDetail extends StatelessWidget {
       'Bật số trang ở footer: Word → Insert → Page Numbers; kiểm tra trang 2..N có hiện số ở dòng cuối rồi xuất lại PDF. Nếu bản in ĐÃ có số thì đây là báo nhầm của text layer — đối chiếu bằng mắt rồi bỏ qua có ghi chú.',
     CheckId.tablePositionDrift =>
       'Quyết định vị trí đúng cho bảng/hình: dời bảng về đúng trang mục lục khai báo, hoặc nếu vị trí mới là chủ ý thì mở mục lục trong Word và bấm Update Field rồi xuất lại PDF. Bảng không được đánh caption ("Table N. …") sẽ không bị check này nhìn thấy — thêm caption cho mọi bảng.',
+    CheckId.recordTableNumbering =>
+      'So sánh các hàng mang số bị lặp và đánh lại số cho duy nhất trong bảng; số nhảy thì kiểm tra có hàng bị xoá thật không. Sửa trong file gốc rồi xuất lại PDF. Nếu bảng thật sự trải qua nhiều trang và trang nối không lặp header, dãy số nối tiếp bị đọc thành bảng riêng — đối chiếu bằng mắt rồi bỏ qua có ghi chú.',
   };
 
   @override
