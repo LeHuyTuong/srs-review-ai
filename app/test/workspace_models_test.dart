@@ -55,6 +55,108 @@ void main() {
     });
   });
 
+  group('page-footer-only units (the HisWise holdout lesson)', () {
+    RequirementItem item(
+      String id,
+      String text, {
+      RequirementKind kind = RequirementKind.section,
+    }) => RequirementItem(id: id, text: text, kind: kind);
+
+    WorkspaceUnit mapped(RequirementItem item) =>
+        unitFromRequirement(item, index: 0);
+
+    test('a footer-only unit is flagged, deselected, and not malformed', () {
+      final unit = mapped(item('SEC-5', 'Page | 13'));
+      expect(unit.isPageFooterOnly, isTrue);
+      expect(unit.selected, isFalse);
+      expect(
+        unit.malformed,
+        isFalse,
+        reason: 'the id is fine — the content is the noise',
+      );
+    });
+
+    test('multi-footer runs the holdout actually measured are caught', () {
+      // Verbatim shapes from %TEMP%\hiswise_units.json (holdout 2026-09-29):
+      // SEC-1-p5 = 'Page | 5 Page | 6', SEC-6 = 'Page | 14 Page | 15 Page | 16'.
+      for (final text in [
+        'Page | 5 Page | 6',
+        'Page | 14 Page | 15 Page | 16',
+      ]) {
+        final unit = mapped(item('SEC-1-p5', text));
+        expect(unit.isPageFooterOnly, isTrue, reason: text);
+        expect(unit.selected, isFalse, reason: text);
+      }
+    });
+
+    test(
+      'footer variants (digits first, lowercase, blank lines) are caught',
+      () {
+        for (final text in [
+          '13 | Page',
+          'page | 13',
+          'Page | 2\n\nPage | 3',
+          'Page|9',
+        ]) {
+          expect(isPageFooterOnly(text), isTrue, reason: text);
+        }
+      },
+    );
+
+    test('a unit that merely mentions a page stays reviewable', () {
+      // The strict rule: every non-empty line must be a footer. One real
+      // line and the unit is content — a false positive here hides text.
+      expect(
+        mapped(item('SEC-1', 'See page 13 for the diagram.')).isPageFooterOnly,
+        isFalse,
+      );
+      expect(isPageFooterOnly('Page | 13\nSee page 14 for details.'), isFalse);
+      expect(
+        isPageFooterOnly('Page | 13 of 14'),
+        isFalse,
+        reason: 'range footer carries a word the strict line rejects',
+      );
+      expect(mapped(item('SEC-1', '')).isPageFooterOnly, isFalse);
+    });
+
+    test('a real use case unit is unaffected', () {
+      final unit = mapped(
+        item(
+          'UC-04',
+          'UC-04 Join classroom. Actor: Student. Main success scenario: 1. Student sends a join command.',
+        ),
+      );
+      expect(unit.isPageFooterOnly, isFalse);
+      expect(unit.selected, isTrue);
+    });
+
+    test(
+      'the flag round-trips through toJson/fromJson and an old payload defaults to false',
+      () {
+        final flagged = mapped(item('SEC-5', 'Page | 13'));
+        final restored = WorkspaceUnit.fromJson(flagged.toJson());
+        expect(restored.isPageFooterOnly, isTrue);
+        expect(restored.selected, isFalse);
+
+        final legacy = WorkspaceUnit.fromJson(
+          {...flagged.toJson(), 'text': 'Real content about the login flow.'}
+            ..remove('is_page_footer_only'),
+        );
+        expect(
+          legacy.isPageFooterOnly,
+          isFalse,
+          reason: 'an old session payload must not flip on reload',
+        );
+        expect(
+          legacy.selected,
+          isFalse,
+          reason:
+              'the template unit was deselected; legacy round-trip keeps stored values',
+        );
+      },
+    );
+  });
+
   group('unitFromRequirement kind mapping', () {
     RequirementItem item(
       String id, {

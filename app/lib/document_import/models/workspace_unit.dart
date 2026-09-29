@@ -33,6 +33,33 @@ enum UnitKind {
 
 enum UnitStatus { pending, reviewed, failed, skipped }
 
+/// True when the unit's whole text is page-number footer noise — `Page | 13`,
+/// or a few such runs joined by extraction (`Page | 14 Page | 15`). These are
+/// extraction artifacts, not requirements; on the HisWise holdout three of
+/// them were reviewed and scored 0/10 (`docs/evidence/holdout-hiswise-2026-09-29.md`).
+///
+/// Deliberately STRICT: every non-empty line must contain `page` AND a digit,
+/// and nothing else. A real unit that merely mentions a page (`see page 13`)
+/// has lines without either, so it stays reviewable — a false positive here
+/// would hide content, the exact failure mode the NFR-prose lesson warns about.
+bool isPageFooterOnly(String text) {
+  var sawAny = false;
+  for (final rawLine in text.split('\n')) {
+    final line = rawLine.trim();
+    if (line.isEmpty) continue;
+    sawAny = true;
+    if (!_pageFooterLine.hasMatch(line)) return false;
+  }
+  return sawAny;
+}
+
+final RegExp _pageFooterLine = RegExp(
+  // Consecutive runs are separated by WHITESPACE in the real extraction
+  // (`Page | 5 Page | 6` from the HisWise text layer) — not by a pipe.
+  r'^(?:page\s*\|?\s*\d+|\d+\s*\|\s*page)(?:\s+(?:page\s*\|?\s*\d+|\d+\s*\|\s*page))*$',
+  caseSensitive: false,
+);
+
 /// A row of the workspace inventory.
 ///
 /// Immutable on purpose. Every field used to be mutable and the ViewModel
@@ -53,6 +80,7 @@ class WorkspaceUnit {
     required this.malformed,
     required this.selected,
     this.status = UnitStatus.pending,
+    this.isPageFooterOnly = false,
   });
 
   factory WorkspaceUnit.fromJson(Map<String, dynamic> json) => WorkspaceUnit(
@@ -69,6 +97,11 @@ class WorkspaceUnit {
       (s) => s.name == json['status'],
       orElse: () => UnitStatus.pending,
     ),
+    // Absent in session payloads written before the field existed: an old
+    // payload round-trips as false, and RE-DERIVING from text here would let
+    // a stored reviewed-unit (the user explicitly sent it) flip itself to
+    // deselected on reload.
+    isPageFooterOnly: (json['is_page_footer_only'] as bool?) ?? false,
   );
 
   /// Stable identity within one inventory — finding rows point back at it.
@@ -83,11 +116,23 @@ class WorkspaceUnit {
   final UnitStatus status;
   final UnitKind kind;
 
+  /// The unit's whole text is page-number footer noise (`Page | 13`, a few
+  /// runs joined by extraction) — nothing reviewable. Measured on the
+  /// HisWise holdout (`docs/evidence/holdout-hiswise-2026-09-29.md`): three
+  /// such units were scored 0/10 and 21% of that run's findings were  /// "Page | N" quotes. Flagged at inventory time, so they start
+  /// **deselected** (never sent for review) but stay visible for inspection;
+  /// `malformed` stays false because the id is not the problem. The 1.4.4
+  /// footer STRIP already deletes footer LINES from open sections — this is
+  /// the unit-level backstop for what survives it (footer-only pages, runs
+  /// the strip's line filter does not catch).
+  final bool isPageFooterOnly;
+
   WorkspaceUnit copyWith({
     UnitKind? kind,
     bool? malformed,
     bool? selected,
     UnitStatus? status,
+    bool? isPageFooterOnly,
   }) => WorkspaceUnit(
     key: key,
     id: id,
@@ -99,6 +144,7 @@ class WorkspaceUnit {
     malformed: malformed ?? this.malformed,
     selected: selected ?? this.selected,
     status: status ?? this.status,
+    isPageFooterOnly: isPageFooterOnly ?? this.isPageFooterOnly,
   );
 
   /// Re-classifying to `unknown` is what makes a unit "needs attention",
@@ -117,6 +163,7 @@ class WorkspaceUnit {
     'id': id,
     'title': title,
     'text': text,
+    'is_page_footer_only': isPageFooterOnly,
     'kind': kind.label,
     'section': section,
     'pageIndex': pageIndex,
@@ -198,6 +245,7 @@ WorkspaceUnit unitFromRequirement(RequirementItem item, {required int index}) {
   final kind = _kindFromPrefix(id) ?? _kindFromParser(item.kind);
   final digits = RegExp(r'\d+').firstMatch(id)?.group(0) ?? '';
   final malformed = kind == UnitKind.unknown || digits.length > 3;
+  final footerOnly = isPageFooterOnly(item.text);
   return WorkspaceUnit(
     key: 'u$index-${item.id}',
     id: item.id,
@@ -207,7 +255,9 @@ WorkspaceUnit unitFromRequirement(RequirementItem item, {required int index}) {
     section: item.section,
     pageIndex: item.pageIndex ?? 0,
     malformed: malformed,
-    selected: !malformed && item.kind != RequirementKind.statement,
+    selected:
+        !malformed && !footerOnly && item.kind != RequirementKind.statement,
+    isPageFooterOnly: footerOnly,
   );
 }
 
