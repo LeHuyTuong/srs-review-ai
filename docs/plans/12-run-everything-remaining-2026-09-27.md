@@ -416,7 +416,10 @@ ghi rõ; có test âm chứng minh ngưỡng 80% **thật sự chặn**.
 **Trạng thái (2026-09-29): gate 2 XONG, gate 1 chạy thật được, gate 3 mở nửa** —
 gate 2: **10/10 trích dẫn trong báo cáo OTES là thật**, nhãn "khớp nguyên văn" mới là cái
 quá mạnh (bằng chứng: `docs/evidence/citation-crosscheck-otes-2026-09-28.md`). Gate 1:
-lượt E2E **91/91 unit, 0 fail** (242,3 s, 12 cache hit → 79 chấm thật; đường sơ đồ vẫn
+lượt E2E **91/91 unit, 0 fail** (242,3 s, 12 cache hit → 79 chấm thật; server trả
+**122 findings đã verify** — con số `findings=0` của driver là lỗi đếm, chênh lệch với
+report 232 được quy kết thành 232 vs 122: khác mẫu số + prompt đổi;
+`docs/evidence/finding-gap-232-vs-0-2026-09-29.md`); đường sơ đồ vẫn
 chưa được chứng minh — `docs/evidence/e2e-llm-path-otes-2026-09-29.md`). Gate 3: HisWise
 SDS có file thật trong `server/`, harness dump unit qua parser 1.4.4 đã có
 (`app/test/hiswise_units_dump_test.dart`, **7 unit/16 trang**); **CarbonX thiếu file gốc**

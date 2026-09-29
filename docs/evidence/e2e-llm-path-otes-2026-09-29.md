@@ -25,18 +25,23 @@ vì một bucket toàn tiến trình sẽ chặn cả 8 khoá ở quota của m�
 **12 unit trúng cache** (2 batch dính `0.0s`), nên **79 unit được chấm thật** trong lượt này.
 Con số này phải nói ra, vì cache hit trông y hệt lượt chấm thật.
 
-`findings=0` lượt này **đáng tin**: `unit_ok=91/91` và `failed=0`, tức là khác hẳn cái bẫy
-`200` kèm `failed[]` mà `AGENTS.md` đã ghi.
+`findings=0` lượt này: `unit_ok=91/91` và `failed=0` thật, nhưng con số findings
+**là lỗi đếm của driver** — **ĐÍNH CHÍNH 2026-09-29**: cache SQLite của proxy chứa
+122 issues đã verify cho đúng 91 unit này (`docs/evidence/finding-gap-232-vs-0-2026-09-29.md`).
+Số 0 không phải "đã chấm sạch" mà là driver không cộng issues trong `results[]`;
+lần sau phải in số findings kèm cách đếm (sum issues qua từng `result`), đừng tin
+một biến tổng hợp không có nguồn.
 
 ## Giới hạn nói thẳng
 1. **Xoay khoá chưa được chứng minh lúc chạy thật** — lượt này không gặp 429 nào, nên nó
    chỉ được kiểm chứng bằng 16 test đơn vị. Không khoe là đã xoay.
 2. **Chỉ đường văn bản.** OTES có **0 unit gắn ảnh**, nên `/diagram` và renderer `pdfx`
    không được chạm tới lần này.
-3. **Bất khả thức so sánh với báo cáo 232 finding.** Báo cáo thật ở `D:\Download` có 232
-   finding; lượt `/review/batch` này trả 0 trên cùng 91 unit. Hai đường này **không cùng
-   phạm vi** (báo cáo gồm kiểm tra tất định và phần sơ đồ), nhưng chênh lệch này **chưa được
-   giải thích** và là câu hỏi mở, không phải thứ để ghi là "khớp".
+3. **Chênh lệch với báo cáo 232 finding — ĐÃ GIẢI THÍCH 2026-09-29** (trước đây ghi
+   "chưa được giải thích"): câu hỏi mở biến thành 232 vs **122** đã quy kết — driver
+   đếm sai findings; chênh thật là khác mẫu số (150 unit parser 1.4.2 vs 91 unit
+   1.4.4) + prompt p2→p4. Chi tiết và lệnh tái chạy:
+   `docs/evidence/finding-gap-232-vs-0-2026-09-29.md`.
 4. Hai probe đầu tiên trả `200` trong **0,0s** và **0,1s** — đều là **cache hit**, đếm
    `generateContent` trong stderr là 0. Chỉ khi thêm một khoảng trắng vào text (làm đổi
    cache key) mới ép được lời gọi thật: **7,6s**.
