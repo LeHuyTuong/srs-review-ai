@@ -384,7 +384,11 @@ chứng minh bằng dữ liệu **tự dựng**, **chưa lần nào** đưa text
 dump của `shared_preferences` nên giá trị bị **mã hoá hai lớp**, và loader **không hardcode
 tên key** (key nào parse ra object có `units` là mảng thì nhận). Bộ dụng cụ **chạy được
 end-to-end trên nguồn thật** (48 test, gồm 4 test đọc chính file đó). **Thứ còn thiếu chỉ là
-hai người ký.** Cảnh báo phạm vi: nguồn chạy trên parser **1.4.1** nên chỉ dùng để chấm
+hai người ký** — và phần chuẩn bị cho họ **đã xong (2026-09-29)**: sheet mẫu 24 dòng
+phân tầng đã sinh từ nguồn thật (`docs/evidence/goldset/sheet-template-2026-09-29.csv`,
+seed 20260927, tầng 6/2/1/0/1/14, bốn cột nhãn trống) + hướng dẫn dán nhãn có ví dụ
+tự chế và lệnh đo sẵn (`docs/evidence/goldset/annotator-guide-2026-09-29.md`);
+tiêu chí sheet đầu tiên chốt là `unambiguous`. Cảnh báo phạm vi: nguồn chạy trên parser **1.4.1** nên chỉ dùng để chấm
 **tiêu chí trên từng unit**, **không** dùng để kết luận về phân đoạn unit (đọc
 `docs/evidence/goldset-instrument-2026-09-27.md` mục 1).
 

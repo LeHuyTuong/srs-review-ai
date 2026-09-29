@@ -1,6 +1,8 @@
 # Bộ dụng cụ gold set — 2026-09-27 (WP7 của plan 12)
 
-## Trạng thái: **dụng cụ xong, gold set CHƯA có**
+## Trạng thái: **dụng cụ xong, gold set CHƯA có — phần chuẩn bị cho người ký đã xong (2026-09-29)**
+
+Cập nhật 2026-09-29: sheet mẫu 24 dòng đã sinh từ nguồn thật và hướng dẫn dán nhãn đã viết — xem `docs/evidence/goldset/sheet-template-2026-09-29.csv` (seed 20260927, tầng 6/2/1/0/1/14, bốn cột nhãn trống nguyên trạng) và `docs/evidence/goldset/annotator-guide-2026-09-29.md` (tiêu chí chốt: `unambiguous`; ví dụ tự chế, không lộ đáp án của dòng thật; dry-run chứng minh agreement từ chối sheet trắng). Hai file trong `docs/evidence/goldset/` **không phải** nhãn vàng — chúng là đầu vào cho hai người ký.
 
 | | |
 |---|---|
