@@ -22,7 +22,8 @@ Mỗi quyết định kỹ thuật có một file, đánh số tăng dần, khô
 | [0015](0015-role-vs-form-factor-and-phone-sheets.md) | `AppRole` (build + phiên) tách khỏi `AppPlatform` (thiết bị); lệnh cấm bottom sheet giữ nguyên phạm vi, không nới cho phone | Accepted |
 | [0016](0016-class-roster-and-teacher-decisions.md) | Lớp học là `class_id` capability (**không thu hồi được**); quyết định của giáo viên **append** không ghi đè; đúng khi **self-hosted**; "đã đọc" là việc của máy | Accepted |
 | [0017](0017-class-crud-and-write-key.md) | Lớp học là **full CRUD**; ghi khác app token (mỗi lớp có `write_key` riêng, so bằng `compare_digest`); `class_id` nằm trên **submission** chứ không có list trong file lớp; `DELETE` lớp **không xoá bài nhóm** | Accepted |
+| [0018](0018-contradiction-pass-scope-row-shaped-documents.md) | `crossArtifactName` (chain 1) chỉ bắn trên tài liệu hình dòng (SDS/dictionary); SRS văn xuôi trả 0 là kết quả được thiết kế — số đo cơ chế kèm theo; không thêm "N/A" và không nới extractor khi chưa có gold set | Accepted |
 
-**Số tiếp theo: 0018.**
+**Số tiếp theo: 0019.**
 
 Luật chấm SRS/SDS **không** ghi ở đây — chúng nằm ở `review-rules/RULEBOOK.md` với hệ version riêng (§10). ADR chỉ dành cho quyết định về *code* của repo này.
