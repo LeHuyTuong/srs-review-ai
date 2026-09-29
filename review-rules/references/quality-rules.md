@@ -190,24 +190,74 @@ Giới hạn (đo trên OTES 217 trang / 114 bảng, một tài liệu thật + 
 
 Ví dụ pass: OTES gốc — 114/114 khớp trong cửa sổ → 0 finding. Ví dụ fail: mục lục ghi `Table 1` ở trang in 11 nhưng caption nằm ở trang in 214 → 1 finding amber nêu cả hai trang + độ lệch +203.
 
-### F.6 Bảng/Hình bị dời ra xa vị trí mục lục khai báo — `tablePositionDrift`
+### G. Bảng ghi-trường (record table) dùng ID số trần — luật phân đoạn, 1.8-draft
 
-Mục lục (`List of Tables` / `List of Figures`) khai bảng N ở **trang in P**, nhưng quanh trang đó (cửa sổ ±3 trang — cùng `captionSearchWindow` của builder) **không thấy caption**, trong khi `Table N` / caption text **tìm được ở nơi khác trong tài liệu**. Khác với `captionPageMismatch` (caption không thấy ở đâu → mục lục cũ/thôi), đây là **bảng bị dời** — điển hình: dời bảng xuống cuối mà quên Update Field. Spike 2026-09-23 (`docs/evidence/table-position-detection-2026-09-23.md`) mô phỏng `move_page(13 → 216)` bị bắt ngay (độ lệch +203 trang); file OTES sạch 217 trang: 114/114 caption trong cửa sổ → 0 finding.
+Phát hiện này sinh ra từ holdout HisWise 2026-09-29
+(`docs/evidence/holdout-hiswise-2026-09-29.md`): bảng use case của HisWise đánh
+số hàng bằng **số trần** (`01`, `02`, …) thay vì `UC-NNN`, và mọi pipeline chỉ-đọc-dòng-có-ID
+(regex `UC|FR|NFR|…`) đã nuốt **cả bảng UC 2 269 ký tự vào một unit `SEC-2`** — 0 use
+case được chấm riêng, 0 truy vết từng hàng. OTES dùng `UC-NNN` nên bẫy này vô hình
+trong mọi phép đo trước đó.
 
-Phát hiện deterministic, 0 token, chỉ chạy khi `blueprint.trusted` (cùng gate `captionPageMismatch`):
+**Đây là luật phân đoạn (sinh unit), không phải luật chấm (sinh finding)** — khác bản
+chất với §A–§F, và vì thế **không có severity, không có finding, không đổi thang điểm,
+không đổi gate**. Nó tồn tại vì hai lý do: (1) RULEBOOK §4 gán ID ledger cho reviewer
+(`UC-NNN`), mà ID của tài liệu không bắt buộc theo mẫu đó — hai hình dạng đều hợp lệ;
+(2) quy tắc chung của repo là luật vào `review-rules/` trước, parser port sau (gold set
+làm trọng tài) — file này là nơi luật sống trước khi có code.
 
-1. Builder: khi cửa sổ hụt thì quét **toàn thân tài liệu** (bỏ trang mục lục) — caption probe trước (đặc trưng hơn, tham chiếu chéo không paraphrase được), label `Table|Figure N` sau → thấy thì ghi `foundPageIndex`; **không** gán `pdfPageIndex` — phân giải vẫn thất bại đúng như cũ, mọi check đang chạy không đổi hành vi.
-2. Finding **amber** (app: medium) khi `foundPageIndex` lệch trang kỳ vọng **nhiều hơn cửa sổ**: nêu trang in mục lục khai, trang in thật của caption, độ lệch ±k trang, và (khi cả hai chương rõ) caption nằm chương nào thay vì chương nào — đúng nghĩa "bảng bị dời xuống cuối tài liệu".
-3. `captionPageMismatches` **bỏ qua** artifact đã có `foundPageIndex`: finding mới chính xác hơn, hai finding cho cùng một artifact là nhiễu. Caption không thấy ở bất kỳ đâu → vẫn `captionPageMismatch` như cũ.
+#### G.1 Định nghĩa bảng ghi-trường (deterministic, thuần text)
 
-Giới hạn (đo trên OTES 217 trang / 114 bảng, một tài liệu thật + một lượt mô phỏng move):
+Một vùng text là **bảng ghi-trường** khi thỏa ĐỒNG THỜI cả bốn điều:
 
-- Không có LoT/LoF (PDF không mục lục, DOCX không khái niệm trang) → im lặng.
-- Bảng **không caption** không có định danh → check mù (cần `uncaptionedTable` server-side, chưa port; 96/187 trang OTES có vùng bảng không caption cùng trang).
-- Tác giả renumber → label probe gãy; cả label lẫn caption probe gãy → rơi về `captionPageMismatch` (không bịa trang).
-- Dời bảng **và** bấm Update Field → LoT đúng theo vị trí mới → check im lặng (không còn gì "sai"); chỉ diff 2 phiên bản bắt được — chưa có pipeline.
-- Tham chiếu chéo trong text ("xem Table 12") trùng label ở trang khác có thể báo nhầm → caption probe chạy trước để giảm hướng này; message luôn dặn kiểm tra bằng mắt.
-- Lệch ≤ 3 trang không thuộc check này (cửa sổ đã nuốt khi phân giải; giới hạn nhạy cố ý).
+1. **Hàng tiêu đề có cột định danh**: một dòng chứa nhãn cột ID (`ID`, `No`, `No.`,
+   `Number`, `Code`, `Use Case ID`, `Mã`) — kèm **ít nhất một cột mô tả** trên cùng dòng
+   vùng (`Description`, `Name`, `Feature`, `Title`, `Mô tả`, `Tên`, `Package`).
+2. **Các hàng dữ liệu bắt đầu bằng số trần** `\d{1,3}` (cho phép zero-pad: `01`) ngay
+   sau tiêu đề, theo thứ tự không giảm trong bảng.
+3. **≥ 2 hàng dữ liệu** — một hàng đơn là một câu, không phải inventory.
+4. **Không phải chỉ mục**: hàng tiêu đề có cột `Page`/`Trang` là trang (LoT/LoF/mục
+   lục bảng) → **loại** — đó là con trỏ, không phải bản ghi (`List of Tables` đã có
+   pipeline riêng ở §F.6).
 
-Ví dụ pass: OTES gốc — 114/114 khớp trong cửa sổ → 0 finding. Ví dụ fail: mục lục ghi `Table 1` ở trang in 11 nhưng caption nằm ở trang in 214 → 1 finding amber nêu cả hai trang + độ lệch +203.
+#### G.2 Hệ quả chấm — bắt buộc với mọi adapter
 
+- **Mỗi hàng là một mục chấm riêng**: so-sánh tên, chain cross-artifact, gate số lượng
+  UC (§8, Q1) đếm các hàng này như đếm bảng `UC-NNN` — "bảng use case" là khái niệm
+  cấu trúc, không phụ thuộc tiền tố ID.
+- **Mapping ID ledger**: `UC-<số hàng>` zero-pad 3 chữ số (`01` → `UC-001`) cho ledger;
+  bản ID gốc (`01`) giữ nguyên trong trích dẫn nguyên văn. Không đánh số lại giữa các
+  pass (§4).
+- **Cấm nuốt vào unit văn xuôi**: một `SEC-…` unit mà thân là bảng ghi-trường (thỏa
+  G.1) là lỗi phân đoạn của pipeline, không phải đặc điểm của tài liệu.
+
+#### G.3 Check chấm được từ luật này — đánh số trong bảng phải duy nhất và tăng
+
+Cùng bài học A4 của 1.6: *"duy nhất" không bao giờ tự nó là tiêu chí, luôn phải đi
+kèm "có tồn tại"*. Trong một bảng ghi-trường đã nhận diện theo G.1:
+
+1. **Trùng số**: hai hàng cùng một chuỗi số → finding **amber** (app: medium),
+   subject = bảng (tiêu đề gần nhất), message nêu số bị trùng và hai nội dung rút gọn.
+   (OTES trùng `UC04` 7 lần đã bị bắt vì ID có tiền tố; ở bảng số trần cái bẫy này
+   hiện vô hình — check này là mắt thay thế.)
+2. **Nhảy số / lặp từ đầu**: dãy số không tăng đơn điệu (reset `01` giữa bảng, nhảy
+   cách ≥ 2) → finding **info** (app: low) — có thể là phần bảng trên trang khác mà
+   extractor mất nối; message luôn dặn kiểm tra bằng mắt.
+
+Chỉ chạy khi bảng nhận diện được từ text (§G.1); PDF scan → im lặng (hard rule 3).
+False positive đã biết: PDF tách bảng thành hai vùng text khiến hàng lặp số một lần
+khi ghép — severity của check 2 cố ý low vì đúng lý do đó; check 1 (trùng số) không
+bị hướng nhiễu này vì trùng là trùng dù ghép sai.
+
+Ví dụ pass: `01 Authentication Login Allows students…` / `02 …` — hai unit riêng
+`UC-001`, `UC-002`. Ví dụ fail (check 1): `03 Login …` và `03 Logout …` trong cùng
+bảng → 1 finding amber nêu cả hai hàng.
+
+#### G.4 Trạng thái port — CHỜ GOLD SET, không port vội
+
+Sửa parser để nhận diện G.1 là **thay đổi hành vi chấm** (số unit, số điểm, số
+finding đều đổi). Theo plan 12 WP7 và điều kiện đã ghi ở
+`docs/evidence/holdout-hiswise-2026-09-29.md`: port chỉ diễn ra sau khi gold set có
+hai người ký (≥ 80% agreement) để đo được trước/sau. Cho tới lúc đó, backstop duy
+nhất chạy thật là lọc unit toàn-footer (`b246d18`), và các bảng số trần tiếp tục bị
+nuốt — được ghi nhận là **giới hạn đã biết của engine**, không phải đã xử lý.
