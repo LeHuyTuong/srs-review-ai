@@ -29,9 +29,7 @@ import 'package:srs_review_ai/document_import/repositories/parse_service.dart';
 
 void main() {
   test('phase 0: the planned call count for one OTES run', () {
-    final file = File(
-      '${Platform.environment['TEMP']}/otes_pages.json',
-    );
+    final file = File('${Platform.environment['TEMP']}/otes_pages.json');
     if (!file.existsSync()) {
       print(
         'SKIP-PHASE0: %TEMP%\\otes_pages.json not found — no plan, no cost. '
@@ -40,8 +38,10 @@ void main() {
       );
       return;
     }
-    final pages = (jsonDecode(file.readAsStringSync()) as Map<String, dynamic>)
-        .cast<String, dynamic>()['pages'] as List<dynamic>;
+    final pages =
+        (jsonDecode(file.readAsStringSync()) as Map<String, dynamic>)
+                .cast<String, dynamic>()['pages']
+            as List<dynamic>;
     expect(pages, hasLength(217), reason: 'the OTES report is 217 pages');
 
     // The app's own pipeline, the same order `PdfParser.parse` uses.
@@ -107,7 +107,9 @@ void main() {
       'PHASE0 formula=calls=ceil($textOnly/$batch)+$withImage'
       ' => $batchedCalls+$withImage=$totalCalls',
     );
-    print('PHASE0 visionPathCalls=NOT_COUNTED (needs rendered pages, not text)');
+    print(
+      'PHASE0 visionPathCalls=NOT_COUNTED (needs rendered pages, not text)',
+    );
 
     // The reviewed list, exported for the paid run. Kept in the same harness on
     // purpose: the units a run reviews must be the ones THIS pipeline produced,
