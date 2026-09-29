@@ -109,6 +109,7 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
                     'Needs attention',
                     'Selected',
                     'Reviewed',
+                    'Page junk',
                   ])
                     DropdownMenuItem(
                       value: label,
@@ -328,7 +329,8 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
               (_status == 'All units' ||
                   (_status == 'Needs attention' && u.malformed) ||
                   (_status == 'Selected' && u.selected) ||
-                  (_status == 'Reviewed' && u.status == UnitStatus.reviewed)) &&
+                  (_status == 'Reviewed' && u.status == UnitStatus.reviewed) ||
+                  (_status == 'Page junk' && u.isPageFooterOnly)) &&
               ('${u.id} ${u.title} ${u.section ?? ''}'.toLowerCase()).contains(
                 query,
               ),
@@ -336,6 +338,17 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
         .toList(growable: false);
   }
 }
+
+/// The "page junk" badge for units whose whole text is page-number footer
+/// noise. Amber like the malformed-ID badge (both are "check this" signals),
+/// with a tooltip that says exactly what the flag means and what to do: the
+/// unit starts deselected, the checkbox re-selects it.
+Widget _pageJunkBadge() => Tooltip(
+  message:
+      'Toàn văn chỉ là số trang in (Page | N) — nhiễu trích xuất, không phải '
+      'yêu cầu. Đã bỏ chọn nên không gửi chấm; tích lại nếu muốn chấm.',
+  child: const WBadge(label: 'Trang rác', tint: WBadgeTint.amber),
+);
 
 class _UnitRow extends StatelessWidget {
   const _UnitRow({
@@ -458,6 +471,7 @@ class _UnitRow extends StatelessWidget {
                                   unit.id,
                                   style: theme.textTheme.labelMedium,
                                 ),
+                                if (unit.isPageFooterOnly) _pageJunkBadge(),
                                 if (score != null && !unit.malformed)
                                   WScoreChip(
                                     score: score,
@@ -519,6 +533,7 @@ class _UnitRow extends StatelessWidget {
                   ),
                 ),
                 Expanded(
+                  flex: 3,
                   child: Text(
                     unit.title,
                     maxLines: 2,
@@ -527,6 +542,11 @@ class _UnitRow extends StatelessWidget {
                       color: colors.ink,
                     ),
                   ),
+                ),
+                Flexible(
+                  child: unit.isPageFooterOnly
+                      ? _pageJunkBadge()
+                      : const SizedBox.shrink(),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 // The type badge used to take its natural width, which pushed

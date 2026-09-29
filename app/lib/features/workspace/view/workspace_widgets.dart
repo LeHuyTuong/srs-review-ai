@@ -35,6 +35,7 @@ String workspaceLabel(String label) => switch (label) {
   'Needs attention' => 'Cần kiểm tra',
   'Selected' => 'Đã chọn',
   'Reviewed' => 'Đã chấm',
+  'Page junk' => 'Trang rác',
   'Use case' => 'Use Case',
   'Business rule' => 'Quy tắc nghiệp vụ',
   'Non-functional' => 'Phi chức năng',

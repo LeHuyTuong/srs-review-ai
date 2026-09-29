@@ -24,7 +24,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:srs_review_ai/document_import/models/srs_document.dart';
 import 'package:srs_review_ai/document_import/models/workspace_unit.dart';
 import 'package:srs_review_ai/document_import/parsing/requirement_splitter.dart';
 
@@ -37,8 +36,7 @@ void main() {
       print('BO QUA: khong co ${input.path}');
       return;
     }
-    final doc =
-        jsonDecode(input.readAsStringSync()) as Map<String, dynamic>;
+    final doc = jsonDecode(input.readAsStringSync()) as Map<String, dynamic>;
     final pages = (doc['pages'] as List<dynamic>).cast<String>();
 
     final requirements = RequirementSplitter().split(pages);
