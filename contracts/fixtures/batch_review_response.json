@@ -1,10 +1,10 @@
 {
-  "contract_version": "1.0.0",
+  "contract_version": "1.1.0",
   "results": [
     {
       "unit_index": 0,
       "result": {
-        "contract_version": "1.0.0",
+        "contract_version": "1.1.0",
         "requirement_id": "FR-03",
         "score": 6,
         "issues": [
@@ -15,7 +15,8 @@
             "quote": "The system should respond quickly",
             "suggestion": "Replace 'quickly' with a measurable threshold, e.g. 'respond within 2s for 95% of requests under 100 concurrent users'.",
             "verification": "exact",
-            "similarity": null
+            "similarity": null,
+            "coverage": null
           }
         ],
         "context_note": null,
@@ -31,7 +32,7 @@
     {
       "unit_index": 2,
       "result": {
-        "contract_version": "1.0.0",
+        "contract_version": "1.1.0",
         "requirement_id": "UC-14",
         "score": 3,
         "issues": [
@@ -42,7 +43,8 @@
             "quote": "5.2 Payment",
             "suggestion": "Name the actor that triggers the payment step and state the outcome for a declined card.",
             "verification": "fuzzy",
-            "similarity": 0.93
+            "similarity": 0.93,
+            "coverage": null
           }
         ],
         "context_note": "Use case table body; reviewed as a Cockburn specification.",

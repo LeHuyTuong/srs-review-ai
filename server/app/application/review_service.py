@@ -120,6 +120,10 @@ def review_cache_key(
         settings.prompt_version,
         str(rubric_cfg["version"]),
         str(settings.fuzzy_threshold),
+        # The reordered tier's gate decides whether a table-scrambled quote is
+        # admitted or dropped, so it changes what a cached answer means exactly
+        # like the fuzzy threshold does.
+        str(settings.reordered_coverage_threshold),
         # The marking scale reached the prompt through `quality_criteria` and
         # decides every score, so its fingerprint belongs in the key for the same
         # reason `rubric.version` does: reweight `testable` and the old scores are
@@ -159,6 +163,7 @@ def build_result(
         [i for i in raw.get("issues", []) if isinstance(i, dict)],
         text,
         threshold=settings.fuzzy_threshold,
+        reordered_coverage_threshold=settings.reordered_coverage_threshold,
     )
     usage = usage or {}
     return ReviewResult(

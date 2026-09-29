@@ -26,6 +26,19 @@ _WS = re.compile(r"\s+")
 
 REJECTED = "rejected"
 
+# The reordered tier's gate, deliberately NOT wired to `fuzzy_threshold`: the
+# fuzzy threshold is a similarity of an ordered window, a different question.
+# 0.85 word coverage is the measured table-scramble boundary from
+# docs/evidence/citation-crosscheck-otes-2026-09-28.md (real table rows scored
+# 75-100% while the invented control sentence scored 40%), with margin above
+# the control and below perfection.
+REORDERED_COVERAGE_THRESHOLD = 0.85
+
+# A quote whose best ordered window still reaches 0.75 similarity has content
+# AND order; the `fuzzy` tier owns it. Below this, high coverage is order loss
+# (a PDF table row read cell by cell), which is what `reordered` names.
+REORDERED_WINDOW_CEILING = 0.75
+
 # Stands in for a `suggestion` the model omitted. The field is required by the
 # contract (min_length 1) and the app renders it, so an empty string is not an
 # option; a sentence that says what happened is.
@@ -39,20 +52,47 @@ def normalize(text: str) -> str:
 
 @dataclass(frozen=True)
 class QuoteCheck:
-    status: str  # "exact" | "fuzzy" | "rejected"
+    status: str  # "exact" | "fuzzy" | "reordered" | "rejected"
     similarity: float | None = None
+    coverage: float | None = None
 
     @property
     def ok(self) -> bool:
         return self.status != REJECTED
 
 
-def verify_quote(quote: str, source_text: str, *, threshold: float = 0.92) -> QuoteCheck:
+def _word_coverage(quote_words: list[str], source_words: set[str]) -> float:
+    """Fraction of the quote's words present in the source, order ignored.
+
+    The denominator is the DISTINCT quote words, so a table cell repeated twice
+    in the quote (`es es`) is not counted twice — the citation-crosscheck probe
+    that measured the 40%-control vs 75%-table-rows boundary counted it that
+    way, and a quoted repetition is one word of evidence, not two.
+    """
+    if not quote_words:
+        return 0.0
+    distinct = set(quote_words)
+    return sum(1 for w in distinct if w in source_words) / len(distinct)
+
+
+def verify_quote(
+    quote: str,
+    source_text: str,
+    *,
+    threshold: float = 0.92,
+    reordered_coverage_threshold: float = REORDERED_COVERAGE_THRESHOLD,
+) -> QuoteCheck:
     """Locate `quote` inside `source_text`.
 
-    exact    -> normalized substring match
-    fuzzy    -> best sliding-window ratio >= threshold
-    rejected -> everything else
+    exact     -> normalized substring match
+    fuzzy     -> best sliding-window ratio >= threshold
+    reordered -> quote-word coverage (order ignored) >=
+                 reordered_coverage_threshold, but no ordered window reaches
+                 REORDERED_WINDOW_CEILING — same content, lost order. The shape
+                 of a PDF table row: the text layer emits the cells in its own
+                 order while the model reads the table row-wise
+                 (citation-crosscheck-otes-2026-09-28.md).
+    rejected  -> everything else
     """
     if not quote.strip() or not source_text.strip():
         return QuoteCheck(REJECTED)
@@ -62,7 +102,8 @@ def verify_quote(quote: str, source_text: str, *, threshold: float = 0.92) -> Qu
         return QuoteCheck(Verification.exact.value)
 
     words = source_text.split()
-    width = max(1, len(quote.split()))
+    quote_words = norm_quote.split()
+    width = max(1, len(quote_words))
     best = 0.0
     matcher = difflib.SequenceMatcher()
     matcher.set_seq2(norm_quote)
@@ -75,6 +116,17 @@ def verify_quote(quote: str, source_text: str, *, threshold: float = 0.92) -> Qu
         best = max(best, matcher.ratio())
         if best >= threshold:
             return QuoteCheck(Verification.fuzzy.value, round(best, 4))
+
+    # Order was lost — the tier the citation crosscheck asked for. Word coverage
+    # (order ignored) distinguishes a scrambled table row from an invention;
+    # the window ceiling keeps the fuzzy tier's territory out of it.
+    coverage = _word_coverage(quote_words, set(words))
+    if coverage >= reordered_coverage_threshold and best < REORDERED_WINDOW_CEILING:
+        return QuoteCheck(
+            Verification.reordered.value,
+            round(best, 4) if best else None,
+            round(coverage, 4),
+        )
 
     return QuoteCheck(REJECTED, round(best, 4) if best else None)
 
@@ -122,13 +174,19 @@ def review_issues(
     source_text: str,
     *,
     threshold: float = 0.92,
+    reordered_coverage_threshold: float = REORDERED_COVERAGE_THRESHOLD,
 ) -> tuple[list[Issue], int]:
     """Verify every LLM issue. Returns (kept issues, dropped count)."""
     kept: list[Issue] = []
     dropped = 0
     for raw in raw_issues:
         quote = str(raw.get("quote") or "")
-        check = verify_quote(quote, source_text, threshold=threshold)
+        check = verify_quote(
+            quote,
+            source_text,
+            threshold=threshold,
+            reordered_coverage_threshold=reordered_coverage_threshold,
+        )
         if not check.ok:
             dropped += 1
             continue
@@ -141,7 +199,10 @@ def review_issues(
                 quote=quote,
                 suggestion=str(raw.get("suggestion") or "").strip() or NO_SUGGESTION,
                 verification=Verification(check.status),
-                similarity=check.similarity if check.status == Verification.fuzzy else None,
+                similarity=(
+                    check.similarity if check.status in (Verification.fuzzy, Verification.reordered) else None
+                ),
+                coverage=check.coverage if check.status == Verification.reordered else None,
             )
         )
     return kept, dropped

@@ -58,7 +58,7 @@ class Settings(BaseSettings):
     """When true the proxy answers from server/app/mock/*.json — no network at all.
     This is the demo safety net (research 05, day 3 / AC4)."""
 
-    prompt_version: str = "p4"
+    prompt_version: str = "p5"
     """Part of the cache key: bumping it invalidates cached reviews.
     p2 (2026-09-21): unit-type briefings added to the review user prompt.
     p3 (2026-09-25): the hardcoded evaluation checklist moved OUT of prompt.py
@@ -69,12 +69,23 @@ class Settings(BaseSettings):
     `criterion_id` instead of in `type`. That instruction is prompt TEMPLATE
     text, not a criterion row, so the criteria fingerprint does not cover it —
     without this bump, a cached p3 result (produced by a prompt that could not
-    name a criterion at all) would keep answering the new question."""
+    name a criterion at all) would keep answering the new question.
+    p5 (2026-09-29): quote verification grew the `reordered` tier, so a cached
+    p4 result labelled by the two-tier policy is not an answer to the new
+    question either."""
 
     # --- Limits ---
     rate_limit_per_day: int = 50
     max_retries: int = 3
     fuzzy_threshold: float = 0.92
+    reordered_coverage_threshold: float = 0.85
+    """Word coverage (order ignored) a quote must reach to be admitted as
+    `reordered` instead of dropped — the table-scramble tier from the
+    2026-09-28 citation crosscheck. Part of the cache key like
+    `fuzzy_threshold`; NOT wired to `fuzzy_threshold` because it answers a
+    different question (is the content there) than fuzzy does (is the order
+    there). The window ceiling lives in verification.py because it is a
+    boundary BETWEEN tiers, not a tuning knob."""
 
     # --- Upstream pacing (the retry-storm fix, 2026-09-22) ---
     # A burst of parallel workers plus per-worker in-place retries turned 238

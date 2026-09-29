@@ -11,7 +11,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-CONTRACT_VERSION = "1.0.0"
+CONTRACT_VERSION = "1.1.0"
 
 
 class IssueType(StrEnum):
@@ -46,8 +46,18 @@ class Severity(StrEnum):
 
 
 class Verification(StrEnum):
+    """How firmly the server located the quote in the unit's own text.
+
+    1.1.0 added `reordered` (the 2026-09-28 citation crosscheck: 10/10 quotes
+    real, but table rows read cell-by-cell have their order scrambled by the
+    PDF text layer, so "verbatim" was overclaimed for them). It is a
+    BREAKING addition on purpose: an app that predates it throws a
+    ContractException instead of rendering a third tier it cannot name.
+    """
+
     exact = "exact"
     fuzzy = "fuzzy"
+    reordered = "reordered"
 
 
 class Strict(BaseModel):
@@ -114,6 +124,16 @@ class Issue(Strict):
     suggestion: str = Field(min_length=1)
     verification: Verification
     similarity: float | None = Field(default=None, ge=0, le=1)
+    coverage: float | None = Field(
+        default=None,
+        ge=0,
+        le=1,
+        description=(
+            "Word coverage (order ignored) of the quote in the source; only "
+            "set when verification == 'reordered', the table-scramble tier. "
+            "Additive in 1.1.0: an older reader ignores it."
+        ),
+    )
 
 
 class ReviewResult(Strict):

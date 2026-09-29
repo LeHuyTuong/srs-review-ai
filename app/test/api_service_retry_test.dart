@@ -64,7 +64,7 @@ class _FakeAdapter implements HttpClientAdapter {
 
 /// A minimal, contract-valid review payload.
 const Map<String, Object?> _okResult = {
-  'contract_version': '1.0.0',
+  'contract_version': kContractVersion,
   'requirement_id': 'FR-01',
   'score': 7,
   'issues': <Object>[],
@@ -208,12 +208,12 @@ void main() {
         final adapter = _FakeAdapter(
           Queue<Object>.of(<Object>[
             _json(const <String, Object?>{
-              'contract_version': '1.0.0',
+              'contract_version': kContractVersion,
               'results': [
                 {
                   'unit_index': 0,
                   'result': {
-                    'contract_version': '1.0.0',
+                    'contract_version': kContractVersion,
                     'requirement_id': 'FR-01',
                     'score': 7,
                     'issues': <Object>[],
@@ -256,12 +256,12 @@ void main() {
         final adapter = _FakeAdapter(
           Queue<Object>.of(<Object>[
             _json(const <String, Object?>{
-              'contract_version': '1.0.0',
+              'contract_version': kContractVersion,
               'results': [
                 {
                   'unit_index': 5,
                   'result': {
-                    'contract_version': '1.0.0',
+                    'contract_version': kContractVersion,
                     'requirement_id': 'FR-09',
                     'score': 7,
                     'issues': <Object>[],

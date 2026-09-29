@@ -150,6 +150,10 @@ class ReportStrings {
   String verificationLabel(Verification verification) => switch (verification) {
     Verification.exact => pick('exact match', 'khớp nguyên văn'),
     Verification.fuzzy => pick('fuzzy match', 'khớp gần đúng'),
+    Verification.reordered => pick(
+      'same content, reordered (table)',
+      'cùng nội dung, khác thứ tự (bảng)',
+    ),
   };
 
   /// `UnitStatus` has no label of its own — the inventory used to print the

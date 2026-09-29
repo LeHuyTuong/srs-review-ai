@@ -10,7 +10,7 @@
 /// front of the defense committee.
 library;
 
-const String kContractVersion = '1.0.0';
+const String kContractVersion = '1.1.0';
 
 class ContractException implements Exception {
   ContractException(this.message);
@@ -69,7 +69,14 @@ enum Severity {
 /// The app never sees `rejected` — the proxy drops those issues.
 enum Verification {
   exact,
-  fuzzy;
+  fuzzy,
+
+  /// Same content as the source, lost order: the quote's words are all there
+  /// (coverage >= the server's reordered threshold) but no ordered window
+  /// matches — a PDF table row read cell-by-cell, the tier the 2026-09-28
+  /// citation crosscheck asked for. 1.1.0 on the wire; a 1.0.0 app rejects
+  /// this value loudly via [Verification.fromWire] instead of rendering it.
+  reordered;
 
   static Verification fromWire(String value) => values.firstWhere(
     (e) => e.name == value,
@@ -85,6 +92,7 @@ class ReviewIssue {
     required this.suggestion,
     required this.verification,
     this.similarity,
+    this.coverage,
     this.criterionId,
   });
 
@@ -95,6 +103,7 @@ class ReviewIssue {
     suggestion: json['suggestion'] as String,
     verification: Verification.fromWire(json['verification'] as String),
     similarity: (json['similarity'] as num?)?.toDouble(),
+    coverage: (json['coverage'] as num?)?.toDouble(),
     criterionId: json['criterion_id'] as String?,
   );
 
@@ -115,6 +124,11 @@ class ReviewIssue {
   final Verification verification;
   final double? similarity;
 
+  /// Word coverage (order ignored) — set only when [verification] is
+  /// [Verification.reordered], the table-scramble tier. Additive in 1.1.0:
+  /// an older session payload without the key parses as null.
+  final double? coverage;
+
   Map<String, dynamic> toJson() => {
     'type': type.name,
     'criterion_id': criterionId,
@@ -123,6 +137,7 @@ class ReviewIssue {
     'suggestion': suggestion,
     'verification': verification.name,
     'similarity': similarity,
+    'coverage': coverage,
   };
 }
 

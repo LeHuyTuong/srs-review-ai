@@ -1349,9 +1349,12 @@ class _FindingCard extends StatelessWidget {
                             const SizedBox(width: 4),
                             Flexible(
                               child: Text(
-                                finding.issue.verification == Verification.exact
-                                    ? 'Khớp chính xác'
-                                    : 'Khớp gần đúng',
+                                switch (finding.issue.verification) {
+                                  Verification.exact => 'Khớp chính xác',
+                                  Verification.fuzzy => 'Khớp gần đúng',
+                                  Verification.reordered =>
+                                    'Cùng nội dung, khác thứ tự',
+                                },
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.labelSmall?.copyWith(

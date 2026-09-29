@@ -1413,9 +1413,12 @@ class _AskSheetState extends ConsumerState<_AskSheet> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             WBadge(
-                              label: citation.verification == Verification.exact
-                                  ? 'Khớp chính xác'
-                                  : 'Khớp gần đúng',
+                              label: switch (citation.verification) {
+                                Verification.exact => 'Khớp chính xác',
+                                Verification.fuzzy => 'Khớp gần đúng',
+                                Verification.reordered =>
+                                  'Cùng nội dung, khác thứ tự',
+                              },
                               tint: WBadgeTint.green,
                             ),
                             const SizedBox(height: AppSpacing.sm),

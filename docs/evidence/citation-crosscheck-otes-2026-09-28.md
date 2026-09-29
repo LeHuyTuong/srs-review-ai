@@ -64,6 +64,18 @@ sẽ ăn cả hai chỉ số, nên phép đo này **không** thay thế được
 mức — *"khớp nguyên văn"* và *"cùng nội dung, khác thứ tự (bảng)"*. Đây là thay đổi **hành
 vi hiển thị**, nên không tự ý làm trong lúc đang đo.
 
+**Đính chính 2026-09-29 — quyết định đó đã được thực hiện:** contract **1.1.0** thêm mức
+thứ ba `reordered` (kèm `coverage` trên wire): quote xáo trộn — mọi từ có mặt, độ phủ
+≥ 0.85 (gate cấu hình riêng `reordered_coverage_threshold`, vào cache key), cửa sổ trượt
+tốt nhất < 0.75 — được **giữ lại với nhãn riêng** thay vì bị loại; ngưỡng 0.85 lấy đúng
+ranh giới đo được ở mục trên (hàng bảng thật 75–100% so với câu đối chứng 40%). Nhãn
+"khớp nguyên văn" từ giờ chỉ là claim của mức `exact`. 4 mắt lưới trước đây "bịa" giờ
+được nhận diện là nội dung-bảng: #7 (100%), #9 (100%), #8 (83%), #10 (75%) — cả bốn vượt
+gate 0.85. Bằng chứng: `server/tests/test_verify.py` (4 test mức mới),
+`server/tests/test_batch.py` (end-to-end), `contracts/review.schema.json` 1.1.0,
+`app/lib/report_export/report_strings.dart` + 2 chỗ nhãn UI. Suite: server 355+1,
+app 971/971.
+
 ## Lệnh đã chạy
 `%TEMP%\check_citations4.py` (đọc báo cáo `.docx` bằng `zipfile` thuần stdlib, không cần
 `python-docx`). Kết quả đầy đủ nằm ở stdout; script nằm **ngoài repo** vì nó phụ thuộc

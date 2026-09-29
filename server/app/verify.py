@@ -9,6 +9,8 @@ keeps the historical import path alive for callers that predate the move.
 from .domain.verification import (  # noqa: F401
     NO_SUGGESTION,
     REJECTED,
+    REORDERED_COVERAGE_THRESHOLD,
+    REORDERED_WINDOW_CEILING,
     QuoteCheck,
     normalize,
     resolve_issue_type,
@@ -20,6 +22,8 @@ from .domain.verification import (  # noqa: F401
 __all__ = [
     "NO_SUGGESTION",
     "REJECTED",
+    "REORDERED_COVERAGE_THRESHOLD",
+    "REORDERED_WINDOW_CEILING",
     "QuoteCheck",
     "normalize",
     "resolve_issue_type",

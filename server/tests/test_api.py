@@ -66,7 +66,7 @@ class FakeProvider:
 def test_health_reports_mock_mode(client):
     body = client.get("/health").json()
     assert body["status"] == "ok"
-    assert body["contract_version"] == "1.0.0"
+    assert body["contract_version"] == "1.1.0"
     assert body["rubric_version"] == "v3"
 
 

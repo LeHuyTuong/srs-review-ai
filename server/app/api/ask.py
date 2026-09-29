@@ -50,7 +50,12 @@ async def ask(
 
     citations: list[Citation] = []
     for quote in raw.get("quotes", []) or []:
-        check = verify_quote(str(quote), payload.context, threshold=settings.fuzzy_threshold)
+        check = verify_quote(
+            str(quote),
+            payload.context,
+            threshold=settings.fuzzy_threshold,
+            reordered_coverage_threshold=settings.reordered_coverage_threshold,
+        )
         if check.ok:
             citations.append(
                 Citation(quote=str(quote), verification=check.status, page_index=payload.page_index)
