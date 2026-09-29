@@ -14,14 +14,14 @@ repo; gate nào chưa chạy thật thì ghi **MỞ** (luật ROADMAP-AC2).
 | M2 · review text có bằng chứng | Đạt phần deterministic + quote verify; **MỞ** gold set | 285 reference findings khớp R14 (qa-signoff); `verify_quote` chạy trên mọi đáp án (`server/app/main.py`); bộ positive/negative đã annotation để đo precision/recall chưa chốt |
 | M3 · Vercel + resume | Đạt, kèm một đổi thiết kế | Presigned upload vượt trần body 4,5 MB (`3019a0d`, 14 security test); cache key đủ 11 thành phần gồm cả có/không ảnh (`c3fc786` + test hồi quy); cache bền SQLite (`7779632`); pacing + batch dập retry storm (`9527aa7`, đo 1347 → ~40 call upstream). **Đổi thiết kế 2026-09-23 (`b27d481`):** bỏ auto-restore snapshot — "resume" giờ nghĩa là mở lại session từ Lịch sử (sembast, `8ec3388`); draft nhỏ chỉ giữ projectName/projectInfo/humanIssues |
 | M4 · sơ đồ có ngân sách | Đạt phần render/preview/budget; **MỞ** precision/recall ảnh | `docs/evidence/m4-renderer-spike.md`; preview modal + deep-link (`18cc102`, `c388d00`); token usage đo thật cả hai đầu (`c05b983`); renderer được probe trước khi dùng, thiếu renderer thì báo thẳng (`bf44431`, `2559a59`). Chưa có tập ảnh annotated để đo precision/recall của auto-select |
-| M5 · export + nghiệm thu | Một phần; **MỞ** 3 gate nghiệm thu | Report tab + report twins MD/JSON/HTML parity (`8cac725`, qa-signoff). Còn mở: (1) E2E desktop đích chạy LLM path trên code sau 2026-09-21 — **đã thử 2026-09-28, KHÔNG đạt**: provider trả 503 kéo dài — **lượt 1** dừng ở batch 02, probe 1 call thành công (nên tưởng chỉ tạm thời), **lượt 2** chạy đủ 16 batch thì **16/16 hỏng, 90/91 unit**, 92× 503 · 0× 200 · 65 lần hạ nhiệt trong 21 phút → chạy lại lúc này vô ích, phải đợi provider, 2 batch `failed[]`, pacer hạ nhiệt đúng 6 lần; đường **ảnh** không được chạy (0 unit có ảnh) và trần local là 2000 chứ không phải 50 — `docs/evidence/e2e-llm-path-otes-2026-09-28.md`; (2) đối chiếu thủ công 10 citations; (3) holdout đúng nghĩa — CarbonX/HisWise đã chạy thật (`reviews/`, 2026-09-15) nhưng cùng thời kỳ hiệu chuẩn thang điểm, chưa phải tài liệu mới sau khi chốt luật |
+| M5 · export + nghiệm thu | Phần lớn đạt; **MỞ** holdout ngữ nghĩa (kẹt nửa: thiếu file CarbonX + cần duyệt chi phí) và đường **ảnh** của E2E | Report tab + report twins MD/JSON/HTML parity (`8cac725`, qa-signoff). Ba gate M5 tính tới 2026-09-29: (1) E2E LLM path chạy thật **91/91 unit, 0 fail** (242,3 s; 12 cache hit → 79 chấm thật; 0×429 nhờ KeyRing xoay khoá `a935fbf`) — `docs/evidence/e2e-llm-path-otes-2026-09-29.md`; lượt 2026-09-28 thất bại (16/16 batch 503) giữ làm bằng chứng pacer giữ được — `e2e-llm-path-otes-2026-09-28.md`; đường ảnh chưa được chạy (OTES có 0 unit gắn ảnh); (2) đối chiếu 10 citations **XONG: 10/10 trích dẫn thật**, nhãn "khớp nguyên văn" mới là cái quá mạnh — `docs/evidence/citation-crosscheck-otes-2026-09-28.md`; (3) holdout: HisWise có file thật trong `server/` + harness dump unit (`app/test/hiswise_units_dump_test.dart`, 7 unit/16 trang), CarbonX thiếu file gốc — chấm lại cần người duyệt chi phí |
 
-Test estate đo ngày **2026-09-27**: app **946/946** (`flutter test`), server
-**237 pass + 1 skip** (238 collected; `server/.venv` pytest), guardrails **8/8 nhóm**
-trên **674 file** (`python tools/check_guardrails.py`, đo sau khi dọn rác WP0 —
-trước khi dọn là 681, chênh đúng bằng số file rác đã xoá). Hai số 841/841 và
-161 pass ghi ở bản cập nhật trước đã cũ — chênh lệch là do test mới, không phải
-regression.
+Test estate đo ngày **2026-09-29** (HEAD `f0f4f8b`): app **971/971** (`flutter
+test`), server **350 passed + 1 skipped** (`server/.venv` pytest), guardrails
+**8/8 nhóm** trên **706 file** (`python tools/check_guardrails.py`); `ruff check`
++ `format --check` sạch; `flutter analyze --fatal-infos` sạch; `dart format
+--set-exit-if-changed` toàn cây exit 0. Số 946/946 · 237+1 · 674 file của
+2026-09-27 đã cũ — chênh lệch là test/file mới, không phải regression.
 
 ## Understanding
 

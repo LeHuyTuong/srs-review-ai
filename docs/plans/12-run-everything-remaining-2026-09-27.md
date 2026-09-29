@@ -454,6 +454,26 @@ tệ hơn cả làm nửa.
 | AC-12.12 | AC4 đo trên tài liệu thật | **Đạt phần đo** — evidence có số **0** kèm chẩn đoán; tiêu chí "> 0" của plan 10 **đã sửa** vì tài liệu không có hình dạng dữ liệu mà check nhắm tới (`chain1-otes-2026-09-28.md`) |
 | AC-12.13 | Bộ dụng cụ gold set **có test âm** | chứng minh ngưỡng 80% thật sự chặn |
 
+**Kết quả rà ma trận (2026-09-29, HEAD `f0f4f8b`) — 11 ĐẠT · 1 ĐẠT-PHẦN · 1 CHƯA; không ô nào được lấp số:**
+
+| # | Trạng thái | Bằng chứng hiện có |
+|---|---|---|
+| AC-12.1 | ĐẠT | `git status` sạch; commit theo lớp (WP5/6/8 tách feature/test/docs, `f0f4f8b` là style riêng); roadmap có số đo kèm ngày (M5 + test estate 2026-09-29) |
+| AC-12.2 | ĐẠT | đo **sau** commit `f0f4f8b`: app 971/971 · server 350 passed + 1 skipped · guardrails 8/8 (706 file) |
+| AC-12.3 | ĐẠT | `docs/adr/0016` — `revocation` → §Decision 1 ("there is no revocation", dòng 59); `self-hosted` → §Decision 3 (dòng 68) |
+| AC-12.4 | ĐẠT | `server/tests/test_submissions.py::test_unknown_id_is_404_identical_to_malformed` — assert cả body (`unknown.json() == malformed.json()`) chứ không chỉ status; cùng mẫu ở `test_classes.py`, `test_decisions.py`, `test_activity.py` |
+| AC-12.5 | ĐẠT | `test_submission_time.py::test_read_route_exposes_the_time_the_writer_recorded` (dòng 91) — đọc qua route, không qua store |
+| AC-12.6 | ĐẠT | `test_decisions.py` :78/:239/:286 — assert nguyên bộ key `{revision, at, status, event}` của từng mẩu history, không đếm số mẩu |
+| AC-12.7 | ĐẠT | `app/test/teacher_screens_phone_test.dart` in `MEASURED [...]` (:318, :409): Tạo lớp 146,7 px (nhãn 98,7) · Duyệt bài 192,9 (126,9) · Yêu cầu sửa 203,1 (155,1) · chip 94,5 px — ở 390×844 |
+| AC-12.8 | ĐẠT | `app/test/app_role_test.dart` xanh trong 971/971 |
+| AC-12.9 | ĐẠT | UI: `teacher_submission_view.dart` :280 "Điểm này CHƯA được kiểm định…"; test: `teacher_screens_phone_test.dart` :447–448 (`findsOneWidget` + `textContaining('CHƯA được kiểm định')`) |
+| AC-12.10 | ĐẠT | `python tools/check_guardrails.py` — 8/8 nhóm, 706 file (đo 2026-09-29 sau `f0f4f8b`) |
+| AC-12.11 | ĐẠT | `dart format --output=none --set-exit-if-changed .` exit 0 **toàn cây** (sau khi format `wp8_phase0_call_cost_test.dart` — `f0f4f8b`) + `flutter analyze --fatal-infos --fatal-warnings` "No issues found" |
+| AC-12.12 | ĐẠT-PHẦN (đúng chữ tiêu chí) | evidence có số **0** kèm chẩn đoán: `chain1-otes-2026-09-28.md`; **ADR-0018** chốt vì sao 0 là phạm vi designed (unit văn xuôi ≠ dòng dictionary; nới cần gold set); test tái lập `chain1_otes_real_document_test.dart` — phần chưa đạt là phía "> 0" của plan 10, vì tài liệu không có hình dạng dữ liệu mà check nhắm tới |
+| AC-12.13 | CHƯA | 48 test bộ dụng cụ chạy được + test âm khẳng định ngưỡng 80% chặn (`test_goldset_instrument.py` `TestAgreement`); **còn thiếu hai người ký** và **chưa có precision/recall** — `goldset-instrument-2026-09-27.md` ghi đúng điều đó |
+
+Mốc "hết việc" của plan (12.1→12.3, 12.6→12.11 xanh): **đạt**. Hai ô còn mở là kết quả hợp lệ theo §3 — không bịa số lấp ô: AC-12.12 thiếu "> 0" vì tài liệu không có hình dạng dữ liệu (ADR-0018); AC-12.13 thiếu hai người ký (việc của người, không phải của agent).
+
 **Mốc "hết việc" của toàn plan:** AC-12.1 → 12.3, 12.6, 12.7, 12.8, 12.9, 12.10, 12.11
 xanh. **AC-12.12 và 12.13 có thể phải ghi `blocked`** kèm lý do — đó là kết quả hợp lệ,
 không phải thất bại, **miễn là bạn không bịa số để lấp ô trống**.
