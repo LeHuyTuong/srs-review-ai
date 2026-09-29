@@ -11,12 +11,21 @@
 // Input : %TEMP%\<name>_pages.json   {"source": ..., "pages": ["...", ...]}
 // Output: %TEMP%\<name>_units.json    same shape as otes_units.json
 //
+// 2026-09-29: each unit now also passes through unitFromRequirement - the
+// app's REAL inventory mapping - so the dump carries the same
+// selected/malformed/isPageFooterOnly flags a device run would compute. The
+// first holdout paid to review three footer-only units (0/10, "Page | N"
+// findings); a driver that filters on `selected` measures the pipeline a user
+// actually gets, and the rule is not replicated in Python.
+//
 // This is a dump, not an assertion: it must not fail the suite when the input
 // file is absent, because a normal `flutter test` has no such file.
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:srs_review_ai/document_import/models/srs_document.dart';
+import 'package:srs_review_ai/document_import/models/workspace_unit.dart';
 import 'package:srs_review_ai/document_import/parsing/requirement_splitter.dart';
 
 void main() {
@@ -28,31 +37,41 @@ void main() {
       print('BO QUA: khong co ${input.path}');
       return;
     }
-    final doc = jsonDecode(input.readAsStringSync()) as Map<String, dynamic>;
+    final doc =
+        jsonDecode(input.readAsStringSync()) as Map<String, dynamic>;
     final pages = (doc['pages'] as List<dynamic>).cast<String>();
 
-    final units = RequirementSplitter().split(pages);
+    final requirements = RequirementSplitter().split(pages);
+    final inventory = [
+      for (var i = 0; i < requirements.length; i++)
+        unitFromRequirement(requirements[i], index: i),
+    ];
     final out = {
       'source': doc['source'],
       'pages': pages.length,
       'units': [
-        for (final u in units)
+        for (final u in inventory)
           {
             'requirement_id': u.id,
             'kind': u.kind.name,
             'text': u.text,
             'section': u.section,
             'page_index': u.pageIndex,
+            'selected': u.selected,
+            'malformed': u.malformed,
+            'is_page_footer_only': u.isPageFooterOnly,
           },
       ],
     };
     File(
       '$tmp/hiswise_units.json',
     ).writeAsStringSync(jsonEncode(out), flush: true);
+    final deselected = inventory.where((u) => !u.selected).length;
     // ignore: avoid_print
     print(
-      'HISWISE: ${units.length} don vi / ${pages.length} trang '
-      '(id: ${units.take(5).map((u) => u.id).join(",")}...)',
+      'HISWISE: ${inventory.length} don vi / ${pages.length} trang '
+      '(id: ${inventory.take(5).map((u) => u.id).join(",")}...) '
+      'bo-chon=$deselected',
     );
   });
 }
