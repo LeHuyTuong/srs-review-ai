@@ -190,7 +190,7 @@ Giới hạn (đo trên OTES 217 trang / 114 bảng, một tài liệu thật + 
 
 Ví dụ pass: OTES gốc — 114/114 khớp trong cửa sổ → 0 finding. Ví dụ fail: mục lục ghi `Table 1` ở trang in 11 nhưng caption nằm ở trang in 214 → 1 finding amber nêu cả hai trang + độ lệch +203.
 
-### G. Bảng ghi-trường (record table) dùng ID số trần — luật phân đoạn, 1.8-draft
+### G. Bảng ghi-trường (record table) dùng ID số trần — luật phân đoạn, 1.8 LOCKED (Amy duyệt 2026-09-29)
 
 Phát hiện này sinh ra từ holdout HisWise 2026-09-29
 (`docs/evidence/holdout-hiswise-2026-09-29.md`): bảng use case của HisWise đánh
