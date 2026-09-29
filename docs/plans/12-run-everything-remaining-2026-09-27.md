@@ -413,6 +413,15 @@ ghi rõ; có test âm chứng minh ngưỡng 80% **thật sự chặn**.
 
 ### WP8 — Ba gate M5 (cần khóa API thật + người duyệt)
 
+**Trạng thái (2026-09-29): gate 2 XONG, gate 1 chạy thật được, gate 3 mở nửa** —
+gate 2: **10/10 trích dẫn trong báo cáo OTES là thật**, nhãn "khớp nguyên văn" mới là cái
+quá mạnh (bằng chứng: `docs/evidence/citation-crosscheck-otes-2026-09-28.md`). Gate 1:
+lượt E2E **91/91 unit, 0 fail** (242,3 s, 12 cache hit → 79 chấm thật; đường sơ đồ vẫn
+chưa được chứng minh — `docs/evidence/e2e-llm-path-otes-2026-09-29.md`). Gate 3: HisWise
+SDS có file thật trong `server/`, harness dump unit qua parser 1.4.4 đã có
+(`app/test/hiswise_units_dump_test.dart`, **7 unit/16 trang**); **CarbonX thiếu file gốc**
+— holdout vẫn cần người duyệt chi phí trước khi chấm lại.
+
 Từ `docs/roadmap.md` M5, còn thiếu:
 1. **E2E desktop chạy LLM path thật** — sign-off 09-14 ghi rõ **không đo lại LLM path**
    sau 2026-09-21. Đây là gap lớn nhất về niềm tin.
