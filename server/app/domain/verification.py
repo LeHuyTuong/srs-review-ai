@@ -24,6 +24,12 @@ from ..contracts.schemas import Issue, IssueType, Severity, Verification
 
 _WS = re.compile(r"\s+")
 
+# Punctuation stripped from token EDGES before word-coverage comparison. A
+# PDF table cell arrives as `mail.` while the model quotes `mail`, and edge
+# punctuation is formatting, not content; interior punctuation (`6-50`) is
+# content and stays.
+_EDGE_PUNCT = ".,;:!?()[]{}'\"«»…—–-"
+
 REJECTED = "rejected"
 
 # The reordered tier's gate, deliberately NOT wired to `fuzzy_threshold`: the
@@ -64,14 +70,15 @@ class QuoteCheck:
 def _word_coverage(quote_words: list[str], source_words: set[str]) -> float:
     """Fraction of the quote's words present in the source, order ignored.
 
-    The denominator is the DISTINCT quote words, so a table cell repeated twice
-    in the quote (`es es`) is not counted twice — the citation-crosscheck probe
-    that measured the 40%-control vs 75%-table-rows boundary counted it that
-    way, and a quoted repetition is one word of evidence, not two.
+    The denominator is the DISTINCT quote words (edge punctuation stripped,
+    see `_EDGE_PUNCT`), so a table cell repeated twice in the quote (`es es`)
+    is not counted twice — the citation-crosscheck probe that measured the
+    40%-control vs 75%-table-rows boundary counted it that way, and a quoted
+    repetition is one word of evidence, not two.
     """
-    if not quote_words:
+    distinct = {w.strip(_EDGE_PUNCT) for w in quote_words} - {""}
+    if not distinct:
         return 0.0
-    distinct = set(quote_words)
     return sum(1 for w in distinct if w in source_words) / len(distinct)
 
 
@@ -102,16 +109,28 @@ def verify_quote(
         return QuoteCheck(Verification.exact.value)
 
     words = source_text.split()
+    # Normalized once for the coverage tier: quote words are lowercased by
+    # `normalize`, so the source side must be too — comparing against the raw
+    # split made every capitalized word in the document count as missing
+    # ("Login" in the source vs "login" in the quote) and starved the tier.
+    norm_source_words = normalize(source_text).split()
     quote_words = norm_quote.split()
     width = max(1, len(quote_words))
     best = 0.0
+    # Measure every window that could reach EITHER bar — the fuzzy threshold or
+    # the reordered ceiling. Prefiltering at `threshold` alone (0.92) left the
+    # ceiling check reading prefilter luck instead of order: a window with true
+    # ratio 0.85 could be skipped, `best` stayed 0, and a mostly-ordered quote
+    # got mislabelled `reordered`. ratio <= quick_ratio, so prefiltering at
+    # min(threshold, ceiling) measures every window that can cross either bar.
+    prefilter = min(threshold, REORDERED_WINDOW_CEILING)
     matcher = difflib.SequenceMatcher()
     matcher.set_seq2(norm_quote)
     for i in range(0, max(1, len(words) - width + 1)):
         window = normalize(" ".join(words[i : i + width]))
         matcher.set_seq1(window)
         # real_quick_ratio/quick_ratio are cheap upper bounds — skip hopeless windows
-        if matcher.real_quick_ratio() < threshold or matcher.quick_ratio() < threshold:
+        if matcher.real_quick_ratio() < prefilter or matcher.quick_ratio() < prefilter:
             continue
         best = max(best, matcher.ratio())
         if best >= threshold:
@@ -120,7 +139,10 @@ def verify_quote(
     # Order was lost — the tier the citation crosscheck asked for. Word coverage
     # (order ignored) distinguishes a scrambled table row from an invention;
     # the window ceiling keeps the fuzzy tier's territory out of it.
-    coverage = _word_coverage(quote_words, set(words))
+    coverage = _word_coverage(
+        quote_words,
+        {w.strip(_EDGE_PUNCT) for w in norm_source_words},
+    )
     if coverage >= reordered_coverage_threshold and best < REORDERED_WINDOW_CEILING:
         return QuoteCheck(
             Verification.reordered.value,

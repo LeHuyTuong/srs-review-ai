@@ -50,6 +50,29 @@ def test_threshold_is_honoured():
     assert verify_quote(quote, SOURCE, threshold=0.80).status == "fuzzy"
 
 
+def test_reordered_coverage_is_case_insensitive():
+    # Found by the pre-holdout review: quote words are lowercased by
+    # `normalize`, so the source side must be too. Against the raw split,
+    # "Login" in the source never matched "login" in the quote and real
+    # table rows starved below the gate.
+    source = "Login by studying mail. The system must track attendance."
+    check = verify_quote("studying mail login by", source)
+    assert check.status == "reordered"
+    assert check.coverage == 1.0
+
+
+def test_a_window_between_the_bars_is_measured_not_prefiltered_away():
+    # threshold=0.99 makes the fuzzy gate unreachable, but the quote's best
+    # ordered window (~0.85, a middle phrase dropped) is far above the
+    # reordered ceiling. The ceiling check must see the measured ratio —
+    # prefilter at min(threshold, ceiling), not at threshold — or prefilter
+    # luck (best = 0) would mislabel this mostly-ordered quote as reordered.
+    source = "the system shall log every access attempt and rotate the key monthly"
+    quote = "the system shall log every access attempt and key monthly"
+    check = verify_quote(quote, source, threshold=0.99)
+    assert check.status == "rejected"
+
+
 def test_the_reordered_gate_travels_with_its_own_threshold():
     # A quote missing one of its five words scores 4/5 = 0.8 coverage: below
     # the default gate (rejected), admitted when the deployment lowers it.
