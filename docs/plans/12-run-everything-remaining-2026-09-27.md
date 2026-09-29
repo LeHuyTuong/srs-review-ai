@@ -420,10 +420,14 @@ lượt E2E **91/91 unit, 0 fail** (242,3 s, 12 cache hit → 79 chấm thật; 
 **122 findings đã verify** — con số `findings=0` của driver là lỗi đếm, chênh lệch với
 report 232 được quy kết thành 232 vs 122: khác mẫu số + prompt đổi;
 `docs/evidence/finding-gap-232-vs-0-2026-09-29.md`); đường sơ đồ vẫn
-chưa được chứng minh — `docs/evidence/e2e-llm-path-otes-2026-09-29.md`). Gate 3: HisWise
-SDS có file thật trong `server/`, harness dump unit qua parser 1.4.4 đã có
-(`app/test/hiswise_units_dump_test.dart`, **7 unit/16 trang**); **CarbonX thiếu file gốc**
-— holdout vẫn cần người duyệt chi phí trước khi chấm lại.
+chưa được chứng minh — `docs/evidence/e2e-llm-path-otes-2026-09-29.md`). Gate 3:
+**holdout HisWise đã chạy (2026-09-29, chi phí đã duyệt — 7/7 unit, 0 fail, 14 findings
+verify, 0 quote bịa)** nhưng **không đóng được "thang điểm ổn định"**: 3/7 unit là rác
+footer, bảng UC/package/table của HisWise dùng ID số trần mà parser không nhận ⇒ chênh
+truy vết từng UC — phát hiện mới ghi ở `review-rules/adapters/app-port-map.md`; chi tiết:
+`docs/evidence/holdout-hiswise-2026-09-29.md`. **CarbonX thiếu file gốc** — holdout
+giờ chỉ còn kẹt file; phần "một nửa còn lại" của gate 3 là điều kiện tiên quyết phân đoạn,
+không phải chi phí.
 
 Từ `docs/roadmap.md` M5, còn thiếu:
 1. **E2E desktop chạy LLM path thật** — sign-off 09-14 ghi rõ **không đo lại LLM path**
