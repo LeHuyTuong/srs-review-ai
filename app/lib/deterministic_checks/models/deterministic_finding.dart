@@ -188,7 +188,11 @@ enum CheckId {
   /// monotonic. A repeated number (medium) is the bare-digit twin of the
   /// `UC04 ×7` defect `duplicateIds` already catches for prefixed ids: no
   /// other check can see it, because the bare rows never become units (the
-  /// parser swallows the whole table into one `SEC-…` — §G.2's unported  /// contract). A jump (low) may be a skipped row or a table split across  /// pages by the extractor; the detector reads page text directly and never  /// changes segmentation. Indexes (a `Page` column header) are pointers,  /// not records, and stay silent.
+  /// parser swallows the whole table into one `SEC-…` — §G.2's unported
+  /// contract). A jump (low) may be a skipped row or a table split across
+  /// pages by the extractor; the detector reads page text directly and never
+  /// changes segmentation. Indexes (a `Page` column header) are pointers,
+  /// not records, and stay silent.
   recordTableNumbering;
 
   // NOT here, deliberately: `idFormat` (rulebook 1.5 §4, id shape).
