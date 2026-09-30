@@ -5,7 +5,7 @@ Run locally:      python3 tools/check_guardrails.py
 Runs in CI:       .github/workflows/ci.yml
 Runs pre-commit:  tools/install-hooks.sh
 
-Eight rules:
+Nine rules:
   1. SECRETS   — no API key ever enters git history.
   2. NO DIRECT LLM — the Flutter app may only talk to our own proxy (AC6).
   3. LAYERING  — the component boundaries from docs/architecture-refactored.md
@@ -18,6 +18,8 @@ Eight rules:
      to replace it (a probe, an injected fake, a conditional stub).
   8. FULL-SCREEN SURFACES — every modal fills the screen; the bottom-sheet
      family is banned in app/lib (ADR 0014).
+  9. LINE ENDINGS — no stored blob carries a CR; the index is the source of
+     truth, because core.autocrlf=true keeps this working tree in CRLF.
 
 This file is excluded from its own scans; keep example keys out of it anyway.
 """
@@ -744,6 +746,113 @@ def check_full_screen_surfaces(files: list[Path]) -> list[Violation]:
 
 
 # --------------------------------------------------------------------------
+# 9. LINE ENDINGS — no stored blob carries a CR, measured on the index
+# --------------------------------------------------------------------------
+# A CRLF blob is not a matter of taste: it turns every later one-line edit into
+# a whole-file diff, and `git diff --numstat` then reports hundreds of
+# "deleted" lines for it — measured 2026-09-30, when the tree's single such file
+# looked like 416 lost lines where `git diff -w` had 31/2. It can also hide from
+# `core.autocrlf=true`, because that flag normalises text on add and a blob git
+# reads as non-text is never converted: the file sat there for days as the one
+# text file `git ls-files --eol` reported `-text`, next to 57 PNG/TTF/ICO. The
+# bare CRs are what made git read it as non-text — measured the same day with two
+# probes: a file whose lines all end CRLF still reads `i/crlf` (text), while ONE
+# bare CR makes the whole file read `-text`.
+#
+# The index is the source of truth, not the working tree: with autocrlf=true a
+# CRLF working tree is the normal state on this machine (615 files read
+# `w/crlf`), so a worktree scan would fail the whole repo. Text-ness is tested
+# here instead of trusting git's guess — no NUL, valid UTF-8, no control byte
+# other than TAB/LF/CR. Measured across the 58 CR-carrying blobs on HEAD: that
+# test flags exactly the one real text file and none of the 57 binaries.
+#
+# Fix a hit by writing the file with LF, or `git add --renormalize <path>`.
+# If a Windows-only script ever genuinely needs CRLF, that is a conversation,
+# not an exception here.
+
+CR_BLOB_HINT = (
+    "the stored blob carries CR at byte {offset} (line {line}) — this repo stores LF. "
+    "A CRLF blob makes every later one-line edit a whole-file diff, and numstat counts "
+    "it as hundreds of deleted lines. Write the file with LF, or run "
+    "`git add --renormalize <path>` (AGENTS.md has the CR measurement traps)"
+)
+
+
+def index_blobs() -> list[tuple[str, bytes]]:
+    """(path, content) straight from the index — no checkout filter in between."""
+    try:
+        listing = subprocess.run(
+            ["git", "-C", str(REPO), "ls-files", "-s", "-z"],
+            capture_output=True,
+            check=True,
+        ).stdout
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return []
+
+    entries: list[tuple[str, str]] = []
+    for record in listing.split(b"\0"):
+        meta, _, raw_path = record.partition(b"\t")
+        fields = meta.split()
+        if len(fields) < 2:
+            continue
+        entries.append((fields[1].decode("ascii"), raw_path.decode("utf-8", "replace")))
+    if not entries:
+        return []
+
+    request = b"".join(sha.encode("ascii") + b"\n" for sha, _ in entries)
+    try:
+        output = subprocess.run(
+            ["git", "-C", str(REPO), "cat-file", "--batch"],
+            input=request,
+            capture_output=True,
+            check=True,
+        ).stdout
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return []
+
+    blobs: list[tuple[str, bytes]] = []
+    offset = 0
+    for _, path in entries:
+        end = output.find(b"\n", offset)
+        header = output[offset:end].split() if end >= 0 else []
+        if len(header) < 3 or header[1] != b"blob":
+            break
+        start = end + 1
+        size = int(header[2])
+        blobs.append((path, output[start : start + size]))
+        offset = start + size + 1
+    return blobs
+
+
+def is_text_blob(blob: bytes) -> bool:
+    if b"\0" in blob:
+        return False
+    try:
+        blob.decode("utf-8")
+    except UnicodeDecodeError:
+        return False
+    return not {byte for byte in blob if byte < 0x20 and byte not in (0x09, 0x0A, 0x0D)}
+
+
+def check_line_endings() -> list[Violation]:
+    violations: list[Violation] = []
+    for path, blob in index_blobs():
+        first = blob.find(b"\r")
+        if first < 0 or not is_text_blob(blob):
+            continue
+        line = blob.count(b"\n", 0, first) + 1
+        violations.append(
+            Violation(
+                "line-endings",
+                path,
+                line,
+                CR_BLOB_HINT.format(offset=first, line=line),
+            )
+        )
+    return violations
+
+
+# --------------------------------------------------------------------------
 # plumbing
 # --------------------------------------------------------------------------
 def read_lines(path: Path) -> list[tuple[int, str]]:
@@ -791,6 +900,7 @@ def main() -> int:
         "design tokens (colors/radii in core/theme/)": lambda: check_design_tokens(files),
         "native plugins behind a probe or fake": lambda: check_native_plugins(files),
         "full-screen modal surfaces (no bottom sheets)": lambda: check_full_screen_surfaces(files),
+        "line endings (no CR in a stored text blob)": check_line_endings,
     }
 
     total: list[Violation] = []
