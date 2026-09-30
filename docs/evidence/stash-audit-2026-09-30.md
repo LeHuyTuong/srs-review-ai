@@ -119,3 +119,8 @@ nhị phân): **58 blob có byte CR nhưng chỉ 1 là văn bản** — chính f
 `Seven rules:` đã đổi, `stash@{1}` vì `app/lib/data/checks/*.dart: No such file or directory`
 (đường cũ đã bị move). Muốn xoá thì `git stash drop` an toàn: không nội dung nào không tái
 tạo được, và bản note này là bản ghi lại của phép kiểm.
+
+Đã đóng gói thành `tools/audit_stashes.py` (2026-09-30): một lệnh là ra đúng bảng này, và nó
+tái lập được từng số đo tay ở trên — 159 file (130 trùng / 29 khác), **92 dòng import hỏng trong
+7 file**, apply fail, và `NOT CONTAINED` kèm **exit 1** khi stash chứa file mà HEAD không có
+(đo bằng `git stash create` — commit dạng stash không đụng `stash list`).
