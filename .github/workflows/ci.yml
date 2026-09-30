@@ -20,12 +20,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          # The line-ending report below diffs against the commit the push
+          # came from; the default depth of 1 leaves both HEAD^ and
+          # github.event.before unresolvable, and the report would fall back
+          # to measuring the whole tree -- loud, but not what a push
+          # deserves. History here is small; full depth is cheap.
+          fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       # No dependencies on purpose: the guardrails must run even when nothing
       # else in the repo installs.
       - run: python3 tools/check_guardrails.py
+      # Prints the CR numbers behind rule 9 per changed file, so whole-file
+      # churn (and the bare-CR mechanism that makes git store a file as
+      # -text) is visible in the log at push time instead of surfacing in a
+      # later audit. Runs with `if: always()` because a push that trips the
+      # rule above is exactly the push whose numbers are worth reading.
+      - run: python3 tools/report_line_endings.py
+        if: always()
+        env:
+          # Empty on pull_request; the tool then uses HEAD^.
+          LINE_ENDINGS_BASE: ${{ github.event.before }}
 
   server:
     name: Server (pytest + ruff)
