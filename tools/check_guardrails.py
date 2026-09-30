@@ -77,6 +77,17 @@ class Violation:
         return f"  [{self.rule}] {self.path}:{self.line}\n      {self.detail}"
 
 
+class InputUnavailable(RuntimeError):
+    """A rule could not read its input (git, the index, a file).
+
+    Never degrade to an empty list. An empty input and an unreadable input look
+    identical to a rule, and the whole job of this script is to certify the
+    repo -- a vacuous pass is worse than no report. Measured 2026-09-30: with
+    git off PATH this file printed "All guardrails passed across 719 files."
+    and exited 0 while the line-endings rule read exactly zero blobs.
+    """
+
+
 # --------------------------------------------------------------------------
 # 1. SECRETS
 # --------------------------------------------------------------------------
@@ -786,8 +797,8 @@ def index_blobs() -> list[tuple[str, bytes]]:
             capture_output=True,
             check=True,
         ).stdout
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return []
+    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+        raise InputUnavailable(f"git ls-files -s failed: {exc}") from exc
 
     entries: list[tuple[str, str]] = []
     for record in listing.split(b"\0"):
@@ -807,8 +818,8 @@ def index_blobs() -> list[tuple[str, bytes]]:
             capture_output=True,
             check=True,
         ).stdout
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return []
+    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+        raise InputUnavailable(f"git cat-file --batch failed: {exc}") from exc
 
     blobs: list[tuple[str, bytes]] = []
     offset = 0
@@ -821,6 +832,12 @@ def index_blobs() -> list[tuple[str, bytes]]:
         size = int(header[2])
         blobs.append((path, output[start : start + size]))
         offset = start + size + 1
+    if len(blobs) != len(entries):
+        # A partial parse is not a small repo: say so instead of checking the
+        # first N blobs and calling the rest clean.
+        raise InputUnavailable(
+            f"git cat-file --batch returned {len(blobs)} of {len(entries)} blobs"
+        )
     return blobs
 
 
@@ -858,8 +875,13 @@ def check_line_endings() -> list[Violation]:
 def read_lines(path: Path) -> list[tuple[int, str]]:
     try:
         text = path.read_text(encoding="utf-8")
-    except (UnicodeDecodeError, OSError):
-        return []
+    except UnicodeDecodeError:
+        # Scan it anyway. A file that will not decode is not "a file with no
+        # lines": returning [] made every text rule skip it in silence, so a
+        # secret in a latin-1 file passed. Mojibake lines still match patterns.
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        raise InputUnavailable(f"cannot read {path}: {exc}") from exc
     return list(enumerate(text.splitlines(), start=1))
 
 
@@ -884,13 +906,17 @@ def git_tracked_files() -> list[str]:
             text=True,
             check=True,
         )
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return []
+    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+        raise InputUnavailable(f"git ls-files failed: {exc}") from exc
     return output.stdout.splitlines()
 
 
 def main() -> int:
     files = collect_files()
+    if not files:
+        print(f"no text files found under {REPO} -- refusing to report a pass "
+              f"that verified nothing.")
+        return 1
     checks = {
         "secrets": lambda: check_secrets(files),
         "no direct LLM access from the app": lambda: check_no_direct_llm(files),
@@ -905,7 +931,18 @@ def main() -> int:
 
     total: list[Violation] = []
     for label, run in checks.items():
-        violations = run()
+        try:
+            violations = run()
+        except InputUnavailable as exc:
+            violations = [
+                Violation(
+                    "input-unavailable",
+                    "tools/check_guardrails.py",
+                    0,
+                    f"rule '{label}' could not read its input ({exc}) -- "
+                    f"reporting a failure, not an unverified pass",
+                )
+            ]
         status = "FAIL" if violations else "ok"
         print(f"[{status:>4}] {label}")
         total.extend(violations)
