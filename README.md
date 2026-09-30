@@ -136,6 +136,7 @@ real failing test can sit unnoticed on `main`. Same order locally, no surprise.
 
 ```bash
 python3 tools/check_guardrails.py            # architecture + secret rules
+python3 tools/report_line_endings.py         # CR per changed file (rule 9's numbers)
 cd server && ruff check . && ruff format --check . && pytest
 cd app && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test
 ./tools/install-hooks.sh                     # guardrails + both formatters, on every commit
@@ -146,7 +147,7 @@ Test counts are deliberately not written down here — they went stale twice
 
 ## Guardrails
 
-`tools/check_guardrails.py` fails the build on six classes of mistake. It runs
+`tools/check_guardrails.py` fails the build on nine classes of mistake. It runs
 in CI and (once installed) on every commit.
 
 | Rule | What it prevents |
@@ -157,6 +158,9 @@ in CI and (once installed) on every commit.
 | **pins** | Silent major upgrades of the five packages whose v-next broke every tutorial |
 | **contract** | The JSON schema, the Pydantic models and the Dart models drifting apart |
 | **design tokens** | `Color(0x…)` and `BorderRadius.circular` outside `core/theme/` |
+| **native plugins** | `pdfx` / `path_provider` / `file_picker` / `shared_preferences` imported outside a registered seam |
+| **full-screen surfaces** | A modal surface that is a bottom sheet instead of a full screen (ADR 0014) |
+| **line endings** | A stored text blob carrying CR — every later one-line edit becomes a whole-file diff |
 
 Try it: break a rule on purpose and watch it fail. The rules are code, so
 change them in their own PR when they are genuinely wrong.

@@ -162,3 +162,51 @@ PATH=/nonexistent server/.venv/Scripts/python.exe tools/check_guardrails.py   # 
 - `ruff check docs/evidence/scripts` còn **8 lỗi, y như bản trước khi sửa** (F541…
   pre-existing, và CI không lint thư mục này vì CI đặt `working-directory: server`).
   `ruff check tools/check_guardrails.py`: `All checks passed!`
+
+## 9. Bước CI mới: `tools/report_line_endings.py` (số CR theo từng file đổi)
+
+Luật 9 chặn blob văn bản mang CR, nhưng "1 violation" không cho biết *vì sao* nó quan
+trọng. Tool mới in, theo từng file của lượt push: CR trong worktree / blob base / blob rev,
+số CR trần, và churn (`raw` so với `-w`) — tức khoảng cách giữa "một luật vừa đỏ" và "file
+này sẽ biến mọi lần sửa một dòng về sau thành diff cả file". Nó được ghép vào job
+`guardrails` của `.github/workflows/ci.yml` với `if: always()` (lượt push làm luật 9 đỏ
+chính là lượt cần đọc số) và `fetch-depth: 0` trên checkout — mặc định depth 1 để
+`github.event.before` lẫn `HEAD^` không resolve được.
+
+Nó tách hai cơ chế, vì chỉ một trong hai là hiển nhiên:
+
+| verdict | nghĩa |
+|---|---|
+| `blob-cr` | blob đang lưu mang CR → mọi diff về sau là diff cả file, `numstat` đếm mỗi dòng là vừa xoá vừa thêm |
+| `blob-cr + N bare CR` | trong blob có N CR **không** theo sau LF → git đọc file là `-text`, và `autocrlf=true` **không bao giờ** chuẩn hoá nó (đúng cơ chế của `deterministic_finding.dart`) |
+| `worktree-bare-cr` | CR trần mới chỉ nằm trên đĩa: cảnh báo sớm, vì lần `git add` tới là nó vào blob |
+| `note: worktree CRLF, blob LF` | trạng thái bình thường của clone có `core.autocrlf=true` — **không phải lỗi**, không tính là fail |
+
+Bốn cảnh đã đo:
+
+| cảnh | kết quả đo được |
+|---|---|
+| `HEAD` vs `HEAD^` (lượt push thường) | 2 dòng; `wt_cr` của `AGENTS.md` = 88 nhưng `rev_cr` = 0 → `note`, exit 0 |
+| `--rev 6f85c23^` (bản **trước** khi chuẩn hoá `deterministic_finding.dart`) | **exit 1**, `rev_cr=449`, `FAIL blob-cr + 4 bare CR in the blob` — tool tái lập đúng bug lịch sử |
+| repo tạm: 1 file CRLF thuần + 1 file CR trần (commit với `core.autocrlf=false`) | **exit 1**, hai verdict khác nhau: `FAIL blob-cr: 3 CR` và `FAIL blob-cr + 1 bare CR` |
+| base không resolve (`0000…0`; `HEAD^` ở repo một commit; git không có trên PATH) | base vắng → in rõ "measuring every tracked file … instead of just the changed ones"; git vắng → `NOT MEASURED` + **exit 1** |
+
+Ba điều ghi lại để không phải đo lại:
+
+- **`tools/` nằm trong `SKIP_DIRS` của `check_guardrails.py`** (đo: `tools` ∈ SKIP_DIRS),
+  nên 8 luật nội dung **không quét chính thư mục của nó**; chỉ luật 9 phủ được, vì luật 9
+  đọc index chứ không đi qua `collect_files()`. Một secret nằm trong `tools/` sẽ không bị
+  luật secrets bắt.
+- Ruff format trên `tools/` còn nợ **2 file** (`check_guardrails.py`,
+  `annotate_test_failures.py`) và **cả hai đã nợ từ HEAD** — đo bằng cách format bản
+  `git show HEAD:tools/…` ra thư mục tạm — không phải do lượt này.
+- Trong repo có một file **rỗng tên `=`** được track từ 2026-09-15 (`git ls-files` khớp
+  `=`); không phải của lượt này, nó chỉ lộ ra vì tool in mọi path trong bảng.
+
+Lệnh tái lập:
+
+```sh
+python tools/report_line_endings.py                              # push thường
+python tools/report_line_endings.py --rev 6f85c23^ --base $(git rev-list --max-parents=0 HEAD)
+LINE_ENDINGS_BASE=0000000000000000000000000000000000000000 python tools/report_line_endings.py
+```
