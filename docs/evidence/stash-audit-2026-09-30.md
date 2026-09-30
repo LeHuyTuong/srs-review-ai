@@ -99,6 +99,20 @@ working tree cũng 0. Tức 92 dòng đó là rác của lần rewrite, không p
 4. **`--diff-filter=D` rỗng một mình chưa đủ kết luận** — phải cộng với `^3` fatal và so
    blob, mới nói được "không file nào, untracked nào chỉ tồn tại trong stash".
 
+## Cơ chế đằng sau bẫy #2 (đo được)
+
+`git config --show-origin core.autocrlf` → `file:C:/Program Files/Git/etc/gitconfig	true`,
+tức **mọi repo trên máy này** chạy autocrlf=true: working tree nhận CRLF lúc checkout trong
+khi blob lưu LF. Đo 5 file bất kỳ (`review_models.dart`, `criteria_manager.dart`,
+`providers.dart`, `workspace_models_test.dart`, `contradiction_pass.dart`): blob HEAD **CR=0**
+nhưng working tree **344–861 byte CR** — đúng trạng thái bình thường đó, không phải lỗi.
+
+Ngoại lệ duy nhất trên HEAD: `app/lib/deterministic_checks/models/deterministic_finding.dart`
+— blob **có 449 byte CR / 445 dòng**, còn blob của stash là **0**. Đó là toàn bộ lý do numstat
+báo 416 dòng bị xoá ở file này. Quét cả HEAD (`git grep -l -e "$(printf '\r')"` rồi lọc đuôi
+nhị phân): **58 blob có byte CR nhưng chỉ 1 là văn bản** — chính file đó. Nên đây là ngoại lệ
+đã đóng băng trong history, không phải chuyện thường; đừng suy ra "repo này CRLF".
+
 ## Nếu sau này muốn dùng lại nội dung
 
 Đọc `git stash show -p`, **không** `pop`: cả hai fail `apply --check` — `stash@{0}` vì context
