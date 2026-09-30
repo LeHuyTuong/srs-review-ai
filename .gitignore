@@ -132,3 +132,13 @@ server/.classes/
 /*.mp4
 /app/run.bat
 /server/run_server.bat
+
+# 2026-09-30: a self-contained diagram gallery belonging to another project sat
+# in the repo root — RAG-edu (15 diagrams, 9.1 MB of base64), built by
+# scripts/build-diagram-gallery.py from docs/diagrams/*.drawio. Neither the
+# script nor the source directory exists in this repo, and D:\Dev\RAG-edu has
+# no such path either, so committing it would add an unreproducible 9.1 MB blob
+# to srs-review-ai's history for a different project's deliverable. Same posture
+# as the root *.mp4 and skills.zip above: kept on disk, out of the index. Root
+# scope on purpose, so a gallery inside a docs folder can still be committed.
+/diagram-gallery.html
