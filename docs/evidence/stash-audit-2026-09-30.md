@@ -124,3 +124,43 @@ tạo được, và bản note này là bản ghi lại của phép kiểm.
 tái lập được từng số đo tay ở trên — 159 file (130 trùng / 29 khác), **92 dòng import hỏng trong
 7 file**, apply fail, và `NOT CONTAINED` kèm **exit 1** khi stash chứa file mà HEAD không có
 (đo bằng `git stash create` — commit dạng stash không đụng `stash list`).
+
+## Cập nhật cùng ngày: cột CR hai bên, và bịt lỗ pass rỗng
+
+Bảng theo từng file giờ kết thúc bằng hai cột, **cả hai phía** (`stash/HEAD`):
+
+| cột | nghĩa |
+|---|---|
+| `CR st/HEAD` | mọi byte 0x0D. Blob mang CR làm mọi lần sửa một dòng về sau thành diff cả file, và `numstat` đếm mỗi dòng là xoá + thêm — chính là "416 dòng" ở bẫy #2 |
+| `bare st/HEAD` | CR **không** theo sau LF. Một CR trần là đủ để git đọc file là `-text`, và autocrlf không bao giờ chuẩn hoá `-text` — cơ chế đã giữ 445 CRLF + 4 CR trần trong blob đó |
+
+Đo trong repo tạm (`/tmp/le-stash`, commit với `core.autocrlf=false` để blob giữ CRLF), stash có
+`a.dart` CRLF thuần, `c.dart` một CR trần, `b.dart` file mới:
+
+```
+  file    raw +/-  content +/-  CR st/HEAD  bare st/HEAD
+  a.dart  3/3      1/1          3/0          0/0
+  c.dart  2/2      2/2          1/0          1/0
+  VERDICT: NOT CONTAINED -- 1 file(s) exist only in this stash
+    missing in HEAD: b.dart
+```
+
+`a.dart` cho thấy hai mặt của cùng một chuyện: `CR st/HEAD = 3/0` (stash CRLF, HEAD LF) và churn
+`raw 3/3` so với `content 1/1` — 3 dòng theo numstat nhưng chỉ 1 dòng theo `-w`. `c.dart` tách
+riêng cơ chế CR trần: `bare 1/0` dù `content` sạch. Lượt đó exit 1 vì `b.dart` (đúng đường
+`--diff-filter=D`).
+
+**Bịt lỗ pass rỗng (đo trước khi vá).** Bản cũ nuốt mọi lỗi git: chạy ở thư mục không phải repo
+→ `stash list` fail → danh sách rỗng → in `no stashes to audit` và **exit 0**. Bốn đường đo lại:
+
+| cảnh | trước | sau |
+|---|---|---|
+| không phải git repo | `no stashes to audit`, **exit 0** | `stash audit NOT MEASURED: git stash list ... failed (128): fatal: not a git repository`, **exit 1** |
+| `git` không có trên PATH | traceback | `NOT MEASURED: git not found`, exit 1 |
+| stash list rỗng **thật** | không phân biệt được với dòng trên | `no stashes to audit (git stash list is empty)`, exit 0 |
+| ref không tồn tại (`stash@{9}`) | `skipped` + exit 1 | như cũ |
+
+`cat-file --batch` parse dở giờ raise thay vì `break` — nếu không, phần so blob sẽ báo
+"identical" cho những blob chưa hề đọc. Cùng lớp với luật "input unreadable ≠ input empty" của
+`tools/check_guardrails.py`; `git diff --diff-filter=D <stash> HEAD` cũng được nâng lên mức
+bắt buộc, vì đó mới là phép đo quyết định verdict.
