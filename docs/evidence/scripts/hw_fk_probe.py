@@ -23,6 +23,14 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 
+# Console guard: the aggregate below prints ">=2 quadrants" with a U+2265
+# greater-or-equal sign, which raises UnicodeEncodeError on a cp1258 console.
+# That print sits BEFORE OUT.write_text, so the crash costs every quadrant of
+# extracted FK text. Fix per AGENTS.md: reconfigure before any print.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 KEY = os.environ["GEMINI_API_KEY"]
 URL_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 # Use fallback model (gemini-3.5-flash quota exhausted during R19)
@@ -88,14 +96,20 @@ def parse_fks(text: str) -> list[tuple[str, str, str]]:
 def main() -> int:
     per_quad: dict[str, list[tuple[str, str, str]]] = {}
     raw_text: dict[str, str] = {}
+    failures: list[str] = []
+    missing: list[str] = []
     for q in QUADS:
         png = SRC_DIR / f"{q}.png"
         if not png.exists():
+            # A silent skip made "4 quadrants" a claim the run had not earned.
+            print(f"SKIP {q}: {png} missing", file=sys.stderr)
+            missing.append(q)
             continue
         try:
             t = call(b64(png))
         except urllib.error.URLError as e:
             print(f"FAIL {q}: {e}", file=sys.stderr)
+            failures.append(f"{q}: {e}")
             continue
         fks = parse_fks(t)
         per_quad[q] = fks
@@ -109,7 +123,9 @@ def main() -> int:
     for q, fks in per_quad.items():
         for fk in fks:
             all_fks.append((q, *fk))
-    print(f"Total FKs across 4 quadrants: {len(all_fks)}")
+    print(f"Quadrants measured: {len(per_quad)} of {len(QUADS)} "
+          f"(failed: {len(failures)}, missing: {len(missing)})")
+    print(f"Total FKs across measured quadrants: {len(all_fks)}")
 
     # Cross-quadrant FK conflict detection: same child or parent
     # table referenced in 2+ quadrants with different FK column
@@ -133,6 +149,9 @@ def main() -> int:
     for k, v in multi.items():
         print(f"  {k[0]}.{k[1]} -> {k[2]}: in {sorted(set(v))}")
 
+    # Write last: an unwritable path throws the whole run away (on Windows
+    # /tmp resolves to <drive>:\tmp, which may not exist).
+    OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps({
         "model": MODEL,
         "prompt_kind": "fk_extraction",
@@ -143,13 +162,16 @@ def main() -> int:
         },
         "raw_text": raw_text,
         "total_fks": len(all_fks),
+        "quadrants_measured": len(per_quad),
+        "quadrants_failed": failures,
+        "quadrants_missing": missing,
         "cross_quadrant_conflicts": len(cross),
         "multi_quadrant_pairs": len(multi),
         "all_fks": [
             {"quadrant": q, "child": c, "col": col, "parent": p}
             for q, c, col, p in all_fks
         ],
-    }, indent=2))
+    }, indent=2), encoding="utf-8")
     print(f"\nFull JSON: {OUT}")
     return 0
 

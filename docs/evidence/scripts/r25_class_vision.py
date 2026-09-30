@@ -17,6 +17,13 @@ import sys
 import time
 from pathlib import Path
 
+# Console guard. stdout on the measurement host can be cp1258, where this
+# script's own Vietnamese pattern text (and any Vietnamese finding echoed to
+# the console) raises UnicodeEncodeError mid-run. Fix per AGENTS.md.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 URL = "http://127.0.0.1:8000/review"
 SRC_DIR = Path("/Users/lehuytuong/dsh-chat/otes")
 PAGES = ["p160", "p167", "p168", "p169"]
@@ -42,6 +49,7 @@ def main() -> int:
     results = []
     cls_match_count = 0
     sev_counts: dict[str, int] = {}
+    failures: list[str] = []
 
     for page in PAGES:
         png = SRC_DIR / "pages" / f"{page}-{page[1:]}.png"
@@ -66,11 +74,14 @@ def main() -> int:
                     r = post(payload)
                 except Exception as e2:
                     print(f"  FAIL retry: {e2}")
+                    failures.append(f"{page}: HTTP {e.code}, retry failed: {e2}")
                     continue
             else:
+                failures.append(f"{page}: HTTP {e.code}")
                 continue
         except urllib.error.URLError as e:
             print(f"FAIL {page}: {e}")
+            failures.append(f"{page}: {e}")
             continue
 
         # Aggregate class-related issues (CLS-01/02/03 detection)
@@ -102,18 +113,25 @@ def main() -> int:
               f"cls_match={is_cls} sev={sorted({i['severity'] for i in r['issues']})}")
 
     print("\n=== AGGREGATE ===")
-    print(f"Pages probed:    {len(PAGES)}")
+    print(f"Pages probed:    {len(results)} of {len(PAGES)} "
+          f"(failed: {len(failures)})")
     print(f"Total findings:  {sum(sev_counts.values())}")
     print(f"Severities:      {sev_counts}")
-    print(f"Class-related:   {cls_match_count} of {len(PAGES)} pages")
+    print(f"Class-related:   {cls_match_count} of {len(results)} pages")
+    for f in failures:
+        print(f"  failed: {f}")
 
+    # Write last: an unwritable path throws the whole run away (on Windows
+    # /tmp resolves to <drive>:\tmp, which may not exist).
+    OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps({
         "model_used": "gemini-3.5-flash (3.1-flash-lite fallback)",
         "pages": PAGES,
         "results": results,
         "sev_counts": sev_counts,
         "class_related_pages": cls_match_count,
-    }, indent=2))
+        "pages_failed": failures,
+    }, indent=2), encoding="utf-8")
     print(f"\nFull JSON: {OUT}")
     return 0
 

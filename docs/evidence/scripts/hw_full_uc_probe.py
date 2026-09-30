@@ -130,6 +130,9 @@ def main() -> int:
         for f in failures:
             print(f"  {f}")
 
+    # Write last: an unwritable path throws the whole run away (on Windows
+    # /tmp resolves to <drive>:\tmp, which may not exist).
+    OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps({
         "model": "gemini-3.5-flash",
         "source": "hiswise §2 use cases",
@@ -143,7 +146,7 @@ def main() -> int:
         "fresh_calls": fresh,
         "failures": failures,
         "findings": findings,
-    }, indent=2))
+    }, indent=2), encoding="utf-8")
     print(f"\nFull JSON: {OUT}")
     return 0 if not failures else 2
 

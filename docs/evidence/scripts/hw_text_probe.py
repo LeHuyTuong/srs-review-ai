@@ -19,9 +19,18 @@ import urllib.request
 import urllib.error
 import sys
 from collections import Counter
+from pathlib import Path
 from typing import Any
 
+# Console guard + an overridable output path. stdout on the measurement host
+# can be cp1258, where non-ASCII probe output raises UnicodeEncodeError
+# mid-run: the fix is the one AGENTS.md prescribes.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 URL = "http://127.0.0.1:8000/review"
+OUT = Path("/tmp/hw_probe_results.json")
 SAMPLE = [
     {
         "requirement_id": "HW-UC-01",
@@ -71,12 +80,17 @@ def main() -> int:
     types: Counter[str] = Counter()
     sevs: Counter[str] = Counter()
     findings: list[dict[str, Any]] = []
+    failures: list[str] = []
     for item in SAMPLE:
         try:
             r = post_review(item)
         except urllib.error.URLError as e:
+            # Do not abort on the first transient failure. A 503 on unit 2 of 5
+            # used to discard units 1 and 3-5 as well and leave no JSON at all,
+            # so the run looked like "the probe ran" while measuring nothing.
             print(f"FAIL {item['requirement_id']}: {e}", file=sys.stderr)
-            return 2
+            failures.append(f"{item['requirement_id']}: {e}")
+            continue
         scores.append(r["score"])
         for issue in r.get("issues", []):
             types[issue["type"]] += 1
@@ -90,23 +104,37 @@ def main() -> int:
         print(f"{item['requirement_id']}: score={r['score']:>2} "
               f"issues={len(r['issues'])} "
               f"model={r['model']} cached={r['cached']} mock={r['mock']}")
+    reviewed = len(scores)
     print("\n--- Aggregate ---")
-    print(f"Requirements reviewed: {len(SAMPLE)}")
+    print(f"Requirements reviewed: {reviewed} / {len(SAMPLE)} "
+          f"(failed: {len(failures)})")
     print(f"Total findings:       {sum(sevs.values())}")
-    print(f"Score min/avg/max:    {min(scores)}/{sum(scores)//len(scores)}/{max(scores)}")
+    if scores:
+        print(f"Score min/avg/max:    {min(scores)}/"
+              f"{sum(scores)//len(scores)}/{max(scores)}")
+    else:
+        print("Score min/avg/max:    n/a (no unit was scored)")
+    for f in failures:
+        print(f"  failed: {f}")
     print(f"Issue types:          {dict(types)}")
     print(f"Severities:           {dict(sevs)}")
-    out_path = "/tmp/hw_probe_results.json"
-    with open(out_path, "w") as f:
+    # Write last: an unwritable path throws the whole run away (on Windows
+    # /tmp resolves to <drive>:\tmp, which may not exist).
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    with open(OUT, "w", encoding="utf-8") as f:
         json.dump({
             "model": "gemini-3.5-flash",
             "sample_size": len(SAMPLE),
+            "reviewed": reviewed,
+            "failed": failures,
             "scores": scores,
             "issue_types": dict(types),
             "severities": dict(sevs),
             "findings": findings,
         }, f, indent=2)
-    print(f"\nFull results: {out_path}")
+    print(f"\nFull results: {OUT}")
+    if failures:
+        return 2 if not scores else 1
     return 0
 
 

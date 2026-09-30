@@ -19,9 +19,18 @@ import json
 import urllib.request
 import urllib.error
 import sys
+from pathlib import Path
 from typing import Any
 
+# Console guard: the first print below carries a right arrow (U+2192), which
+# raises UnicodeEncodeError on a cp1258 console -- before the request is even
+# sent. Fix per AGENTS.md: reconfigure before any print.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 URL = "http://127.0.0.1:8000/review"
+OUT = Path("/tmp/hw_vision_probe.json")
 ERD = "/Users/lehuytuong/dsh-chat/hiswise/erd-tl.png"
 SIZE_BYTES = 0
 
@@ -58,6 +67,18 @@ def main() -> int:
         r = post(payload)
     except urllib.error.URLError as e:
         print(f"FAIL: {e}", file=sys.stderr)
+        # Record the failure instead of leaving nothing behind: a bare
+        # `return 2` is indistinguishable from "the probe never started".
+        # Write last: an unwritable path throws the whole run away (on Windows
+        # /tmp resolves to <drive>:\tmp, which may not exist).
+        OUT.parent.mkdir(parents=True, exist_ok=True)
+        OUT.write_text(json.dumps({
+            "requirement_id": payload["requirement_id"],
+            "model": "gemini-3.5-flash",
+            "error": str(e),
+            "response": None,
+        }, indent=2), encoding="utf-8")
+        print(f"\nFailure recorded: {OUT}")
         return 2
     print(f"\nscore={r['score']} issues={len(r['issues'])} "
           f"model={r['model']} cached={r['cached']} mock={r['mock']}")
@@ -69,10 +90,9 @@ def main() -> int:
         print(f"    suggestion: {issue['suggestion'][:200]}")
         if issue.get("similarity") is not None:
             print(f"    similarity: {issue['similarity']}")
-    out_path = "/tmp/hw_vision_probe.json"
-    with open(out_path, "w") as f:
-        json.dump(r, f, indent=2)
-    print(f"\nFull response: {out_path}")
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    OUT.write_text(json.dumps(r, indent=2), encoding="utf-8")
+    print(f"\nFull response: {OUT}")
     return 0
 
 

@@ -21,6 +21,15 @@ import urllib.error
 from collections import Counter
 from pathlib import Path
 
+# Console guard. stdout on the measurement host can be cp1258, where the
+# check mark printed below (U+2713) raises UnicodeEncodeError. It fires after
+# the aggregate is printed but BEFORE OUT.write_text, so the crash costs the
+# whole run's JSON: the probe looks like it ran and leaves no evidence. This
+# is the fix AGENTS.md prescribes -- reconfigure before any print.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 URL = "http://127.0.0.1:8000/review"
 SRC = Path("/Users/lehuytuong/dsh-chat/otes/srs.txt")
 OUT = Path("/tmp/otes_probe.json")
@@ -102,6 +111,7 @@ def main() -> int:
     type_counts: Counter[str] = Counter()
     match_counts: Counter[str] = Counter()
     score_total = 0
+    failures: list[str] = []
 
     for uc_id, body in sample:
         payload = {
@@ -114,6 +124,7 @@ def main() -> int:
             r = post(payload)
         except urllib.error.URLError as e:
             print(f"FAIL {uc_id}: {e}", file=sys.stderr)
+            failures.append(f"{uc_id}: {e}")
             continue
         score_total += r["score"]
         all_text = " ".join(
@@ -139,13 +150,21 @@ def main() -> int:
         print(f"OTES-{uc_id}: score={r['score']} issues={len(r['issues'])} "
               f"sev={'|'.join(sorted({i['severity'] for i in r['issues']}))}")
 
+    reviewed = len(sample) - len(failures)
     print("\n=== AGGREGATE ===")
-    print(f"UCs reviewed:       {len(sample)}")
+    print(f"UCs reviewed:       {reviewed} / {len(sample)}"
+          f" (failed: {len(failures)})")
     print(f"Total findings:     {sum(sev_counts.values())}")
-    print(f"Score avg:          {score_total // max(len(sample), 1)}")
+    # Denominator is the successes, not the sample: a unit that never returned
+    # has no score, so dividing by len(sample) silently deflates the average.
+    print(f"Score avg:          {score_total // max(reviewed, 1)}")
     print(f"Severities:         {dict(sev_counts)}")
     print(f"Issue types:        {dict(type_counts)}")
     print(f"Red (high) findings:{sev_counts.get('high', 0)}")
+    if failures:
+        print(f"\nFailures ({len(failures)}, excluded from the average):")
+        for f in failures:
+            print(f"  {f}")
     print(f"\n=== BRIEF NAMED-FINDING MATCHES ===")
     for name, patterns in PATTERNS.items():
         count = match_counts.get(name, 0)
@@ -153,9 +172,14 @@ def main() -> int:
         print(f"  {marker} {name}: {count} matching issues "
               f"(patterns: {patterns[:2]})")
 
+    # The write is the last step: an unwritable path here throws away the
+    # whole run (on Windows /tmp resolves to <drive>:\tmp, which may not exist).
+    OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps({
         "model": "gemini-3.5-flash (with 3.1-flash-lite fallback)",
         "sample_size": len(sample),
+        "reviewed": reviewed,
+        "failed": failures,
         "total_findings": sum(sev_counts.values()),
         "red_findings": sev_counts.get("high", 0),
         "scores_total": score_total,
@@ -163,7 +187,7 @@ def main() -> int:
         "issue_types": dict(type_counts),
         "brief_named_matches": dict(match_counts),
         "findings": findings,
-    }, indent=2))
+    }, indent=2), encoding="utf-8")
     print(f"\nFull JSON: {OUT}")
     return 0
 

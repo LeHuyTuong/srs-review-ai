@@ -65,6 +65,7 @@ def extract_entities(text: str) -> list[str]:
 def main() -> int:
     results: list[dict[str, Any]] = []
     entities_per_quad: dict[str, list[str]] = {}
+    failures: list[str] = []
 
     for q in QUADS:
         png = SRC_DIR / f"{q}.png"
@@ -83,6 +84,7 @@ def main() -> int:
             r = post(payload)
         except urllib.error.URLError as e:
             print(f"FAIL {q}: {e}", file=sys.stderr)
+            failures.append(f"{q}: {e}")
             continue
         # Aggregate entity mentions across the response
         all_text = " ".join(
@@ -108,7 +110,11 @@ def main() -> int:
 
     print("\n=== CROSS-QUADRANT ENTITY OVERLAP ===")
     all_ents = sorted({e for ents in entities_per_quad.values() for e in ents})
-    print(f"Unique entities mentioned across all 4 quadrants: {len(all_ents)}")
+    print(f"Unique entities mentioned across measured quadrants "
+          f"({len(results)} of {len(QUADS)}, failed: {len(failures)}): "
+          f"{len(all_ents)}")
+    for f in failures:
+        print(f"  failed: {f}")
     for q in QUADS:
         ents = set(entities_per_quad.get(q, []))
         others = {
@@ -125,12 +131,17 @@ def main() -> int:
             sev_counts[i["severity"]] = sev_counts.get(i["severity"], 0) + 1
     print(sev_counts)
 
+    # Write last: an unwritable path throws the whole run away (on Windows
+    # /tmp resolves to <drive>:\tmp, which may not exist).
+    OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps({
         "model": "gemini-3.5-flash",
         "quadrants": results,
         "total_issues": sum(len(r_["issues"]) for r_ in results),
         "sev_counts": sev_counts,
-    }, indent=2))
+        "quadrants_measured": len(results),
+        "quadrants_failed": failures,
+    }, indent=2), encoding="utf-8")
     print(f"\nFull JSON: {OUT}")
     return 0
 

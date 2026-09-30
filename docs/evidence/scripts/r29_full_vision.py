@@ -136,13 +136,16 @@ def main() -> int:
     print(f"Class-related:      {cls_pages} of {len(results)} pages")
     print(f"R25 + R29 CLS pages: {4 + cls_pages} (R25 hit 2 of 4)")
 
+    # Write last: an unwritable path throws the whole run away (on Windows
+    # /tmp resolves to <drive>:\tmp, which may not exist).
+    OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps({
         "model_used": "gemini-3.5-flash (3.1-flash-lite fallback)",
         "results": results,
         "sev_counts": sev_counts,
         "class_related_pages": cls_pages,
         "total_pages_probed": len(results),
-    }, indent=2))
+    }, indent=2), encoding="utf-8")
     print(f"\nFull JSON: {OUT}")
     return 0
 

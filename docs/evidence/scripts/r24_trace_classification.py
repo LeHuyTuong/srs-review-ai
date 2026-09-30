@@ -10,8 +10,15 @@ No new LLM calls — pure pattern matching on saved responses.
 
 import json
 import re
+import sys
 from collections import Counter
 from pathlib import Path
+
+# Console guard: the gate tally below prints a check mark (U+2713), which
+# raises UnicodeEncodeError on a cp1258 console. Fix per AGENTS.md.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 SRC = Path("/Volumes/SSD/Dev/active/PRM392_FlutterMobile/srs-review-ai/docs/evidence/scripts/otes_full_probe_results.json")
 OUT = Path("/tmp/r24_trace_classification.json")
@@ -85,6 +92,9 @@ def main() -> int:
     # Update gate tally
     matches = dict(data.get("brief_named_matches", {}))
     matches["TRACE-01"] = trace_matched
+    # Write last: an unwritable path throws the whole run away (on Windows
+    # /tmp resolves to <drive>:\tmp, which may not exist).
+    OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps({
         "source": "R22 saved results (no new LLM calls)",
         "trace_pattern_count": len(ALL_PATTERNS),
@@ -93,7 +103,7 @@ def main() -> int:
         "all_patterns": ALL_PATTERNS,
         "issue_type_counts": dict(type_counts),
         "updated_named_matches": matches,
-    }, indent=2))
+    }, indent=2), encoding="utf-8")
     print(f"\nFull JSON: {OUT}")
 
     # Print updated gate tally
