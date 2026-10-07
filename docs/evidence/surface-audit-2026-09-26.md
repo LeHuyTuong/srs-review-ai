@@ -139,6 +139,21 @@ phương ngang:
 | Trước | 4 lỗi: 33 px, 107 px (rubric) · 91 px (criterion editor) · 15 px (report) | 0 |
 | Sau | **0** | **0** |
 
+**Đo lại độc lập lần hai (2026-10-07) — và một cổng chặn hồi quy.** Bốn chỗ ở
+§3.1 cùng chỗ thứ sáu ở §3.1.1 giờ có test thường trực
+`app/test/surface_overflow_390_test.dart`, chạy ở **cả** 390×844 lẫn 1200×900 và
+đo bằng `getRect`/`getSize` chứ không chỉ đếm overflow: nút chính của criteria
+manager phải rộng ít nhất `nhãn + 30 px`, hai dropdown phải cùng bề rộng và
+**xếp dọc**, sáu chip Báo cáo phải là một `Wrap` sáu con và không con nào vượt
+mép phải của nó. Chạy lại harness với ba file bản cũ phục hồi: `28.2 px` cho nút
+chính (nhãn `0.0 px`, cú `tap()` còn không trúng nút — "derived an Offset … would
+not hit test") và `RenderFlex overflowed by 15 pixels on the right` cho hàng chip;
+bản đang có: `224.3 px`, hai dropdown `326 px` xếp dọc, chip thứ sáu xuống dòng
+(mép phải `361.4 px` còn `Row` cũ vượt mốc `358 px`), **0** lỗi ở cả hai khổ.
+Test mới **đỏ** khi phục hồi bản cũ, ở cả hai khổ (390: `28.2 px` và không phải
+`Wrap`; 1200: hai dropdown chung một hàng) — một test không thể đỏ là một test
+không chứng minh gì.
+
 Hai con số **không** khớp tuyệt đối với bảng trên, và lý do đáng ghi: `91 px` thay
 cho `88 px`. Audit gốc đo criterion editor ở trạng thái `canEdit == false`
 (`MockReviewApi`), nên dropdown render với nhãn rỗng; bản đo lại mở nó qua
@@ -221,7 +236,9 @@ của trang. Ở mọi khổ đúng **một** instance — không bao giờ hi�
 
 Đo lại: **15 px → 0** ở 390, và 0 ở 1200 (khối trang Báo cáo dựng trên
 container **đã chấm xong một lượt** — chip toàn số `0` thì hẹp, và hẹp thì
-không tràn, tức một lần chạy xanh mà không chứng minh gì).
+không tràn, tức một lần chạy xanh mà không chứng minh gì). Hàng chip này có
+cổng hồi quy thường trực trong `app/test/surface_overflow_390_test.dart` (xem
+§3.1 để có số đo lại và bản đối chứng âm).
 
 Đây là lỗi thứ năm cùng một lớp với bốn lỗi ở §3.1: một `Row` cứng ở khổ điện
 thoại, không phải lỗi riêng của trang Báo cáo.
