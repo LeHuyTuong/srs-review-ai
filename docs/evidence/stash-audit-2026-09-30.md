@@ -164,3 +164,26 @@ riêng cơ chế CR trần: `bare 1/0` dù `content` sạch. Lượt đó exit 1
 "identical" cho những blob chưa hề đọc. Cùng lớp với luật "input unreadable ≠ input empty" của
 `tools/check_guardrails.py`; `git diff --diff-filter=D <stash> HEAD` cũng được nâng lên mức
 bắt buộc, vì đó mới là phép đo quyết định verdict.
+
+## Trạng thái cuối + SHA của hai stash (đo lại 2026-09-30)
+
+Ba phép đo quyết định "xoá được chưa", chạy lại nguyên trạng ở lần kiểm cuối:
+
+| | `stash@{0}` | `stash@{1}` |
+|---|---|---|
+| commit | `994a123b539b1cac3c77bb1d176450a9d376c2ee` | `b9740b0b6a4193e9037819c038c9c5b5ed0a7e88` |
+| base (`^1`) | `86a695d31f3740ec8df20061ee0c91586dfde1a5` | `e21e961b87d13bf22832d5f39488d6110531fd06` |
+| số parent | 2, **không** có `^3` → không untracked nào bị kẹt | 2, **không** có `^3` |
+| `git diff --diff-filter=D <stash> HEAD` | **0 file** | **0 file** |
+| `git stash show -p \| git apply --check` | fail (10 error, `docs/adr/README.md:17`) | fail (260 error, `app/lib/core/providers.dart:7`) |
+
+"0 file" là phép đo chịu lực: **không file nào chỉ tồn tại trong stash**. Nó không hứa mọi
+*dòng* còn nguyên — 2 và 29 file khác nội dung — nhưng những diff đó đã đọc hết: mọi dòng chỉ
+có ở stash đều là giá trị cũ mà dev đã thay (mục trên). Cộng thêm `stash@{1}` mang 92 dòng
+import hỏng không biên dịch được, tức nội dung duy nhất của nó là thứ **không nên** hồi sinh.
+
+`git stash drop` chỉ bỏ **ref**, không bỏ object: hai commit trên vẫn nằm trong object store và
+còn tra được bằng `git show <sha>` cho tới lần `git gc` đầu tiên sau khi hết hạn reachability
+(mặc định 2 tuần kể từ lúc thành unreachable). Đây **không phải bản backup** — muốn giữ thật thì
+`git branch <tên> <sha>` hoặc export patch. SHA ghi ở đây để lần đối chiếu sau khi drop còn
+đường tra trong lúc object còn.
