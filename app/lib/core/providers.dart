@@ -12,6 +12,9 @@ import '../deterministic_checks/models/ai_criterion.dart';
 import '../diagram_audit/services/page_image_renderer.dart';
 import '../document_import/repositories/document_repository.dart';
 import '../document_import/services/document_map_service.dart';
+import '../features/student/data/student_repository.dart';
+import '../features/student/data/student_store.dart';
+import '../features/student/view_model/student_view_model.dart';
 import '../features/teacher/data/teacher_repository.dart';
 import '../features/teacher/data/teacher_store.dart';
 import '../features/teacher/view_model/teacher_view_model.dart';
@@ -456,3 +459,21 @@ final teacherStoreProvider = Provider<TeacherStore>(
 
 final teacherViewModelProvider =
     NotifierProvider<TeacherViewModel, TeacherState>(TeacherViewModel.new);
+
+// ---------------------------------------------------------------- student
+
+/// The student side reuses ONE api instance shape: the same base URL and app
+/// token, because the difference between teacher and student is NOT the
+/// transport — it is which capability rides on a given write (a class key vs
+/// the submission id). Giving the student its own base URL would invite the
+/// idea that the two hit different servers, which they do not.
+final studentRepositoryProvider = Provider<StudentRepository>(
+  (ref) => StudentRepository(ref.watch(teacherApiProvider)),
+);
+
+final studentStoreProvider = Provider<StudentStore>(
+  (ref) => openStudentStore(ref.watch(sharedPreferencesProvider)),
+);
+
+final studentViewModelProvider =
+    NotifierProvider<StudentViewModel, StudentState>(StudentViewModel.new);

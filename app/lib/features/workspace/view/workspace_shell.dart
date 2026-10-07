@@ -48,6 +48,12 @@ const List<WorkspaceDestination> kWorkspaceDestinations = [
   // Report branch (index 3): merged AI + human issues with the overall
   // assessment. Its POSITION — not a path — is what selects it (goBranch).
   WorkspaceDestination('Báo cáo tổng hợp', Icons.summarize_outlined),
+  // Feedback branch (index 4): the student's side of the round — the teacher's
+  // note and the thread (ADR-0019). Position 4 must match the FIFTH
+  // StatefulShellBranch in `core/router/app_router.dart`; the shell navigates
+  // with `goBranch(i)`, so an index/route mismatch lands silently on the wrong
+  // screen. `student_feedback_route_test.dart` is what pins the two together.
+  WorkspaceDestination('Phản hồi từ giáo viên', Icons.forum_outlined),
 ];
 
 /// Height of the floating top bar. Named because the scrolling views have to

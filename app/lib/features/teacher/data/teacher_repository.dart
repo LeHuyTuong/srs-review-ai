@@ -131,6 +131,60 @@ class TeacherRepository {
   /// the webview can load it as a page.
   Future<Uri> reportUri(String submissionId, String baseUrl) async =>
       Uri.parse(baseUrl).resolve('/submissions/$submissionId/report');
+
+  // ----------------------------------------------------------------- thread
+
+  /// Adds one remark to the round's thread (ADR-0019).
+  ///
+  /// `author` is `teacher` and the class key rides in `X-Class-Key`: the store
+  /// applies the teacher gate on that pair, and the app token — which the
+  /// group's own app also holds — is deliberately NOT enough. Returns nothing;
+  /// callers re-read ([readSubmission]) because the write answers a single
+  /// comment, not the thread.
+  Future<void> addComment({
+    required String submissionId,
+    required String writeKey,
+    required String body,
+    String author = 'teacher',
+  }) async {
+    await _api.write(
+      '/submissions/$submissionId/comments',
+      body: {'author': author, 'body': body},
+      writeKey: writeKey,
+    );
+  }
+
+  /// Replies under one comment. Same authority as [addComment].
+  Future<void> replyToComment({
+    required String submissionId,
+    required String commentId,
+    required String writeKey,
+    required String body,
+    String author = 'teacher',
+  }) async {
+    await _api.write(
+      '/submissions/$submissionId/comments/$commentId/replies',
+      body: {'author': author, 'body': body},
+      writeKey: writeKey,
+    );
+  }
+
+  /// Opens or closes one comment. TEACHER ONLY — there is no student path to
+  /// this, by design: closing a remark about the group's own work is the same
+  /// self-approval hole as [decide], one step milder.
+  Future<void> setCommentResolved({
+    required String submissionId,
+    required String commentId,
+    required String writeKey,
+    required bool resolved,
+  }) async {
+    await _api.write(
+      '/submissions/$submissionId/comments/$commentId',
+      method: 'PATCH',
+      body: {'resolved': resolved},
+      writeKey: writeKey,
+    );
+  }
 }
 
 /// The two outcomes the plan fixed for one round. The wire words are the

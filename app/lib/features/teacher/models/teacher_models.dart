@@ -210,6 +210,74 @@ class TeacherActivity {
 /// The full row behind one submission — `GET /submissions/{id}`. This is the
 /// teacher's reading view: metadata, the round thread, and the review's
 /// NUMBERS (never the HTML twin, which the sandboxed report route serves).
+/// One turn in the teacher <-> student thread (ADR-0019).
+///
+/// Shared by both sides: the teacher's screen and the student's render the
+/// SAME wire shape, and the only difference is which credential gets to write
+/// it. Keeping one model means the two screens cannot disagree about what a
+/// comment looks like.
+class SubmissionComment {
+  const SubmissionComment({
+    required this.id,
+    required this.author,
+    required this.body,
+    required this.revision,
+    required this.at,
+    required this.resolvedAt,
+    required this.replies,
+  });
+
+  factory SubmissionComment.fromJson(Map<String, dynamic> json) =>
+      SubmissionComment(
+        id: json['id'] as String? ?? '',
+        author: json['author'] as String? ?? '',
+        body: json['body'] as String? ?? '',
+        revision: (json['revision'] as num?)?.toInt() ?? 1,
+        at: _parseTime(json['at']),
+        resolvedAt: json['resolvedAt'] == null
+            ? null
+            : _parseTime(json['resolvedAt']),
+        replies: [
+          for (final row in (json['replies'] as List<dynamic>? ?? const []))
+            SubmissionComment.fromJson(
+              Map<String, dynamic>.from(row as Map<dynamic, dynamic>),
+            ),
+        ],
+      );
+
+  final String id;
+
+  /// `teacher` | `student` — the server's closed two-value vocabulary. Kept
+  /// as a raw string rather than an enum so an unknown value from a newer
+  /// server renders instead of throwing; the screen labels it via
+  /// [isTeacher]/[isStudent] and falls back to the raw word.
+  final String author;
+  final String body;
+
+  /// The revision this turn was written against. The thread lives on the
+  /// SUBMISSION, so a remark survives a resubmit — this is what still tells
+  /// the reader which round it was about.
+  final int revision;
+  final DateTime at;
+
+  /// When the teacher closed it, or null while open. Only the teacher may set
+  /// this (the store refuses anyone else), so a student build of this model
+  /// never renders a control that writes it.
+  final DateTime? resolvedAt;
+
+  /// Flat, one level deep, oldest first.
+  final List<SubmissionComment> replies;
+
+  bool get isTeacher => author == 'teacher';
+  bool get isStudent => author == 'student';
+  bool get isResolved => resolvedAt != null;
+
+  /// How the thread counts as work outstanding — an open remark is something
+  /// the group still has to answer, which is exactly what the student screen
+  /// needs to say out loud.
+  bool get needsAttention => !isResolved && isTeacher;
+}
+
 class TeacherSubmissionDetail {
   const TeacherSubmissionDetail({
     required this.id,
@@ -226,6 +294,7 @@ class TeacherSubmissionDetail {
     required this.hasReport,
     required this.score,
     required this.findings,
+    required this.comments,
   });
 
   factory TeacherSubmissionDetail.fromJson(Map<String, dynamic> json) =>
@@ -249,6 +318,12 @@ class TeacherSubmissionDetail {
         findings: Map<String, dynamic>.from(
           json['findings'] as Map<dynamic, dynamic>? ?? const {},
         ),
+        comments: [
+          for (final row in (json['comments'] as List<dynamic>? ?? const []))
+            SubmissionComment.fromJson(
+              Map<String, dynamic>.from(row as Map<dynamic, dynamic>),
+            ),
+        ],
       );
 
   final String id;
@@ -274,6 +349,10 @@ class TeacherSubmissionDetail {
   final double? score;
   final Map<String, dynamic> findings;
 
+  /// The round's thread (ADR-0019). Lives on the submission, so a remark
+  /// survives a resubmit; each entry records the revision it was about.
+  final List<SubmissionComment> comments;
+
   TeacherSubmissionDetail copyWith({String? status}) => TeacherSubmissionDetail(
     id: id,
     group: group,
@@ -289,6 +368,7 @@ class TeacherSubmissionDetail {
     hasReport: hasReport,
     score: score,
     findings: findings,
+    comments: comments,
   );
 }
 

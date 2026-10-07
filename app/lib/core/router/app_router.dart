@@ -11,6 +11,7 @@ library;
 import 'package:go_router/go_router.dart';
 
 import '../../core/role/app_role.dart';
+import '../../features/student/view/student_feedback_view.dart';
 import '../../features/teacher/view/teacher_class_view.dart';
 import '../../features/teacher/view/teacher_classes_view.dart';
 import '../../features/teacher/view/teacher_shell.dart';
@@ -28,6 +29,11 @@ class AppRoutes {
   static const String history = '/history';
   static const String syllabus = '/syllabus';
   static const String report = '/report';
+
+  /// The student's side of a round (ADR-0019). A destination of the student
+  /// shell rather than a pushed route, so the chrome stays mounted and the tab
+  /// bar can reach it — the same shape as the other four.
+  static const String feedback = '/feedback';
 
   // Teacher (WP5). Three screens of one drill-down: class list → class →
   // submission. They are SHELL routes, so the teacher chrome stays mounted;
@@ -86,6 +92,14 @@ GoRouter _studentRouter() => GoRouter(
             GoRoute(
               path: AppRoutes.report,
               builder: (context, state) => const ReportView(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: AppRoutes.feedback,
+              builder: (context, state) => const StudentFeedbackView(),
             ),
           ],
         ),
