@@ -16,6 +16,7 @@ from app.schemas import (
     CONTRACT_VERSION,
     AskResponse,
     BatchReviewResponse,
+    DecisionStatus,
     IssueType,
     ReviewResult,
     Severity,
@@ -28,6 +29,40 @@ FIXTURES = CONTRACTS / "fixtures"
 def test_schema_declares_the_same_contract_version():
     schema = json.loads((CONTRACTS / "review.schema.json").read_text(encoding="utf-8"))
     assert schema["x-contract-version"] == CONTRACT_VERSION
+
+
+def _walk(node):
+    """Yield every dict nested anywhere inside a parsed JSON document."""
+    if isinstance(node, dict):
+        yield node
+        for value in node.values():
+            yield from _walk(value)
+    elif isinstance(node, list):
+        for item in node:
+            yield from _walk(item)
+
+
+def test_every_contract_version_constant_matches():
+    """The bump has to reach every copy, not just the top-level one.
+
+    A version literal lives in three shapes (the schema's `x-contract-version`,
+    the `const` inside each response definition, and the value in each fixture),
+    and pydantic accepts ANY string for `contract_version` — so a partial bump
+    passes every parse test and only shows up as a fixture that lies about the
+    contract it demonstrates.
+    """
+    schema = json.loads((CONTRACTS / "review.schema.json").read_text(encoding="utf-8"))
+    for node in _walk(schema):
+        const = node.get("contract_version")
+        if isinstance(const, dict) and "const" in const:
+            assert const["const"] == CONTRACT_VERSION, f"schema const drifted: {const['const']}"
+
+    for path in sorted(FIXTURES.glob("*.json")):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        for node in _walk(payload):
+            value = node.get("contract_version")
+            if isinstance(value, str):
+                assert value == CONTRACT_VERSION, f"{path.name} pins {value}"
 
 
 def test_review_result_fixture_parses():
@@ -72,6 +107,23 @@ def test_enums_match_the_json_schema():
     defs = schema["$defs"]
     assert defs["IssueType"]["enum"] == [t.value for t in IssueType]
     assert defs["Severity"]["enum"] == [s.value for s in Severity]
+    assert defs["DecisionStatus"]["enum"] == [d.value for d in DecisionStatus]
+
+
+def test_decision_status_is_the_closed_set_the_server_records():
+    # ADR-0019: a decision vocabulary is a closed set, and the two values are
+    # what the server records. 'rejected'/'needsRevision' are document states,
+    # not decisions — if either ever appears here, the mock has grown the wire.
+    assert [d.value for d in DecisionStatus] == ["approved", "changes_requested"]
+    assert "rejected" not in {d.value for d in DecisionStatus}
+    assert "needsRevision" not in {d.value for d in DecisionStatus}
+
+
+def test_decision_status_accepts_only_known_values():
+    assert DecisionStatus("approved") is DecisionStatus.approved
+    assert DecisionStatus("changes_requested") is DecisionStatus.changes_requested
+    with pytest.raises(ValueError):
+        DecisionStatus("rejected")
 
 
 def test_rubric_json_is_valid_and_weights_sum_to_one():

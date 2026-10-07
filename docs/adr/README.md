@@ -23,7 +23,8 @@ Mỗi quyết định kỹ thuật có một file, đánh số tăng dần, khô
 | [0016](0016-class-roster-and-teacher-decisions.md) | Lớp học là `class_id` capability (**không thu hồi được**); quyết định của giáo viên **append** không ghi đè; đúng khi **self-hosted**; "đã đọc" là việc của máy | Accepted |
 | [0017](0017-class-crud-and-write-key.md) | Lớp học là **full CRUD**; ghi khác app token (mỗi lớp có `write_key` riêng, so bằng `compare_digest`); `class_id` nằm trên **submission** chứ không có list trong file lớp; `DELETE` lớp **không xoá bài nhóm** | Accepted |
 | [0018](0018-contradiction-pass-scope-row-shaped-documents.md) | `crossArtifactName` (chain 1) chỉ bắn trên tài liệu hình dòng (SDS/dictionary); SRS văn xuôi trả 0 là kết quả được thiết kế — số đo cơ chế kèm theo; không thêm "N/A" và không nới extractor khi chưa có gold set | Accepted |
+| [0019](0019-web-ui-is-a-mock-contract-sync.md) | web-ui là mock (không gọi server); `ReviewEventKind` thu về `approved \| changes_requested \| resubmitted` (bỏ `needsRevision`/`rejected` — chúng là `DocumentStatus`); decision vocabulary vào `contracts/review.schema.json`, bump 1.1.0→1.2.0; wire thật là bước sau với cổng credential của browser | Accepted |
 
-**Số tiếp theo: 0019.**
+**Số tiếp theo: 0020.**
 
 Luật chấm SRS/SDS **không** ghi ở đây — chúng nằm ở `review-rules/RULEBOOK.md` với hệ version riêng (§10). ADR chỉ dành cho quyết định về *code* của repo này.

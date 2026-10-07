@@ -66,7 +66,10 @@ class FakeProvider:
 def test_health_reports_mock_mode(client):
     body = client.get("/health").json()
     assert body["status"] == "ok"
-    assert body["contract_version"] == "1.1.0"
+    # 1.2.0 added $defs/DecisionStatus to the wire contract (ADR-0019); the
+    # health endpoint reports the version the server actually speaks, so this
+    # literal moves with CONTRACT_VERSION rather than describing an old build.
+    assert body["contract_version"] == "1.2.0"
     assert body["rubric_version"] == "v3"
 
 

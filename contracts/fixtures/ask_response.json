@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.1.0",
+  "contract_version": "1.2.0",
   "answer": "Section 3.2 lists four functional requirements (FR-01..FR-04) covering login, submission, review and export.",
   "grounded": true,
   "citations": [

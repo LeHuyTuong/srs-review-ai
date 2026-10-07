@@ -11,7 +11,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-CONTRACT_VERSION = "1.1.0"
+CONTRACT_VERSION = "1.2.0"
 
 
 class IssueType(StrEnum):
@@ -58,6 +58,21 @@ class Verification(StrEnum):
     exact = "exact"
     fuzzy = "fuzzy"
     reordered = "reordered"
+
+
+class DecisionStatus(StrEnum):
+    """The closed set of decisions a teacher may record on a submission.
+
+    ADR-0016 decision 2 and ADR-0017: a decision appends and never overwrites,
+    so the vocabulary is a closed set written down in one place — the next
+    status someone needs is an ADR amendment, not a string edit. `rejected`
+    and `needsRevision` are NOT members: those are document states a
+    conversation can be in (`DocumentStatus` on the web-ui side), not decisions
+    the server will record.
+    """
+
+    approved = "approved"
+    changes_requested = "changes_requested"
 
 
 class Strict(BaseModel):
