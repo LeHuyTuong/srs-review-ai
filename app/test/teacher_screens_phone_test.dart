@@ -422,13 +422,33 @@ void main() {
 
     await _pumpShell(tester, container, router);
     router.go(AppRoutes.submissionLocation('s1'));
+    // The thread section was added to this screen, so the action row is now
+    // further down a lazy ListView: it needs more frames to build, and it can
+    // sit outside the first viewport. Wait by CONDITION with a longer budget,
+    // then scroll — an off-screen button is a tap on nothing.
     for (
       var i = 0;
-      i < 30 && find.byKey(const Key('teacher-approve')).evaluate().isEmpty;
+      i < 120 && find.byKey(const Key('teacher-approve')).evaluate().isEmpty;
       i++
     ) {
       await tester.pump(const Duration(milliseconds: 20));
     }
+
+    // The thread section pushed the action row below the first viewport and the
+    // ListView builds lazily, so the button is not in the tree yet. Two things
+    // follow: the flag ABOVE the row must be asserted before scrolling (the
+    // scroll unmounts it), and the buttons must be scrolled to before measuring
+    // — measuring a button that was never built is what failed, not a squeezed
+    // label.
+    expect(find.byKey(const Key('teacher-uncalibrated-flag')), findsOneWidget);
+    expect(find.textContaining('CHƯA được kiểm định'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('teacher-approve')),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump(const Duration(milliseconds: 50));
 
     _expectLabelFits(
       tester: tester,
@@ -443,10 +463,6 @@ void main() {
       name: 'Yêu cầu sửa (FilledButton.tonal)',
     );
 
-    // The uncalibrated-score flag is ON the reading view.
-    expect(find.byKey(const Key('teacher-uncalibrated-flag')), findsOneWidget);
-    expect(find.textContaining('CHƯA được kiểm định'), findsOneWidget);
-
     final errors = await _drainExceptions(tester);
     expect(errors, isEmpty);
   });
@@ -459,17 +475,27 @@ void main() {
 
     await _pumpShell(tester, container, router);
     router.go(AppRoutes.submissionLocation('s1'));
+    // The thread section was added to this screen, so the action row is now
+    // further down a lazy ListView: it needs more frames to build, and it can
+    // sit outside the first viewport. Wait by CONDITION with a longer budget,
+    // then scroll — an off-screen button is a tap on nothing.
     for (
       var i = 0;
-      i < 30 && find.byKey(const Key('teacher-approve')).evaluate().isEmpty;
+      i < 120 && find.byKey(const Key('teacher-approve')).evaluate().isEmpty;
       i++
     ) {
       await tester.pump(const Duration(milliseconds: 20));
     }
 
-    // At 390x844 the action row sits below the fold; a tap on an off-screen
-    // button is a tap on nothing. Bring it into view first.
-    await tester.ensureVisible(find.byKey(const Key('teacher-approve')));
+    // At 390x844 the action row sits below the fold — now further down because
+    // of the thread section — and a lazy ListView has not built it yet, so
+    // `ensureVisible` cannot find it. Scroll to it, then it is tappable: a tap
+    // on an off-screen button is a tap on nothing.
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('teacher-approve')),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pump(const Duration(milliseconds: 100));
 
     await tester.tap(find.byKey(const Key('teacher-approve')));

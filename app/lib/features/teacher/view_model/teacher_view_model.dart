@@ -502,6 +502,146 @@ class TeacherViewModel extends Notifier<TeacherState> {
     state = state.copyWith(clearActionFeedback: true);
   }
 
+  // --------------------------------------------------------------- thread
+
+  /// Writes a remark in the thread — this is how a teacher explains WHY a
+  /// round came back, per element, rather than only in the one decision note
+  /// that replaces its predecessor each round.
+  ///
+  /// Carries the class write key: a teacher's authority is the key, not a
+  /// claim in the body. No key means the store answers 409 and nothing is
+  /// written, which is the rule the store enforces and this method must not
+  /// paper over.
+  Future<void> addComment(String submissionId, String body) async {
+    final key = _currentWriteKey();
+    if (key == null) {
+      state = state.copyWith(
+        actionFeedback: 'Cần mở lớp trước khi bình luận (thiếu mã lớp).',
+      );
+      return;
+    }
+    if (body.trim().isEmpty) {
+      state = state.copyWith(actionFeedback: 'Bình luận không được để trống.');
+      return;
+    }
+    state = state.copyWith(busy: true, clearActionFeedback: true);
+    try {
+      await _repository.addComment(
+        submissionId: submissionId,
+        writeKey: key,
+        body: body,
+      );
+      await _reloadDetail(submissionId, feedback: 'Đã thêm bình luận.');
+    } on Object catch (error) {
+      state = state.copyWith(
+        busy: false,
+        actionFeedback: _message(error, 'Không thêm được bình luận'),
+      );
+    }
+  }
+
+  Future<void> replyToComment(
+    String submissionId,
+    String commentId,
+    String body,
+  ) async {
+    final key = _currentWriteKey();
+    if (key == null) {
+      state = state.copyWith(
+        actionFeedback: 'Cần mở lớp trước khi trả lời (thiếu mã lớp).',
+      );
+      return;
+    }
+    if (body.trim().isEmpty) {
+      state = state.copyWith(actionFeedback: 'Trả lời không được để trống.');
+      return;
+    }
+    state = state.copyWith(busy: true, clearActionFeedback: true);
+    try {
+      await _repository.replyToComment(
+        submissionId: submissionId,
+        commentId: commentId,
+        writeKey: key,
+        body: body,
+      );
+      await _reloadDetail(submissionId, feedback: 'Đã gửi trả lời.');
+    } on Object catch (error) {
+      state = state.copyWith(
+        busy: false,
+        actionFeedback: _message(error, 'Không gửi được trả lời'),
+      );
+    }
+  }
+
+  /// Marks a remark handled. Teacher-only by construction: the store refuses
+  /// this route without a class key, so a student can never close a remark the
+  /// teacher left — the point of "resolved" is that the TEACHER decided it.
+  Future<void> setCommentResolved(
+    String submissionId,
+    String commentId,
+    bool resolved,
+  ) async {
+    final key = _currentWriteKey();
+    if (key == null) {
+      state = state.copyWith(
+        actionFeedback: 'Cần mở lớp trước khi đánh dấu (thiếu mã lớp).',
+      );
+      return;
+    }
+    state = state.copyWith(busy: true, clearActionFeedback: true);
+    try {
+      await _repository.setCommentResolved(
+        submissionId: submissionId,
+        commentId: commentId,
+        writeKey: key,
+        resolved: resolved,
+      );
+      await _reloadDetail(
+        submissionId,
+        feedback: resolved ? 'Đã đánh dấu xử lý.' : 'Đã mở lại bình luận.',
+      );
+    } on Object catch (error) {
+      state = state.copyWith(
+        busy: false,
+        actionFeedback: _message(error, 'Không cập nhật được bình luận'),
+      );
+    }
+  }
+
+  /// The class write key for the submission currently open.
+  ///
+  /// Read from the SAVED record, not from the submission: a submission knows
+  /// its `class_id` but never the key, and the key only exists on the device
+  /// that created the class (ADR-0016 — the class capability is non-revocable
+  /// and lives with whoever made it).
+  String? _currentWriteKey() {
+    final classId = state.detail?.classId;
+    if (classId == null || classId.isEmpty) return null;
+    return state.classes.where((c) => c.id == classId).firstOrNull?.writeKey;
+  }
+
+  /// Re-reads the open submission so the thread renders what the SERVER has,
+  /// not what the write answered — the same rule as everywhere else: a write's
+  /// reply is not evidence the read agrees.
+  Future<void> _reloadDetail(
+    String submissionId, {
+    required String feedback,
+  }) async {
+    try {
+      final detail = await _repository.readSubmission(submissionId);
+      state = state.copyWith(
+        busy: false,
+        detail: detail,
+        actionFeedback: feedback,
+      );
+    } on Object catch (error) {
+      state = state.copyWith(
+        busy: false,
+        actionFeedback: _message(error, 'Không đọc lại được bài nộp'),
+      );
+    }
+  }
+
   void clearError() {
     state = state.copyWith(clearError: true);
   }

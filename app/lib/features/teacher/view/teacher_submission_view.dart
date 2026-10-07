@@ -157,6 +157,12 @@ class _TeacherSubmissionViewState extends ConsumerState<TeacherSubmissionView> {
             ),
           ),
         const SizedBox(height: AppSpacing.lg),
+        _ThreadCard(
+          submissionId: widget.submissionId,
+          comments: detail.comments,
+          busy: state.busy,
+        ),
+        const SizedBox(height: AppSpacing.lg),
         Text(
           'Ghi chú cho nhóm (không bắt buộc)',
           style: theme.textTheme.titleSmall,
@@ -295,3 +301,231 @@ class _ScoreCard extends StatelessWidget {
 String _timeLabel(DateTime time) =>
     '${time.day.toString().padLeft(2, '0')}/${time.month.toString().padLeft(2, '0')} '
     '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+
+/// The teacher's side of the thread: per-element remarks, replies, and the
+/// resolve toggle.
+///
+/// Why this is separate from the decision note above it: the note is ONE line
+/// that each round REPLACES, so it can say "sửa mục 3.2" but not "mục 3.2 in
+/// round 1 was fine, mục 4.1 still is not". The thread keeps every remark with
+/// its round and lets a reply hang under the exact remark it answers.
+class _ThreadCard extends ConsumerStatefulWidget {
+  const _ThreadCard({
+    required this.submissionId,
+    required this.comments,
+    required this.busy,
+  });
+
+  final String submissionId;
+  final List<SubmissionComment> comments;
+  final bool busy;
+
+  @override
+  ConsumerState<_ThreadCard> createState() => _ThreadCardState();
+}
+
+class _ThreadCardState extends ConsumerState<_ThreadCard> {
+  final _newComment = TextEditingController();
+
+  @override
+  void dispose() {
+    _newComment.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Trao đổi theo từng mục', style: theme.textTheme.titleSmall),
+        const SizedBox(height: AppSpacing.sm),
+        if (widget.comments.isEmpty)
+          Text(
+            'Chưa có trao đổi. Bình luận ở đây giữ lại theo từng vòng, khác '
+            'với ghi chú quyết định bên dưới.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          )
+        else
+          for (final comment in widget.comments)
+            _TeacherCommentTile(
+              submissionId: widget.submissionId,
+              comment: comment,
+              busy: widget.busy,
+            ),
+        const SizedBox(height: AppSpacing.md),
+        TextField(
+          key: const Key('teacher-new-comment'),
+          controller: _newComment,
+          maxLines: 3,
+          minLines: 2,
+          maxLength: 2000,
+          decoration: const InputDecoration(
+            labelText: 'Bình luận cho nhóm',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton(
+            key: const Key('teacher-send-comment'),
+            onPressed: widget.busy
+                ? null
+                : () {
+                    ref
+                        .read(teacherViewModelProvider.notifier)
+                        .addComment(widget.submissionId, _newComment.text);
+                    _newComment.clear();
+                  },
+            child: const Text('Gửi bình luận'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TeacherCommentTile extends ConsumerStatefulWidget {
+  const _TeacherCommentTile({
+    required this.submissionId,
+    required this.comment,
+    required this.busy,
+  });
+
+  final String submissionId;
+  final SubmissionComment comment;
+  final bool busy;
+
+  @override
+  ConsumerState<_TeacherCommentTile> createState() =>
+      _TeacherCommentTileState();
+}
+
+class _TeacherCommentTileState extends ConsumerState<_TeacherCommentTile> {
+  final _reply = TextEditingController();
+
+  @override
+  void dispose() {
+    _reply.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final comment = widget.comment;
+    final notifier = ref.read(teacherViewModelProvider.notifier);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        borderRadius: AppRadius.boxSm,
+        border: Border.all(
+          color: comment.isResolved
+              ? theme.colorScheme.outlineVariant
+              : theme.colorScheme.primary,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                comment.isTeacher ? 'Giáo viên' : 'Nhóm',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: comment.isTeacher
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                'vòng ${comment.revision}',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const Spacer(),
+              // The toggle is teacher-only by design: a student who could close
+              // a remark could hide the teacher's own feedback from the teacher.
+              Checkbox(
+                key: Key('teacher-resolve-${comment.id}'),
+                value: comment.isResolved,
+                onChanged: widget.busy
+                    ? null
+                    : (value) => notifier.setCommentResolved(
+                        widget.submissionId,
+                        comment.id,
+                        value ?? false,
+                      ),
+              ),
+              Text(
+                'Đã xử lý',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(comment.body, style: theme.textTheme.bodyMedium),
+          for (final reply in comment.replies) ...[
+            const Divider(height: AppSpacing.lg),
+            Padding(
+              padding: const EdgeInsets.only(left: AppSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    reply.isTeacher ? 'Giáo viên' : 'Nhóm',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: reply.isTeacher
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Text(reply.body, style: theme.textTheme.bodySmall),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: AppSpacing.sm),
+          TextField(
+            key: Key('teacher-reply-${comment.id}'),
+            controller: _reply,
+            maxLines: 2,
+            minLines: 1,
+            decoration: const InputDecoration(
+              hintText: 'Trả lời nhóm…',
+              isDense: true,
+              border: OutlineInputBorder(),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: widget.busy
+                  ? null
+                  : () {
+                      notifier.replyToComment(
+                        widget.submissionId,
+                        comment.id,
+                        _reply.text,
+                      );
+                      _reply.clear();
+                    },
+              child: const Text('Trả lời'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
