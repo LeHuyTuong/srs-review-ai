@@ -25,6 +25,7 @@ from pydantic import BaseModel, Field
 from ..config.settings import Settings, get_settings
 from ..infrastructure.submissions import (
     SubmissionClassMissingError,
+    SubmissionCommentError,
     SubmissionDecisionError,
     SubmissionNotFoundError,
     SubmissionNotInClassError,
@@ -96,6 +97,37 @@ class DecisionRequest(BaseModel):
 
     decision: Literal["approved", "changes_requested"]
     note: str = Field(default="", max_length=500)
+
+
+class CommentRequest(BaseModel):
+    """One turn in the round's thread (ADR-0019).
+
+    ``author`` is part of the BODY, not derived from the credential, and that
+    is deliberate: the store needs to know which of the two authority paths to
+    apply, and there is no account to derive it from. The value is closed to
+    ``COMMENT_AUTHORS`` here AND at the store — the same two-gate posture as
+    ``DecisionRequest``, so a caller bypassing pydantic cannot mint a third
+    author. What ``author`` must NOT be able to do is pick a weaker gate for
+    the same act: a request claiming ``teacher`` still needs the class key.
+    """
+
+    model_config = {"extra": "forbid"}
+
+    author: Literal["teacher", "student"]
+    body: str = Field(
+        min_length=1,
+        max_length=2000,
+        description="The remark itself. Empty is a 422; the cap matches the "
+        "store's so the two never disagree about where the edge is.",
+    )
+
+
+class ResolveCommentRequest(BaseModel):
+    """Toggle one comment's resolved flag. Teacher authority only."""
+
+    model_config = {"extra": "forbid"}
+
+    resolved: bool = True
 
 
 @router.post(
@@ -233,6 +265,132 @@ def decide_submission(
     }
 
 
+def _comment_failure(exc: Exception) -> HTTPException:
+    """Map every store refusal to its status in ONE place.
+
+    Four outcomes, and each one is a different fact about the request:
+
+    * 404 — no such submission, no such comment: ONE shape, as everywhere.
+    * 409 ``not_in_class`` — a teacher act on work filed under no class, so
+      there is no teacher authority to speak of.
+    * 409 ``class_missing`` — class gone, or key wrong (a wrong key must not
+      confirm the class exists).
+    * 422 — the store rejected the body/author itself.
+
+    Factored out because three routes answer the same four cases, and three
+    copies of a status map is how one of them drifts.
+    """
+    if isinstance(exc, SubmissionNotInClassError):
+        return HTTPException(status_code=409, detail="not_in_class")
+    if isinstance(exc, SubmissionClassMissingError):
+        return HTTPException(status_code=409, detail="class_missing")
+    if isinstance(exc, SubmissionCommentError):
+        return HTTPException(status_code=422, detail=str(exc))
+    return HTTPException(status_code=404, detail="Not Found")
+
+
+@router.post("/submissions/{submission_id}/comments", status_code=201)
+def add_comment(
+    submission_id: str,
+    payload: CommentRequest,
+    x_class_key: str | None = Header(default=None),
+    store=Depends(deps.submission_store),
+    classes=Depends(deps.class_store),
+) -> dict:
+    """Append one remark to the round's thread.
+
+    NOTE the deliberate absence of ``Depends(deps.require_app_token)``. Every
+    other mutating route carries it; this one CANNOT, because it serves two
+    sides whose credentials differ (ADR-0019):
+
+    * a student writes with the submission id it already holds;
+    * a teacher writes with the class key.
+
+    The app token would be the wrong third answer: it is shared by every
+    client, so accepting it would let a group post as its own teacher — the
+    hole ``decide_submission`` exists to keep shut. Authority therefore lives
+    in ``add_comment`` at the store, keyed on the declared ``author``, and the
+    route only translates the outcome. A test asserts a student claim without
+    the class key is refused, so this comment cannot rot into a hole.
+    """
+    try:
+        return store.add_comment(
+            submission_id,
+            body=payload.body,
+            author=payload.author,
+            class_key=x_class_key,
+            class_store=classes,
+        )
+    except (
+        SubmissionNotFoundError,
+        SubmissionNotInClassError,
+        SubmissionClassMissingError,
+        SubmissionCommentError,
+    ) as exc:
+        raise _comment_failure(exc) from exc
+
+
+@router.post("/submissions/{submission_id}/comments/{comment_id}/replies", status_code=201)
+def reply_to_comment(
+    submission_id: str,
+    comment_id: str,
+    payload: CommentRequest,
+    x_class_key: str | None = Header(default=None),
+    store=Depends(deps.submission_store),
+    classes=Depends(deps.class_store),
+) -> dict:
+    """Append a reply under one comment. Same two-sided authority as above."""
+    try:
+        return store.reply_to_comment(
+            submission_id,
+            comment_id,
+            body=payload.body,
+            author=payload.author,
+            class_key=x_class_key,
+            class_store=classes,
+        )
+    except (
+        SubmissionNotFoundError,
+        SubmissionNotInClassError,
+        SubmissionClassMissingError,
+        SubmissionCommentError,
+    ) as exc:
+        raise _comment_failure(exc) from exc
+
+
+@router.patch("/submissions/{submission_id}/comments/{comment_id}")
+def resolve_comment(
+    submission_id: str,
+    comment_id: str,
+    payload: ResolveCommentRequest,
+    x_class_key: str | None = Header(default=None),
+    store=Depends(deps.submission_store),
+    classes=Depends(deps.class_store),
+) -> dict:
+    """Open or close one comment. Teacher authority only — no student path.
+
+    There is no ``author`` field here and no app-token escape hatch: closing a
+    remark about the group's own work is the teacher's call, so the class key
+    is the ONLY credential this route accepts. A student holding the
+    submission link gets 409 ``not_in_class``/``class_missing``, never a write.
+    """
+    try:
+        return store.set_comment_resolved(
+            submission_id,
+            comment_id,
+            resolved=payload.resolved,
+            class_key=x_class_key,
+            class_store=classes,
+        )
+    except (
+        SubmissionNotFoundError,
+        SubmissionNotInClassError,
+        SubmissionClassMissingError,
+        SubmissionCommentError,
+    ) as exc:
+        raise _comment_failure(exc) from exc
+
+
 @router.get("/submissions/{submission_id}")
 def read_submission(
     submission_id: str,
@@ -270,6 +428,13 @@ def read_submission(
         "updatedAt": record.get("updatedAt"),
         "timeApproximate": record.get("timeApproximate"),
         "history": record.get("history", []),
+        # The thread (ADR-0019). This line is not optional decoration: this
+        # route lists its keys by hand, so a store field that is not named
+        # here is invisible to every reader while the writer succeeds — a
+        # silence AGENTS.md already records costing a round on
+        # `createdAt`/`history`. Adding a field to a store means adding it to
+        # every read view, and the test that reads back THROUGH the route.
+        "comments": record.get("comments", []),
         "has_report": bool(review.get("html")),
         "score": review.get("score"),
         "findings": review.get("findings", {}),

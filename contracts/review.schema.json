@@ -3,7 +3,7 @@
   "$id": "https://github.com/LeHuyTuong/srs-review-ai/blob/main/contracts/review.schema.json",
   "title": "SRS Review AI — wire contract",
   "description": "Single source of truth for the JSON exchanged between the Flutter app and the FastAPI proxy. Both sides are tested against contracts/fixtures/*.json. Bump x-contract-version on any breaking change and update both sides in the same PR.",
-  "x-contract-version": "1.2.0",
+  "x-contract-version": "1.3.0",
   "$defs": {
     "IssueType": {
       "description": "Quality issue vocabulary for the LLM (ISO/IEC/IEEE 29148 flavoured). Deterministic rule checks use $defs/CheckId instead — do not mix the two vocabularies. This is the defect CLASS, not the criterion the model was judging: an editable criterion is an id from the criteria list and travels in Issue.criterion_id. `other` is the vocabulary's escape hatch — the server maps any unrecognised value to it rather than failing the unit, because the app rejects an unknown type loudly and a verified finding must not die over a label.",
@@ -31,6 +31,50 @@
       "description": "The closed set of decisions a teacher may record on a submission (ADR-0016 decision 2, ADR-0017). A decision appends to the current round and never overwrites it, so the vocabulary is a closed set written down in one place: the next status someone needs is an ADR amendment, not a string edit. 'rejected' and 'needsRevision' are NOT members — they are document states, not decisions the server records. Added in 1.2.0; the mock web-ui carries the same three-value event vocabulary.",
       "type": "string",
       "enum": ["approved", "changes_requested"]
+    },
+    "CommentAuthor": {
+      "description": "Who wrote one turn in a round's thread (ADR-0019). Two, and only two, because the two sides hold DIFFERENT credentials: a teacher is authorised by the containing class's write key, a student by possession of the submission id itself. Neither may borrow the other's, and the app token — a shared secret every client holds — authorises neither. Added in 1.3.0.",
+      "type": "string",
+      "enum": ["teacher", "student"]
+    },
+    "Comment": {
+      "description": "One turn in the teacher <-> student thread on a submission (ADR-0019). The thread lives on the SUBMISSION, not per revision, so a remark survives a resubmit; `revision` records which round the remark was written against, so the information is not lost by not forking the thread. Append-only: resolving sets `resolved_at` and keeps `body`, and nothing in the API deletes a comment. Replies are a FLAT list under their parent (`replies`), never a tree — a two-person thread does not need arbitrary nesting. `reply_to` is absent on top-level comments, which is how the two shapes stay distinguishable without a second type. Added in 1.3.0.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "author", "body", "revision", "at"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Capability id of this one comment or reply (128 bits, like a submission id). It addresses the comment for reply and resolve; it is not a secret, because writing already requires a credential the caller must hold."
+        },
+        "author": { "$ref": "#/$defs/CommentAuthor" },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "description": "The remark itself. Whitespace-only is rejected; the 2000-character cap is enforced at both ends so the two never disagree about where the edge is."
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The submission revision this turn was written against. Preserved on purpose: a teacher reading revision 3 can still see which remarks were about revision 1."
+        },
+        "at": { "type": "string", "description": "Server clock, second precision, `Z` suffix — the same `_now()` shape as every other timestamp on the wire." },
+        "resolvedAt": {
+          "type": ["string", "null"],
+          "description": "Set when the teacher closes the remark, null while open. Teacher authority only: the group may not close a remark about its own work. Un-resolving clears it back to null and is NOT a delete — a thread that could only ever close would make people write a fresh comment instead of reopening the old one."
+        },
+        "replyTo": {
+          "type": "string",
+          "description": "Id of the parent comment. Present on replies under `replies`; omitted entirely on a top-level comment, which is what makes the two shapes distinguishable."
+        },
+        "replies": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Comment" },
+          "description": "Replies to this comment, oldest first. Flat and one level deep by construction. Absent until the first reply."
+        }
+      }
     },
     "CheckId": {
       "description": "Deterministic (rule-based, offline, zero-token) checks derived from the SEP490 syllabus and from review-rules/RULEBOOK.md. M2 reference checks (duplicate_ids, missing_postcondition) extend the same enum — they share the on-wire shape but live in a separate UI section. This list had drifted behind the Dart CheckId enum; it is now complete as of rubric v3, and adding a CheckId without adding it here is the drift to watch for.",
@@ -82,7 +126,7 @@
         "mock"
       ],
       "properties": {
-        "contract_version": { "type": "string", "const": "1.2.0" },
+        "contract_version": { "type": "string", "const": "1.3.0" },
         "requirement_id": { "type": "string", "minLength": 1 },
         "score": { "type": "integer", "minimum": 0, "maximum": 10 },
         "issues": {
@@ -145,7 +189,7 @@
       "additionalProperties": false,
       "required": ["contract_version", "results", "mock"],
       "properties": {
-        "contract_version": { "type": "string", "const": "1.2.0" },
+        "contract_version": { "type": "string", "const": "1.3.0" },
         "results": {
           "type": "array",
           "items": { "$ref": "#/$defs/BatchUnitResult" }
@@ -162,7 +206,7 @@
       "additionalProperties": false,
       "required": ["contract_version", "answer", "grounded", "model", "mock"],
       "properties": {
-        "contract_version": { "type": "string", "const": "1.2.0" },
+        "contract_version": { "type": "string", "const": "1.3.0" },
         "answer": { "type": "string" },
         "grounded": {
           "type": "boolean",

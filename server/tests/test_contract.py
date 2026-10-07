@@ -11,11 +11,14 @@ from pathlib import Path
 
 import pytest
 
+from app.infrastructure.submissions import _COMMENT_MAX_CHARS as _STORE_COMMENT_MAX_CHARS
+from app.infrastructure.submissions import COMMENT_AUTHORS
 from app.rubric import RUBRIC_PATH, load_rubric
 from app.schemas import (
     CONTRACT_VERSION,
     AskResponse,
     BatchReviewResponse,
+    CommentAuthor,
     DecisionStatus,
     IssueType,
     ReviewResult,
@@ -108,6 +111,28 @@ def test_enums_match_the_json_schema():
     assert defs["IssueType"]["enum"] == [t.value for t in IssueType]
     assert defs["Severity"]["enum"] == [s.value for s in Severity]
     assert defs["DecisionStatus"]["enum"] == [d.value for d in DecisionStatus]
+    assert defs["CommentAuthor"]["enum"] == [a.value for a in CommentAuthor]
+
+
+def test_comment_author_wire_enum_matches_the_store_tuple():
+    """A third author must be an ADR amendment, not a string in one place.
+
+    The store keeps its own tuple because an authority decision must not need
+    a wire model to import; this is what keeps the two copies one fact.
+    """
+    assert [a.value for a in CommentAuthor] == list(COMMENT_AUTHORS)
+    assert list(COMMENT_AUTHORS) == ["teacher", "student"]
+
+
+def test_comment_definition_is_closed_and_carries_the_thread_shape():
+    schema = json.loads((CONTRACTS / "review.schema.json").read_text(encoding="utf-8"))
+    comment = schema["$defs"]["Comment"]
+    assert comment["additionalProperties"] is False
+    # 'replyTo' must NOT be required: its absence is exactly how a top-level
+    # comment stays distinguishable from a reply without a second type.
+    assert "replyTo" not in comment["required"]
+    assert comment["properties"]["body"]["maxLength"] == _STORE_COMMENT_MAX_CHARS
+    assert comment["properties"]["replies"]["items"] == {"$ref": "#/$defs/Comment"}
 
 
 def test_decision_status_is_the_closed_set_the_server_records():

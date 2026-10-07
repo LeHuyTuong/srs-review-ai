@@ -11,7 +11,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-CONTRACT_VERSION = "1.2.0"
+CONTRACT_VERSION = "1.3.0"
 
 
 class IssueType(StrEnum):
@@ -73,6 +73,24 @@ class DecisionStatus(StrEnum):
 
     approved = "approved"
     changes_requested = "changes_requested"
+
+
+class CommentAuthor(StrEnum):
+    """Who wrote one turn in a round's thread (ADR-0019).
+
+    Two, and only two, because the two sides hold DIFFERENT credentials: a
+    teacher is authorised by the containing class's write key, a student by
+    possession of the submission id itself. Neither may borrow the other's, and
+    the app token — a shared secret every client holds — authorises neither.
+
+    This enum is the wire contract's copy of that vocabulary. The store keeps
+    its own ``COMMENT_AUTHORS`` tuple because it must not import wire models to
+    decide an authority question, and ``test_contract`` asserts the two agree so
+    they cannot drift apart silently.
+    """
+
+    teacher = "teacher"
+    student = "student"
 
 
 class Strict(BaseModel):

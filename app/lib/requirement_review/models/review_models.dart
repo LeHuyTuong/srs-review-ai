@@ -10,11 +10,13 @@
 /// front of the defense committee.
 library;
 
-/// 1.2.0 adds `$defs/DecisionStatus` to the wire contract (ADR-0019). The
-/// version is compared for equality, not ordering (see `_checkVersion`), so a
-/// 1.1.0 client rejects a 1.2.0 server LOUDLY rather than rendering a
-/// vocabulary it cannot name — which is the point of the strictness note above.
-const String kContractVersion = '1.2.0';
+/// 1.2.0 added `$defs/DecisionStatus` to the wire contract (ADR-0019); 1.3.0
+/// adds `$defs/Comment` and `$defs/CommentAuthor` — the teacher <-> student
+/// thread. The version is compared for equality, not ordering (see
+/// `_checkVersion`), so a 1.2.0 client rejects a 1.3.0 server LOUDLY rather
+/// than rendering a vocabulary it cannot name — the point of the strictness
+/// note above.
+const String kContractVersion = '1.3.0';
 
 class ContractException implements Exception {
   ContractException(this.message);

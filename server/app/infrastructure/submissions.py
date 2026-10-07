@@ -72,6 +72,16 @@ class SubmissionDecisionError(SubmissionError):
     """A decision value outside the closed ADR-0016 vocabulary."""
 
 
+class SubmissionCommentError(SubmissionError):
+    """A comment the store refuses to write.
+
+    Raised for an empty body, a body over the cap, an author outside the two
+    known roles, and a teacher comment that tried to arrive without the class
+    key. All are the caller's fault and all answer 4xx: none of them is a
+    reason to write a row we would have to clean up.
+    """
+
+
 _ID_LENGTH = 16
 """`secrets.token_urlsafe(16)` is 128 bits. The share store uses the same
 width, so one enumeration attack against either store is the same attack."""
@@ -92,6 +102,29 @@ DECISION_STATUSES: tuple[str, ...] = ("approved", "changes_requested")
 """The closed vocabulary of a teacher decision (ADR-0016, decision 2), written
 in ONE place. The next status anyone needs is an ADR amendment, not a string
 here — both this store and the route's request model close over these two."""
+
+COMMENT_AUTHORS: tuple[str, ...] = ("teacher", "student")
+"""Who may write into a round's thread.
+
+Two, and only two, because the two sides hold DIFFERENT credentials and that
+difference is the whole security story (ADR-0019):
+
+* ``teacher`` is authorised by the containing class's write key — the same
+  capability ``decide`` needs, for the same reason.
+* ``student`` is authorised by possession of the submission id itself. That is
+  the group's own capability, so a student comment proves nothing beyond
+  "someone holding the link", which is already true of reading.
+
+Neither may borrow the other's credential. In particular the app token — a
+shared secret every client holds — authorises NEITHER: accepting it for
+``teacher`` would let the group write as its own examiner (the ADR-0017 hole
+re-opened), and accepting the class key for ``student`` would quietly turn the
+teacher's key into a group credential."""
+
+_COMMENT_MAX_CHARS = 2000
+"""Cap on one comment body. Larger than a decision note's 500 because a comment
+carries a question or an explanation, not a verdict — and bounded because this
+lands in a JSON file on disk and in every reader's response."""
 
 
 def _now() -> str:
@@ -416,6 +449,191 @@ class SubmissionStore:
         payload["history"] = history
         self._write(payload)
         return payload
+
+    def add_comment(
+        self,
+        submission_id: str,
+        *,
+        body: str,
+        author: str,
+        class_key: str | None = None,
+        class_store: Any = None,
+    ) -> dict[str, Any]:
+        """Append one comment to this round's thread (ADR-0019).
+
+        The thread lives on the SUBMISSION, not per revision: a comment is a
+        remark about the work under discussion, and a teacher who wrote "sửa
+        mục 3.2" wants that sentence visible on the round they were reading
+        when the student opens revision 2. Each entry records the ``revision``
+        it was written against, so the reader can still tell which round a
+        remark belonged to — the information is not lost by not forking the
+        thread.
+
+        Append, never overwrite: a resolved comment keeps its body and gains a
+        ``resolvedAt``; nothing here deletes anything. Same posture as
+        ``decide`` and for the same reason — the thread IS the evidence.
+
+        Authority depends on ``author``; see ``COMMENT_AUTHORS``. The teacher
+        path re-uses the class-key check verbatim: same 409s, same "a wrong key
+        must not confirm the class exists" rule.
+        """
+        cleaned = body.strip()
+        if not cleaned:
+            raise SubmissionCommentError("body is empty")
+        if len(cleaned) > _COMMENT_MAX_CHARS:
+            raise SubmissionCommentError(f"body is {len(cleaned)} chars; the cap is {_COMMENT_MAX_CHARS}")
+        if author not in COMMENT_AUTHORS:
+            raise SubmissionCommentError(
+                f"author {author!r} is outside the thread vocabulary {COMMENT_AUTHORS}"
+            )
+        payload = self.get(submission_id)
+        if author == "teacher":
+            # Same gate as `decide`, deliberately not factored across both:
+            # one shared helper would make it easy to relax one caller and
+            # silently relax the other.
+            class_id = str(payload.get("class_id") or "")
+            if not class_id:
+                raise SubmissionNotInClassError(submission_id)
+            if class_store is None or not class_store.verify_key(class_id, class_key or ""):
+                raise SubmissionClassMissingError(submission_id, class_id)
+        stamp = _now()
+        comment = {
+            "id": secrets.token_urlsafe(_ID_LENGTH),
+            "author": author,
+            "body": cleaned,
+            "revision": int(payload.get("revision", 1) or 1),
+            "at": stamp,
+            "resolvedAt": None,
+        }
+        comments = payload.get("comments")
+        if not isinstance(comments, list):
+            comments = []
+        # `append(dict)`, never `extend(dict)`: extend would push the dict's
+        # KEYS in as strings and the thread would read ["id","author",...].
+        # AGENTS.md records that exact trap costing a round on `history`.
+        comments.append(comment)
+        payload["comments"] = comments
+        payload["updatedAt"] = stamp
+        self._write(payload)
+        return comment
+
+    def reply_to_comment(
+        self,
+        submission_id: str,
+        comment_id: str,
+        *,
+        body: str,
+        author: str,
+        class_key: str | None = None,
+        class_store: Any = None,
+    ) -> dict[str, Any]:
+        """Append a reply under one comment. Same authority rules as ``add_comment``.
+
+        Replies are a FLAT list per comment rather than a tree: a two-person
+        thread does not need arbitrary nesting, and a flat list cannot grow a
+        cycle that a future reader has to defend against. ``replyTo`` is absent
+        on top-level comments so the shape stays distinguishable without a
+        separate type.
+        """
+        cleaned = body.strip()
+        if not cleaned:
+            raise SubmissionCommentError("body is empty")
+        if len(cleaned) > _COMMENT_MAX_CHARS:
+            raise SubmissionCommentError(f"body is {len(cleaned)} chars; the cap is {_COMMENT_MAX_CHARS}")
+        if author not in COMMENT_AUTHORS:
+            raise SubmissionCommentError(
+                f"author {author!r} is outside the thread vocabulary {COMMENT_AUTHORS}"
+            )
+        payload = self.get(submission_id)
+        comments = payload.get("comments")
+        if not isinstance(comments, list):
+            comments = []
+        target = next(
+            (c for c in comments if isinstance(c, dict) and c.get("id") == comment_id),
+            None,
+        )
+        if target is None:
+            # A reply to a comment that is not there is a 404, not a 400: the
+            # caller asked for a thing and the thing is absent. Same ONE shape
+            # as every other not-found in this store.
+            raise SubmissionNotFoundError(comment_id)
+        if author == "teacher":
+            class_id = str(payload.get("class_id") or "")
+            if not class_id:
+                raise SubmissionNotInClassError(submission_id)
+            if class_store is None or not class_store.verify_key(class_id, class_key or ""):
+                raise SubmissionClassMissingError(submission_id, class_id)
+        stamp = _now()
+        reply = {
+            "id": secrets.token_urlsafe(_ID_LENGTH),
+            "author": author,
+            "body": cleaned,
+            "revision": int(payload.get("revision", 1) or 1),
+            "at": stamp,
+            "replyTo": comment_id,
+            "resolvedAt": None,
+        }
+        replies = target.get("replies")
+        if not isinstance(replies, list):
+            replies = []
+        replies.append(reply)
+        target["replies"] = replies
+        payload["updatedAt"] = stamp
+        self._write(payload)
+        return reply
+
+    def set_comment_resolved(
+        self,
+        submission_id: str,
+        comment_id: str,
+        *,
+        resolved: bool,
+        class_key: str | None = None,
+        class_store: Any = None,
+    ) -> dict[str, Any]:
+        """Mark a comment resolved (or un-resolve it). Teacher authority only.
+
+        Whose call is "resolved"? The teacher's. The group cannot close a
+        remark about its own work — that is the same self-approval hole as
+        ``decide``, one step milder. So this takes the class key and NOTHING
+        else; there is no student path, and the route offers no credential a
+        student holds.
+
+        Un-resolving is allowed and is not a delete: it clears ``resolvedAt``
+        and appends nothing. A thread that can only ever close would push
+        people to write a fresh comment instead of reopening the old one, and
+        the history would grow while the information shrank.
+        """
+        payload = self.get(submission_id)
+        class_id = str(payload.get("class_id") or "")
+        if not class_id:
+            raise SubmissionNotInClassError(submission_id)
+        if class_store is None or not class_store.verify_key(class_id, class_key or ""):
+            raise SubmissionClassMissingError(submission_id, class_id)
+        comments = payload.get("comments")
+        if not isinstance(comments, list):
+            comments = []
+        target = next(
+            (c for c in comments if isinstance(c, dict) and c.get("id") == comment_id),
+            None,
+        )
+        if target is None:
+            for entry in comments:
+                if not isinstance(entry, dict):
+                    continue
+                for reply in entry.get("replies") or []:
+                    if isinstance(reply, dict) and reply.get("id") == comment_id:
+                        target = reply
+                        break
+                if target is not None:
+                    break
+        if target is None:
+            raise SubmissionNotFoundError(comment_id)
+        stamp = _now()
+        target["resolvedAt"] = stamp if resolved else None
+        payload["updatedAt"] = stamp
+        self._write(payload)
+        return target
 
     def all_rows(self) -> dict[str, dict[str, Any]]:
         """The whole index, loaded on demand.
