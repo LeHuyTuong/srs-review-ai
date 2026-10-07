@@ -1787,8 +1787,17 @@ class _ExecutionLogsModal extends ConsumerWidget {
             ),
           ),
         const SizedBox(height: AppSpacing.lg),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+        // A Wrap, not a Row: with at least one log line the two buttons need
+        // 354 px inside a 326 px content column at 390 ("Sao chép nhật ký" 263.6
+        // + 8 gap + "Đóng" 82.4), so the row overflowed by 28 px — measured
+        // 2026-10-07 by `app/test/modal_surface_fullscreen_test.dart`, the same
+        // class as §3.1 of the 2026-09-26 surface audit, and the 28 px that
+        // audit recorded without isolating it. Wrapping keeps each button its
+        // intrinsic width and the pair moves to a second line on a phone.
+        Wrap(
+          alignment: WrapAlignment.end,
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
           children: [
             if (logs.isNotEmpty)
               WButton.secondary(
@@ -1806,7 +1815,6 @@ class _ExecutionLogsModal extends ConsumerWidget {
                   );
                 },
               ),
-            const SizedBox(width: AppSpacing.sm),
             WButton.primary(
               label: 'Đóng',
               onPressed: () => Navigator.of(context).pop(),

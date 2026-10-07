@@ -20,6 +20,10 @@ cục, không phải lỗi chiều cao. **Cả năm đã sửa và đo lại tro
 cùng lớp mà bản audit gốc bỏ sót vì nó không dựng overflow error nào (§3.1.1) —
 nên con số "năm" ở trên là con số của *bản audit*, không phải của code sau sửa.
 
+Và lượt đo lại **2026-10-07** lộ thêm một chỗ thứ bảy cùng lớp: hàng nút của
+modal Nhật ký thực thi tràn **28 px** ở 390 khi có ít nhất một dòng log (§3.3) —
+đúng con số 28 px mà log audit ghi mà không gọi tên được.
+
 Phía modal: 18 bề mặt (17 modal thật + biến thể `centerBody` dùng chung cho 3
 confirm lồng nhau) phủ kín cửa sổ ở **cả** 390×844 và 1280×900, và repo không
 còn API bottom sheet nào — `showModalBottomSheet`, `DraggableScrollableSheet`,
@@ -107,6 +111,19 @@ Ba confirm lồng nhau không mở trực tiếp được trong container test, 
 Cả ba dựng bằng đúng `showFullScreenSurface` + `WFullScreenSurface(centerBody: true)`;
 biến thể `centerBody` đã được đo riêng (hàng 18) và phủ kín ở cả hai khổ.
 
+**Bản thường trực (2026-10-07):** `app/test/modal_surface_fullscreen_test.dart` giữ
+đúng phép đo này — 17 bề mặt, mỗi bề mặt mở bằng chính hàm mở của nó trên container
+thật (`loadDemo()`, `MockReviewApi`, `InMemorySessionStore`, prefs mock), so
+`getSize(find.byType(WFullScreenSurface))` với cửa sổ ở **cả** 390×844 và 1280×900,
+cộng hàng 18 qua đường thật của nó (xoá một tiêu chí — cần `canEdit == true` nên
+dùng một `ApiService` giả) và một khẳng định `takeException` rỗng theo **từng** bề
+mặt. Ba bản đối chứng âm đã chạy, cả ba đều làm test đỏ: (a) bọc mọi bề mặt trong
+`Center(SizedBox(610×600))` — đúng "một mẩu giữa" mà ADR 0014 cấm — đỏ với
+`import is Size(610.0, 600.0) wide in a 1280.0x900.0 window`; (b) trả lại `Row` cũ ở
+hàng nút modal Nhật ký — đỏ với `execution logs laid out with errors: A RenderFlex
+overflowed by 28 pixels on the right`; (c) trả lại `rubric_editor.dart` trước bản vá
+— đỏ với **33 px và 107 px**, không có 28 px nào (xem §3.3).
+
 ### 2.1 Cắt chiều cao nhưng là NỘI DUNG, không phải bề mặt
 
 | Nơi | Trần | Ghi chú |
@@ -119,7 +136,7 @@ Ngoài ra, không phải sheet: 2 menu ngữ cảnh `showMenu` (`desktop_context
 `:116`) là popup theo nội dung, và drawer điều hướng trên điện thoại
 (`workspace_shell.dart:255`) là drawer của Material.
 
-## 3. Phát hiện kèm theo (chưa sửa)
+## 3. Phát hiện kèm theo — đã xử lý hết
 
 ### 3.1 Bốn chỗ tràn ngang ở khổ 390 — ĐÃ SỬA, đo lại 2026-09-26
 
@@ -128,7 +145,7 @@ phương ngang:
 
 | Nơi | Mức tràn | Dựng bởi | Vá bằng |
 |---|---|---|---|
-| `rubric_editor.dart` `_section` | 28 px và 33 px (hai mục) | `Row(Text(tiêu đề), Spacer(), WBadge)` với tiêu đề tiếng Việt dài | `Expanded` + `maxLines: 2` + `ellipsis`; badge giữ chiều rộng nội tại |
+| `rubric_editor.dart` `_section` | 33 px (một mục — con số 28 px trong log audit thuộc hàng nút modal Nhật ký, §3.3) | `Row(Text(tiêu đề), Spacer(), WBadge)` với tiêu đề tiếng Việt dài | `Expanded` + `maxLines: 2` + `ellipsis`; badge giữ chiều rộng nội tại |
 | `rubric_editor.dart` `_actions` | 107 px | hàng nút cuối modal | `Wrap` (`spacing` + `runSpacing`), mỗi nút giữ bề rộng nội tại |
 | `criteria_manager.dart` `_dropdowns` | 88 px | `DropdownButtonFormField<CriterionScope>` | `Row`+`Expanded` → `Column` một cột, không nhánh theo khổ |
 
@@ -194,6 +211,29 @@ hoặc ghi rõ thu hồi (ADR 0007, plan M3, audit UI/UX 2026-09-14, ADR 0014).
 Xác minh: `grep -rnF showsCenteredDialog app/` = **0**; phần rail/window class của
 ADR 0007 không đổi, và `flutter test test/desktop/app_breakpoint_test.dart` còn
 19 test xanh (hai test của D2 biến mất cùng luật).
+
+### 3.3 Chỗ tràn thứ bảy: hàng nút modal Nhật ký — ĐÃ SỬA 2026-10-07
+
+`workspace_modals.dart` (modal Nhật ký thực thi) kết thúc bằng một `Row` cứng:
+`Sao chép nhật ký` + `Đóng`. Khi `executionLogs` rỗng thì chỉ một nút nên không
+sao — nhưng `loadDemo()` ghi 2 dòng log, và **bất kỳ lượt chấm thật nào cũng ghi
+log**, nên ở 390 hai nút cần `263.6 + 8 + 82.4 = 354 px` trong cột nội dung
+`326 px` (390 − 2×32): tràn đúng **28 px** (`Đóng` kết ở x=386, mép nội dung 358).
+
+Đo lại 2026-10-07 bằng cùng harness: trước **28 px** → sau **0**, hai nút xuống hai
+dòng và đều nằm trong nội dung (`Sao chép nhật ký` x 94.4..358.0; `Đóng`
+x 275.6..358.0, hàng dưới). Vá bằng `Wrap(alignment: end, spacing/runSpacing)`,
+cùng khuôn với §3.1.
+
+**Đính chính §3.1:** log audit 2026-09-26 ghi bốn lỗi `28, 33, 107, 88`, và bảng
+§3.1 gán `28 px và 33 px` cho `rubric_editor._section` như "hai mục". Đo lại
+2026-10-07 với `rubric_editor.dart` **bản trước vá** (và hàng nút Nhật ký đã vá)
+cho **đúng hai** lỗi: **33 px và 107 px** — `_section` chỉ dựng một lỗi, vì chỉ
+một trong ba mục truyền `trailing` (hai mục kia `trailing == null`, không có badge
+thì không thể tràn). Nên con số **28 px** thuộc hàng nút Nhật ký ở §3.3 này. Vì
+sao bản vá 2026-09-26 vẫn đếm đủ "bốn lỗi → 0": bản đối chứng âm của nó chạy một
+harness khác, thay 28 px của modal bằng 15 px của trang Báo cáo (§4.1) nên vẫn ra
+bốn — một sự trùng hợp để chỗ tràn 28 px sống thêm 11 ngày.
 
 ## 4. Audit bề mặt trong trang
 
@@ -266,9 +306,10 @@ cần lazy hoá.
   cổng 54613, profile và ba ảnh). Script làm đúng ba việc: mở
   `?smoke=semantics` ở khổ đích, bấm "Mở tài liệu mẫu" → hàng `UC01`, chụp; khổ
   phone chụp thêm một lần sau khi cuộn.
-- **Audit modal (§2)**: dựng lại một widget test như §2 (danh sách bề mặt + hàm
-  mở nằm trong bảng), chạy `flutter test` ở hai khổ. Bề mặt nào không phủ kín sẽ
-  xuất hiện trong `failures`; lỗi bố cục in ra qua `FlutterError.onError` đã chặn.
+- **Audit modal (§2)**: `flutter test test/modal_surface_fullscreen_test.dart` —
+  bản thường trực của §2 (17 bề mặt + hàng 18, cả hai khổ, so kích thước bề mặt
+  với cửa sổ và bắt `takeException` rỗng theo từng bề mặt). Bề mặt nào không phủ
+  kín thì `reason` nói rõ kích thước thật.
 - **Audit bề mặt trong trang (§4)**: widget test tạm thứ hai — container đã chấm
   xong (`loadDemo()` + `runReview()` với `MockReviewApi(latency: zero)`), pump
   `MaterialApp.router(routerConfig: buildRouter())`, rồi đi qua 4 đích đến bằng
