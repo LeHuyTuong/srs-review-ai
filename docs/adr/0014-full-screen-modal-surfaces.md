@@ -41,9 +41,12 @@ Markdown trong modal Xuất, `maxHeight: 260`), `workspace_modals.dart:1739`
 Một quyết định cũ mâu thuẫn: ADR 0007 định nghĩa `AppBreakpoints.showsCenteredDialog`
 (`app/lib/core/layout/app_breakpoint.dart:69`) — luật "khổ này thì dialog căn
 giữa hay bottom sheet". App không còn dialog căn giữa lẫn sheet nào, nên hàm
-đó đã chết (caller duy nhất là unit test của chính nó). Nó không bị xoá trong
-ADR này (ngoài phạm vi, candidate dọn dẹp riêng), nhưng ADR này thu hồi phần
-quyết định của nó về bề mặt.
+đó đã chết (caller duy nhất là unit test của chính nó). ADR này thu hồi phần
+quyết định của nó về bề mặt, và lượt dọn dẹp **2026-10-07** đã xoá hẳn: hàm,
+group unit test trong `app/test/desktop/app_breakpoint_test.dart`, cùng mọi dòng
+trỏ tới nó ở ADR 0007, plan M3, audit UI/UX 2026-09-14 và evidence này —
+`grep -rnF showsCenteredDialog app/` giờ trả **0**; tên nó chỉ còn trong các tài
+liệu lịch sử, nơi đã ghi rõ là thu hồi.
 
 ## Decision
 

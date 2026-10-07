@@ -9,19 +9,18 @@
 /// `grep -rn "1100" app/lib` should find no layout literals outside this file.
 library;
 
-import '../platform/app_platform.dart';
-
 /// Window-width tiers. Measured on the WHOLE window in logical dp, not on the
 /// content column: the right rail's 360px is part of the decision, so the
 /// decision cannot be made from the column's own width.
 enum AppBreakpoint { compact, medium, expanded, ultra, cinema }
 
 abstract final class AppBreakpoints {
-  /// Where the compact window class ends. One constant serves the three
-  /// decisions that all mean "phone-sized viewport": the tier table in
-  /// [forWidth], the dialog-vs-sheet threshold in [showsCenteredDialog], and
-  /// the glass blur budget cap in `GlassSurface` — so no scattered `700`
-  /// literals survive to be re-derived differently by the next edit.
+  /// Where the compact window class ends. One constant serves the two
+  /// decisions that both mean "phone-sized viewport": the tier table in
+  /// [forWidth] and the glass blur budget cap in `GlassSurface` — so no
+  /// scattered `700` literals survive to be re-derived differently by the
+  /// next edit. Its third reader, the dialog-vs-sheet threshold ADR 0007
+  /// added, went with ADR 0014, which made every modal full-screen.
   static const double compactMaxWidth = 700;
 
   /// Width of the navigation rail. Deliberately one value: collapsing to an
@@ -55,21 +54,6 @@ abstract final class AppBreakpoints {
   static const double contentWidthExpanded = 1100;
   static const double contentWidthUltra = 1440;
   static const double contentWidthCinema = 1680;
-
-  /// Whether a modal at this width renders as a centred dialog rather than a
-  /// bottom sheet. Pure, so the rule is unit-testable without pumping a tree.
-  ///
-  /// A native phone NEVER gets a centred dialog — strictly, the whole
-  /// [AppFormFactor.phone] bucket, which on this three-value enum covers
-  /// native tablets too (a sheet is equally valid M3 chrome there). When the
-  /// decision was width alone, a landscape phone (~900dp) received a dialog
-  /// anchored at the vertical centre of the screen — the one spot a thumb
-  /// cannot reach. Desktop and web keep their existing behaviour exactly:
-  /// sheet below [compactMaxWidth], dialog at or above it.
-  static bool showsCenteredDialog({
-    required double width,
-    required AppFormFactor form,
-  }) => form == AppFormFactor.phone ? false : width >= compactMaxWidth;
 
   static AppBreakpoint forWidth(double width) => switch (width) {
     < compactMaxWidth => AppBreakpoint.compact,

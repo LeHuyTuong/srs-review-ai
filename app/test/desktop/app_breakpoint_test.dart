@@ -10,7 +10,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:srs_review_ai/core/layout/app_breakpoint.dart';
 import 'package:srs_review_ai/core/layout/app_viewport.dart';
-import 'package:srs_review_ai/core/platform/app_platform.dart';
 
 void main() {
   group('AppBreakpoints.forWidth', () {
@@ -113,46 +112,6 @@ void main() {
             reason: 'at $width/$hasContent both columns are on',
           );
         }
-      }
-    });
-  });
-
-  group('AppBreakpoints.showsCenteredDialog', () {
-    // The old rule was width alone: a landscape phone (~900dp of logical
-    // width) received a centred dialog — a thumb-unreachable modal on the
-    // one device class held in the hand. 2026-09-14, audit
-    // docs/uiux/audit-2026-09-14-m3-flutter-arch.md §5.2.
-    test('a native phone never gets a centred dialog, at any width', () {
-      for (final width in [390, 699, 700, 932, 1440]) {
-        expect(
-          AppBreakpoints.showsCenteredDialog(
-            width: width.toDouble(),
-            form: AppFormFactor.phone,
-          ),
-          isFalse,
-          reason: 'at $width a phone must get a bottom sheet',
-        );
-      }
-    });
-
-    test('web and desktop keep the compactMaxWidth split unchanged', () {
-      for (final form in [AppFormFactor.web, AppFormFactor.desktop]) {
-        expect(
-          AppBreakpoints.showsCenteredDialog(
-            width: AppBreakpoints.compactMaxWidth - 1,
-            form: form,
-          ),
-          isFalse,
-          reason: '$form below the line stays a sheet',
-        );
-        expect(
-          AppBreakpoints.showsCenteredDialog(
-            width: AppBreakpoints.compactMaxWidth,
-            form: form,
-          ),
-          isTrue,
-          reason: '$form at the line is a dialog, as before',
-        );
       }
     });
   });

@@ -1,6 +1,6 @@
 # ADR 0007 — M3 window classes for the rail, phone-exempt centred dialogs
 
-Status: accepted · 2026-09-14
+Status: accepted · 2026-09-14 · **D2 revoked 2026-10-07** by [ADR 0014](0014-full-screen-modal-surfaces.md) — the rule and its unit-test group are deleted
 
 Upstream: `docs/uiux/audit-2026-09-14-m3-flutter-arch.md` §5.1–5.2, §8 P0-1/P0-2.
 Partially supersedes: [ADR 0006](0006-desktop-edition-three-decisions.md) decision 3.
@@ -21,7 +21,7 @@ core of the "no mobile architecture" complaint.
 | # | Decision | Chosen | Why |
 |---|---|---|---|
 | D1 | Non-desktop rail floor | 1100 → **840**, exactly M3's expanded class | The band 840–1099 is precisely where tablets live; 228px of rail leaves ≥ 612dp of content there, and the metric grid's own `LayoutBuilder` drops it to 2 columns on its own |
-| D2 | Centred dialogs | `AppBreakpoints.showsCenteredDialog(width, form)`: **a native phone never gets one**, web and desktop keep the 700dp line unchanged | Fixing the thumb-reach defect without touching the two form factors whose users actually reach screen-centre; the rule is a pure static so it is unit-tested without pumping a tree |
+| D2 | Centred dialogs | ~~`AppBreakpoints.showsCenteredDialog(width, form)`: a native phone never gets one, web and desktop keep the 700dp line unchanged~~ — **revoked 2026-10-07** by [ADR 0014](0014-full-screen-modal-surfaces.md): every modal is a full-screen surface now, so there is no sheet left to choose against, and the rule, its unit-test group and every reference to it are deleted | The thumb-reach defect cannot come back: with no bottom sheets left, a landscape phone gets the same full-screen surface as any other width |
 | D3 | Everything ADR 0006 pinned | **Unchanged**: non-desktop `contentMaxWidth` (1100), the desktop-only 360px right rail, the desktop-gated cinema steps | AC-4.6's byte-identical guarantee for the *web desktop browser* path stays intact — only the rail threshold moved, deliberately, and it is asserted against the constant (`nonDesktopRailMinWidth`), so the pin survives the value change by construction |
 
 ## Considered options
@@ -42,7 +42,7 @@ core of the "no mobile architecture" complaint.
 - `test/desktop/app_breakpoint_test.dart` gains groups pinning both D1 and D2;
   the pre-existing non-desktop sweep stays green **because it was already
   written against the constant** — a design choice from ADR 0006 that paid off
-  the first time the constant moved.
+  the first time the constant moved. (D2's group was deleted with the rule, 2026-10-07.)
 - Native phone in landscape (e.g. 932dp, iPhone Pro Max class) now shows the
   rail and hides the tab bar. Judged correct: at that width all three
   destinations are better served by a persistent rail than by chrome that
@@ -51,7 +51,7 @@ core of the "no mobile architecture" complaint.
   new sheet path for the first time — it passes, which is the proof D2 did not
   break the flow, only its container.
 - The literal `700` now exists once (`compactMaxWidth`) and serves the tier
-  table, the dialog rule, and the glass blur budget; the metric grid reads the
+  table and the glass blur budget; the metric grid reads the
   same constant. `grep -rn "700" app/lib` outside `app_breakpoint.dart` finds
   font weights and prose only.
 

@@ -27,7 +27,7 @@ còn API bottom sheet nào — `showModalBottomSheet`, `DraggableScrollableSheet
 trong chú thích và trong một test khẳng định chúng vắng mặt,
 `app/test/desktop/qa_p1_adversarial_test.dart:547`).
 
-Còn lại sau khi sửa: một luật đã chết (§3.2).
+Còn lại sau khi sửa: một luật đã chết (§3.2) — luật đó đã được xoá hẳn ngày 2026-10-07.
 
 ## 1. Ảnh chụp source sheet
 
@@ -178,7 +178,7 @@ con số: **28.2 px @390 → 224.3 px** sau khi đổi `Row`+`Expanded` thành `
 
 Bài học cho lần audit sau: đếm overflow là điều kiện cần, không phải đủ.
 
-### 3.2 Một luật đã chết
+### 3.2 Một luật đã chết — ĐÃ XOÁ 2026-10-07
 
 `AppBreakpoints.showsCenteredDialog` (`app/lib/core/layout/app_breakpoint.dart:69`)
 — luật "khổ này thì dialog căn giữa hay bottom sheet" của ADR 0007 — **không còn
@@ -187,6 +187,13 @@ caller nào** trong production. Chỗ duy nhất còn gọi là unit test của 
 (`docs/adr/0007-…`, `docs/plans/m3-mobile-fixes-2026-09-14.md`,
 `docs/uiux/audit-2026-09-14-m3-flutter-arch.md`). App không còn sheet lẫn dialog
 căn giữa, nên luật này đang giữ một quyết định đã chết.
+
+**Dọn dẹp 2026-10-07:** hàm, group unit test trong
+`app/test/desktop/app_breakpoint_test.dart`, và mọi dòng trỏ tới nó đã bị xoá
+hoặc ghi rõ thu hồi (ADR 0007, plan M3, audit UI/UX 2026-09-14, ADR 0014).
+Xác minh: `grep -rnF showsCenteredDialog app/` = **0**; phần rail/window class của
+ADR 0007 không đổi, và `flutter test test/desktop/app_breakpoint_test.dart` còn
+19 test xanh (hai test của D2 biến mất cùng luật).
 
 ## 4. Audit bề mặt trong trang
 

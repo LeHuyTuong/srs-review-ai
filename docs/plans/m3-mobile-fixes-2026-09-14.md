@@ -47,7 +47,7 @@ AppType + thay literals → ADR-0007 → test mới → chạy analyze/test/guar
 - AC1 `AppViewportData.resolve(width: 900, isDesktop: false).showRail == true`;
   `width: 839` vẫn false. Unit test trong app_breakpoint_test.
 - AC2 `AppBreakpoints.showsCenteredDialog(width: 900, form: phone) == false`,
-  `(900, web/desktop) == true`, `(699, any) == false`. Unit test.
+  `(900, web/desktop) == true`, `(699, any) == false`. Unit test. **Thu hồi 2026-10-07 (ADR 0014):** luật, unit test và mọi dòng trỏ tới nó đã bị xoá — mọi modal là bề mặt full-screen nên không còn bottom sheet để chọn; AC này chỉ còn giá trị lịch sử.
 - AC3 `workspace_modals.dart`, `shortcuts_modal.dart`, `source_sheet.dart`
   không còn literal `700` (`grep -n "700"` = 0 outside app_breakpoint.dart).
 - AC4 PopScope: test widget — phone, chuyển sang History, gọi callback
