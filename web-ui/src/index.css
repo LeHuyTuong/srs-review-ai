@@ -1,0 +1,94 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-ink: #24332d;
+  --color-muted: #66736d;
+  --color-line: #e1e7e3;
+  --color-canvas: #fafbfa;
+  --color-subtle: #f7f9f7;
+  --color-brand: #146b55;
+  --color-brand-soft: #eaf4ed;
+  --color-brand-tint: #f2f7f3;
+  --color-olive: #637344;
+  --color-olive-soft: #f1f4e9;
+  --color-amber: #756534;
+  --color-amber-soft: #f5f2e7;
+  --color-rust: #a65335;
+  --color-rust-soft: #fbf0ea;
+  --color-danger: #a34343;
+  --color-danger-soft: #faeeee;
+}
+
+@layer base {
+  :root {
+    /* Real iOS reports the inset; desktop/Figma device previews report 0, so keep the header clear of the Dynamic Island. */
+    --app-safe-top: max(env(safe-area-inset-top), 54px);
+  }
+
+  html,
+  body,
+  #root {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  .mobile-app {
+    width: 100%;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--color-canvas);
+  }
+
+  .mobile-content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-header {
+    flex-shrink: 0;
+    padding-top: var(--app-safe-top);
+    background: white;
+  }
+
+  /* Desktop: no notch to clear, and the sidebar carries the brand. */
+  @media (min-width: 1024px) {
+    .mobile-header {
+      padding-top: 0;
+    }
+  }
+
+  .mobile-header-inner {
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
