@@ -1,0 +1,50 @@
+# Self-managed VPS stack: API + static web-ui behind one compose file.
+#
+# Build/run from the repository root:
+#   docker compose up -d --build
+#
+# Secrets come from server/.env (git-ignored): GEMINI_API_KEY, GEMINI_MODEL,
+# PROMPT_VERSION, RATE_LIMIT_PER_DAY, and the rest of server/.env.example.
+#
+# Two vars are NOT taken from that file, because the file on disk is allowed to
+# be the 4-line local demo version and both of these default to something
+# unsafe for a public host:
+#   CORS_ORIGINS  -> settings.py default is "*", which lets any origin call it.
+#   APP_TOKEN     -> settings.py default is "", which DISABLES auth entirely
+#                    ("Empty => auth disabled (localhost demo)"). It is also the
+#                    HMAC key for presigned-upload tokens, so an empty value
+#                    also makes those forgeable.
+# Pin PUBLIC_ORIGIN and set APP_TOKEN in the shell (or an untracked .env next to
+# this file) before `docker compose up` on a VPS. Both are read from the compose
+# environment here, so a stale server/.env cannot silently re-open them.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/server.Dockerfile
+    env_file:
+      - server/.env
+    environment:
+      CORS_ORIGINS: "${PUBLIC_ORIGIN:?set PUBLIC_ORIGIN to the public origin, e.g. https://review.example.com}"
+      APP_TOKEN: "${APP_TOKEN:?set APP_TOKEN before exposing the API; an empty value disables auth}"
+    volumes:
+      - srs-review-data:/data
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/webui.Dockerfile
+      additional_contexts:
+        cfg: ./docker
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  srs-review-data:
