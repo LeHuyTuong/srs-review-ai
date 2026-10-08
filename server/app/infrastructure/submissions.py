@@ -390,6 +390,7 @@ class SubmissionStore:
         note: str = "",
         class_key: str | None = None,
         class_store: Any = None,
+        session_class_id: str | None = None,
     ) -> dict[str, Any]:
         """Record the teacher's decision on this round (ADR-0016, decision 2).
 
@@ -411,11 +412,27 @@ class SubmissionStore:
         closed for class writes, re-opened on a worse path. The store takes
         the class store as a parameter rather than importing it: no store
         reaches into another store's internals.
+
+        ``session_class_id`` is the ADR-0021 path: a signed-in teacher's own
+        ``class_id``, already resolved from the account row by the route. It
+        does NOT bypass the containment check — it IS the containment check,
+        with the account as the source instead of a key the caller pasted. A
+        session belonging to another class raises the SAME 404 as an unknown
+        submission id, on purpose: 403 would confirm that this id exists, which
+        is exactly the oracle ``read_submission`` refuses to be.
         """
         payload = self.get(submission_id)
         class_id = str(payload.get("class_id") or "")
         if not class_id:
             raise SubmissionNotInClassError(submission_id)
+        if session_class_id is not None:
+            if session_class_id != class_id:
+                raise SubmissionNotFoundError(submission_id)
+            if decision not in DECISION_STATUSES:
+                raise SubmissionDecisionError(
+                    f"decision {decision!r} is outside the closed ADR-0016 vocabulary {DECISION_STATUSES}"
+                )
+            return self._write_decision(payload, decision=decision, note=note)
         if class_store is None:
             raise SubmissionClassMissingError(submission_id, class_id)
         # verify_key answers False for BOTH a missing class and a wrong key —
@@ -430,6 +447,17 @@ class SubmissionStore:
             raise SubmissionDecisionError(
                 f"decision {decision!r} is outside the closed ADR-0016 vocabulary {DECISION_STATUSES}"
             )
+        return self._write_decision(payload, decision=decision, note=note)
+
+    def _write_decision(self, payload: dict[str, Any], *, decision: str, note: str) -> dict[str, Any]:
+        """The write half of ``decide``, shared by both credential paths.
+
+        Factored out when ADR-0021 added the session path. Two copies of "one
+        ``_now()`` for both stamps, append and never overwrite" is how one copy
+        drifts — and that invariant was itself paid for (AGENTS.md: a second
+        clock read made ``decidedAt`` and ``updatedAt`` disagree across a second
+        boundary).
+        """
         stamp = _now()
         payload["status"] = decision
         payload["decidedAt"] = stamp
@@ -450,6 +478,42 @@ class SubmissionStore:
         self._write(payload)
         return payload
 
+    @staticmethod
+    def _teacher_class_scope(
+        submission_id: str,
+        payload: dict[str, Any],
+        *,
+        class_key: str | None,
+        class_store: Any,
+        session_class_id: str | None,
+    ) -> None:
+        """Raise unless the caller has teacher authority over this row.
+
+        Factored out of THREE call sites (comment, reply, resolve) that used to
+        hold byte-identical copies of this block. Three copies is how one gets
+        relaxed and nobody notices — and ADR-0021 is exactly the change that
+        would have touched only two of them.
+
+        Two ways in, ONE authority:
+
+        * a teacher SESSION (``session_class_id``), which is the account's own
+          ``class_id`` already resolved by the route. It does not widen scope:
+          it is compared against the row's class, and a mismatch raises the
+          same 404 an unknown id raises, so a signed-in teacher cannot probe
+          for the existence of another class's submissions.
+        * the class WRITE KEY, unchanged from ADR-0019. A wrong key and a gone
+          class share one 409 so the write path is not an oracle.
+        """
+        class_id = str(payload.get("class_id") or "")
+        if not class_id:
+            raise SubmissionNotInClassError(submission_id)
+        if session_class_id is not None:
+            if session_class_id != class_id:
+                raise SubmissionNotFoundError(submission_id)
+            return
+        if class_store is None or not class_store.verify_key(class_id, class_key or ""):
+            raise SubmissionClassMissingError(submission_id, class_id)
+
     def add_comment(
         self,
         submission_id: str,
@@ -458,6 +522,7 @@ class SubmissionStore:
         author: str,
         class_key: str | None = None,
         class_store: Any = None,
+        session_class_id: str | None = None,
     ) -> dict[str, Any]:
         """Append one comment to this round's thread (ADR-0019).
 
@@ -488,14 +553,16 @@ class SubmissionStore:
             )
         payload = self.get(submission_id)
         if author == "teacher":
-            # Same gate as `decide`, deliberately not factored across both:
-            # one shared helper would make it easy to relax one caller and
-            # silently relax the other.
-            class_id = str(payload.get("class_id") or "")
-            if not class_id:
-                raise SubmissionNotInClassError(submission_id)
-            if class_store is None or not class_store.verify_key(class_id, class_key or ""):
-                raise SubmissionClassMissingError(submission_id, class_id)
+            # Same gate as `decide`. Now literally the same code: ADR-0021
+            # added a third credential path, and three copies of this block
+            # would have meant relaxing whoever edited last.
+            self._teacher_class_scope(
+                submission_id,
+                payload,
+                class_key=class_key,
+                class_store=class_store,
+                session_class_id=session_class_id,
+            )
         stamp = _now()
         comment = {
             "id": secrets.token_urlsafe(_ID_LENGTH),
@@ -526,6 +593,7 @@ class SubmissionStore:
         author: str,
         class_key: str | None = None,
         class_store: Any = None,
+        session_class_id: str | None = None,
     ) -> dict[str, Any]:
         """Append a reply under one comment. Same authority rules as ``add_comment``.
 
@@ -590,6 +658,7 @@ class SubmissionStore:
         resolved: bool,
         class_key: str | None = None,
         class_store: Any = None,
+        session_class_id: str | None = None,
     ) -> dict[str, Any]:
         """Mark a comment resolved (or un-resolve it). Teacher authority only.
 
@@ -605,11 +674,16 @@ class SubmissionStore:
         the history would grow while the information shrank.
         """
         payload = self.get(submission_id)
-        class_id = str(payload.get("class_id") or "")
-        if not class_id:
-            raise SubmissionNotInClassError(submission_id)
-        if class_store is None or not class_store.verify_key(class_id, class_key or ""):
-            raise SubmissionClassMissingError(submission_id, class_id)
+        # Teacher-only route, so there is no `author` to branch on: the session
+        # path is simply the same scope check with the account's class as the
+        # source. Both credentials funnel into one helper.
+        self._teacher_class_scope(
+            submission_id,
+            payload,
+            class_key=class_key,
+            class_store=class_store,
+            session_class_id=session_class_id,
+        )
         comments = payload.get("comments")
         if not isinstance(comments, list):
             comments = []

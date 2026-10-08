@@ -25,7 +25,9 @@ Mỗi quyết định kỹ thuật có một file, đánh số tăng dần, khô
 | [0018](0018-contradiction-pass-scope-row-shaped-documents.md) | `crossArtifactName` (chain 1) chỉ bắn trên tài liệu hình dòng (SDS/dictionary); SRS văn xuôi trả 0 là kết quả được thiết kế — số đo cơ chế kèm theo; không thêm "N/A" và không nới extractor khi chưa có gold set | Accepted |
 | [0019](0019-web-ui-is-a-mock-contract-sync.md) | web-ui là mock (không gọi server); `ReviewEventKind` thu về `approved \| changes_requested \| resubmitted` (bỏ `needsRevision`/`rejected` — chúng là `DocumentStatus`); decision vocabulary vào `contracts/review.schema.json`, bump 1.1.0→1.2.0; wire thật là bước sau với cổng credential của browser | Accepted — **bị [0020](0020-real-accounts-replace-the-capability-posture.md) đảo 2026-10-08** (web-ui thôi là mock, gọi `/auth/*`) |
 | [0020](0020-real-accounts-replace-the-capability-posture.md) | **Đảo ADR-0016**: bỏ mô hình `class_id` capability, thay bằng bảng `users` + mật khẩu băm `scrypt` + session cookie `HttpOnly`; mọi route biết người gọi; `GET /submissions` lọc theo danh tính; web-ui và app Flutter đều có màn đăng nhập. Đè brief "KHÔNG làm tài khoản/đăng nhập thật" theo quyết định chủ sở hữu | Accepted |
+| [0021](0021-author-comes-from-the-session.md) | `author` của luồng trao đổi **do phiên quyết định**, không phải body — client khai trái vai nhận 403; class key thành credential thứ hai cho cùng một quyền (deep link còn sống), không phải quyền thứ hai; hoàn tất ADR-0020 §Decision 3 | Accepted |
+| [0022](0022-teacher-controls-the-class.md) | Giáo viên kiểm soát lớp: đăng ký giáo viên cần `SRS_TEACHER_INVITE_CODE` (chưa đặt = đóng); sinh viên **không** tự khai nhóm, vào lớp bằng mã lớp; danh sách sinh viên lọc theo lớp **và** nhóm; `/roster` cho giáo viên xếp nhóm/thêm/xoá sinh viên; `GET /classes/{id}` cần key hoặc giáo viên sở hữu | Accepted |
 
-**Số tiếp theo: 0021.**
+**Số tiếp theo: 0023.**
 
 Luật chấm SRS/SDS **không** ghi ở đây — chúng nằm ở `review-rules/RULEBOOK.md` với hệ version riêng (§10). ADR chỉ dành cho quyết định về *code* của repo này.

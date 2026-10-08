@@ -216,15 +216,19 @@ def decide_submission(
     submission_id: str,
     payload: DecisionRequest,
     x_class_key: str | None = Header(default=None),
+    user=Depends(accounts.optional_user),
     store=Depends(deps.submission_store),
     classes=Depends(deps.class_store),
 ) -> dict:
     """Record the teacher's decision on one round.
 
-    Authority is the CONTAINING CLASS's write key in ``X-Class-Key`` — not
-    the app token, which the group's own app also holds; accepting it here
-    would let a group approve its own work (plan 12 WP3, ADR-0017's hole on
-    a worse path). The failure map:
+    Two credentials, one authority (ADR-0021): the class write key in
+    ``X-Class-Key``, or a teacher SESSION. Also not the app token — that is
+    shared with the group's own app, and accepting it would let a group approve
+    its own work (plan 12 WP3, ADR-0017's hole on a worse path). A session that
+    is not a teacher is refused here; a teacher session never widens scope,
+    because the store compares the account's own ``class_id`` with the row's.
+    The failure map:
 
     * 404 — the id is malformed or unknown: ONE shape, as everywhere else.
     * 409 ``not_in_class`` — the submission belongs to no class, so there is
@@ -234,6 +238,13 @@ def decide_submission(
       match it (a wrong key must not confirm the class exists).
     * 422 — a decision outside the closed ADR-0016 vocabulary.
     """
+    if user is not None and user.get("role") != "teacher":
+        raise HTTPException(status_code=403, detail="teacher role required")
+    # `None` when there is no session, so the store takes the key path and the
+    # ADR-0019 contract is untouched for deep links. An empty string would be a
+    # different thing — it would mean "a session with no class", and the store
+    # would compare it against the row's class_id and refuse.
+    session_class = None if user is None else str(user.get("classId") or "")
     try:
         decided = store.decide(
             submission_id,
@@ -241,6 +252,7 @@ def decide_submission(
             note=payload.note,
             class_key=x_class_key,
             class_store=classes,
+            session_class_id=session_class,
         )
     except SubmissionNotInClassError as exc:
         raise HTTPException(status_code=409, detail="not_in_class") from exc
@@ -289,11 +301,43 @@ def _comment_failure(exc: Exception) -> HTTPException:
     return HTTPException(status_code=404, detail="Not Found")
 
 
+def _session_author(declared: str, user: dict | None) -> str:
+    """The author of a thread entry, with the session taking precedence.
+
+    ADR-0021. ``author`` decides which authority path the store takes
+    (``if author == "teacher": <demand the class key>``), so it is a field that
+    grants a privilege — and a privilege-granting field must not be something
+    the caller chooses. When there IS a session, the role in it wins and a
+    mismatching body is refused rather than silently corrected: silently
+    rewriting it lets a broken client keep "working" and nobody ever learns it
+    was sending the wrong role.
+
+    403 and not 422, deliberately. Declaring the other role is not a malformed
+    body you could fix by editing it — editing it still would not make you that
+    role. The answer is "you may not write as that side", which is 403.
+
+    With NO session the old ADR-0019 contract stands unchanged: the submission
+    id (student) or the class key (teacher) is the credential, and ``author``
+    says which of the two gates to apply. That path is what a deep link uses,
+    and it is checked by tests so ADR-0021 cannot be read as having removed it.
+    """
+    if user is None:
+        return declared
+    role = str(user.get("role") or "")
+    if declared != role:
+        raise HTTPException(
+            status_code=403,
+            detail=f"author: this session is {role or 'not a writer'}",
+        )
+    return role
+
+
 @router.post("/submissions/{submission_id}/comments", status_code=201)
 def add_comment(
     submission_id: str,
     payload: CommentRequest,
     x_class_key: str | None = Header(default=None),
+    user=Depends(accounts.optional_user),
     store=Depends(deps.submission_store),
     classes=Depends(deps.class_store),
 ) -> dict:
@@ -308,18 +352,27 @@ def add_comment(
 
     The app token would be the wrong third answer: it is shared by every
     client, so accepting it would let a group post as its own teacher — the
-    hole ``decide_submission`` exists to keep shut. Authority therefore lives
-    in ``add_comment`` at the store, keyed on the declared ``author``, and the
-    route only translates the outcome. A test asserts a student claim without
-    the class key is refused, so this comment cannot rot into a hole.
+    hole ``decide_submission`` exists to keep shut.
+
+    As of ADR-0021 a SESSION, when present, decides ``author`` and the body's
+    value must agree (403 otherwise). The store still keys its own check on
+    ``author`` — that gate is unchanged and still tested — so a request with no
+    session behaves exactly as before.
     """
+    author = _session_author(payload.author, user)
+    # A teacher session replaces the class key: the account's own class_id IS
+    # the containment fact, so requiring a pasted key on top of it would ask
+    # the teacher for a credential the account already carries. `None` when
+    # there is no session, so the store's key path is unchanged for deep links.
+    session_class = None if user is None or author != "teacher" else str(user.get("classId") or "")
     try:
         return store.add_comment(
             submission_id,
             body=payload.body,
-            author=payload.author,
+            author=author,
             class_key=x_class_key,
             class_store=classes,
+            session_class_id=session_class,
         )
     except (
         SubmissionNotFoundError,
@@ -336,18 +389,22 @@ def reply_to_comment(
     comment_id: str,
     payload: CommentRequest,
     x_class_key: str | None = Header(default=None),
+    user=Depends(accounts.optional_user),
     store=Depends(deps.submission_store),
     classes=Depends(deps.class_store),
 ) -> dict:
     """Append a reply under one comment. Same two-sided authority as above."""
+    author = _session_author(payload.author, user)
+    session_class = None if user is None or author != "teacher" else str(user.get("classId") or "")
     try:
         return store.reply_to_comment(
             submission_id,
             comment_id,
             body=payload.body,
-            author=payload.author,
+            author=author,
             class_key=x_class_key,
             class_store=classes,
+            session_class_id=session_class,
         )
     except (
         SubmissionNotFoundError,
@@ -364,16 +421,25 @@ def resolve_comment(
     comment_id: str,
     payload: ResolveCommentRequest,
     x_class_key: str | None = Header(default=None),
+    user=Depends(accounts.optional_user),
     store=Depends(deps.submission_store),
     classes=Depends(deps.class_store),
 ) -> dict:
     """Open or close one comment. Teacher authority only — no student path.
 
-    There is no ``author`` field here and no app-token escape hatch: closing a
-    remark about the group's own work is the teacher's call, so the class key
-    is the ONLY credential this route accepts. A student holding the
-    submission link gets 409 ``not_in_class``/``class_missing``, never a write.
+    Two credentials reach the same authority (ADR-0021): the class key, or a
+    SESSION whose role is teacher. The session path is not a second privilege —
+    a teacher session can only ever act on the class the account is attached
+    to, which the store checks against the row's own ``class_id``. A student
+    holding the submission link gets 409 ``not_in_class``/``class_missing``, or
+    403 from the role gate, never a write.
+
+    The role gate is a DEPENDENCY rather than a line in the body so a future
+    edit cannot drop it by accident: dropping it is a signature change.
     """
+    if user is not None and user.get("role") != "teacher":
+        raise HTTPException(status_code=403, detail="teacher role required")
+    session_class = None if user is None else str(user.get("classId") or "")
     try:
         return store.set_comment_resolved(
             submission_id,
@@ -381,6 +447,7 @@ def resolve_comment(
             resolved=payload.resolved,
             class_key=x_class_key,
             class_store=classes,
+            session_class_id=session_class,
         )
     except (
         SubmissionNotFoundError,
@@ -426,10 +493,19 @@ def list_submissions(
             return {"submissions": [], "scope": "teacher", "classId": None}
         mine = [row for row in rows.values() if isinstance(row, dict) and row.get("class_id") == class_id]
     elif role == "student":
+        # Class AND group, never the group alone (ADR-0022). A group is a label
+        # like "Nhom 1", and every class has one; filtering by the label alone
+        # handed a student every "Nhom 1" in every class. Both facts come from
+        # the account, and only a teacher can set the group (`/roster`).
+        class_id = user.get("classId")
         group = user.get("group")
-        if not group:
-            return {"submissions": [], "scope": "student", "group": None}
-        mine = [row for row in rows.values() if isinstance(row, dict) and row.get("group") == group]
+        if not class_id or not group:
+            return {"submissions": [], "scope": "student", "classId": class_id, "group": group}
+        mine = [
+            row
+            for row in rows.values()
+            if isinstance(row, dict) and row.get("class_id") == class_id and row.get("group") == group
+        ]
 
     # Newest first. `createdAt` DESC and NOT `revision`: a revision number is a
     # count of rounds, not a time, so ordering by it orders by nothing (the
