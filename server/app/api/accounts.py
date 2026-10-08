@@ -128,6 +128,26 @@ def current_user(
     return user
 
 
+def optional_user(
+    session_token: Annotated[str | None, Cookie(alias=SESSION_COOKIE)] = None,
+) -> dict | None:
+    """The caller's user row, or None — for routes a session OPENS, not gates.
+
+    `current_user` is the wrong tool for a route that has a second way in. A
+    route that accepts EITHER a session OR another credential cannot depend on
+    a gate that raises 401 when the cookie is absent: "no cookie" has to be
+    readable as "try the other credential", not as "you are not signed in".
+
+    ADR-0021 needs exactly this on the four thread write routes: `author` comes
+    from the session WHEN THERE IS ONE, and the class-key path is untouched
+    when there is not. Using `current_user` there would have broken every deep
+    link that ADR-0019 deliberately kept working.
+    """
+    if not session_token:
+        return None
+    return deps.account_store().resolve_session(session_token)
+
+
 def require_teacher(user: Annotated[dict, Depends(current_user)]) -> dict:
     """A teacher-only gate, on top of the identity gate.
 
