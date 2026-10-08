@@ -57,6 +57,11 @@ class RegisterRequest(BaseModel):
     username: str = Field(min_length=1, max_length=64)
     password: str = Field(min_length=1, max_length=256)
     role: Literal["teacher", "student"]
+    # Where this account belongs, so `GET /submissions` can filter by identity
+    # (ADR-0020 §4). Optional because somebody may register before a class
+    # exists — their list is then empty, which is correct and not an error.
+    class_id: str | None = Field(default=None, max_length=128)
+    group: str | None = Field(default=None, max_length=128)
 
 
 class LoginRequest(BaseModel):
@@ -148,7 +153,13 @@ def register(payload: RegisterRequest) -> dict:
     """Create an account. Does NOT log in — registration and authentication are
     separate acts, and merging them hides the case where the second fails."""
     try:
-        return deps.account_store().register(payload.username, payload.password, payload.role)
+        return deps.account_store().register(
+            payload.username,
+            payload.password,
+            payload.role,
+            class_id=payload.class_id,
+            group=payload.group,
+        )
     except UsernameTakenError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except InvalidAccountInputError as exc:
@@ -169,7 +180,14 @@ def login(payload: LoginRequest, response: Response, settings: Settings = Depend
         raise HTTPException(status_code=401, detail=str(exc)) from exc
     token, meta = store.start_session(user["id"])
     _set_session_cookie(response, token, settings)
-    return {"id": user["id"], "username": user["username"], "role": user["role"], **meta}
+    return {
+        "id": user["id"],
+        "username": user["username"],
+        "role": user["role"],
+        "classId": user.get("classId"),
+        "group": user.get("group"),
+        **meta,
+    }
 
 
 @router.post("/logout")
@@ -190,7 +208,16 @@ def logout(
 def me(user: Annotated[dict, Depends(current_user)]) -> dict:
     """Who the caller is. The ONE route the web-ui calls on load to decide which
     screen to show, so its 401 is a normal branch, not an error."""
-    return {"id": user["id"], "username": user["username"], "role": user["role"]}
+    return {
+        "id": user["id"],
+        "username": user["username"],
+        "role": user["role"],
+        # Membership travels with identity: the UI needs to know whether this
+        # account is attached to a class/group before it renders an empty list,
+        # so "nothing here yet" can be told apart from "you are not in a class".
+        "classId": user.get("classId"),
+        "group": user.get("group"),
+    }
 
 
 __all__ = [

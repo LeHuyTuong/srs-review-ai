@@ -217,10 +217,19 @@ class AccountStore:
                 username      TEXT NOT NULL UNIQUE,
                 password_hash TEXT NOT NULL,
                 role          TEXT NOT NULL,
-                created_at    TEXT NOT NULL
+                created_at    TEXT NOT NULL,
+                class_id      TEXT,
+                grp           TEXT
             )
             """
         )
+        # `CREATE TABLE IF NOT EXISTS` does NOT add a column to a table that
+        # already exists, so a database written before these two columns keeps
+        # its old shape and every read of `class_id` raises. The ALTERs below
+        # are idempotent (guarded by a PRAGMA read), which is what makes this a
+        # migration rather than a "delete your database" instruction.
+        self._ensure_column(conn, "users", "class_id", "TEXT")
+        self._ensure_column(conn, "users", "grp", "TEXT")
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS sessions (
@@ -246,13 +255,40 @@ class AccountStore:
     def path(self) -> Path:
         return self._path
 
+    @staticmethod
+    def _ensure_column(conn: sqlite3.Connection, table: str, column: str, decl: str) -> None:
+        """Add a column only when it is missing.
+
+        SQLite has no `ADD COLUMN IF NOT EXISTS`, and a blind `ALTER TABLE`
+        raises "duplicate column name" on the second open — which would make the
+        store unusable after one restart. Reading `PRAGMA table_info` first is
+        what makes the migration idempotent.
+        """
+        existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+        if column not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
+            conn.commit()
+
     # ------------------------------------------------------------ accounts
 
-    def register(self, username: str, password: str, role: str) -> dict[str, Any]:
+    def register(
+        self,
+        username: str,
+        password: str,
+        role: str,
+        *,
+        class_id: str | None = None,
+        group: str | None = None,
+    ) -> dict[str, Any]:
         """Create an account. Returns the row WITHOUT the password hash.
 
         The hash never leaves this method: a caller that never receives it
         cannot log it.
+
+        `class_id` (a teacher's class) and `group` (a student's group) are what
+        make `GET /submissions` meaningful — they are the two facts a list can
+        be filtered by. They are passed at registration because there is no
+        assignment screen (ADR-0020 §Consequences records that as not built).
         """
         username = username.strip()
         if not _USERNAME_RE.match(username):
@@ -271,9 +307,17 @@ class AccountStore:
             conn = self._require_conn()
             try:
                 conn.execute(
-                    "INSERT INTO users (id, username, password_hash, role, created_at) "
-                    "VALUES (?, ?, ?, ?, ?)",
-                    (user_id, username, hash_password(password), role, created_at),
+                    "INSERT INTO users (id, username, password_hash, role, created_at, class_id, grp) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        user_id,
+                        username,
+                        hash_password(password),
+                        role,
+                        created_at,
+                        class_id.strip() if class_id else None,
+                        group.strip() if group else None,
+                    ),
                 )
                 conn.commit()
             except sqlite3.IntegrityError as exc:
@@ -284,6 +328,8 @@ class AccountStore:
             "username": username,
             "role": role,
             "createdAt": created_at,
+            "classId": class_id.strip() if class_id else None,
+            "group": group.strip() if group else None,
         }
 
     def authenticate(self, username: str, password: str) -> dict[str, Any]:
@@ -296,7 +342,8 @@ class AccountStore:
             row = (
                 self._require_conn()
                 .execute(
-                    "SELECT id, username, password_hash, role, created_at FROM users WHERE username = ?",
+                    "SELECT id, username, password_hash, role, created_at, class_id, grp "
+                    "FROM users WHERE username = ?",
                     (username.strip(),),
                 )
                 .fetchone()
@@ -312,6 +359,8 @@ class AccountStore:
             "username": row[1],
             "role": row[3],
             "createdAt": row[4],
+            "classId": row[5],
+            "group": row[6],
         }
 
     def get_user(self, user_id: str) -> dict[str, Any] | None:
@@ -319,28 +368,67 @@ class AccountStore:
             row = (
                 self._require_conn()
                 .execute(
-                    "SELECT id, username, role, created_at FROM users WHERE id = ?",
+                    "SELECT id, username, role, created_at, class_id, grp FROM users WHERE id = ?",
                     (user_id,),
                 )
                 .fetchone()
             )
         if row is None:
             return None
-        return {"id": row[0], "username": row[1], "role": row[2], "createdAt": row[3]}
+        return {
+            "id": row[0],
+            "username": row[1],
+            "role": row[2],
+            "createdAt": row[3],
+            "classId": row[4],
+            "group": row[5],
+        }
 
     def find_by_username(self, username: str) -> dict[str, Any] | None:
         with self._lock:
             row = (
                 self._require_conn()
                 .execute(
-                    "SELECT id, username, role, created_at FROM users WHERE username = ?",
+                    "SELECT id, username, role, created_at, class_id, grp FROM users WHERE username = ?",
                     (username.strip(),),
                 )
                 .fetchone()
             )
         if row is None:
             return None
-        return {"id": row[0], "username": row[1], "role": row[2], "createdAt": row[3]}
+        return {
+            "id": row[0],
+            "username": row[1],
+            "role": row[2],
+            "createdAt": row[3],
+            "classId": row[4],
+            "group": row[5],
+        }
+
+    def set_membership(
+        self, user_id: str, *, class_id: str | None = None, group: str | None = None
+    ) -> dict[str, Any] | None:
+        """Attach a teacher's class or a student's group to an account.
+
+        Exists because a user created before these columns (or by a caller that
+        did not supply them) would otherwise be permanently invisible to
+        `GET /submissions` with no way to fix it short of editing the database
+        by hand. Returns the updated row, or None if there is no such user.
+        """
+        with self._lock:
+            conn = self._require_conn()
+            cursor = conn.execute(
+                "UPDATE users SET class_id = ?, grp = ? WHERE id = ?",
+                (
+                    class_id.strip() if class_id else None,
+                    group.strip() if group else None,
+                    user_id,
+                ),
+            )
+            conn.commit()
+            if cursor.rowcount == 0:
+                return None
+        return self.get_user(user_id)
 
     def count_users(self) -> int:
         with self._lock:
@@ -381,7 +469,8 @@ class AccountStore:
         with self._lock:
             conn = self._require_conn()
             row = conn.execute(
-                "SELECT s.user_id, s.expires_at, u.username, u.role, u.created_at "
+                "SELECT s.user_id, s.expires_at, u.username, u.role, u.created_at, "
+                "       u.class_id, u.grp "
                 "FROM sessions s JOIN users u ON u.id = s.user_id "
                 "WHERE s.token_hash = ?",
                 (token_hash,),
@@ -392,11 +481,21 @@ class AccountStore:
                 conn.execute("DELETE FROM sessions WHERE token_hash = ?", (token_hash,))
                 conn.commit()
                 return None
+        # The membership columns MUST be selected here, not just stored: this is
+        # the row every authenticated route receives as its `user`, and a field
+        # the store holds but this SELECT omits is invisible to the whole app.
+        # It cost a debugging round — `GET /submissions` returned an empty list
+        # for a teacher who had a class, because `user["classId"]` was silently
+        # absent. Same whitelist trap AGENTS.md records for the submission read
+        # view; a new column means a new SELECT and a test that reads it back
+        # THROUGH the route.
         return {
             "id": row[0],
             "username": row[2],
             "role": row[3],
             "createdAt": row[4],
+            "classId": row[5],
+            "group": row[6],
         }
 
     def end_session(self, token: str) -> bool:

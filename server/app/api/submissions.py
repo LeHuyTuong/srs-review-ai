@@ -17,7 +17,7 @@ left to be discovered.
 from __future__ import annotations
 
 import logging
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Response
 from pydantic import BaseModel, Field
@@ -31,7 +31,7 @@ from ..infrastructure.submissions import (
     SubmissionNotInClassError,
     SubmissionTooLargeError,
 )
-from . import deps
+from . import accounts, deps
 
 log = logging.getLogger("srs-proxy")
 
@@ -389,6 +389,86 @@ def resolve_comment(
         SubmissionCommentError,
     ) as exc:
         raise _comment_failure(exc) from exc
+
+
+@router.get("/submissions")
+def list_submissions(
+    user=Depends(accounts.current_user),
+    store=Depends(deps.submission_store),
+) -> dict:
+    """The submissions THIS caller may see. The list ADR-0016 could not have.
+
+    ADR-0016 §Options rejected accounts partly because a list needs an identity
+    to filter by: "my class" and "my group" are not expressible when the only
+    credential is an id someone pasted. ADR-0020 bought the identity, so this
+    route exists — and it filters by a fact on the ACCOUNT (`class_id` for a
+    teacher, `group` for a student), not by a fact in the request. A caller
+    cannot ask for someone else's list because there is no parameter for it:
+    the filter comes from the session, which is the whole point.
+
+    Two deliberate properties:
+
+    * **It reads only what the caller is entitled to.** `all_rows()` is a full
+      scan; the filter is applied here and only matching rows are serialised,
+      so a student never receives a teacher's class rows even transiently.
+    * **An account with no membership gets an EMPTY list, not a 403.** That is
+      the honest answer to "which submissions may I see" for somebody not yet
+      in a class, and a 403 would make a normal onboarding state look like a
+      permission bug.
+    """
+    role = user.get("role")
+    rows = store.all_rows()
+
+    mine: list[dict[str, Any]] = []
+    if role == "teacher":
+        class_id = user.get("classId")
+        if not class_id:
+            return {"submissions": [], "scope": "teacher", "classId": None}
+        mine = [row for row in rows.values() if isinstance(row, dict) and row.get("class_id") == class_id]
+    elif role == "student":
+        group = user.get("group")
+        if not group:
+            return {"submissions": [], "scope": "student", "group": None}
+        mine = [row for row in rows.values() if isinstance(row, dict) and row.get("group") == group]
+
+    # Newest first. `createdAt` DESC and NOT `revision`: a revision number is a
+    # count of rounds, not a time, so ordering by it orders by nothing (the
+    # same reasoning the class store records for its member list).
+    mine.sort(key=lambda row: str(row.get("createdAt") or ""), reverse=True)
+    return {
+        "submissions": [_submission_summary(row) for row in mine],
+        "scope": role,
+        "classId": user.get("classId"),
+        "group": user.get("group"),
+    }
+
+
+def _submission_summary(record: dict[str, Any]) -> dict[str, Any]:
+    """One list row: what a queue needs, and nothing heavy.
+
+    This is a WHITELIST like `read_submission`, and for the same reason: the
+    store gains fields over time, and a list that forwards whatever the store
+    holds is a list that will eventually carry a review payload or an HTML twin
+    it was never meant to. The thread is summarised to two counts so a queue can
+    show a badge without shipping every comment.
+    """
+    comments = record.get("comments") or []
+    return {
+        "id": record.get("id", ""),
+        "group": record.get("group", ""),
+        "project": record.get("project", ""),
+        "revision": record.get("revision", 1),
+        "status": record.get("status", "submitted"),
+        "class_id": record.get("class_id", ""),
+        "note": record.get("note", ""),
+        "decidedAt": record.get("decidedAt"),
+        "decision_note": record.get("decision_note", ""),
+        "previous_id": record.get("previous_id"),
+        "createdAt": record.get("createdAt"),
+        "updatedAt": record.get("updatedAt"),
+        "commentCount": len(comments),
+        "openCommentCount": sum(1 for c in comments if isinstance(c, dict) and not c.get("resolvedAt")),
+    }
 
 
 @router.get("/submissions/{submission_id}")

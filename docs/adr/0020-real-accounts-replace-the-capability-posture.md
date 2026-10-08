@@ -61,6 +61,13 @@ sống song song, đúng thứ ADR-0016 §Context gọi là "identity" bị rò 
 4. **`GET /submissions` trở thành có thật**: trả bài nộp **mà người gọi được
    thấy** — giáo viên thấy lớp mình dạy, sinh viên thấy nhóm mình thuộc. Đây là
    thứ ADR-0016 §Options nói không thể có khi chưa có danh tính; giờ có.
+   Để làm được, bảng `users` mang thêm **`class_id`** (giáo viên) và **`group`**
+   (sinh viên) — hai cột nullable, và một tài khoản chỉ nên có cột ứng với vai
+   của nó. Migration là **thêm cột**, không đổi kiểu cột cũ, nên hàng đã có vẫn
+   đọc được và một user chưa gắn lớp/nhóm thấy danh sách **rỗng** chứ không lỗi.
+   Đây là chỗ đánh đổi thật: danh sách có nghĩa kéo theo việc tài khoản phải biết
+   mình thuộc đâu, và câu hỏi "ai gắn lớp cho giáo viên" là việc quản trị mà
+   ADR-0020 §Consequences đã nói là **chưa** làm (không admin, không màn gán).
 5. **web-ui bỏ mock session.** `web-ui/src/app/auth.ts` gọi `/auth/login`,
    `/auth/logout`, `/auth/me`. Màn hình giữ nguyên; nguồn sự thật của "ai đang
    đăng nhập" đổi từ `localStorage` sang server.

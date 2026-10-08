@@ -110,7 +110,88 @@ class TestRegister:
         # receives it cannot log it.
         assert "password_hash" not in user
         assert "password" not in user
-        assert list(user) == ["id", "username", "role", "createdAt"]
+        # The exact key set, pinned: adding a field to this row is a change a
+        # reader should have to acknowledge, not discover.
+        assert list(user) == ["id", "username", "role", "createdAt", "classId", "group"]
+
+    def test_membership_is_stored_and_read_back(self, store: AccountStore) -> None:
+        """`class_id` / `grp` are what make a filtered list possible (ADR-0020 §4)."""
+        teacher = store.register("gv01", "matkhau-du-dai", "teacher", class_id="  cls-abc  ")
+        assert teacher["classId"] == "cls-abc", "the class id should be stripped, not kept raw"
+        assert teacher["group"] is None
+
+        student = store.register("sv01", "matkhau-du-dai", "student", group="Nhom 4")
+        assert student["group"] == "Nhom 4"
+        assert student["classId"] is None
+
+        # Unauthenticated reads must carry it too, or the list route cannot see
+        # who it is filtering for.
+        assert store.get_user(teacher["id"])["classId"] == "cls-abc"
+        assert store.find_by_username("sv01")["group"] == "Nhom 4"
+        assert store.authenticate("gv01", "matkhau-du-dai")["classId"] == "cls-abc"
+
+    def test_an_account_with_no_membership_gets_nulls_not_an_error(self, store: AccountStore) -> None:
+        # The common case: somebody registers before a class exists. The list
+        # route must render an EMPTY list for them, not raise.
+        user = store.register("gv02", "matkhau-du-dai", "teacher")
+        assert user["classId"] is None and user["group"] is None
+
+    def test_set_membership_attaches_and_reports_a_missing_user(self, store: AccountStore) -> None:
+        user = store.register("gv03", "matkhau-du-dai", "teacher")
+        updated = store.set_membership(user["id"], class_id="cls-xyz")
+        assert updated is not None and updated["classId"] == "cls-xyz"
+        # Assigning a group replaces the pair, and assigning nothing clears both.
+        assert store.set_membership(user["id"], group="Nhom 9")["group"] == "Nhom 9"
+        assert store.set_membership(user["id"])["classId"] is None
+        # No such user is None, not an exception — a route maps this to 404.
+        assert store.set_membership("khong-ton-tai", class_id="cls-1") is None
+
+    def test_a_pre_existing_database_gains_the_new_columns(self, tmp_path: Path) -> None:
+        """The migration, exercised against a table built WITHOUT the columns.
+
+        `CREATE TABLE IF NOT EXISTS` silently does nothing to an existing table,
+        so a database written by the previous build would keep its old shape and
+        every read of `class_id` would raise `no such column`. This builds that
+        old shape by hand and asserts the store repairs it on open.
+        """
+        path = tmp_path / "old.sqlite3"
+        with sqlite3.connect(path) as conn:
+            conn.execute(
+                "CREATE TABLE users ("
+                "  id TEXT PRIMARY KEY, username TEXT NOT NULL UNIQUE,"
+                "  password_hash TEXT NOT NULL, role TEXT NOT NULL,"
+                "  created_at TEXT NOT NULL)"
+            )
+            conn.execute(
+                "CREATE TABLE sessions ("
+                "  token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL,"
+                "  created_at TEXT NOT NULL, expires_at TEXT NOT NULL)"
+            )
+            conn.execute(
+                "INSERT INTO users VALUES "
+                "('u1','olduser','scrypt$16384$8$1$AAAA$AAAA','teacher','2026-01-01')"
+            )
+            conn.commit()
+
+        store = AccountStore(path)
+        # The old row is readable and reports no membership rather than raising.
+        found = store.find_by_username("olduser")
+        assert found is not None and found["classId"] is None
+        # And a fresh registration can set the new columns.
+        created = store.register("gv-new", "matkhau-du-dai", "teacher", class_id="cls-new")
+        assert store.get_user(created["id"])["classId"] == "cls-new"
+        store.close()
+
+    def test_opening_twice_does_not_try_to_re_add_the_columns(self, tmp_path: Path) -> None:
+        # A blind `ALTER TABLE` raises "duplicate column name" the second time,
+        # which would make the store unusable after one restart.
+        path = tmp_path / "twice.sqlite3"
+        first = AccountStore(path)
+        first.register("gv01", "matkhau-du-dai", "teacher", class_id="cls-1")
+        first.close()
+        second = AccountStore(path)
+        assert second.find_by_username("gv01")["classId"] == "cls-1"
+        second.close()
 
     def test_a_duplicate_username_is_refused(self, store: AccountStore) -> None:
         _teacher(store)
