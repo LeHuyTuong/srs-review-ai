@@ -633,6 +633,16 @@ NATIVE_PLUGIN_RULES: tuple[NativePluginRule, ...] = (
                 ),
                 seam_note="openStudentStore, the one constructor from a prefs instance",
             ),
+            NativePluginAdapter(
+                path="app/lib/features/auth/data/session_cookie_store.dart",
+                seams=(
+                    (
+                        "app/lib/features/auth/data/session_cookie_store.dart",
+                        r"SessionCookieStore openSessionCookieStore\(SharedPreferences prefs\)",
+                    ),
+                ),
+                seam_note="openSessionCookieStore, the one constructor from a prefs instance",
+            ),
         ),
     ),
 )

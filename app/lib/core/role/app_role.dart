@@ -51,6 +51,36 @@ enum AppRole {
   bool get isReadOnly => this == AppRole.teacher;
 }
 
+/// Wire values for [AppRole], for the account routes (ADR-0020).
+///
+/// The mapping lives HERE, next to the enum, and not in the auth feature:
+/// `teacher`/`student` are the server's own strings (`accounts.ROLES`), and a
+/// second copy of them elsewhere is how a typo becomes "server says 422" with
+/// no hint about which spelling it wanted.
+extension AppRoleWire on AppRole {
+  /// The string the server uses for this role.
+  String get wire => switch (this) {
+    AppRole.student => 'student',
+    AppRole.teacher => 'teacher',
+  };
+}
+
+/// Reads a wire role string.
+///
+/// A top-level function, not a static on the extension: Dart extensions cannot
+/// declare statics, and the compiler's message for trying is not one that
+/// points at the cause.
+///
+/// The default is deliberate and is the SAFER one: an unrecognised role string
+/// means this app does not understand the account it just signed into, and
+/// treating it as the student client shows FEWER controls than treating it as a
+/// teacher would. Failing open here would hand an unknown account the teacher
+/// shell.
+AppRole appRoleFromWire(String wire) => switch (wire) {
+  'teacher' => AppRole.teacher,
+  _ => AppRole.student,
+};
+
 /// The role this build runs as.
 ///
 /// Defaults to [AppRole.student] — the historical, fully-working client. A

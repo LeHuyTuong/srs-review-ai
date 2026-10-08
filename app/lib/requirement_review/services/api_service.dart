@@ -62,6 +62,40 @@ class ApiService implements ReviewApi {
     if (token.isNotEmpty) _dio.options.headers['X-App-Token'] = token;
     final user = userId?.trim() ?? '';
     if (user.isNotEmpty) _dio.options.headers['X-User-Id'] = user;
+
+    // The session cookie is attached in an INTERCEPTOR rather than only in
+    // `setSessionCookie`, for one concrete reason: a token can arrive after an
+    // ApiService already exists (sign-in happens on a screen the service was
+    // built before), and setting a header on an instance nobody re-reads is how
+    // the next request goes out unauthenticated while looking configured.
+    //
+    // `/auth/login` and `/auth/register` are skipped deliberately. Sending a
+    // stale cookie to login means a server that reads it before the body signs
+    // the request in as the OLD user — change-account flows fail in a way that
+    // looks like the password being wrong.
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          final path = options.path;
+          final isSignIn =
+              path.endsWith('/auth/login') || path.endsWith('/auth/register');
+          final cookie = _sessionCookie;
+          // The interceptor is the ONLY writer of this header, and it both
+          // sets and REMOVES. An earlier version also assigned the header on
+          // the Dio options and let the interceptor merely overwrite it — which
+          // sent the stale cookie to `/auth/login` (the interceptor skipped the
+          // assignment, but the options-level header was already on the
+          // request). A test caught it; a request-scoped decision has to be
+          // made in one place, per request.
+          if (!isSignIn && cookie != null && cookie.isNotEmpty) {
+            options.headers['Cookie'] = cookie;
+          } else {
+            options.headers.remove('Cookie');
+          }
+          handler.next(options);
+        },
+      ),
+    );
   }
 
   /// The base this instance actually talks to — surfaced in error messages
@@ -160,6 +194,59 @@ class ApiService implements ReviewApi {
     Map<String, dynamic>? body,
     String? writeKey,
   }) => _write(method, path, body, writeKey);
+
+  /// The RAW response of a write, headers included.
+  ///
+  /// Exists for exactly one caller: signing in. `POST /auth/login` answers the
+  /// session in a `Set-Cookie` HEADER and a body that does not carry it, and
+  /// every other method here returns `response.data`, which throws the headers
+  /// away. Returning the whole response is narrower than teaching `write` about
+  /// cookies, and it keeps the knowledge of "which route answers with a cookie"
+  /// in the auth service rather than in the transport.
+  ///
+  /// Note what is returned: the value only. A session token must never reach a
+  /// log line, and the cheapest way to guarantee that is to not have code whose
+  /// job is to format one.
+  Future<Response<Map<String, dynamic>>> rawWrite(
+    String path, {
+    String method = 'POST',
+    Map<String, dynamic>? body,
+  }) async {
+    try {
+      return await _dio.request<Map<String, dynamic>>(
+        path,
+        data: body,
+        options: Options(method: method),
+      );
+    } on DioException catch (error) {
+      throw _translate(error, effectiveBaseUrl);
+    }
+  }
+
+  /// Attaches the session cookie to EVERY later request, or removes it.
+  ///
+  /// Set on the Dio instance rather than passed per call, because a route that
+  /// forgot it would look like a permissions bug ("you are not signed in") when
+  /// the real fault is one missing header — and every authenticated route the
+  /// app grows would have to remember. Passing `null` clears the header, which
+  /// is what sign-out does.
+  void setSessionCookie(String? cookieHeader) {
+    if (cookieHeader == null || cookieHeader.isEmpty) {
+      // Clearing means the interceptor's `else` branch removes the header, so
+      // nothing empty is ever sent. An empty `Cookie:` is still a header, and a
+      // proxy that logs it sees a request carrying an empty credential rather
+      // than one carrying none.
+      _sessionCookie = null;
+      return;
+    }
+    // Deliberately NOT set on `_dio.options.headers`: that header rides on
+    // every request including `/auth/login`, and the per-request decision
+    // belongs to the interceptor above. This field is the single source it
+    // reads.
+    _sessionCookie = cookieHeader;
+  }
+
+  String? _sessionCookie;
 
   /// Public read entry for feature repositories. Config-read semantics: the
   /// screen's own 4s deadline and no hidden retry, so a dead proxy answers

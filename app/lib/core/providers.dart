@@ -12,6 +12,9 @@ import '../deterministic_checks/models/ai_criterion.dart';
 import '../diagram_audit/services/page_image_renderer.dart';
 import '../document_import/repositories/document_repository.dart';
 import '../document_import/services/document_map_service.dart';
+import '../features/auth/data/auth_service.dart';
+import '../features/auth/data/session_cookie_store.dart';
+import '../features/auth/view_model/session_view_model.dart';
 import '../features/student/data/student_repository.dart';
 import '../features/student/data/student_store.dart';
 import '../features/student/view_model/student_view_model.dart';
@@ -477,3 +480,27 @@ final studentStoreProvider = Provider<StudentStore>(
 
 final studentViewModelProvider =
     NotifierProvider<StudentViewModel, StudentState>(StudentViewModel.new);
+
+// ---------------------------------------------------------------- account
+
+/// Where the session cookie lives between launches. Overridden with memory in
+/// tests, the same seam every other store here uses.
+final sessionCookieStoreProvider = Provider<SessionCookieStore>(
+  (ref) => openSessionCookieStore(ref.watch(sharedPreferencesProvider)),
+);
+
+/// Talks to `/auth/*`. Shares [teacherApiProvider] on purpose — see the note
+/// on `studentRepositoryProvider`: the difference between the two clients is
+/// the identity that rides on a request, not the server they reach. A second
+/// ApiService would also mean a second place holding the cookie, and the two
+/// would drift the first time one of them signed out.
+final authServiceProvider = Provider<AuthService>(
+  (ref) => AuthService(
+    ref.watch(teacherApiProvider),
+    ref.watch(sessionCookieStoreProvider),
+  ),
+);
+
+/// Who is signed in. The shell watches this; nothing else should.
+final sessionViewModelProvider =
+    NotifierProvider<SessionViewModel, SessionState>(SessionViewModel.new);
