@@ -111,13 +111,18 @@ class TeacherRepository {
   /// (`approved` | `changes_requested`); anything else is a 422 before the
   /// store ever sees it. Returns nothing — re-read ([readClass]) for truth.
   ///
-  /// The class key rides in `X-Class-Key`: the containing class's key is the
-  /// authority, NOT the app token, which the group's own app also holds.
-  /// Accepting the token here would let a group approve its own work.
+  /// TWO ways in, and they are not equal. With a sign-in, the SESSION is the
+  /// authority and the server takes the teacher's class from it — `writeKey`
+  /// may be null. Without one, the class key in `X-Class-Key` is, which is the
+  /// ADR-0019 path and still works so a deep link into one class keeps working
+  /// (ADR-0021 picked exactly this pair, B+D).
+  ///
+  /// Neither is the app token, which the group's own app also holds. Accepting
+  /// the token here would let a group approve its own work.
   Future<void> decide({
     required String submissionId,
-    required String writeKey,
     required TeacherDecision decision,
+    String? writeKey,
     String note = '',
   }) async {
     await _api.write(
@@ -136,15 +141,19 @@ class TeacherRepository {
 
   /// Adds one remark to the round's thread (ADR-0019).
   ///
-  /// `author` is `teacher` and the class key rides in `X-Class-Key`: the store
-  /// applies the teacher gate on that pair, and the app token — which the
-  /// group's own app also holds — is deliberately NOT enough. Returns nothing;
-  /// callers re-read ([readSubmission]) because the write answers a single
-  /// comment, not the thread.
+  /// The session decides `author` (ADR-0021): signed in, the server reads the
+  /// role off the session and a body claiming the other role gets a 403 rather
+  /// than being silently corrected. `author` stays in the body because the
+  /// class-key path still needs it — that path has no session to read.
+  ///
+  /// `writeKey` is optional for the same reason: the app token — which the
+  /// group's own app also holds — is deliberately NOT enough on its own.
+  /// Returns nothing; callers re-read ([readSubmission]) because the write
+  /// answers a single comment, not the thread.
   Future<void> addComment({
     required String submissionId,
-    required String writeKey,
     required String body,
+    String? writeKey,
     String author = 'teacher',
   }) async {
     await _api.write(
@@ -158,8 +167,8 @@ class TeacherRepository {
   Future<void> replyToComment({
     required String submissionId,
     required String commentId,
-    required String writeKey,
     required String body,
+    String? writeKey,
     String author = 'teacher',
   }) async {
     await _api.write(
@@ -172,11 +181,16 @@ class TeacherRepository {
   /// Opens or closes one comment. TEACHER ONLY — there is no student path to
   /// this, by design: closing a remark about the group's own work is the same
   /// self-approval hole as [decide], one step milder.
+  ///
+  /// A student session that reaches this gets a 403 from the server (ADR-0021),
+  /// which is the point: the gate is on the server and does not depend on this
+  /// repository honouring it. `writeKey` is optional — the session can be the
+  /// authority instead, same pair as [decide].
   Future<void> setCommentResolved({
     required String submissionId,
     required String commentId,
-    required String writeKey,
     required bool resolved,
+    String? writeKey,
   }) async {
     await _api.write(
       '/submissions/$submissionId/comments/$commentId',

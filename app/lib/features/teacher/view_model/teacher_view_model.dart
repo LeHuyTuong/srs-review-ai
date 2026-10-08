@@ -508,18 +508,12 @@ class TeacherViewModel extends Notifier<TeacherState> {
   /// round came back, per element, rather than only in the one decision note
   /// that replaces its predecessor each round.
   ///
-  /// Carries the class write key: a teacher's authority is the key, not a
-  /// claim in the body. No key means the store answers 409 and nothing is
-  /// written, which is the rule the store enforces and this method must not
-  /// paper over.
+  /// Carries the class write key WHEN THERE IS ONE. A teacher's authority is
+  /// the session first and the key second (ADR-0021); with no key and no
+  /// session the store still answers 409 and nothing is written, which is the
+  /// rule the store enforces and this method must not paper over.
   Future<void> addComment(String submissionId, String body) async {
     final key = _currentWriteKey();
-    if (key == null) {
-      state = state.copyWith(
-        actionFeedback: 'Cần mở lớp trước khi bình luận (thiếu mã lớp).',
-      );
-      return;
-    }
     if (body.trim().isEmpty) {
       state = state.copyWith(actionFeedback: 'Bình luận không được để trống.');
       return;
@@ -546,12 +540,6 @@ class TeacherViewModel extends Notifier<TeacherState> {
     String body,
   ) async {
     final key = _currentWriteKey();
-    if (key == null) {
-      state = state.copyWith(
-        actionFeedback: 'Cần mở lớp trước khi trả lời (thiếu mã lớp).',
-      );
-      return;
-    }
     if (body.trim().isEmpty) {
       state = state.copyWith(actionFeedback: 'Trả lời không được để trống.');
       return;
@@ -573,21 +561,16 @@ class TeacherViewModel extends Notifier<TeacherState> {
     }
   }
 
-  /// Marks a remark handled. Teacher-only by construction: the store refuses
-  /// this route without a class key, so a student can never close a remark the
-  /// teacher left — the point of "resolved" is that the TEACHER decided it.
+  /// Marks a remark handled. Teacher-only, and the gate is on the SERVER, not
+  /// here: a student session gets a 403 (ADR-0021) and a keyless caller with no
+  /// session gets a 409. The point of "resolved" is that the TEACHER decided
+  /// it, so this must not be openable by the group whose work it is.
   Future<void> setCommentResolved(
     String submissionId,
     String commentId,
     bool resolved,
   ) async {
     final key = _currentWriteKey();
-    if (key == null) {
-      state = state.copyWith(
-        actionFeedback: 'Cần mở lớp trước khi đánh dấu (thiếu mã lớp).',
-      );
-      return;
-    }
     state = state.copyWith(busy: true, clearActionFeedback: true);
     try {
       await _repository.setCommentResolved(
@@ -614,6 +597,13 @@ class TeacherViewModel extends Notifier<TeacherState> {
   /// its `class_id` but never the key, and the key only exists on the device
   /// that created the class (ADR-0016 — the class capability is non-revocable
   /// and lives with whoever made it).
+  ///
+  /// `null` here is NOT "you may not write" any more. Since ADR-0021 a signed-in
+  /// teacher's SESSION is an authority of its own, so every caller below treats
+  /// a null key as "send no key and let the session speak". Blocking on it —
+  /// which is what these three methods used to do — meant a teacher who had
+  /// signed in on a fresh device, with no saved class on it, was told to "open
+  /// the class first" for a class the server already knew they owned.
   String? _currentWriteKey() {
     final classId = state.detail?.classId;
     if (classId == null || classId.isEmpty) return null;

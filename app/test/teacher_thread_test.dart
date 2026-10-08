@@ -32,6 +32,19 @@ class _GatedProxy implements HttpClientAdapter {
   /// the reason a view-model that dropped the key cannot pass this file.
   static const String acceptKey = _kWriteKey;
 
+  /// Whether this fake sees a signed-in session on the request.
+  ///
+  /// The server has TWO ways into these writes and the fake has to model both,
+  /// or it tests a server that does not exist. With a session the server takes
+  /// the teacher's class off the session and never looks for a key (ADR-0021);
+  /// without one the key is the only way in and its absence is a 409.
+  ///
+  /// Modelled as a flag rather than by sniffing a Cookie header because the
+  /// cookie is attached by the Dio interceptor, one layer above this adapter —
+  /// the fake would be asserting on plumbing it cannot see, which is how a
+  /// fake starts agreeing with whatever the code happens to do.
+  bool signedIn = false;
+
   final List<Map<String, dynamic>> comments = [];
   int nextId = 0;
   final List<String> rejectedWrites = [];
@@ -81,7 +94,8 @@ class _GatedProxy implements HttpClientAdapter {
 
     // A write. The gate is the point of the fake.
     final presented = options.headers['X-Class-Key'];
-    if (presented != acceptKey) {
+    final authorised = presented == acceptKey || signedIn;
+    if (!authorised) {
       rejectedWrites.add('$method $path');
       return _json({'detail': 'not_in_class'}, status: 409);
     }
@@ -143,8 +157,11 @@ class _GatedProxy implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
-(ProviderContainer, _GatedProxy) _harness({bool keyOnDevice = true}) {
-  final proxy = _GatedProxy();
+(ProviderContainer, _GatedProxy) _harness({
+  bool keyOnDevice = true,
+  bool signedIn = false,
+}) {
+  final proxy = _GatedProxy()..signedIn = signedIn;
   final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8000'))
     ..httpClientAdapter = proxy;
   final store = MemoryTeacherStore();
@@ -192,23 +209,52 @@ void main() {
     expect(detail.comments.single.body, 'Mục 3.2 thiếu hậu điều kiện.');
   });
 
-  test('without the class key on this device, nothing is written', () async {
-    // The device has never saved the class, so there is no key to send. The
-    // comment must NOT be written and the reason must reach the teacher.
-    final (container, proxy) = _harness(keyOnDevice: false);
+  test('with no key but a session, the write goes through', () async {
+    // ADR-0021 changed what "no key on this device" MEANS. It used to mean
+    // "you cannot write" and this test used to assert exactly that. It now
+    // means "send what you have and let the session speak" — a teacher who
+    // signed in on a new device, with no saved class on it, was previously
+    // told to open a class the server already knew they owned.
+    final (container, proxy) = _harness(keyOnDevice: false, signedIn: true);
     final vm = container.read(teacherViewModelProvider.notifier);
-    // The real landing screen loads the roster before opening a submission —
-    // the write key lives on that record, so skipping this is not a shortcut.
     await vm.loadSavedClasses();
     await vm.openSubmission(_kSubmission);
-    await vm.addComment(_kSubmission, 'Thử khi thiếu key.');
+    await vm.addComment(_kSubmission, 'Thử khi thiếu key nhưng có phiên.');
 
-    expect(proxy.comments, isEmpty, reason: 'a keyless write went through');
-    expect(
-      container.read(teacherViewModelProvider).actionFeedback,
-      contains('thiếu mã lớp'),
-    );
+    expect(proxy.comments, hasLength(1), reason: 'the session should carry it');
+    expect(proxy.rejectedWrites, isEmpty);
   });
+
+  test(
+    'with neither key nor session, nothing is written and the reason shows',
+    () async {
+      // The other half, and the one that must not be lost while relaxing the
+      // first: no key AND no session is still no authority. The view-model now
+      // SENDS the request instead of refusing locally, so the refusal has to
+      // come back from the server and reach the teacher as feedback.
+      final (container, proxy) = _harness(keyOnDevice: false, signedIn: false);
+      final vm = container.read(teacherViewModelProvider.notifier);
+      await vm.loadSavedClasses();
+      await vm.openSubmission(_kSubmission);
+      await vm.addComment(_kSubmission, 'Thử khi không có gì cả.');
+
+      expect(
+        proxy.comments,
+        isEmpty,
+        reason: 'a keyless, sessionless write went through',
+      );
+      expect(
+        proxy.rejectedWrites,
+        isNotEmpty,
+        reason: 'the server was never asked',
+      );
+      expect(
+        container.read(teacherViewModelProvider).actionFeedback,
+        isNotNull,
+        reason: 'a refusal the teacher cannot see is a silent failure',
+      );
+    },
+  );
 
   test('a teacher reply lands under its comment, not as a new one', () async {
     final (container, proxy) = _harness();
@@ -246,28 +292,26 @@ void main() {
   });
 
   test(
-    'a student remark is refused when the proxy gates on the class key',
+    'a sessionless reply with no key is refused by the server, not locally',
     () async {
-      // The student's own comment path carries NO key (by design), so a write
-      // claiming to be from the student still needs the class to exist. This
-      // pins that the view-model never silently upgrades a write it cannot key.
-      final (container, proxy) = _harness(keyOnDevice: false);
+      // What this pins CHANGED with ADR-0021 and the change is deliberate. It
+      // used to pin "the view-model refuses before calling the proxy" — a
+      // client-side gate. The authority now lives on the server, and a client
+      // gate that is the only gate is exactly the shape ADR-0021 exists to
+      // remove: the app was deciding who may write, and an app is not a
+      // security boundary.
+      final (container, proxy) = _harness(keyOnDevice: false, signedIn: false);
       final vm = container.read(teacherViewModelProvider.notifier);
-      // The real landing screen loads the roster before opening a submission —
-      // the write key lives on that record, so skipping this is not a shortcut.
       await vm.loadSavedClasses();
       await vm.openSubmission(_kSubmission);
       await vm.replyToComment(_kSubmission, 'c0', 'x');
 
       expect(
         proxy.rejectedWrites,
-        isEmpty,
-        reason: 'the view-model should refuse BEFORE calling the proxy',
+        isNotEmpty,
+        reason: 'the server must be the one refusing',
       );
-      expect(
-        container.read(teacherViewModelProvider).actionFeedback,
-        isNotNull,
-      );
+      expect(proxy.comments, isEmpty);
     },
   );
 }
