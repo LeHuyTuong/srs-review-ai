@@ -30,8 +30,8 @@ export default function DocumentCard({ doc }: { doc: ProjectDocument }) {
       {hasVersion && (
         <div className="grid grid-cols-2 gap-2">
           <Button variant="secondary">Xem</Button>
-          <Button variant={doc.status === "pending" ? "primary" : "secondary"} to={doc.reviewId ? `/reviews/${doc.reviewId}` : undefined}>
-            {doc.status === "pending" ? "Review" : "Xem review"}
+          <Button variant={doc.status === "submitted" ? "primary" : "secondary"} to={doc.reviewId ? `/reviews/${doc.reviewId}` : undefined}>
+            {doc.status === "submitted" ? "Review" : "Xem review"}
           </Button>
         </div>
       )}

@@ -45,6 +45,13 @@ type RequestOptions = {
   body?: unknown
   /** A class write key, for the routes that take one instead of a session. */
   writeKey?: string
+  /**
+   * Cancels the request. Needed by any screen that fetches on an id from the
+   * URL: navigating from class A to class B fires two requests, and without a
+   * signal whichever answers LAST wins — which can be A's rows under B's title.
+   * The server keeps doing its work; this stops the stale answer being used.
+   */
+  signal?: AbortSignal
 }
 
 /**
@@ -55,7 +62,7 @@ type RequestOptions = {
  * `SyntaxError` from `JSON.parse("")`.
  */
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, writeKey } = options
+  const { method = "GET", body, writeKey, signal } = options
 
   const headers: Record<string, string> = {}
   if (body !== undefined) headers["Content-Type"] = "application/json"
@@ -67,11 +74,16 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal,
       // See decision 1 above. Without this the cookie is never sent and every
       // route looks like it is rejecting a valid session.
       credentials: "include",
     })
   } catch (cause) {
+    // An abort is the caller's own doing, not a failure to report. Rethrowing
+    // it as ApiError(0) would show "Không kết nối được máy chủ" on a screen the
+    // user just navigated away from — an error about a request nobody wants.
+    if (cause instanceof DOMException && cause.name === "AbortError") throw cause
     // A network failure is NOT a 401: telling the user to log in again when the
     // proxy is simply down sends them to a login form that cannot work either.
     throw new ApiError(0, `Không kết nối được máy chủ. ${(cause as Error).message}`)

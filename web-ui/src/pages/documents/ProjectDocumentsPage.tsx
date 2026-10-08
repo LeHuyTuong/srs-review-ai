@@ -14,8 +14,8 @@ import type { DocumentStatus } from "@/types"
 
 const filters: { label: (n: number) => string; match?: DocumentStatus }[] = [
   { label: (n) => `Tất cả (${n})` },
-  { label: (n) => `Chờ review (${n})`, match: "pending" },
-  { label: (n) => `Cần sửa (${n})`, match: "needsRevision" },
+  { label: (n) => `Chờ review (${n})`, match: "submitted" },
+  { label: (n) => `Cần sửa (${n})`, match: "changes_requested" },
 ]
 
 export default function ProjectDocumentsPage() {

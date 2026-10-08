@@ -10,8 +10,12 @@ import SegmentedTabs from "@/components/ui/SegmentedTabs"
 import { reviewsOf, useStore } from "@/data/store"
 import type { DocumentStatus } from "@/types"
 
-const waiting: DocumentStatus[] = ["pending", "resubmitted"]
-const returned: DocumentStatus[] = ["needsRevision", "rejected"]
+const waiting: DocumentStatus[] = ["submitted", "resubmitted"]
+// `rejected` was never a server decision. Its worst verdict is
+// `changes_requested` — "please change this" — and there is no way to express
+// "failed", so a filter that claimed to find rejected work was offering a
+// result set that cannot be non-empty.
+const returned: DocumentStatus[] = ["changes_requested"]
 const done: DocumentStatus[] = ["approved"]
 const filterChips = ["Lớp", "Nhóm", "Project", "Loại tài liệu", "Trạng thái", "Kết quả AI Review", "Ngày gửi"]
 

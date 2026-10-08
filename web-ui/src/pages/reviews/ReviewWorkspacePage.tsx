@@ -15,7 +15,6 @@ import PageHeading from "@/components/ui/PageHeading"
 import SectionHeader from "@/components/ui/SectionHeader"
 import SegmentedTabs from "@/components/ui/SegmentedTabs"
 import Textarea from "@/components/ui/Textarea"
-import { aiIssues } from "@/data/mockData"
 import { actions, useStore } from "@/data/store"
 import useReviewFromParams from "./useReviewFromParams"
 
@@ -33,7 +32,15 @@ export default function ReviewWorkspacePage() {
   const [panel, setPanel] = useState("AI Review")
   const [draft, setDraft] = useState("")
   const [note, setNote] = useState("")
-  const { comments: all, events } = useStore()
+  const { comments: all, events, submission } = useStore()
+  // `findings` lives on the open submission's WIRE, not on `ReviewRequest` —
+  // the summary rows a list is built from do not carry it. Read from the
+  // detail the store is holding, and only when it is the same submission the
+  // URL names (a mismatch would show one review's findings under another's).
+  const findingEntries: [string, unknown][] =
+    submission && submission.id === reviewId && submission.findings
+      ? Object.entries(submission.findings)
+      : []
   const comments = all.filter((c) => c.reviewId === reviewId)
   const thread = events.filter((e) => e.reviewId === reviewId)
 
@@ -90,14 +97,37 @@ export default function ReviewWorkspacePage() {
 
       <SegmentedTabs tabs={["AI Review", `Comment (${comments.length})`, "Review của giảng viên"]} active={panel} onChange={setPanel} />
 
+      {/* The three badges that stood here — "2 lỗi", "3 cảnh báo", "4 gợi ý" —
+        * were literal numbers in the JSX, and the issue cards below them came
+        * from `mockData`. Both described one particular fixture review; every
+        * real review showed them.
+        *
+        * They are replaced by what the server actually sends. `findings` is an
+        * OPAQUE dict (submissions.py:73, "opaque to the proxy, which never
+        * recomputes a score it was given"), so there is no fixed schema to
+        * render: the page shows the keys it was handed and says plainly when
+        * there are none, rather than filling the gap with a plausible count. */}
       <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap gap-2">
-          <Badge tone="rust">2 lỗi</Badge>
-          <Badge tone="amber">3 cảnh báo</Badge>
-          <Badge tone="olive">4 gợi ý</Badge>
-        </div>
         <Notice>AI chỉ hỗ trợ phát hiện vấn đề. Giảng viên quyết định phê duyệt cuối cùng.</Notice>
-        {aiIssues.slice(2).map((i) => <IssueCard key={i.id} issue={i} />)}
+        {findingEntries.length === 0 ? (
+          <Card>
+            <p className="text-[13px] leading-[1.45] text-muted">
+              Kỳ review này chưa có findings nào được gắn. Máy chủ chỉ lưu những gì công cụ
+              review gửi lên, nên không có nghĩa là “không có lỗi” — chỉ nghĩa là chưa có.
+            </p>
+          </Card>
+        ) : (
+          findingEntries.map(([key, value]) => (
+            <Card key={key}>
+              <p className="text-[13px] font-semibold text-ink">{key}</p>
+              <p className="text-[12px] leading-[1.45] text-muted">
+                {typeof value === "string" || typeof value === "number"
+                  ? String(value)
+                  : JSON.stringify(value)}
+              </p>
+            </Card>
+          ))
+        )}
         <Button variant="secondary" to={`/reviews/${review.id}/ai-result`} icon={<Sparkles size={18} strokeWidth={1.75} />}>
           Xem kết quả AI Review
         </Button>

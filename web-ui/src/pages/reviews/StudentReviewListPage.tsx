@@ -14,7 +14,7 @@ export default function StudentReviewListPage() {
   const store = useStore()
   const session = useSession()
   const items = studentReviews(store)
-  const waiting = items.filter((r) => r.review.status === "needsRevision" || r.review.status === "rejected")
+  const waiting = items.filter((r) => r.review.status === "changes_requested")
 
   return (
     <>

@@ -34,16 +34,16 @@ export const currentStudent = {
   group: "SE1701 · Group 04",
 }
 
+/** Labels for the four states in `DocumentStatus`, and nothing else. The
+ *  removed entries (`rejected`, `locked`, `notStarted`, `ready`) had no server
+ *  value behind them; `pending` and `needsRevision` were the fixtures' own
+ *  spellings for `submitted` and `changes_requested`. */
 export const documentStatusMeta: Record<DocumentStatus, { label: string; tone: Tone }> = {
+  submitted: { label: "Chờ giảng viên review", tone: "amber" },
+  reviewed: { label: "Đã có kết quả AI", tone: "olive" },
   approved: { label: "Đã phê duyệt", tone: "brand" },
-  pending: { label: "Chờ giảng viên review", tone: "amber" },
-  resubmitted: { label: "Đã nộp lại", tone: "olive" },
   changes_requested: { label: "Cần chỉnh sửa", tone: "rust" },
-  needsRevision: { label: "Cần chỉnh sửa", tone: "rust" },
-  rejected: { label: "Không đạt", tone: "danger" },
-  locked: { label: "Bị khóa", tone: "neutral" },
-  notStarted: { label: "Chưa bắt đầu", tone: "neutral" },
-  ready: { label: "Sẵn sàng nộp", tone: "olive" },
+  resubmitted: { label: "Đã nộp lại", tone: "olive" },
 }
 
 export const groupHealthMeta: Record<GroupHealth, { label: string; tone: Tone }> = {
@@ -122,22 +122,22 @@ export const projects: Project[] = studentGroups.map((g) => ({
 export const documents: ProjectDocument[] = [
   { id: "use-case", projectId: "smart-campus-management", title: "Use Case Diagram", version: "v3", status: "approved", submitter: "Nguyễn Minh Anh", updatedAt: "14/09/2026", aiSummary: "AI Không còn lỗi", commentCount: 3, reviewId: "review-003" },
   { id: "activity", projectId: "smart-campus-management", title: "Activity Diagram", version: "v2", status: "approved", submitter: "Trần Hoàng Nam", updatedAt: "20/09/2026", aiSummary: "AI Không còn lỗi", commentCount: 2 },
-  { id: "sequence", projectId: "smart-campus-management", title: "Sequence Diagram", version: "v2", status: "pending", submitter: "Trần Hoàng Nam", updatedAt: "2 giờ trước", aiSummary: "AI 2 lỗi · 3 cảnh báo", commentCount: 4, note: "Nộp lại lần 1 · Feedback v1: sửa thứ tự message.", reviewId: "review-003" },
-  { id: "state", projectId: "smart-campus-management", title: "State Diagram", version: "v1", status: "needsRevision", submitter: "Lê Gia Huy", updatedAt: "02/10/2026", aiSummary: "AI 1 lỗi · 2 cảnh báo", commentCount: 3, note: "Feedback: bổ sung trạng thái sau khi bị từ chối." },
-  { id: "srs", projectId: "smart-campus-management", title: "SRS", status: "locked", submitter: "Phạm Thảo My", updatedAt: "Chưa nộp", aiSummary: "AI Chưa thực hiện", commentCount: 0, note: "SRS chưa thể gửi review vì Sequence Diagram và State Diagram chưa được phê duyệt." },
-  { id: "sds", projectId: "smart-campus-management", title: "SDS", status: "notStarted", note: "Chưa có version · Sinh viên chưa nộp tài liệu" },
-  { id: "detailed-design", projectId: "smart-campus-management", title: "Detailed Design", status: "notStarted", note: "Chưa có version · Sinh viên chưa nộp tài liệu" },
-  { id: "class-diagram", projectId: "smart-campus-management", title: "Class Diagram", status: "ready", submitter: "Lê Gia Huy", updatedAt: "01/10/2026" },
+  { id: "sequence", projectId: "smart-campus-management", title: "Sequence Diagram", version: "v2", status: "submitted", submitter: "Trần Hoàng Nam", updatedAt: "2 giờ trước", aiSummary: "AI 2 lỗi · 3 cảnh báo", commentCount: 4, note: "Nộp lại lần 1 · Feedback v1: sửa thứ tự message.", reviewId: "review-003" },
+  { id: "state", projectId: "smart-campus-management", title: "State Diagram", version: "v1", status: "changes_requested", submitter: "Lê Gia Huy", updatedAt: "02/10/2026", aiSummary: "AI 1 lỗi · 2 cảnh báo", commentCount: 3, note: "Feedback: bổ sung trạng thái sau khi bị từ chối." },
+  { id: "srs", projectId: "smart-campus-management", title: "SRS", status: "submitted", submitter: "Phạm Thảo My", updatedAt: "Chưa nộp", aiSummary: "AI Chưa thực hiện", commentCount: 0, note: "SRS chưa thể gửi review vì Sequence Diagram và State Diagram chưa được phê duyệt." },
+  { id: "sds", projectId: "smart-campus-management", title: "SDS", status: "submitted", note: "Chưa có version · Sinh viên chưa nộp tài liệu" },
+  { id: "detailed-design", projectId: "smart-campus-management", title: "Detailed Design", status: "submitted", note: "Chưa có version · Sinh viên chưa nộp tài liệu" },
+  { id: "class-diagram", projectId: "smart-campus-management", title: "Class Diagram", status: "submitted", submitter: "Lê Gia Huy", updatedAt: "01/10/2026" },
 ]
 
 export const reviewRequests: ReviewRequest[] = [
-  { id: "review-001", projectId: "smart-attendance-system", classCode: "SE1701", groupName: "Group 04", projectName: "Smart Attendance System", documentTitle: "Use Case Diagram", version: "v2", submittedAgo: "2 giờ trước", submittedAt: "03/10/2026 · 08:15", submitter: "Nguyễn Minh Anh", aiSummary: "AI 2 lỗi · 3 cảnh báo", status: "pending", resubmitNote: "Nộp lại lần 1 · 1 comment cũ chưa xử lý" },
+  { id: "review-001", projectId: "smart-attendance-system", classCode: "SE1701", groupName: "Group 04", projectName: "Smart Attendance System", documentTitle: "Use Case Diagram", version: "v2", submittedAgo: "2 giờ trước", submittedAt: "03/10/2026 · 08:15", submitter: "Nguyễn Minh Anh", aiSummary: "AI 2 lỗi · 3 cảnh báo", status: "submitted", resubmitNote: "Nộp lại lần 1 · 1 comment cũ chưa xử lý" },
   { id: "review-002", projectId: "hospital-management-system", classCode: "SE1701", groupName: "Group 02", projectName: "Hospital Management System", documentTitle: "Sequence Diagram", version: "v3", submittedAgo: "3 giờ trước", submittedAt: "03/10/2026 · 07:10", submitter: "Đỗ Khánh Linh", aiSummary: "AI Đã hoàn tất", status: "resubmitted", resubmitNote: "Nộp lại lần 2 · 2 comment đã xử lý" },
-  { id: "review-003", projectId: "smart-campus-management", classCode: "SE1701", groupName: "Group 01", projectName: "Smart Campus Management", documentTitle: "Use Case Diagram", version: "v3", submittedAgo: "3 giờ trước", submittedAt: "14/09/2026 · 10:32", submitter: "Nguyễn Minh Anh", aiSummary: "AI 2 lỗi · 3 cảnh báo", status: "pending", resubmitNote: "Nộp lại lần 1 · 4 comment cần kiểm tra" },
-  { id: "review-004", projectId: "campus-service-portal", classCode: "SE1701", groupName: "Group 08", projectName: "Campus Service Portal", documentTitle: "Sequence Diagram", version: "v2", submittedAgo: "4 ngày trước", submittedAt: "29/09/2026 · 16:40", submitter: "Võ Quốc Bảo", aiSummary: "AI 1 lỗi · 1 cảnh báo", status: "pending", resubmitNote: "Nộp lại lần 1 · Chờ xử lý hơn 72 giờ" },
-  { id: "review-005", projectId: "dormitory-management-platform", classCode: "SE1701", groupName: "Group 05", projectName: "Dormitory Management Platform", documentTitle: "Activity Diagram", version: "v1", submittedAgo: "1 ngày trước", submittedAt: "02/10/2026 · 09:00", submitter: "Hoàng Thu Trang", aiSummary: "AI Không phát hiện lỗi", status: "pending" },
+  { id: "review-003", projectId: "smart-campus-management", classCode: "SE1701", groupName: "Group 01", projectName: "Smart Campus Management", documentTitle: "Use Case Diagram", version: "v3", submittedAgo: "3 giờ trước", submittedAt: "14/09/2026 · 10:32", submitter: "Nguyễn Minh Anh", aiSummary: "AI 2 lỗi · 3 cảnh báo", status: "submitted", resubmitNote: "Nộp lại lần 1 · 4 comment cần kiểm tra" },
+  { id: "review-004", projectId: "campus-service-portal", classCode: "SE1701", groupName: "Group 08", projectName: "Campus Service Portal", documentTitle: "Sequence Diagram", version: "v2", submittedAgo: "4 ngày trước", submittedAt: "29/09/2026 · 16:40", submitter: "Võ Quốc Bảo", aiSummary: "AI 1 lỗi · 1 cảnh báo", status: "submitted", resubmitNote: "Nộp lại lần 1 · Chờ xử lý hơn 72 giờ" },
+  { id: "review-005", projectId: "dormitory-management-platform", classCode: "SE1701", groupName: "Group 05", projectName: "Dormitory Management Platform", documentTitle: "Activity Diagram", version: "v1", submittedAgo: "1 ngày trước", submittedAt: "02/10/2026 · 09:00", submitter: "Hoàng Thu Trang", aiSummary: "AI Không phát hiện lỗi", status: "submitted" },
   { id: "review-006", projectId: "smart-campus-management", classCode: "SE1702", groupName: "Group 03", projectName: "Smart Campus Management", documentTitle: "SRS", version: "v2", submittedAgo: "20 phút trước", submittedAt: "03/10/2026 · 09:55", submitter: "Phạm Thảo My", aiSummary: "AI 1 lỗi · 2 cảnh báo", status: "resubmitted", resubmitNote: "Nộp lại lần 1 · UML phụ thuộc đã phê duyệt" },
-  { id: "review-007", projectId: "ai-learning-assistant", classCode: "SWP391-01", groupName: "Group 02", projectName: "AI Learning Assistant", documentTitle: "Use Case Diagram", version: "v1", submittedAgo: "2 giờ trước", submittedAt: "03/10/2026 · 08:05", submitter: "Bùi Gia Bảo", aiSummary: "AI Đã hoàn tất", status: "pending" },
+  { id: "review-007", projectId: "ai-learning-assistant", classCode: "SWP391-01", groupName: "Group 02", projectName: "AI Learning Assistant", documentTitle: "Use Case Diagram", version: "v1", submittedAgo: "2 giờ trước", submittedAt: "03/10/2026 · 08:05", submitter: "Bùi Gia Bảo", aiSummary: "AI Đã hoàn tất", status: "submitted" },
 ]
 
 export const aiSeverityCounts = [
@@ -171,7 +171,7 @@ export const reviewComments: ReviewComment[] = [
 ]
 
 export const documentVersions: DocumentVersion[] = [
-  { id: "v1", reviewId: "review-003", version: "v1", submittedAt: "10/09/2026 · 09:20", status: "needsRevision", aiSummary: "AI 3 lỗi", lecturerNote: "Giảng viên: Cần chỉnh sửa · 3 comment", detail: "Lần nộp đầu tiên", feedback: "Feedback: thiếu Actor Student, Association của Login và điều kiện gửi review." },
+  { id: "v1", reviewId: "review-003", version: "v1", submittedAt: "10/09/2026 · 09:20", status: "changes_requested", aiSummary: "AI 3 lỗi", lecturerNote: "Giảng viên: Cần chỉnh sửa · 3 comment", detail: "Lần nộp đầu tiên", feedback: "Feedback: thiếu Actor Student, Association của Login và điều kiện gửi review." },
   { id: "v2", reviewId: "review-003", version: "v2", submittedAt: "12/09/2026 · 14:05", status: "resubmitted", aiSummary: "AI 1 lỗi", lecturerNote: "Giảng viên: Cần chỉnh sửa", detail: "Nộp lại lần 1 · 2/3 comment đã xử lý", feedback: "Feedback: Login vẫn chưa liên kết với Supervisor." },
   { id: "v3", reviewId: "review-003", version: "v3", submittedAt: "14/09/2026 · 10:32", status: "approved", aiSummary: "AI không còn lỗi", lecturerNote: "Giảng viên Nguyễn Văn An phê duyệt lúc 11:20.", detail: "Nộp lại lần 2 · 3 comment đã xử lý", isCurrent: true },
 ]

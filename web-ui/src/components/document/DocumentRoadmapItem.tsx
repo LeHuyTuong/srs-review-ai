@@ -5,7 +5,10 @@ import StatusBadge from "@/components/ui/StatusBadge"
 import type { ProjectDocument } from "@/types"
 
 export default function DocumentRoadmapItem({ doc }: { doc: ProjectDocument }) {
-  const Icon = doc.status === "locked" ? Lock : CircleCheck
+  // `locked` was never a server state. A document the student cannot submit
+  // yet is exactly one with no submission behind it, which `version` already
+  // says — so the roadmap reads that instead of a status the API cannot send.
+  const Icon = doc.version ? CircleCheck : Lock
   const body = (
     <>
       <Icon size={18} strokeWidth={1.75} className={`mt-0.5 shrink-0 ${doc.status === "approved" ? "text-brand" : "text-muted"}`} />

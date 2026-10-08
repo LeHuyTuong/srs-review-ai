@@ -1,15 +1,42 @@
 export type Tone = "brand" | "olive" | "amber" | "rust" | "danger" | "neutral"
 
+/**
+ * Every state a submission can actually be in.
+ *
+ * Three sources, and only three:
+ *   - `submitted` — the server's value before anyone decides
+ *     (`record.get("status", "submitted")`, submissions.py).
+ *   - `approved` / `changes_requested` — the teacher's decision. A CLOSED set
+ *     of two, `Literal["approved", "changes_requested"]` at submissions.py:98.
+ *   - `reviewed` — the round has an AI review attached but no verdict yet
+ *     (`payload["status"] = "reviewed"`, infrastructure/submissions.py:275).
+ *   - `resubmitted` — the student's own verb after a change request.
+ *
+ * `reviewed` was missing from the first draft of this type and was found by
+ * running the real server, not by reading it: create a submission, attach a
+ * review, read it back, and `status` has moved from `submitted` to `reviewed`.
+ * A type listing four of the five states would have made the AI-reviewed round
+ * — the one a teacher is most likely to be looking at — unrenderable.
+ *
+ * The list this replaces also carried `pending`, `needsRevision`, `rejected`,
+ * `locked`, `notStarted` and `ready`. None of them is a value the server ever
+ * sends. `rejected` and `needsRevision` were the expensive ones: a tutor
+ * reading "Không đạt" would reasonably file a grade, when the server cannot
+ * express that verdict at all — its worst decision is "please change this".
+ * That is not a missing label, it is a claim about a verdict that does not
+ * exist, so the values are removed rather than renamed.
+ *
+ * `submitted` was the opposite bug and the more likely one to bite: it is the
+ * status of every row a teacher has not decided yet, and it was MISSING, so
+ * `StatusBadge` read `documentStatusMeta["submitted"]` → `undefined` → threw
+ * on `.label`. The commonest row on the screen was the one that crashed.
+ */
 export type DocumentStatus =
+  | "submitted"
+  | "reviewed"
   | "approved"
-  | "pending"
-  | "resubmitted"
   | "changes_requested"
-  | "needsRevision"
-  | "rejected"
-  | "locked"
-  | "notStarted"
-  | "ready"
+  | "resubmitted"
 
 export type GroupHealth =
   | "onTrack"

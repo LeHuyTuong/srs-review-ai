@@ -60,6 +60,14 @@ export interface SubmissionWire {
   updatedAt: string | null
   history: HistoryEntry[]
   comments: CommentWire[]
+  /** The server's own count for this round, or `null` if never scored. Read
+   *  rather than recomputed — the proxy is given a score and never derives one
+   *  (AttachReviewRequest, submissions.py:72). */
+  score?: number | null
+  /** `review.findings` — a DICT the server does not interpret ("opaque to the
+   *  proxy", submissions.py:73). Its shape is the caller's, so the UI must
+   *  render what is there and invent nothing. */
+  findings?: Record<string, unknown>
 }
 
 export interface HistoryEntry {

@@ -14,7 +14,7 @@ export default function StudentDashboard() {
   const store = useStore()
   const items = studentReviews(store)
   const count = (...s: string[]) => items.filter((i) => s.includes(i.review.status)).length
-  const needsWork = items.filter((i) => i.review.status === "needsRevision" || i.review.status === "rejected")
+  const needsWork = items.filter((i) => i.review.status === "changes_requested")
   const mine = store.notifications.filter((n) => n.audience === "student").slice(0, 4)
   // The account on the SERVER, not a name in a fixture. `useSession` is
   // `undefined` while the session is still being asked about and `null` when

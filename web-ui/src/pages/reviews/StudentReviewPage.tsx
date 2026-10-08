@@ -25,7 +25,12 @@ export default function StudentReviewPage() {
   const comments = all.filter((c) => c.reviewId === reviewId)
   const thread = events.filter((e) => e.reviewId === reviewId)
   const open = comments.filter((c) => !c.resolved).length
-  const canResubmit = review.status === "needsRevision" || review.status === "rejected"
+  // Only a change request opens the resubmit path. The line this replaces read
+  // `... || review.status` — a leftover from deleting `=== "rejected"` — which
+  // is a truthy string and therefore ALWAYS true: it offered "nộp lại" on an
+  // approved document. TypeScript accepts `|| string` in that position, so the
+  // compiler could not catch it; only reading the line does.
+  const canResubmit = review.status === "changes_requested"
 
   const resubmit = () => {
     actions.resubmit(review.id, note)
@@ -41,7 +46,7 @@ export default function StudentReviewPage() {
       </ReviewContextCard>
 
       {review.status === "approved" && <Notice>Giảng viên đã phê duyệt tài liệu này. Không cần nộp lại.</Notice>}
-      {(review.status === "pending" || review.status === "resubmitted") && <Notice>Giảng viên đang xem bản {review.version}. Bạn sẽ nhận thông báo khi có quyết định.</Notice>}
+      {(review.status === "submitted" || review.status === "resubmitted") && <Notice>Giảng viên đang xem bản {review.version}. Bạn sẽ nhận thông báo khi có quyết định.</Notice>}
 
       <section className="flex flex-col gap-3">
         <SectionHeader title="Trao đổi với giảng viên" meta={`${thread.length} lượt`} />
