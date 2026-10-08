@@ -29,11 +29,12 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import ask, classes, diagram, health, review, submissions, uploads
+from .api import accounts, ask, classes, diagram, health, review, submissions, uploads
 from .config.criteria import CriteriaStore
 from .config.rubric_store import RubricStore
 from .config.settings import get_settings
 from .contracts.schemas import CONTRACT_VERSION, ReviewResult
+from .infrastructure.accounts import AccountStore
 from .infrastructure.classes import ClassStore
 from .infrastructure.diagram import DiagramResponse
 from .infrastructure.llm.router import build_provider
@@ -104,6 +105,12 @@ _class_store = ClassStore(_settings.class_dir)
 # a criterion the user believes they configured.
 _criteria = CriteriaStore(_settings.cache_dir / "criteria.sqlite3")
 
+# Accounts and sessions (ADR-0020). Its own file, and NOT degraded to memory
+# when the disk is unwritable — see the store's docstring: an auth store that
+# silently forgets every account presents itself to every user as "wrong
+# password" at once, which is the least debuggable failure a login can have.
+_account_store = AccountStore(_settings.cache_dir / "accounts.sqlite3")
+
 # The live rubric: seed + whatever leaves a user has overridden. Its own sqlite
 # file for the same reason as the criteria — a marking scale a restart could
 # quietly roll back is not an editable scale.
@@ -119,9 +126,11 @@ app.include_router(uploads.router)
 app.include_router(uploads.share_router)
 app.include_router(submissions.router)
 app.include_router(classes.router)
+app.include_router(accounts.router)
 
 __all__ = [
     "CONTRACT_VERSION",
+    "_account_store",
     "_criteria",
     "_diagram_cache",
     "_limiter",

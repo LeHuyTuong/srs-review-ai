@@ -86,6 +86,14 @@ def class_store():
     return _class_store
 
 
+def account_store():
+    """Accounts and sessions (ADR-0020). Same seam as every other store: the
+    composition root creates it, this hands it to the routes that need it."""
+    from ..main import _account_store
+
+    return _account_store
+
+
 def criteria():
     from ..main import _criteria
 
@@ -121,6 +129,7 @@ def caller_id(request: Request, x_user_id: str | None = Header(default=None)) ->
 
 __all__ = [
     "UploadStore",
+    "account_store",
     "build_provider",
     "caller_id",
     "class_store",

@@ -175,6 +175,19 @@ class Settings(BaseSettings):
     10 000 rows is a few dozen documents (~30 MB) — large enough that reviewing
     a second document does not evict the first one's results overnight."""
 
+    # --- Accounts and sessions (ADR-0020) ---
+    session_cookie_secure: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("SRS_SESSION_COOKIE_SECURE"),
+    )
+    """Whether the session cookie carries `Secure` (HTTPS-only).
+
+    Default False so a self-hosted deployment on http://localhost can log in at
+    all — a hard-coded `Secure` makes every local login silently fail to persist,
+    which reads as "login is broken" rather than "this box is not behind TLS".
+    Set `SRS_SESSION_COOKIE_SECURE=1` for any deployment served over HTTPS.
+    """
+
     # --- Share-by-link reports (plan 6) ---
     share_dir: Path = Field(
         default=SERVER_ROOT / ".shares",
