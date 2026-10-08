@@ -7,9 +7,12 @@ import type { ReviewEvent, ReviewEventKind, Tone } from "@/types"
 // decision set plus the student's verb. `needsRevision`/`rejected` are
 // document states, not conversation events, so they are gone from here.
 const kindMeta: Record<ReviewEventKind, { label: string; tone: Tone }> = {
-  approved: { label: "Phê duyệt", tone: "brand" },
-  changes_requested: { label: "Yêu cầu chỉnh sửa", tone: "rust" },
-  resubmitted: { label: "Nộp lại", tone: "olive" },
+  submitted: { label: "Đã nộp", tone: "neutral" },
+  reviewed: { label: "AI đã đọc", tone: "amber" },
+  decided: { label: "Giảng viên đã quyết định", tone: "brand" },
+  revised: { label: "Nộp lại", tone: "olive" },
+  backfilled: { label: "Ghi bổ sung", tone: "neutral" },
+  class_assigned: { label: "Gắn vào lớp", tone: "neutral" },
 }
 
 /** Teacher decisions and student resubmissions in one chronological thread. */
@@ -17,7 +20,14 @@ export default function ConversationTimeline({ events }: { events: ReviewEvent[]
   return (
     <ol className="flex flex-col gap-3">
       {events.map((e) => {
-        const { label, tone } = kindMeta[e.kind]
+        // `kindMeta` is exhaustive over `ReviewEventKind`, so a missing key can
+        // only mean a value the server added since. Falling back to the raw
+        // kind keeps the entry visible; throwing would blank the whole thread
+        // for one unknown row.
+        const { label, tone } = kindMeta[e.kind] ?? {
+          label: String(e.kind),
+          tone: "neutral" as Tone,
+        }
         return (
           <li key={e.id} className={`flex gap-2.5 ${e.by === "student" ? "flex-row-reverse" : ""}`}>
             <Avatar initials={initialsOf(e.author)} size={32} />

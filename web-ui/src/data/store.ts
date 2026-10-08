@@ -40,7 +40,7 @@
 import { useSyncExternalStore } from "react"
 import { getUser } from "@/app/auth"
 import { API_BASE, ApiError, apiFetch } from "@/data/api"
-import type { Notification, ReviewComment, ReviewEvent, ReviewEventKind, ReviewRequest, Role } from "@/types"
+import type { Decision, Notification, ReviewComment, ReviewEvent, ReviewEventKind, ReviewRequest, Role } from "@/types"
 
 // ---------------------------------------------------------------- wire types
 
@@ -64,6 +64,13 @@ export interface SubmissionWire {
    *  rather than recomputed — the proxy is given a score and never derives one
    *  (AttachReviewRequest, submissions.py:72). */
   score?: number | null
+  /** Does this round have an HTML report on the server? The report itself is
+   *  served by `/submissions/{id}/report`, so this is the flag that decides
+   *  whether offering that link makes sense. Present on the route
+   *  (submissions.py:619) and missing from this interface until an AI-result
+   *  page tried to read it — the same hand-listed-read-view trap AGENTS.md
+   *  records for `createdAt`, `history`, `score` and `findings`. */
+  has_report?: boolean
   /** `review.findings` — a DICT the server does not interpret ("opaque to the
    *  proxy", submissions.py:73). Its shape is the caller's, so the UI must
    *  render what is there and invent nothing. */
@@ -221,24 +228,46 @@ function groupComments(reviewId: string, wire: CommentWire[]): ReviewComment[] {
 }
 
 /** Wire history entries as the conversation events the timeline renders. */
+const EVENT_KINDS: ReviewEventKind[] = [
+  "submitted",
+  "reviewed",
+  "decided",
+  "revised",
+  "backfilled",
+  "class_assigned",
+]
+
 function toEvents(reviewId: string, wire: SubmissionWire): ReviewEvent[] {
-  const kindOf = (entry: HistoryEntry): ReviewEventKind | null => {
-    const status = entry.status ?? entry.event ?? ""
-    if (status === "approved" || status === "changes_requested" || status === "resubmitted") {
-      return status
-    }
-    return null
-  }
   const events: ReviewEvent[] = []
   for (const entry of wire.history) {
-    const kind = kindOf(entry)
-    if (!kind) continue
+    // Read `event`, the field that says WHAT HAPPENED. The previous version
+    // read `entry.status ?? entry.event`, which for a decision reads
+    // `status` ("changes_requested") and lands on the student's vocabulary
+    // instead of the server's — an accident that happened to look right.
+    const kind = String(entry.event ?? "")
+    if (!EVENT_KINDS.includes(kind as ReviewEventKind)) continue
+    // A decision's DIRECTION lives in `status`, because `event` is `decided`
+    // for both outcomes. Collapsing that here means a timeline can never say
+    // which way a round went, and "decided" alone tells a student nothing.
+    const direction = kind === "decided" ? String(entry.status ?? "") : ""
     events.push({
       id: uid("e"),
       reviewId,
-      kind,
-      by: kind === "resubmitted" ? "student" : "teacher",
-      author: kind === "resubmitted" ? wire.group : "Giảng viên",
+      kind: kind as ReviewEventKind,
+      direction,
+      by: kind === "submitted" || kind === "revised" ? "student" : "teacher",
+      // Only a decision or a revision is a person's act. `reviewed` is the
+      // server reading the document, and `backfilled`/`class_assigned` are
+      // bookkeeping — attributing any of them to a teacher names a decision
+      // nobody made.
+      author:
+        kind === "submitted" || kind === "revised"
+          ? wire.group
+          : kind === "reviewed"
+            ? "Hệ thống"
+            : kind === "decided"
+              ? "Giảng viên"
+              : "",
       version: `v${entry.revision ?? wire.revision}`,
       note: entry.note ?? "",
       createdAt: stamp(entry.at),
@@ -370,7 +399,11 @@ export const actions = {
   },
 
   /** Teacher decision. The server APPENDS a round; it never rewrites one. */
-  async decide(reviewId: string, kind: Exclude<ReviewEventKind, "resubmitted">, note: string): Promise<void> {
+  /** The teacher's verdict. NOT a `ReviewEventKind`: a decision is a verb the
+   *  route accepts, and `decided` is the event it later writes. Tying this
+   *  parameter to the event vocabulary made `decide("decided")` type-check and
+   *  `decide("approved")` depend on the enum happening to overlap. */
+  async decide(reviewId: string, kind: Decision, note: string): Promise<void> {
     // A class key is the server's gate on this route (a group must not approve
     // its own work), so a decision without one is refused BEFORE the request
     // rather than as an opaque 409 after it.

@@ -38,14 +38,6 @@ export const currentStudent = {
  *  removed entries (`rejected`, `locked`, `notStarted`, `ready`) had no server
  *  value behind them; `pending` and `needsRevision` were the fixtures' own
  *  spellings for `submitted` and `changes_requested`. */
-export const documentStatusMeta: Record<DocumentStatus, { label: string; tone: Tone }> = {
-  submitted: { label: "Chờ giảng viên review", tone: "amber" },
-  reviewed: { label: "Đã có kết quả AI", tone: "olive" },
-  approved: { label: "Đã phê duyệt", tone: "brand" },
-  changes_requested: { label: "Cần chỉnh sửa", tone: "rust" },
-  resubmitted: { label: "Đã nộp lại", tone: "olive" },
-}
-
 export const groupHealthMeta: Record<GroupHealth, { label: string; tone: Tone }> = {
   onTrack: { label: "Đúng tiến độ", tone: "brand" },
   attention: { label: "Cần chú ý", tone: "amber" },
@@ -208,10 +200,13 @@ export const notifications: Notification[] = [
 ]
 
 export const reviewEvents: ReviewEvent[] = [
-  { id: "e1", reviewId: "review-001", kind: "changes_requested", by: "teacher", author: "Nguyễn Văn An", version: "v1", note: "Bổ sung Actor Student, kiểm tra Association với luồng nộp tài liệu.", createdAt: "30/09/2026 · 15:20" },
-  { id: "e2", reviewId: "review-001", kind: "resubmitted", by: "student", author: "Nguyễn Minh Anh", version: "v2", note: "Nhóm đã bổ sung Actor Student và nối Login với Supervisor.", createdAt: "03/10/2026 · 08:15" },
-  { id: "e3", reviewId: "review-003", kind: "changes_requested", by: "teacher", author: "Nguyễn Văn An", version: "v1", note: "Thiếu Actor Student, Association của Login và điều kiện gửi review.", createdAt: "10/09/2026 · 16:00" },
-  { id: "e4", reviewId: "review-003", kind: "resubmitted", by: "student", author: "Nguyễn Minh Anh", version: "v2", note: "Đã thêm Actor Student và Association của Login.", createdAt: "12/09/2026 · 14:05" },
-  { id: "e5", reviewId: "review-003", kind: "approved", by: "teacher", author: "Nguyễn Văn An", version: "v3", note: "Association giữa Supervisor và Login đã chính xác.", createdAt: "14/09/2026 · 11:20" },
+  { id: "e1", reviewId: "review-001", kind: "submitted", direction: "", by: "student", author: "Group 04", version: "v1", note: "", createdAt: "29/09/2026 · 09:00" },
+  { id: "e2", reviewId: "review-001", kind: "reviewed", direction: "", by: "teacher", author: "Hệ thống", version: "v1", note: "", createdAt: "30/09/2026 · 15:10" },
+  { id: "e3", reviewId: "review-001", kind: "decided", direction: "changes_requested", by: "teacher", author: "Giảng viên", version: "v1", note: "Bổ sung Actor Student, kiểm tra Association với luồng nộp tài liệu.", createdAt: "30/09/2026 · 15:20" },
+  { id: "e4", reviewId: "review-001", kind: "revised", direction: "", by: "student", author: "Group 04", version: "v2", note: "Nhóm đã bổ sung Actor Student và nối Login với Supervisor.", createdAt: "03/10/2026 · 08:15" },
+  { id: "e5", reviewId: "review-003", kind: "submitted", direction: "", by: "student", author: "Group 01", version: "v1", note: "", createdAt: "09/09/2026 · 10:00" },
+  { id: "e6", reviewId: "review-003", kind: "decided", direction: "changes_requested", by: "teacher", author: "Giảng viên", version: "v1", note: "Thiếu Actor Student, Association của Login và điều kiện gửi review.", createdAt: "10/09/2026 · 16:00" },
+  { id: "e7", reviewId: "review-003", kind: "revised", direction: "", by: "student", author: "Group 01", version: "v2", note: "Đã thêm Actor Student và Association của Login.", createdAt: "12/09/2026 · 14:05" },
+  { id: "e8", reviewId: "review-003", kind: "decided", direction: "approved", by: "teacher", author: "Giảng viên", version: "v3", note: "Association giữa Supervisor và Login đã chính xác.", createdAt: "14/09/2026 · 11:20" },
 ]
 

@@ -163,17 +163,67 @@ export interface ReviewComment {
 
 /** One step of the teacher <-> student conversation on a review.
  *
+ * Every `event` the server writes into a submission's `history`:
+ * `submitted` on create (infrastructure/submissions.py:249), `reviewed` when an
+ * AI review is attached (:285), `approved`/`changes_requested` on a decision,
+ * `resubmitted` when the student sends a new round.
+ *
+ * `submitted` and `reviewed` were missing, and the loss was quiet: `toEvents`
+ * filters history into `ReviewEvent`s by matching this type, so BOTH ends of
+ * the story — "the group submitted" and "the AI finished" — were dropped from
+ * every timeline while the code that dropped them looked like a plain guard.
+ * A history page showing only the verdicts is a history page missing its
+ * beginning, and nothing about it looks broken.
+ *
  * ADR-0019: this is the server's closed decision set (`approved |
  * changes_requested`, ADR-0016/0017) plus the student's own verb
  * (`resubmitted`). `needsRevision` and `rejected` are NOT event kinds — they
  * are `DocumentStatus` values (the state a document is in), and mixing the two
  * is the drift this ADR removed. */
-export type ReviewEventKind = "approved" | "changes_requested" | "resubmitted"
+/**
+ * Every value the server writes into a history entry's `event` field.
+ *
+ * The field is `event`, NOT `status` — and that distinction is the whole bug
+ * this type carried. A history entry has BOTH:
+ *
+ *     {"revision":1,"at":"…","status":"changes_requested","event":"decided"}
+ *
+ * `status` is the document's state; `event` is what happened. The previous
+ * version of this type listed `approved | changes_requested | resubmitted` —
+ * three values of `status` — and `toEvents` read `entry.status ?? entry.event`,
+ * so it worked by accident for decisions and could never see `decided`,
+ * `revised`, `reviewed`, `backfilled` or `class_assigned` as themselves.
+ *
+ * Measured against a running server, not inferred:
+ *   submitted      create (infrastructure/submissions.py:249)
+ *   reviewed       AI review attached (:285)
+ *   decided        a teacher decided; `status` carries which way (:474)
+ *   revised        the student sent a new round (:325)
+ *   backfilled     a legacy row given a status after the fact (:166)
+ *   class_assigned an account attached to a class (:364)
+ */
+export type ReviewEventKind =
+  | "submitted"
+  | "reviewed"
+  | "decided"
+  | "revised"
+  | "backfilled"
+  | "class_assigned"
+
+/** What `POST /submissions/{id}/decision` accepts — a CLOSED set of two
+ *  (`Literal["approved", "changes_requested"]`, submissions.py:98). The server
+ *  has no way to express "failed", which is why `rejected` is not here. */
+export type Decision = "approved" | "changes_requested"
 
 export interface ReviewEvent {
   id: string
   reviewId: string
   kind: ReviewEventKind
+  /** Which way a `decided` event went — `approved` or `changes_requested` —
+   *  carried from the entry's `status`, because `event` says only `decided`
+   *  for both outcomes. Empty for every other kind. Without this a timeline
+   *  can render "đã quyết định" and no more, which tells a student nothing. */
+  direction: string
   by: Role
   author: string
   version: string

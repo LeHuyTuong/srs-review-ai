@@ -1,5 +1,5 @@
 import Badge from "./Badge"
-import { documentStatusMeta } from "@/data/mockData"
+import { documentStatusMeta } from "./statusMeta"
 import type { DocumentStatus, Tone } from "@/types"
 
 /**
