@@ -8,9 +8,14 @@ Dung:
     cd server
     rm -rf /tmp/e2e-cache && mkdir -p /tmp/e2e-cache
     SRS_CACHE_DIR=/tmp/e2e-cache SRS_MOCK_MODE=true \
-      SRS_TEACHER_INVITE_CODE=ma-e2e-that SRS_APP_TOKEN=e2e-token \
+      SRS_APP_TOKEN=e2e-token \
       .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8780 &
     python3 docs/evidence/e2e-thread-2026-10-08.py    # exit 0 = 8/8
+
+Khong dat `SRS_TEACHER_INVITE_CODE` va khong gui `invite_code`: ma moi giao vien
+la ADR-0022. Luot E2E nay phai chay duoc tren cay CHUA co ADR-0022 — do la cach
+no tim ra rang `test_author_from_session.py` dang phu thuoc vao ma moi va khong
+collect duoc o noi khac.
 
 Phai XOA SRS_CACHE_DIR truoc moi lan chay: tai khoan da ton tai thi dang ky tra
 409 va luot chay dung ngay o buoc 2. Da tung mat mot vong vi dung lai cache cu.
@@ -70,7 +75,7 @@ KEY = cls["write_key"]
 #    thiet ke (ADR-0020 §Consequences: khong co man gan lop), va no la ly do
 #    buoc nay ton tai trong E2E chu khong phai mot tien nghi.
 s, r = call(tc, "POST", "/auth/register", {"username": "gv-e2e", "password": "matkhau-du-dai",
-                                           "role": "teacher", "invite_code": "ma-e2e-that",
+                                           "role": "teacher",
                                            "class_id": cls["id"]})
 print("2 dang ky giao vien (gan lop):", s, r.get("detail", "ok"))
 assert s == 201, r

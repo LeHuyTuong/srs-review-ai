@@ -188,7 +188,7 @@ class TestTeacherScope:
 
 class TestStudentScope:
     def test_a_student_sees_only_their_own_group(self, client) -> None:
-        _signed_in(client, "sv-1", "student", group="Nhom 1")
+        _signed_in(client, "sv-1", "student", class_id="cls-A", group="Nhom 1")
         body = client.get("/submissions").json()
         assert [s["id"] for s in body["submissions"]] == ["sub-a1"]
         assert body["scope"] == "student"
@@ -197,7 +197,7 @@ class TestStudentScope:
     def test_a_student_never_sees_the_class_roster(self, client) -> None:
         # The group filter must beat the class: "Nhom 2" is in cls-A alongside
         # "Nhom 1", and a student of Nhom 1 must not receive it.
-        _signed_in(client, "sv-1b", "student", group="Nhom 1")
+        _signed_in(client, "sv-1b", "student", class_id="cls-A", group="Nhom 1")
         ids = [s["id"] for s in client.get("/submissions").json()["submissions"]]
         assert "sub-a2" not in ids and "sub-b1" not in ids
 

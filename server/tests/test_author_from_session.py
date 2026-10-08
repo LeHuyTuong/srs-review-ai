@@ -34,7 +34,6 @@ from app.infrastructure.submissions import SubmissionStore
 from app.main import app
 
 PASSWORD = "matkhau-du-dai"
-INVITE = "ma-giao-vien-thu"
 
 
 @pytest.fixture()
@@ -51,7 +50,6 @@ def env(tmp_path, monkeypatch):
     app.dependency_overrides[get_settings] = lambda: Settings(
         mock_mode=True,
         gemini_api_key="",
-        teacher_invite_code=INVITE,
     )
     yield TestClient(app), submissions, classes, accounts
     app.dependency_overrides.clear()
@@ -69,12 +67,19 @@ def _class_and_submission(client: TestClient, *, name="Lớp 05A", group="Group 
 
 
 def _account(client: TestClient, username: str, role: str, *, class_id: str | None = None):
-    """Register and sign in; the cookie rides on `client` afterwards."""
+    """Register and sign in; the cookie rides on `client` afterwards.
+
+    Carries NO invite code, deliberately. Teaching became invite-gated later
+    (ADR-0022), and that gate is not part of what this file is about: these
+    tests are about who decides `author` on a thread write, not about who is
+    allowed to become a teacher. Made to depend on the invite code, this file
+    could not run on a tree where ADR-0022 had not landed yet — which is
+    exactly what happened, and it read as nine broken tests rather than one
+    missing feature.
+    """
     payload = {"username": username, "password": PASSWORD, "role": role}
     if class_id:
         payload["class_id"] = class_id
-    if role == "teacher":
-        payload["invite_code"] = INVITE
     registered = client.post("/auth/register", json=payload)
     assert registered.status_code == 201, registered.text
     signed_in = client.post("/auth/login", json={"username": username, "password": PASSWORD})
