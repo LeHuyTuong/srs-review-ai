@@ -1,8 +1,18 @@
-import { currentStudent, currentUser } from "@/data/mockData"
-
-/** Avatar initials: the two known accounts keep the ones their profile shows. */
+/**
+ * Avatar initials for any display name.
+ *
+ * This used to import two hardcoded accounts from `mockData` and return their
+ * stored initials — a function whose answer never depended on its argument for
+ * the only two names the app could ever show. The derivation below was already
+ * correct and already the fallback; the special cases were the mock, and with
+ * real accounts (ADR-0020) there is no fixed pair left to special-case.
+ */
 export function initialsOf(name: string): string {
-  if (name === currentUser.name) return currentUser.initials
-  if (name === currentStudent.name) return currentStudent.initials
-  return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase()
 }

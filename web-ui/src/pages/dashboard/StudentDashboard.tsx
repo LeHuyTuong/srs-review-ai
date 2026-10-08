@@ -6,8 +6,8 @@ import PageHeading from "@/components/ui/PageHeading"
 import SectionHeader from "@/components/ui/SectionHeader"
 import StatCard from "@/components/ui/StatCard"
 import StatusBadge from "@/components/ui/StatusBadge"
-import { currentStudent } from "@/data/mockData"
 import { useStore } from "@/data/store"
+import { useSession } from "@/app/auth"
 import { studentReviews } from "@/pages/reviews/studentReviews"
 
 export default function StudentDashboard() {
@@ -16,18 +16,23 @@ export default function StudentDashboard() {
   const count = (...s: string[]) => items.filter((i) => s.includes(i.review.status)).length
   const needsWork = items.filter((i) => i.review.status === "needsRevision" || i.review.status === "rejected")
   const mine = store.notifications.filter((n) => n.audience === "student").slice(0, 4)
+  // The account on the SERVER, not a name in a fixture. `useSession` is
+  // `undefined` while the session is still being asked about and `null` when
+  // there is none, so both are rendered as an empty greeting rather than
+  // flashed as "Xin chào, undefined" — the header is not worth a skeleton, but
+  // it is worth not lying for one frame.
+  const session = useSession()
 
   return (
     <>
       <div className="flex items-center justify-between gap-3 leading-[1.45]">
         <div className="min-w-0">
-          <p className="text-[13px] font-semibold text-ink">Xin chào, {currentStudent.name}</p>
-          <p className="text-[12px] text-muted">{currentStudent.role}</p>
+          <p className="text-[13px] font-semibold text-ink">Xin chào, {session?.username ?? ""}</p>
+          <p className="text-[12px] text-muted">Sinh viên</p>
         </div>
-        <Badge>{currentStudent.semester}</Badge>
       </div>
 
-      <PageHeading eyebrow={currentStudent.group.toUpperCase()} title="Tổng quan" description="Xem giảng viên đã nhận xét gì và còn việc gì nhóm cần sửa." />
+      <PageHeading eyebrow={(session?.group ?? "").toUpperCase()} title="Tổng quan" description="Xem giảng viên đã nhận xét gì và còn việc gì nhóm cần sửa." />
 
       <div className="grid grid-cols-2 gap-3">
         <StatCard value={needsWork.length} label="Cần chỉnh sửa" />

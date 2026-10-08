@@ -6,18 +6,19 @@ import EmptyState from "@/components/ui/EmptyState"
 import PageHeading from "@/components/ui/PageHeading"
 import SectionHeader from "@/components/ui/SectionHeader"
 import StatusBadge from "@/components/ui/StatusBadge"
-import { currentStudent } from "@/data/mockData"
 import { useStore } from "@/data/store"
+import { useSession } from "@/app/auth"
 import { studentReviews } from "./studentReviews"
 
 export default function StudentReviewListPage() {
   const store = useStore()
+  const session = useSession()
   const items = studentReviews(store)
   const waiting = items.filter((r) => r.review.status === "needsRevision" || r.review.status === "rejected")
 
   return (
     <>
-      <PageHeading eyebrow={currentStudent.group.toUpperCase()} title="Phản hồi" description="Nhận xét và quyết định của giảng viên cho các tài liệu nhóm đã nộp." />
+      <PageHeading eyebrow={(session?.group ?? "").toUpperCase()} title="Phản hồi" description="Nhận xét và quyết định của giảng viên cho các tài liệu nhóm đã nộp." />
       <section className="flex flex-col gap-3">
         <SectionHeader title="Tài liệu của nhóm" meta={waiting.length ? `${waiting.length} cần sửa` : undefined} />
         {items.length ? (
