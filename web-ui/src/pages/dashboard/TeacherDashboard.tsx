@@ -8,7 +8,7 @@ import SearchInput from "@/components/ui/SearchInput"
 import SectionHeader from "@/components/ui/SectionHeader"
 import StatCard from "@/components/ui/StatCard"
 import { attentionItems, currentUser } from "@/data/mockData"
-import { useStore } from "@/data/store"
+import { reviewsOf, useStore } from "@/data/store"
 
 const staticStats = [
   { value: 4, label: "Lớp đang phụ trách" },
@@ -16,7 +16,9 @@ const staticStats = [
 ]
 
 export default function TeacherDashboard() {
-  const { reviews, notifications } = useStore()
+  const store = useStore()
+  const { notifications } = store
+  const reviews = reviewsOf(store)
   const reviewRequests = reviews.filter((r) => r.status === "pending" || r.status === "resubmitted")
   const teacherNotifications = notifications.filter((n) => n.audience === "teacher").slice(0, 4)
   return (

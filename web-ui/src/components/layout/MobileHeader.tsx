@@ -2,14 +2,16 @@ import { Bell, Files } from "lucide-react"
 import { Link } from "react-router-dom"
 import Avatar from "@/components/ui/Avatar"
 import Badge from "@/components/ui/Badge"
-import { useRole } from "@/app/auth"
-import { currentStudent, currentUser } from "@/data/mockData"
+import { useSession } from "@/app/auth"
 import { useStore } from "@/data/store"
 
 export default function MobileHeader() {
-  const role = useRole() ?? "teacher"
+  // ADR-0020: the avatar and the role come from the SERVER session. Reading
+  // them from mockData would show the same fictional person to every account.
+  const user = useSession()
+  const role = user?.role ?? "teacher"
   const { notifications } = useStore()
-  const me = role === "student" ? currentStudent : currentUser
+  const initials = (user?.username ?? "?").slice(0, 2).toUpperCase()
   const hasUnread = notifications.some((n) => n.audience === role && n.unread)
   return (
     <header className="mobile-header w-full border-b border-line">
@@ -25,7 +27,7 @@ export default function MobileHeader() {
           {hasUnread && <span className="absolute top-2 right-2.5 size-2 rounded-full border-2 border-white bg-rust" />}
         </Link>
         <Link to="/profile" aria-label="Tài khoản">
-          <Avatar initials={me.initials} />
+          <Avatar initials={initials} />
         </Link>
       </div>
     </header>

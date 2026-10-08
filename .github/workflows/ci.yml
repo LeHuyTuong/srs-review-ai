@@ -93,6 +93,35 @@ jobs:
       - if: failure() && steps.test.outcome == 'failure'
         run: python3 ../tools/annotate_test_failures.py test_report.json
 
+  # web-ui talks to the server now (ADR-0020), so it is no longer a prototype
+  # that can only be looked at. Until this job existed nothing checked it: not
+  # the TypeScript, not the build. The docker-build job below compiles the SPA
+  # inside an image, which catches a broken build but NOT a type error — `vite
+  # build` transpiles without type-checking, so a `tsc --noEmit` failure ships
+  # as a runtime crash. Both steps are here for that reason.
+  #
+  # `--frozen-lockfile` on purpose: it turns a lockfile that drifted from
+  # package.json into a CI failure instead of a silent dependency bump.
+  web-ui:
+    name: web-ui (typecheck + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web-ui
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: web-ui/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm build
+
   # The only automated verification either desktop native runner gets.
   #
   # Why it is here: the app ships a Windows runner (native window sizing in
@@ -165,3 +194,64 @@ jobs:
       # Debug, not release: the fastest target that still runs the platform
       # compiler and linker over every file in the runner directory.
       - run: flutter build ${{ matrix.target }} --debug
+
+  # Builds the two production images from the repository, so a Dockerfile that
+  # stops parsing (or a lockfile that stops resolving) is caught here instead of
+  # on the VPS. Nothing is pushed: this proves the build, not the release.
+  #
+  # The web-ui build needs a named build context for nginx.conf, which is why
+  # this uses `--build-context` rather than a plain `docker build`. Both builds
+  # run with no secrets: the API image bakes no .env, and the SPA is compiled
+  # from source, so nothing here needs GEMINI_API_KEY or APP_TOKEN.
+  docker-build:
+    name: Docker images (build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/server.Dockerfile
+          push: false
+          load: true
+          tags: srs-review-api:ci
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+      - name: Build web-ui image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/webui.Dockerfile
+          build-contexts: |
+            cfg=./docker
+          push: false
+          load: true
+          tags: srs-review-web:ci
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
+      - name: Smoke the API image (startup + /health)
+        run: |
+          docker run -d --name ci-api -p 8000:8000 srs-review-api:ci
+          for i in $(seq 1 20); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/health || true)
+            if [ "$code" = "200" ]; then echo "health=200 after ${i}s"; break; fi
+            sleep 2
+          done
+          docker ps --filter name=ci-api --format '{{.Status}}'
+          curl -s http://127.0.0.1:8000/health
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/health)" = "200"
+          docker logs ci-api 2>&1 | tail -5
+      - name: Smoke the web image (index + SPA fallback)
+        run: |
+          docker run -d --name ci-web -p 8080:80 srs-review-web:ci
+          sleep 5
+          docker ps --filter name=ci-web --format '{{.Status}}'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/)" = "200"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/reviews/review-006)" = "200"
+      - if: always()
+        run: |
+          docker logs ci-api 2>&1 | tail -30 || true
+          docker logs ci-web 2>&1 | tail -20 || true
+          docker rm -f ci-api ci-web 2>/dev/null || true

@@ -7,7 +7,7 @@ import PageHeading from "@/components/ui/PageHeading"
 import SearchInput from "@/components/ui/SearchInput"
 import SectionHeader from "@/components/ui/SectionHeader"
 import SegmentedTabs from "@/components/ui/SegmentedTabs"
-import { useStore } from "@/data/store"
+import { reviewsOf, useStore } from "@/data/store"
 import type { DocumentStatus } from "@/types"
 
 const waiting: DocumentStatus[] = ["pending", "resubmitted"]
@@ -16,7 +16,7 @@ const done: DocumentStatus[] = ["approved"]
 const filterChips = ["Lớp", "Nhóm", "Project", "Loại tài liệu", "Trạng thái", "Kết quả AI Review", "Ngày gửi"]
 
 export default function ReviewRequestsPage() {
-  const { reviews } = useStore()
+  const reviews = reviewsOf(useStore())
   const count = (list: DocumentStatus[]) => reviews.filter((r) => list.includes(r.status)).length
   const tabs = [`Đang chờ (${count(waiting)})`, `Cần chỉnh sửa (${count(returned)})`, `Đã hoàn tất (${count(done)})`]
   const [index, setIndex] = useState(0)

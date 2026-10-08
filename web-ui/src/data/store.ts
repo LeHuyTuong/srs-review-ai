@@ -1,43 +1,143 @@
+/**
+ * web-ui's data layer — a real API client over the server (ADR-0020).
+ *
+ * The original `store.ts` was the mock: it held `{reviews, comments, events,
+ * notifications}` in `localStorage` and every action was a `set([...state])`.
+ * It was also the *behavioural specification* the goal points at, so what this
+ * file preserves is the SHAPE — `useStore()`, `actions.addComment`, `.reply`,
+ * `.toggleResolved`, `.decide`, `.resubmit`, `.markNotificationsRead` — while
+ * the bodies now call the FastAPI server the Flutter app and this UI share.
+ *
+ * A reader who wants the old mock has it in git history; a reader who wants to
+ * know what the server accepts should read `server/app/api/submissions.py`.
+ *
+ * Four decisions that are not obvious from the code
+ * =================================================
+ *
+ * 1. **The server has no `GET /submissions` list, and this file does not invent
+ *    one.** ADR-0016 derived "membership lives on the submission", so a list is
+ *    a scan a route does not expose. web-ui therefore reads ONE submission by id
+ *    (a capability in the path) and the caller supplies that id. A list view is
+ *    a server change with its own ADR, not something to fake here.
+ *
+ * 2. **`comments` come from the server, formatted for these components.** The
+ *    components want `{element, message, resolved, replies[]}`; the wire says
+ *    `{body, resolvedAt, replyTo, revision}`. The mapping lives in
+ *    `toReviewComment` in ONE place, because a second copy of it is how the two
+ *    sides drift apart.
+ *
+ * 3. **`markNotificationsRead` is a NO-OP on the server, and that is ADR-0016.**
+ *    "Đã đọc" is a phone watermark stored on the device, never on the server —
+ *    there is no reader identity for a server-side read state to key on. web-ui
+ *    keeps its own browser-local read marks, which is the same posture.
+ *
+ * 4. **Errors are surfaced, not swallowed.** The mock's actions returned
+ *    silently; a real write that fails must tell the user, so each action
+ *    rejects with an `ApiError` and the calling component shows it. The store
+ *    keeps a `lastError` so a component that does not await can still render.
+ */
+
 import { useSyncExternalStore } from "react"
-import { currentStudent, currentUser, notifications as seedNotifications, reviewComments, reviewEvents, reviewRequests } from "@/data/mockData"
+import { getUser } from "@/app/auth"
+import { API_BASE, ApiError, apiFetch } from "@/data/api"
 import type { Notification, ReviewComment, ReviewEvent, ReviewEventKind, ReviewRequest, Role } from "@/types"
 
-// The one place the teacher and the student meet. Both roles read and write the
-// same state, so what one does shows up on the other side after a role switch.
-// Persisted to localStorage only because this is a mock with no server.
+// ---------------------------------------------------------------- wire types
+
+/** What `GET /submissions/{id}` returns. Mirrors the server's read view. */
+export interface SubmissionWire {
+  id: string
+  group: string
+  project: string
+  revision: number
+  status: string
+  class_id: string
+  note: string
+  decidedAt: string | null
+  decision_note: string
+  previous_id: string | null
+  createdAt: string | null
+  updatedAt: string | null
+  history: HistoryEntry[]
+  comments: CommentWire[]
+}
+
+export interface HistoryEntry {
+  revision?: number
+  at?: string
+  status?: string
+  event?: string
+  note?: string
+}
+
+export interface CommentWire {
+  id: string
+  author: string
+  body: string
+  revision: number
+  at: string
+  resolvedAt?: string | null
+  replyTo?: string | null
+}
+
+// ---------------------------------------------------------------- state
 
 interface State {
-  reviews: ReviewRequest[]
+  /** The one submission in view, keyed by the id the caller supplied. */
+  submission: SubmissionWire | null
+  /** The submissions this signed-in user may see (ADR-0020 §4). The server
+   *  decides the filter from the session, so there is no parameter here. */
+  list: SubmissionSummary[]
   comments: ReviewComment[]
   events: ReviewEvent[]
   notifications: Notification[]
+  loading: boolean
+  lastError: string | null
+  /** The id the UI is currently showing, so actions know where to write. */
+  submissionId: string | null
+  /** The class write key, when the caller has one (teacher writes need it). */
+  writeKey: string | null
 }
 
-const KEY = "project-review:state:v1"
-
-const seed = (): State => ({
-  reviews: reviewRequests,
-  comments: reviewComments,
-  events: reviewEvents,
-  notifications: seedNotifications,
-})
-
-const load = (): State => {
-  try {
-    const raw = localStorage.getItem(KEY)
-    if (raw) return JSON.parse(raw) as State
-  } catch {
-    // A corrupt blob must not brick the prototype: fall back to the seed.
-  }
-  return seed()
+/** One row from `GET /submissions` — the server's whitelist, mirrored. */
+export interface SubmissionSummary {
+  id: string
+  group: string
+  project: string
+  revision: number
+  status: string
+  class_id: string
+  note: string
+  decidedAt: string | null
+  decision_note: string
+  previous_id: string | null
+  createdAt: string | null
+  updatedAt: string | null
+  commentCount: number
+  openCommentCount: number
 }
 
-let state = load()
+const EMPTY: State = {
+  submission: null,
+  list: [],
+  comments: [],
+  events: [],
+  notifications: [],
+  loading: false,
+  lastError: null,
+  submissionId: null,
+  writeKey: null,
+}
+
+// Read marks stay browser-local on purpose — see decision 3.
+const READ_KEY = "project-review:read:v1"
+const READ_MARK = (id: string) => `${READ_KEY}:${id}`
+
+let state: State = EMPTY
 const listeners = new Set<() => void>()
 
-const set = (next: State) => {
-  state = next
-  localStorage.setItem(KEY, JSON.stringify(state))
+const set = (patch: Partial<State>) => {
+  state = { ...state, ...patch }
   listeners.forEach((l) => l())
 }
 
@@ -50,15 +150,98 @@ export const useStore = (): State =>
     () => state,
   )
 
-const pad = (n: number) => String(n).padStart(2, "0")
-const stamp = () => {
-  const d = new Date()
-  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} · ${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
+// ---------------------------------------------------------------- mapping
+
 let counter = 0
 const uid = (p: string) => `${p}${Date.now().toString(36)}${counter++}`
 
-const authorOf = (role: Role) => (role === "teacher" ? currentUser.name : currentStudent.name)
+const pad = (n: number) => String(n).padStart(2, "0")
+
+/** The components render a pre-formatted local stamp, not an ISO string. */
+export const stamp = (iso?: string | null): string => {
+  if (!iso) return "Vừa xong"
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return "Vừa xong"
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} · ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+const roleLabel = (role: Role): string => (role === "teacher" ? "Giảng viên" : "Sinh viên")
+
+/**
+ * A wire comment (and its replies) as the `ReviewComment` the UI renders.
+ *
+ * `element` has no home on the wire: the server stores a `body` and a
+ * `revision`, not a named artifact part. The round is the closest honest
+ * mapping — a comment on round 2 is a comment about the round-2 document — and
+ * doing it HERE rather than in the server keeps the wire vocabulary closed.
+ */
+function toReviewComment(reviewId: string, wire: CommentWire, replies: CommentWire[]): ReviewComment {
+  return {
+    id: wire.id,
+    reviewId,
+    author: wire.author,
+    role: roleLabel(wire.author === "teacher" ? "teacher" : "student"),
+    createdAt: stamp(wire.at),
+    element: `Vòng ${wire.revision}`,
+    message: wire.body,
+    resolved: Boolean(wire.resolvedAt),
+    replies: replies.map((r) => ({
+      id: r.id,
+      author: r.author,
+      role: (r.author === "teacher" ? "teacher" : "student") as Role,
+      createdAt: stamp(r.at),
+      message: r.body,
+    })),
+  }
+}
+
+/** Group flat wire comments into top-level comments + their replies. */
+function groupComments(reviewId: string, wire: CommentWire[]): ReviewComment[] {
+  const byParent = new Map<string, CommentWire[]>()
+  const roots: CommentWire[] = []
+  for (const c of wire) {
+    if (c.replyTo) {
+      const list = byParent.get(c.replyTo) ?? []
+      list.push(c)
+      byParent.set(c.replyTo, list)
+    } else {
+      roots.push(c)
+    }
+  }
+  // Newest first, matching the mock's `[c, ...state.comments]` ordering.
+  return roots.reverse().map((root) => toReviewComment(reviewId, root, byParent.get(root.id) ?? []))
+}
+
+/** Wire history entries as the conversation events the timeline renders. */
+function toEvents(reviewId: string, wire: SubmissionWire): ReviewEvent[] {
+  const kindOf = (entry: HistoryEntry): ReviewEventKind | null => {
+    const status = entry.status ?? entry.event ?? ""
+    if (status === "approved" || status === "changes_requested" || status === "resubmitted") {
+      return status
+    }
+    return null
+  }
+  const events: ReviewEvent[] = []
+  for (const entry of wire.history) {
+    const kind = kindOf(entry)
+    if (!kind) continue
+    events.push({
+      id: uid("e"),
+      reviewId,
+      kind,
+      by: kind === "resubmitted" ? "student" : "teacher",
+      author: kind === "resubmitted" ? wire.group : "Giảng viên",
+      version: `v${entry.revision ?? wire.revision}`,
+      note: entry.note ?? "",
+      createdAt: stamp(entry.at),
+    })
+  }
+  return events
+}
+
+// ---------------------------------------------------------------- actions
+
+const currentActor = (): string => getUser()?.username ?? "anonymous"
 
 const notify = (audience: Role, title: string, meta: string, link: string): Notification => ({
   id: uid("n"),
@@ -69,90 +252,240 @@ const notify = (audience: Role, title: string, meta: string, link: string): Noti
   link,
 })
 
-const bumpVersion = (v: string) => `v${(parseInt(v.replace(/\D/g, ""), 10) || 1) + 1}`
+/** Re-read the submission so what is rendered is what the SERVER holds. */
+async function refresh(): Promise<void> {
+  await actions.load(state.submissionId ?? "")
+}
+
+function requireId(): string {
+  const id = state.submissionId
+  if (!id) throw new ApiError(0, "Chưa chọn bài nộp nào.")
+  return id
+}
 
 export const actions = {
-  addComment(reviewId: string, element: string, message: string) {
-    const review = state.reviews.find((r) => r.id === reviewId)
-    if (!review || !message.trim()) return
-    const c: ReviewComment = {
-      id: uid("c"),
-      reviewId,
-      author: currentUser.name,
-      role: "Giảng viên",
-      createdAt: stamp(),
-      element,
-      message: message.trim(),
-      resolved: false,
-      replies: [],
-    }
-    set({
-      ...state,
-      comments: [c, ...state.comments],
-      notifications: [notify("student", `Giảng viên nhận xét ${review.documentTitle} ${review.version}`, `${review.classCode} · ${review.groupName} · Vừa xong`, `/reviews/${reviewId}`), ...state.notifications],
-    })
-  },
-
-  toggleResolved(commentId: string) {
-    set({ ...state, comments: state.comments.map((c) => (c.id === commentId ? { ...c, resolved: !c.resolved } : c)) })
-  },
-
-  reply(commentId: string, role: Role, message: string) {
-    const comment = state.comments.find((c) => c.id === commentId)
-    const review = comment && state.reviews.find((r) => r.id === comment.reviewId)
-    if (!comment || !review || !message.trim()) return
-    const reply = { id: uid("r"), author: authorOf(role), role, createdAt: stamp(), message: message.trim() }
-    const to: Role = role === "teacher" ? "student" : "teacher"
-    const who = role === "teacher" ? "Giảng viên" : currentStudent.name
-    set({
-      ...state,
-      comments: state.comments.map((c) => (c.id === commentId ? { ...c, replies: [...(c.replies ?? []), reply] } : c)),
-      notifications: [notify(to, `${who} trả lời comment về “${comment.element}”`, `${review.documentTitle} ${review.version} · Vừa xong`, `/reviews/${review.id}`), ...state.notifications],
-    })
-  },
-
-  /** Teacher decision. Appends an event; never rewrites an earlier one.
+  /** Read the submissions this signed-in user may see.
    *
-   * ADR-0019: the two decision values are the server's closed set
-   * (`approved | changes_requested`), and the document status written back is
-   * the SAME value — but `rejected` is no longer reachable, so the mock can no
-   * longer render a state the server refuses to record. */
-  decide(reviewId: string, kind: Exclude<ReviewEventKind, "resubmitted">, note: string) {
-    const review = state.reviews.find((r) => r.id === reviewId)
-    if (!review) return
-    const event: ReviewEvent = { id: uid("e"), reviewId, kind, by: "teacher", author: currentUser.name, version: review.version, note: note.trim(), createdAt: stamp() }
-    const verb = { approved: "phê duyệt", changes_requested: "yêu cầu chỉnh sửa" }[kind]
-    set({
-      ...state,
-      reviews: state.reviews.map((r) => (r.id === reviewId ? { ...r, status: kind, resubmitNote: undefined } : r)),
-      events: [...state.events, event],
-      notifications: [notify("student", `Giảng viên ${verb} ${review.documentTitle} ${review.version}`, `${review.classCode} · ${review.groupName} · Vừa xong`, `/reviews/${reviewId}`), ...state.notifications],
-    })
+   * ONE call, and the server decides the scope — a teacher gets their class, a
+   * student their group. The client never says whose list it wants, so there is
+   * nothing here to tamper with.
+   */
+  async loadList(): Promise<void> {
+    set({ loading: true, lastError: null })
+    try {
+      const body = await apiFetch<{ submissions: SubmissionSummary[] }>("/submissions")
+      set({
+        list: body.submissions ?? [],
+        // The summary is not the detail. Keeping the previous `submission` here
+        // would leave a stale thread on screen next to a fresh list.
+        loading: false,
+      })
+    } catch (error) {
+      set({
+        loading: false,
+        list: [],
+        lastError: error instanceof ApiError ? error.detail : String(error),
+      })
+      throw error
+    }
   },
 
-  /** Student sends a new version back to the teacher. */
-  resubmit(reviewId: string, note: string) {
-    const review = state.reviews.find((r) => r.id === reviewId)
-    if (!review) return
-    const version = bumpVersion(review.version)
-    const event: ReviewEvent = { id: uid("e"), reviewId, kind: "resubmitted", by: "student", author: currentStudent.name, version, note: note.trim(), createdAt: stamp() }
-    const rounds = state.events.filter((e) => e.reviewId === reviewId && e.kind === "resubmitted").length + 1
-    set({
-      ...state,
-      reviews: state.reviews.map((r) =>
-        r.id === reviewId ? { ...r, version, status: "resubmitted", submittedAgo: "Vừa xong", submittedAt: stamp(), resubmitNote: `Nộp lại lần ${rounds}${note.trim() ? ` · ${note.trim()}` : ""}` } : r,
-      ),
-      events: [...state.events, event],
-      notifications: [notify("teacher", `${review.groupName} vừa nộp lại ${review.documentTitle} ${version}`, `${review.classCode} · Vừa xong`, `/reviews/${reviewId}`), ...state.notifications],
-    })
+  /** Point the store at one submission and read it from the server. */
+  async load(submissionId: string, writeKey?: string): Promise<void> {
+    if (!submissionId) {
+      set({ ...EMPTY })
+      return
+    }
+    set({ submissionId, loading: true, lastError: null, ...(writeKey ? { writeKey } : {}) })
+    try {
+      const wire = await apiFetch<SubmissionWire>(`/submissions/${encodeURIComponent(submissionId)}`)
+      set({
+        submission: wire,
+        comments: groupComments(wire.id, wire.comments ?? []),
+        events: toEvents(wire.id, wire),
+        loading: false,
+      })
+    } catch (error) {
+      const detail = error instanceof ApiError ? error.detail : String(error)
+      set({ loading: false, lastError: detail, submission: null, comments: [], events: [] })
+      throw error
+    }
   },
 
-  markNotificationsRead(role: Role) {
+  async addComment(reviewId: string, element: string, message: string): Promise<void> {
+    if (!message.trim()) return
+    // The write key is attached when the caller has one; the server decides
+    // whether the route needs it (teacher remarks do, student replies do not).
+    await apiFetch(`/submissions/${encodeURIComponent(reviewId)}/comments`, {
+      method: "POST",
+      body: { body: message.trim(), author: getUser()?.role ?? "teacher" },
+      writeKey: state.writeKey ?? undefined,
+    })
+    set({
+      notifications: [
+        notify("student", `Giảng viên nhận xét ${element || "bài nộp"}`, "Vừa xong", `/reviews/${reviewId}`),
+        ...state.notifications,
+      ],
+    })
+    await refresh()
+  },
+
+  async toggleResolved(commentId: string): Promise<void> {
+    const id = requireId()
+    const comment = state.comments.find((c) => c.id === commentId)
+    if (!comment) return
+    await apiFetch(`/submissions/${encodeURIComponent(id)}/comments/${encodeURIComponent(commentId)}`, {
+      method: "PATCH",
+      body: { resolved: !comment.resolved },
+      writeKey: state.writeKey ?? undefined,
+    })
+    await refresh()
+  },
+
+  async reply(commentId: string, role: Role, message: string): Promise<void> {
+    if (!message.trim()) return
+    const id = requireId()
+    const comment = state.comments.find((c) => c.id === commentId)
+    await apiFetch(`/submissions/${encodeURIComponent(id)}/comments/${encodeURIComponent(commentId)}/replies`, {
+      method: "POST",
+      body: { body: message.trim(), author: role },
+      writeKey: state.writeKey ?? undefined,
+    })
+    set({
+      notifications: [
+        notify(role === "teacher" ? "student" : "teacher", `${currentActor()} trả lời một nhận xét`, "Vừa xong", `/reviews/${id}`),
+        ...state.notifications,
+      ],
+    })
+    await refresh()
+    void comment
+  },
+
+  /** Teacher decision. The server APPENDS a round; it never rewrites one. */
+  async decide(reviewId: string, kind: Exclude<ReviewEventKind, "resubmitted">, note: string): Promise<void> {
+    // A class key is the server's gate on this route (a group must not approve
+    // its own work), so a decision without one is refused BEFORE the request
+    // rather than as an opaque 409 after it.
+    if (!state.writeKey) {
+      throw new ApiError(0, "Cần mã lớp (X-Class-Key) để ra quyết định.")
+    }
+    await apiFetch(`/submissions/${encodeURIComponent(reviewId)}/decision`, {
+      method: "POST",
+      body: { status: kind, note: note.trim() },
+      writeKey: state.writeKey,
+    })
+    set({
+      notifications: [
+        notify("student", `Giảng viên ${kind === "approved" ? "phê duyệt" : "yêu cầu chỉnh sửa"} bài nộp`, "Vừa xong", `/reviews/${reviewId}`),
+        ...state.notifications,
+      ],
+    })
+    await refresh()
+  },
+
+  /** Student sends a new version back — the server opens revision + 1. */
+  async resubmit(reviewId: string, note: string): Promise<void> {
+    await apiFetch(`/submissions/${encodeURIComponent(reviewId)}/revise`, {
+      method: "POST",
+      body: { note: note.trim() },
+    })
+    set({
+      notifications: [
+        notify("teacher", "Nhóm vừa nộp lại bài", "Vừa xong", `/reviews/${reviewId}`),
+        ...state.notifications,
+      ],
+    })
+    await refresh()
+  },
+
+  /** Read marks are BROWSER-LOCAL — the server has no reader identity to key on
+   *  (ADR-0016 §2). This never calls the server, on purpose. */
+  markNotificationsRead(role: Role): void {
     if (!state.notifications.some((n) => n.audience === role && n.unread)) return
-    set({ ...state, notifications: state.notifications.map((n) => (n.audience === role ? { ...n, unread: false } : n)) })
+    try {
+      localStorage.setItem(READ_MARK(role), String(Date.now()))
+    } catch {
+      // A private-mode browser with storage off still gets an in-memory mark.
+    }
+    set({ notifications: state.notifications.map((n) => (n.audience === role ? { ...n, unread: false } : n)) })
   },
 
-  reset() {
-    set(seed())
+  /** Drop the local view. Nothing is cleared on the server: the round history
+   *  is the record, and a "reset demo data" button must not delete it. */
+  reset(): void {
+    set({ ...EMPTY })
   },
+
+  clearError(): void {
+    set({ lastError: null })
+  },
+}
+
+/** Convenience for the report link, matching the mock's shape. */
+export const reportUri = (submissionId: string) => `${API_BASE}/submissions/${encodeURIComponent(submissionId)}/report`
+
+/** The list as the pages' `ReviewRequest` rows. `useStore()` does not expose
+ *  `reviews` (the server has no such field), so callers that need rows for the
+ *  existing list components derive them here — one adapter, not eight. */
+export const reviewsOf = (store: { list: SubmissionSummary[]; submission: SubmissionWire | null }): ReviewRequest[] => {
+  const rows = store.list.length ? store.list : store.submission ? [summaryFrom(store.submission)] : []
+  return rows.map(toReviewRequestFromSummary)
+}
+
+function summaryFrom(wire: SubmissionWire): SubmissionSummary {
+  return {
+    id: wire.id,
+    group: wire.group,
+    project: wire.project,
+    revision: wire.revision,
+    status: wire.status,
+    class_id: wire.class_id,
+    note: wire.note,
+    decidedAt: wire.decidedAt,
+    decision_note: wire.decision_note,
+    previous_id: wire.previous_id,
+    createdAt: wire.createdAt,
+    updatedAt: wire.updatedAt,
+    commentCount: wire.comments?.length ?? 0,
+    openCommentCount: (wire.comments ?? []).filter((c) => !c.resolvedAt).length,
+  }
+}
+
+export const selectRequests = (): ReviewRequest[] =>
+  state.list.length ? state.list.map(toReviewRequestFromSummary) : state.submission ? [toReviewRequest(state.submission)] : []
+
+function toReviewRequestFromSummary(wire: SubmissionSummary): ReviewRequest {
+  return {
+    id: wire.id,
+    projectId: wire.class_id || "unfiled",
+    classCode: wire.class_id || "—",
+    groupName: wire.group,
+    projectName: wire.project,
+    documentTitle: wire.project || "Bài nộp",
+    version: `v${wire.revision}`,
+    submittedAgo: stamp(wire.createdAt),
+    submittedAt: stamp(wire.createdAt),
+    submitter: wire.group,
+    aiSummary: "",
+    status: (wire.status as ReviewRequest["status"]) ?? "pending",
+    resubmitNote: wire.decision_note || undefined,
+  }
+}
+
+function toReviewRequest(wire: SubmissionWire): ReviewRequest {
+  return {
+    id: wire.id,
+    projectId: wire.class_id || "unfiled",
+    classCode: wire.class_id || "—",
+    groupName: wire.group,
+    projectName: wire.project,
+    documentTitle: wire.project || "Bài nộp",
+    version: `v${wire.revision}`,
+    submittedAgo: stamp(wire.createdAt),
+    submittedAt: stamp(wire.createdAt),
+    submitter: wire.group,
+    aiSummary: "",
+    status: (wire.status as ReviewRequest["status"]) ?? "pending",
+    resubmitNote: wire.decision_note || undefined,
+  }
 }
