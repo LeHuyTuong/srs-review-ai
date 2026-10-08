@@ -31,6 +31,9 @@ import '../models/student_models.dart';
 class StudentState {
   const StudentState({
     this.links = const [],
+    this.rows = const [],
+    this.listLoading = false,
+    this.listError,
     this.loading = false,
     this.submission,
     this.reportUrl,
@@ -41,6 +44,15 @@ class StudentState {
   });
 
   final List<SavedSubmissionLink> links;
+
+  /// The server's list for THIS account (ADR-0020 §4). Separate from [links]:
+  /// the links are bookmarks this device keeps, the rows are what the group is
+  /// entitled to. A group that has never bookmarked anything still has rows,
+  /// and conflating the two is how a working list looks empty.
+  final List<StudentSubmissionRow> rows;
+  final bool listLoading;
+  final String? listError;
+
   final bool loading;
   final StudentSubmission? submission;
   final Uri? reportUrl;
@@ -85,16 +97,46 @@ class StudentViewModel extends Notifier<StudentState> {
     // Kick off the saved-link load without blocking the first frame, the same
     // microtask pattern the workspace view-model uses for its own restore.
     Future.microtask(loadSavedLinks);
-    return const StudentState(loading: true);
+    Future.microtask(loadList);
+    return const StudentState(loading: true, listLoading: true);
+  }
+
+  /// Reads the identity-scoped list. Called at startup and after a resubmit,
+  /// because a new round is a new row and a stale list hides it.
+  Future<void> loadList() async {
+    state = _copyWith(listLoading: true, clearListError: true);
+    try {
+      final rows = await _repository.listSubmissions();
+      // Guarded, and this is a REAL failure, not a theoretical one: `build()`
+      // starts this in a microtask, so a container that is read once and then
+      // disposed (every widget test that mounts the screen, and a user who
+      // backs out of the tab) disposes the notifier while the fetch is in
+      // flight. Writing `state` then throws `Cannot use the Ref ... after it
+      // has been disposed`, and the throw lands as "this test failed after it
+      // had already completed" — a message that points at the test harness and
+      // not at the write.
+      if (!ref.mounted) return;
+      state = _copyWith(rows: rows, listLoading: false);
+    } catch (error) {
+      if (!ref.mounted) return;
+      // Kept separate from the submission error: a list that cannot load must
+      // not wipe the round the student is currently reading.
+      state = _copyWith(
+        listLoading: false,
+        listError: 'Không tải được danh sách bài nộp: $error',
+      );
+    }
   }
 
   Future<void> loadSavedLinks() async {
     try {
       final links = await _store.loadLinks();
       final watermark = await _store.loadWatermark();
-      state = StudentState(links: links, watermark: watermark);
+      if (!ref.mounted) return;
+      state = _copyWith(links: links, watermark: watermark);
     } catch (error) {
-      state = StudentState(error: 'Không đọc được danh sách đã lưu: $error');
+      if (!ref.mounted) return;
+      state = _copyWith(error: 'Không đọc được danh sách đã lưu: $error');
     }
   }
 
@@ -205,12 +247,15 @@ class StudentViewModel extends Notifier<StudentState> {
       // Render the NEW id: showing the old one after a successful resubmit is
       // how a group resubmits twice.
       final links = await _store.loadLinks();
-      state = StudentState(
+      state = _copyWith(
         links: links,
         submission: created,
-        watermark: state.watermark,
         actionFeedback: 'Đã mở vòng ${created.revision}.',
       );
+      // The new round is a NEW row. Without this the list the group is looking
+      // at still shows the round they just superseded, which is how a group
+      // resubmits twice.
+      await loadList();
     } catch (error) {
       state = _withBusy(false, error: 'Không nộp lại được: $error');
     }
@@ -256,6 +301,36 @@ class StudentViewModel extends Notifier<StudentState> {
       state = _withBusy(false, error: 'Không đọc lại được bài nộp: $error');
     }
   }
+
+  /// One place that copies the state forward. The class gained two fields and
+  /// the hand-written copies below already had to list every other one — which
+  /// is how a field silently resets to its default on an unrelated action.
+  StudentState _copyWith({
+    List<SavedSubmissionLink>? links,
+    List<StudentSubmissionRow>? rows,
+    bool? listLoading,
+    String? listError,
+    bool clearListError = false,
+    bool? loading,
+    StudentSubmission? submission,
+    Uri? reportUrl,
+    StudentWatermark? watermark,
+    bool? busy,
+    String? error,
+    String? actionFeedback,
+  }) => StudentState(
+    links: links ?? state.links,
+    rows: rows ?? state.rows,
+    listLoading: listLoading ?? state.listLoading,
+    listError: clearListError ? null : (listError ?? state.listError),
+    loading: loading ?? state.loading,
+    submission: submission ?? state.submission,
+    reportUrl: reportUrl ?? state.reportUrl,
+    watermark: watermark ?? state.watermark,
+    busy: busy ?? state.busy,
+    error: error ?? state.error,
+    actionFeedback: actionFeedback ?? state.actionFeedback,
+  );
 
   StudentState _withBusy(bool busy, {String? error}) => StudentState(
     links: state.links,

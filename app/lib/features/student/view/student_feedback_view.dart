@@ -79,6 +79,22 @@ class _StudentFeedbackViewState extends ConsumerState<StudentFeedbackView> {
         ),
         const SizedBox(height: AppSpacing.lg),
         if (submission == null) ...[
+          // The server's list FIRST. A group signed in does not need a code
+          // pasted to them: the session says which group they are, and the
+          // server answers with their work. The paste box below stays for a
+          // deep link from a QR, and because the plan's decision (c) keeps the
+          // id-as-capability route alive.
+          _ServerList(
+            rows: state.rows,
+            loading: state.listLoading,
+            error: state.listError,
+            group: ref.watch(sessionViewModelProvider).identity?.group,
+            onOpen: (id) =>
+                ref.read(studentViewModelProvider.notifier).openSubmission(id),
+            onRetry: () =>
+                ref.read(studentViewModelProvider.notifier).loadList(),
+          ),
+          const SizedBox(height: AppSpacing.lg),
           _LinkEntry(
             controller: _linkController,
             links: state.links,
@@ -584,6 +600,115 @@ class _LinkEntry extends StatelessWidget {
               ),
             ),
         ],
+      ],
+    );
+  }
+}
+
+/// The submissions the signed-in group may read, straight from the server.
+///
+/// Three states, kept distinct on purpose:
+///
+/// * **loading** — a spinner, and NOT an empty list. "Nothing here" and "not
+///   asked yet" look identical in a list and mean opposite things.
+/// * **no group** — says so, because an account with no membership legitimately
+///   has an empty list and rendering that as "chưa có bài nộp nào" would send
+///   the group looking for a problem with their submissions.
+/// * **error** — the reason, with a retry. A dead list that renders as empty is
+///   the "list returned zero, token was limited" trap: a failure shown as a
+///   fact.
+class _ServerList extends StatelessWidget {
+  const _ServerList({
+    required this.rows,
+    required this.loading,
+    required this.error,
+    required this.group,
+    required this.onOpen,
+    required this.onRetry,
+  });
+
+  final List<StudentSubmissionRow> rows;
+  final bool loading;
+  final String? error;
+  final String? group;
+  final void Function(String id) onOpen;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (error != null) {
+      return Card(
+        margin: EdgeInsets.zero,
+        child: ListTile(
+          leading: const Icon(Icons.cloud_off),
+          title: const Text('Không tải được danh sách'),
+          subtitle: Text(error!),
+          trailing: TextButton(
+            onPressed: onRetry,
+            child: const Text('Thử lại'),
+          ),
+        ),
+      );
+    }
+    if (group == null || group!.isEmpty) {
+      return Card(
+        margin: EdgeInsets.zero,
+        child: const ListTile(
+          leading: Icon(Icons.group_off),
+          title: Text('Tài khoản chưa được gắn nhóm'),
+          subtitle: Text(
+            'Nhờ giảng viên gắn nhóm cho tài khoản này, hoặc dán mã bài nộp '
+            'bên dưới.',
+          ),
+        ),
+      );
+    }
+    if (rows.isEmpty) {
+      return Card(
+        margin: EdgeInsets.zero,
+        child: const ListTile(
+          leading: Icon(Icons.inbox),
+          title: Text('Nhóm chưa có bài nộp nào'),
+          subtitle: Text('Bài nộp sẽ hiện ở đây sau khi nhóm nộp.'),
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Bài nộp của nhóm $group',
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        for (final row in rows)
+          Card(
+            margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: ListTile(
+              title: Text(row.label),
+              subtitle: Text('Vòng ${row.revision} · ${row.status}'),
+              trailing: row.openCommentCount > 0
+                  ? Chip(
+                      label: Text('${row.openCommentCount}'),
+                      // The badge a group actually scans for: remarks from the
+                      // teacher that nobody has answered yet.
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.errorContainer,
+                    )
+                  : const Icon(Icons.chevron_right),
+              onTap: () => onOpen(row.id),
+            ),
+          ),
       ],
     );
   }

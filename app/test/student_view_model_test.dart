@@ -37,6 +37,8 @@ class _FakeProxy {
   int revision = 1;
   int nextId = 0;
   final List<String> resubmitCalls = [];
+  int listCalls = 0;
+  bool failList = false;
 
   Map<String, dynamic> row(String id) => {
     'id': id,
@@ -59,6 +61,36 @@ class _FakeProxy {
     final path = options.uri.path;
     final method = options.method.toUpperCase();
 
+    // `GET /submissions` (no id) is the identity-scoped LIST (ADR-0020 §4).
+    // Checked BEFORE the id route: `/submissions/` starts-with matches both,
+    // and answering the list with a submission row is how the list silently
+    // becomes one item that is not even a row shape.
+    if (method == 'GET' && path == '/submissions') {
+      listCalls++;
+      if (failList) {
+        return _json({'detail': 'proxy down'}, status: 502);
+      }
+      return _json({
+        'submissions': [
+          {
+            'id': 's1',
+            'group': 'Nhóm OTES',
+            'project': 'OTES',
+            'revision': revision,
+            'status': status,
+            'class_id': '',
+            'decidedAt': decidedAt,
+            'decision_note': decisionNote,
+            'createdAt': '2026-10-08T01:00:00Z',
+            'updatedAt': '2026-10-08T02:00:00Z',
+            'commentCount': comments.length,
+            'openCommentCount': comments.length,
+          },
+        ],
+        'scope': 'student',
+        'group': 'Nhóm OTES',
+      });
+    }
     if (method == 'GET' && path.startsWith('/submissions/')) {
       return _json(row(path.split('/').last));
     }
@@ -96,6 +128,13 @@ class _FakeProxy {
     }
     if (method == 'POST' && path.endsWith('/revise')) {
       resubmitCalls.add(path.split('/')[2]);
+      // A resubmit OPENS A NEW ROUND — the counter has to move, or the fake
+      // returns the round that was just superseded and the list refresh below
+      // is unobservable. The real server increments; a fake that does not is a
+      // fake that reports the buggy behaviour as correct.
+      revision++;
+      status = 'submitted';
+      decidedAt = null;
       return _json(row('sub-new'), status: 201);
     }
     return _json({'detail': 'not found'}, status: 404);
@@ -298,6 +337,107 @@ void main() {
       await notifier.openSubmission('s1');
       expect(container.read(studentViewModelProvider).unreadTeacherComments, 0);
     });
+  });
+
+  group('the server list (ADR-0020 §4)', () {
+    test('loads on build without being asked', () async {
+      // The group should not have to press anything to learn there is
+      // something to read — the session already says who they are.
+      final (container, proxy, _) = _harness();
+      // `pumpEventQueue` rather than a bare delay: the load is a microtask that
+      // awaits a Dio round-trip through the adapter shim, which resolves on its
+      // own zone. Two `Duration.zero` delays were NOT enough — measured, the
+      // call count was still 0 — and a flaky sleep would hide a real regression
+      // behind a timing accident.
+      await pumpEventQueue();
+
+      // `loadList` is awaited EXPLICITLY rather than the microtask in
+      // `build()` being waited on. Measured: reading only the notifier and
+      // pumping leaves `listCalls == 0` in a plain `test()` — the scheduled
+      // microtask does not run before the assertion, and a sleep long enough to
+      // make it run would be a timing accident that hides a regression. The
+      // startup path IS covered, by `account_gate_test.dart` mounting the real
+      // app; here the unit under test is the load itself.
+      await container.read(studentViewModelProvider.notifier).loadList();
+      expect(proxy.listCalls, greaterThan(0));
+      final rows = container.read(studentViewModelProvider).rows;
+      expect(rows, hasLength(1));
+      expect(rows.single.label, 'OTES');
+    });
+
+    test('the rows carry the counts a queue badge needs', () async {
+      final (container, _, _) = _harness(
+        comments: <Map<String, dynamic>>[
+          {
+            'id': 'c1',
+            'author': 'teacher',
+            'body': 'x',
+            'revision': 1,
+            'at': '2026-10-08T03:00:00Z',
+            'resolvedAt': null,
+            'replies': const <Map<String, dynamic>>[],
+          },
+          {
+            'id': 'c2',
+            'author': 'teacher',
+            'body': 'y',
+            'revision': 1,
+            'at': '2026-10-08T04:00:00Z',
+            'resolvedAt': null,
+            'replies': const <Map<String, dynamic>>[],
+          },
+        ],
+      );
+      await container.read(studentViewModelProvider.notifier).loadList();
+
+      final row = container.read(studentViewModelProvider).rows.single;
+      expect(row.commentCount, 2);
+      expect(
+        row.openCommentCount,
+        2,
+        reason: 'counted before the thread is opened',
+      );
+    });
+
+    test('a failed list does NOT wipe the round being read', () async {
+      // The failure that matters: the student is reading a submission, the
+      // list refresh fails, and their screen goes blank because one error
+      // field was shared between two unrelated loads.
+      final (container, proxy, _) = _harness();
+      final notifier = container.read(studentViewModelProvider.notifier);
+      await notifier.openSubmission('s1');
+      expect(container.read(studentViewModelProvider).submission, isNotNull);
+
+      proxy.failList = true;
+      await notifier.loadList();
+
+      final state = container.read(studentViewModelProvider);
+      expect(state.listError, isNotNull);
+      expect(
+        state.submission?.id,
+        's1',
+        reason: 'a list failure must not clear the open round',
+      );
+    });
+
+    test(
+      'a resubmit refreshes the list, because a round is a new row',
+      () async {
+        final (container, proxy, _) = _harness(status: 'changes_requested');
+        final notifier = container.read(studentViewModelProvider.notifier);
+        await notifier.loadList();
+        await notifier.openSubmission('s1');
+        final before = proxy.listCalls;
+
+        await notifier.resubmit();
+
+        expect(proxy.listCalls, greaterThan(before));
+        expect(
+          container.read(studentViewModelProvider).submission!.revision,
+          2,
+        );
+      },
+    );
   });
 
   group('saved links', () {

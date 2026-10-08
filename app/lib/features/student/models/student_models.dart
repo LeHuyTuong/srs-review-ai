@@ -73,6 +73,62 @@ class StudentComment {
   bool get needsAttention => !isResolved && isTeacher;
 }
 
+/// One row of `GET /submissions` — the server's own list for THIS account
+/// (ADR-0020 §4).
+///
+/// This exists because the student no longer has to be handed an id: the
+/// server knows the group from the session, so the screen can SAY there is
+/// something to read instead of asking the group to paste a code they may not
+/// have. Note the fields that are absent and must stay absent: no review
+/// payload, no HTML twin, no findings. The list is a queue, and forwarding
+/// whatever the store holds is how a list view ends up carrying a megabyte of
+/// markup — the same whitelist rule the server route carries.
+class StudentSubmissionRow {
+  const StudentSubmissionRow({
+    required this.id,
+    required this.group,
+    required this.project,
+    required this.revision,
+    required this.status,
+    required this.decidedAt,
+    required this.createdAt,
+    required this.commentCount,
+    required this.openCommentCount,
+  });
+
+  factory StudentSubmissionRow.fromJson(Map<String, dynamic> json) =>
+      StudentSubmissionRow(
+        id: json['id'] as String? ?? '',
+        group: json['group'] as String? ?? '',
+        project: json['project'] as String? ?? '',
+        revision: (json['revision'] as num?)?.toInt() ?? 1,
+        status: json['status'] as String? ?? 'submitted',
+        decidedAt: json['decidedAt'] == null
+            ? null
+            : _parseTime(json['decidedAt']),
+        createdAt: _parseTime(json['createdAt']),
+        commentCount: (json['commentCount'] as num?)?.toInt() ?? 0,
+        openCommentCount: (json['openCommentCount'] as num?)?.toInt() ?? 0,
+      );
+
+  final String id;
+  final String group;
+  final String project;
+  final int revision;
+  final String status;
+  final DateTime? decidedAt;
+  final DateTime createdAt;
+  final int commentCount;
+
+  /// Remarks the teacher left open — the badge a group actually scans for.
+  final int openCommentCount;
+
+  String get label => project.isEmpty ? group : project;
+
+  /// The teacher returned this round, so there is work to do.
+  bool get changesRequested => status == 'changes_requested';
+}
+
 /// The student's read of `GET /submissions/{id}`.
 ///
 /// Note what is ABSENT and must stay absent: no `classId`, no write key, no
