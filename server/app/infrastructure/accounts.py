@@ -430,6 +430,38 @@ class AccountStore:
                 return None
         return self.get_user(user_id)
 
+    def set_student_group(self, user_id: str, class_id: str, group: str | None) -> dict[str, Any] | None:
+        """Set (or clear, with None/blank) the group of a student in ``class_id``.
+
+        NOT the same job as `set_membership` above, and the difference is the
+        whole reason this exists. `set_membership` writes `class_id` AND `grp`
+        on any row with no check at all — which is fine for its own caller
+        (attaching a membership to an account that has none) and wrong for a
+        route a teacher drives, because it lets the caller move a user to a
+        DIFFERENT class. A teacher who can reassign another teacher's student
+        mid-term can then read and decide that student's work.
+
+        This one is narrowed three ways: it only ever writes `grp`, only for a
+        row whose `role` is `student`, and only when that student is already in
+        `class_id`. The guard is in the WHERE clause rather than in a SELECT
+        before it, so there is no window between the check and the write.
+
+        ``None`` when no row matched. The caller answers 404 and deliberately
+        cannot tell "no such user" from "that user is not in my class" —
+        telling them apart would make this route an oracle for who exists.
+        """
+        group = group.strip() if group else None
+        with self._lock:
+            conn = self._require_conn()
+            cursor = conn.execute(
+                "UPDATE users SET grp = ? WHERE id = ? AND role = 'student' AND class_id = ?",
+                (group or None, user_id, class_id),
+            )
+            conn.commit()
+            if cursor.rowcount == 0:
+                return None
+        return self.get_user(user_id)
+
     def count_users(self) -> int:
         with self._lock:
             row = self._require_conn().execute("SELECT COUNT(*) FROM users").fetchone()
