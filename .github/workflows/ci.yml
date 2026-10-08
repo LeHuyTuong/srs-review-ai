@@ -103,7 +103,7 @@ jobs:
   # `--frozen-lockfile` on purpose: it turns a lockfile that drifted from
   # package.json into a CI failure instead of a silent dependency bump.
   web-ui:
-    name: web-ui (typecheck + build)
+    name: web-ui (typecheck + test + build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -120,6 +120,12 @@ jobs:
           cache-dependency-path: web-ui/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec tsc --noEmit
+      # The tests exist because two bugs shipped through tsc AND a successful
+      # build: a status vocabulary that was wrong in both directions, and a
+      # timeline that dropped its first and last entries. Type-checking cannot
+      # see either — the first was a value in a `Record`, the second was which
+      # of two fields got read.
+      - run: pnpm test
       - run: pnpm build
 
   # The only automated verification either desktop native runner gets.

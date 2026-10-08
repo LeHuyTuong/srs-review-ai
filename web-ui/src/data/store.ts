@@ -156,6 +156,15 @@ const set = (patch: Partial<State>) => {
   listeners.forEach((l) => l())
 }
 
+/**
+ * The current state, read outside React.
+ *
+ * `useStore` needs a component to subscribe; tests and non-rendering callers
+ * need the value. Exporting the snapshot keeps ONE store (no test double with
+ * its own copy of the state that can silently disagree with the real one).
+ */
+export const snapshot = (): State => state
+
 export const useStore = (): State =>
   useSyncExternalStore(
     (cb) => {
