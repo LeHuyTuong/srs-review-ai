@@ -158,6 +158,57 @@ class TestSessionDecidesTheAuthor:
         assert _comments_of(store, sub_id)[0]["author"] == "student"
 
 
+class TestATeacherWithNoClassIsNotANobody:
+    """The gap every other fixture in this file had.
+
+    Every teacher above is registered WITH a class, so the whole suite passed
+    while a teacher registered WITHOUT one got a 404 for their own students'
+    work. The bug was `str(user.get("classId") or "")`: `None` became `""`,
+    which reads as "a session scoped to the empty class" instead of "a session
+    with no class", and the store's comparison then refused every row.
+
+    Found end-to-end against a live server, not here. These tests exist so the
+    next person does not have to find it that way.
+    """
+
+    def test_a_classless_teacher_falls_back_to_the_key(self, env):
+        client, store, _classes, _accounts = env
+        _class_id, write_key, sub_id = _class_and_submission(client)
+        # Registered with NO class_id — the onboarding state.
+        _account(client, "gv01", "teacher")
+
+        response = _comment(client, sub_id, author="teacher", key=write_key)
+
+        assert response.status_code == 201, response.text
+        assert len(_comments_of(store, sub_id)) == 1
+
+    def test_a_classless_teacher_without_a_key_is_still_refused(self, env):
+        """Falling back must not mean falling through: no class and no key is
+        still no authority, and the refusal is the same 409 as ever."""
+        client, store, _classes, _accounts = env
+        _class_id, _write_key, sub_id = _class_and_submission(client)
+        _account(client, "gv01", "teacher")
+
+        response = _comment(client, sub_id, author="teacher")
+
+        assert response.status_code == 409, response.text
+        assert _comments_of(store, sub_id) == []
+
+    def test_a_classless_teacher_session_can_decide_with_the_key(self, env):
+        client, store, _classes, _accounts = env
+        _class_id, write_key, sub_id = _class_and_submission(client)
+        _account(client, "gv01", "teacher")
+
+        response = client.post(
+            f"/submissions/{sub_id}/decision",
+            json={"decision": "approved", "note": ""},
+            headers={"X-Class-Key": write_key},
+        )
+
+        assert response.status_code == 200, response.text
+        assert store.get(sub_id)["status"] == "approved"
+
+
 class TestSessionScopeIsTheAccountsOwnClass:
     def test_a_teacher_session_cannot_decide_for_another_class(self, env):
         """A session is not a skeleton key. The account is attached to class A;

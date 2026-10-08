@@ -244,7 +244,7 @@ def decide_submission(
     # ADR-0019 contract is untouched for deep links. An empty string would be a
     # different thing — it would mean "a session with no class", and the store
     # would compare it against the row's class_id and refuse.
-    session_class = None if user is None else str(user.get("classId") or "")
+    session_class = _teacher_class_of(user)
     try:
         decided = store.decide(
             submission_id,
@@ -332,6 +332,31 @@ def _session_author(declared: str, user: dict | None) -> str:
     return role
 
 
+def _teacher_class_of(user: dict | None) -> str | None:
+    """The class a signed-in teacher's session speaks for, or None.
+
+    ``None`` — NOT ``""`` — for an account with no class attached, and the
+    difference is a real bug this caught. An account registered without a
+    class has ``classId: None``; turning that into ``""`` makes it a *session
+    scope of the empty class*, which the store then compares against the row's
+    real ``class_id`` and refuses with a 404. The symptom was a signed-in
+    teacher being told the submission does not exist.
+
+    ``None`` says the honest thing instead: this session speaks for no class,
+    so the class-key path applies. A teacher with no class is an onboarding
+    state, and the route for it should be "I have no class to act as", not
+    "I am the teacher of no class, and nobody's work is mine".
+
+    Found by an END-TO-END run against a live server — the pytest suite passed
+    while this was wrong, because every teacher fixture in it was registered
+    WITH a class. A unit test only covers the setups its author thought of.
+    """
+    if user is None:
+        return None
+    class_id = user.get("classId")
+    return str(class_id) if class_id else None
+
+
 @router.post("/submissions/{submission_id}/comments", status_code=201)
 def add_comment(
     submission_id: str,
@@ -364,7 +389,7 @@ def add_comment(
     # the containment fact, so requiring a pasted key on top of it would ask
     # the teacher for a credential the account already carries. `None` when
     # there is no session, so the store's key path is unchanged for deep links.
-    session_class = None if user is None or author != "teacher" else str(user.get("classId") or "")
+    session_class = _teacher_class_of(user) if author == "teacher" else None
     try:
         return store.add_comment(
             submission_id,
@@ -395,7 +420,7 @@ def reply_to_comment(
 ) -> dict:
     """Append a reply under one comment. Same two-sided authority as above."""
     author = _session_author(payload.author, user)
-    session_class = None if user is None or author != "teacher" else str(user.get("classId") or "")
+    session_class = _teacher_class_of(user) if author == "teacher" else None
     try:
         return store.reply_to_comment(
             submission_id,
@@ -439,7 +464,7 @@ def resolve_comment(
     """
     if user is not None and user.get("role") != "teacher":
         raise HTTPException(status_code=403, detail="teacher role required")
-    session_class = None if user is None else str(user.get("classId") or "")
+    session_class = _teacher_class_of(user)
     try:
         return store.set_comment_resolved(
             submission_id,
