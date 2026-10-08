@@ -1,0 +1,68 @@
+# Keep the build context small and free of host state. Without this file every
+# `docker build` sends the whole repository to the daemon, including server/.env
+# (real GEMINI_API_KEY), the .git history, and the Flutter/Node build trees.
+#
+# Neither Dockerfile COPYs these today, but a future `COPY . .` would sweep
+# server/.env into an image layer silently. Excluding them here makes that
+# impossible rather than merely unlikely.
+
+# Real secrets and local env.
+.env
+**/.env
+**/.env.*
+!**/.env.example
+
+# Version control and tooling state.
+.git
+.gitignore
+.gitattributes
+.github
+
+# Python build/runtime state.
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.ruff_cache
+**/.venv
+**/venv
+**/*.egg-info
+
+# Node / web-ui build trees.
+**/node_modules
+**/dist
+**/.vite
+**/.turbo
+**/*.tsbuildinfo
+
+# Flutter / Dart build trees.
+app/build
+app/.dart_tool
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/**/ephemeral
+app/**/Pods
+
+#
+# Local runtime stores. Dot-prefixed on purpose: created under /data
+# inside the container by server.Dockerfile, so no source tree is named
+# like them.
+#
+# Deliberately NOT a bare data glob: that pattern matches any directory
+# named `data` at any depth, including web-ui/src/data/ which is real SPA
+# source. Excluding it breaks vite build on src/data/*.
+**/.uploads
+**/.cache
+**/.shares
+**/.submissions
+**/.classes
+
+# Docs, diagrams and scratch are not needed to build either image.
+docs
+tmp
+research
+*.md
+!README.md
+
+# OS noise.
+.DS_Store
+**/.DS_Store
