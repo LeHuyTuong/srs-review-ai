@@ -1,0 +1,25 @@
+export 'package:flutter/material.dart';
+export 'package:flutter_riverpod/flutter_riverpod.dart';
+export 'package:srs_review_ai/core/domain/academic/academic_models.dart';
+export 'package:srs_review_ai/core/domain/academic/academic_presentation.dart';
+export 'package:srs_review_ai/core/navigation/app_navigation.dart';
+export 'package:srs_review_ai/features/academic/presentation/viewmodels/academic_form_view_model.dart';
+export 'package:srs_review_ai/features/academic/presentation/viewmodels/academic_view_model.dart';
+export 'package:srs_review_ai/features/academic/presentation/views/course_screens.dart'
+    show AcademicBackLink;
+export 'package:srs_review_ai/features/academic/presentation/views/widgets/academic_form_sheet.dart';
+export 'package:srs_review_ai/features/academic/presentation/views/widgets/academic_page.dart';
+export 'package:srs_review_ai/features/academic/presentation/views/widgets/class_review_preview.dart';
+export 'package:srs_review_ai/features/academic/presentation/views/widgets/group_summary_card.dart';
+export 'package:srs_review_ai/theme/app_colors.dart';
+export 'package:srs_review_ai/theme/app_metrics.dart';
+export 'package:srs_review_ai/theme/app_spacing.dart';
+export 'package:srs_review_ai/theme/app_typography.dart';
+export 'package:srs_review_ai/widgets/app_academic_layout.dart';
+export 'package:srs_review_ai/widgets/app_badge.dart';
+export 'package:srs_review_ai/widgets/app_button.dart';
+export 'package:srs_review_ai/widgets/app_card.dart';
+export 'package:srs_review_ai/widgets/app_disclosure.dart';
+export 'package:srs_review_ai/widgets/app_icon.dart';
+export 'package:srs_review_ai/widgets/app_meta_grid.dart';
+export 'package:srs_review_ai/widgets/app_states.dart';
