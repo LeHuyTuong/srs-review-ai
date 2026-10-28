@@ -142,3 +142,5 @@ server/.classes/
 # as the root *.mp4 and skills.zip above: kept on disk, out of the index. Root
 # scope on purpose, so a gallery inside a docs folder can still be committed.
 /diagram-gallery.html
+
+.commandcode/
