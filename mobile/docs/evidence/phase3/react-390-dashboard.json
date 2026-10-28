@@ -1,0 +1,106 @@
+[
+  {
+    "text": "Tổng quan",
+    "box": {
+      "x": 20,
+      "y": 132,
+      "width": 134.703125,
+      "height": 32.5,
+      "top": 132,
+      "right": 154.703125,
+      "bottom": 164.5,
+      "left": 20
+    }
+  },
+  {
+    "text": "3\nMôn học quản lý\n6\nLớp đang theo dõi\n8\nTài liệu chờ đánh giá\n3\nTài liệu đang đánh giá\n0\nĐăng ký chờ phản hồi\n10\nDự án cần xử lý",
+    "box": {
+      "x": 20,
+      "y": 188.25,
+      "width": 350,
+      "height": 281.1875,
+      "top": 188.25,
+      "right": 370,
+      "bottom": 469.4375,
+      "left": 20
+    }
+  },
+  {
+    "text": "Việc cần làm\nUse Case Diagram\nv2\n\nSmart Attendance System\n\nSE1701 · Group 04\n\nAI chưa có kết quả\n\n2 giờ trước\n\nSequence Diagram\nv2\n\nSmart Campus Management\n\nSE1",
+    "box": {
+      "x": 20,
+      "y": 549.4375,
+      "width": 350,
+      "height": 628.53125,
+      "top": 549.4375,
+      "right": 370,
+      "bottom": 1177.96875,
+      "left": 20
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 20,
+      "y": 1590.5625,
+      "width": 108.796875,
+      "height": 48,
+      "top": 1590.5625,
+      "right": 128.796875,
+      "bottom": 1638.5625,
+      "left": 20
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 136.796875,
+      "y": 1590.5625,
+      "width": 88.453125,
+      "height": 48,
+      "top": 1590.5625,
+      "right": 225.25,
+      "bottom": 1638.5625,
+      "left": 136.796875
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 322,
+      "y": 1590.5625,
+      "width": 48,
+      "height": 48,
+      "top": 1590.5625,
+      "right": 370,
+      "bottom": 1638.5625,
+      "left": 322
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 20,
+      "y": 1650.5625,
+      "width": 155.34375,
+      "height": 48,
+      "top": 1650.5625,
+      "right": 175.34375,
+      "bottom": 1698.5625,
+      "left": 20
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 183.34375,
+      "y": 1650.5625,
+      "width": 79.046875,
+      "height": 48,
+      "top": 1650.5625,
+      "right": 262.390625,
+      "bottom": 1698.5625,
+      "left": 183.34375
+    }
+  }
+]

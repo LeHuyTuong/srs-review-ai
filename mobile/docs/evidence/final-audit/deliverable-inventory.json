@@ -1,0 +1,12 @@
+{
+  "e2e_test": false,
+  "firebase": false,
+  "docs/analytics-plan.md": false,
+  "docs/test-plan.md": false,
+  "docs/code-review.md": false,
+  "report": false,
+  "slides": false,
+  "design/DESIGN.md": false,
+  "handoff/flutter-handoff.md": false,
+  "android/app/google-services.json": false
+}

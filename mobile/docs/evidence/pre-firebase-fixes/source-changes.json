@@ -1,0 +1,43 @@
+{
+  "baselineFiles": 166,
+  "changed": [
+    "lib\\app\\app.dart",
+    "lib\\app\\providers.dart",
+    "lib\\app\\session.dart",
+    "lib\\models\\academic\\academic_models.dart",
+    "lib\\models\\academic\\management_queries.dart",
+    "lib\\models\\dashboard\\dashboard_snapshot.dart",
+    "lib\\repositories\\notification_repository.dart",
+    "lib\\repositories\\academic\\fake_academic_repository.dart",
+    "lib\\screens\\academic\\directory_screens.dart",
+    "lib\\screens\\academic\\widgets\\academic_form_sheet.dart",
+    "lib\\screens\\academic\\widgets\\class_filter_bar.dart",
+    "lib\\screens\\management\\document_screens.dart",
+    "lib\\screens\\management\\widgets\\management_filter_bar.dart",
+    "lib\\services\\academic\\fake_academic_service.dart",
+    "lib\\viewmodels\\academic\\academic_form_view_model.dart",
+    "lib\\viewmodels\\academic\\academic_view_model.dart",
+    "lib\\viewmodels\\academic\\class_filter_view_model.dart",
+    "lib\\viewmodels\\academic\\directory_view_model.dart",
+    "lib\\viewmodels\\academic\\document_reader_view_model.dart",
+    "lib\\viewmodels\\academic\\management_form_view_model.dart",
+    "lib\\viewmodels\\academic\\management_list_view_model.dart",
+    "lib\\viewmodels\\academic\\review_actions.dart",
+    "lib\\viewmodels\\academic\\review_panel_view_model.dart",
+    "lib\\viewmodels\\academic\\student_enrollment_view_model.dart",
+    "lib\\viewmodels\\dashboard\\dashboard_view_model.dart",
+    "test\\academic_view_model_test.dart",
+    "test\\academic_widget_test.dart"
+  ],
+  "added": [
+    "lib\\models\\session_scope.dart",
+    "lib\\widgets\\app_search_field.dart",
+    "lib\\models\\academic\\academic_projections.dart",
+    "lib\\models\\academic\\project_context.dart",
+    "lib\\repositories\\academic\\course_contract.dart",
+    "test\\pre_firebase_boundaries_test.dart",
+    "test\\pre_firebase_regression_test.dart"
+  ],
+  "deleted": [],
+  "fixturesChanged": []
+}

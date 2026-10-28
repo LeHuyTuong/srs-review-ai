@@ -131,7 +131,7 @@ vài BR nếu ID đứng đầu dòng), mọi thứ khác biến mất, không c
 
 ## 3. Đã sửa gì (parser 1.3.0 → 1.4.0)
 
-`app/lib/data/parsing/requirement_splitter.dart` — viết lại body scan thành
+`desktop/lib/data/parsing/requirement_splitter.dart` — viết lại body scan thành
 `_BodyScan` + `_HeadingTracker`:
 
 - **Phân biệt heading với bước đánh số** (`_HeadingTracker`): tiêu đề > 12 từ hoặc kết
@@ -224,7 +224,7 @@ mirror, không phải Dart.
 
 1. Đính kèm file report chính thống (PDF) để chạy lại đúng trên tài liệu thật; nếu
    là DOCX cũng gửi — DOCX đi đường body scan hoàn toàn.
-2. `cd app && flutter analyze && flutter test` — code mới chưa được compile ở đây.
+2. `cd desktop && flutter analyze && flutter test` — code mới chưa được compile ở đây.
    Nếu analyzer báo lỗi ở `requirement_splitter.dart`, `workspace_unit.dart`,
    `blueprint_checks.dart`, gửi log lại.
 3. Nhập lại tài liệu (parser version đổi → snapshot cũ không tái dùng) và so số

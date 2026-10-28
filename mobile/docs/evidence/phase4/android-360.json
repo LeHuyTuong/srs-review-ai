@@ -1,0 +1,23 @@
+{
+  "captureWidth": 360,
+  "checks": [
+    "new routes and exact notification link",
+    "semester native form and mutations",
+    "enrollment sheet",
+    "academic/group/project/review navigation",
+    "student note separation",
+    "logout and role gate (Back isolation covered by widget tests)"
+  ],
+  "screenshots": [
+    "flutter-360-login",
+    "flutter-360-profile",
+    "flutter-360-notifications",
+    "flutter-360-semesters",
+    "flutter-360-semester-form",
+    "flutter-360-semester-keyboard",
+    "flutter-360-students",
+    "flutter-360-enrollment",
+    "flutter-360-decision-note-regression"
+  ],
+  "nativeKeyboardInset": 0.0
+}

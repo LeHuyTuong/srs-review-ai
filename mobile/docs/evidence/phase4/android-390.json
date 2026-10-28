@@ -1,0 +1,23 @@
+{
+  "captureWidth": 390,
+  "checks": [
+    "new routes and exact notification link",
+    "semester native form and mutations",
+    "enrollment sheet",
+    "academic/group/project/review navigation",
+    "student note separation",
+    "logout and role gate (Back isolation covered by widget tests)"
+  ],
+  "screenshots": [
+    "flutter-390-login",
+    "flutter-390-profile",
+    "flutter-390-notifications",
+    "flutter-390-semesters",
+    "flutter-390-semester-form",
+    "flutter-390-semester-keyboard",
+    "flutter-390-students",
+    "flutter-390-enrollment",
+    "flutter-390-decision-note-regression"
+  ],
+  "nativeKeyboardInset": 0.0
+}

@@ -1,0 +1,74 @@
+[
+  {
+    "foreground": "ink",
+    "background": "white",
+    "ratio": 13.237,
+    "AA_normalText": true
+  },
+  {
+    "foreground": "ink",
+    "background": "canvas",
+    "ratio": 12.761,
+    "AA_normalText": true
+  },
+  {
+    "foreground": "muted",
+    "background": "white",
+    "ratio": 4.955,
+    "AA_normalText": true
+  },
+  {
+    "foreground": "muted",
+    "background": "canvas",
+    "ratio": 4.777,
+    "AA_normalText": true
+  },
+  {
+    "foreground": "muted",
+    "background": "subtle",
+    "ratio": 4.683,
+    "AA_normalText": true
+  },
+  {
+    "foreground": "white",
+    "background": "brand",
+    "ratio": 6.434,
+    "AA_normalText": true
+  },
+  {
+    "foreground": "brand",
+    "background": "brandSoft",
+    "ratio": 5.717,
+    "AA_normalText": true
+  },
+  {
+    "foreground": "brand",
+    "background": "brandTint",
+    "ratio": 5.936,
+    "AA_normalText": true
+  },
+  {
+    "foreground": "olive",
+    "background": "oliveSoft",
+    "ratio": 4.637,
+    "AA_normalText": true
+  },
+  {
+    "foreground": "amber",
+    "background": "amberSoft",
+    "ratio": 5.109,
+    "AA_normalText": true
+  },
+  {
+    "foreground": "rust",
+    "background": "rustSoft",
+    "ratio": 4.796,
+    "AA_normalText": true
+  },
+  {
+    "foreground": "danger",
+    "background": "dangerSoft",
+    "ratio": 5.384,
+    "AA_normalText": true
+  }
+]

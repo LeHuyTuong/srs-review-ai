@@ -86,14 +86,14 @@ offline-first, single small new dependency (`shared_preferences`).
 
 ## Files / Modules Affected
 
-- `app/pubspec.yaml` (+ shared_preferences, font assets)
-- `app/lib/core/theme/app_tokens.dart`, `app_theme.dart` (new tokens)
-- `app/lib/features/workspace/models/**` (new)
-- `app/lib/features/workspace/view_model/**` (new)
-- `app/lib/features/workspace/view/**` (new)
-- `app/lib/data/services/session_store.dart` (new)
-- `app/lib/core/router/app_router.dart`, `app/lib/core/providers.dart` (wiring)
-- `app/test/workspace_*.dart` (new tests)
+- `desktop/pubspec.yaml` (+ shared_preferences, font assets)
+- `desktop/lib/core/theme/app_tokens.dart`, `app_theme.dart` (new tokens)
+- `desktop/lib/features/workspace/models/**` (new)
+- `desktop/lib/features/workspace/view_model/**` (new)
+- `desktop/lib/features/workspace/view/**` (new)
+- `desktop/lib/data/services/session_store.dart` (new)
+- `desktop/lib/core/router/app_router.dart`, `desktop/lib/core/providers.dart` (wiring)
+- `desktop/test/workspace_*.dart` (new tests)
 - `docs/workspace-port-plan.md` (this plan)
 
 ## Risks

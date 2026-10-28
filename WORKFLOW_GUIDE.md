@@ -126,9 +126,9 @@ User mở app
 ## 3. BƯỚC 1: IMPORT FILE
 
 **Đường dẫn code:**
-- `app/lib/data/services/file_picker_service.dart` — chọn file
-- `app/lib/data/services/parse_service.dart` — parse
-- `app/lib/data/parsing/requirement_splitter.dart` — tách requirement
+- `desktop/lib/data/services/file_picker_service.dart` — chọn file
+- `desktop/lib/data/services/parse_service.dart` — parse
+- `desktop/lib/data/parsing/requirement_splitter.dart` — tách requirement
 
 **Luồng:**
 ```
@@ -164,8 +164,8 @@ RequirementSplitter.split(pageTexts) → List<RequirementItem>
 - Steps đánh số `1./2.` trong UC → ĐƯỢC GIỮ (không nuốt làm section heading)
 
 **File liên quan:**
-- `app/lib/data/models/srs_document.dart` — `SrsDocument{fileName, pageCount, pageTexts, requirements, imagePages}`
-- `app/lib/data/models/loaded_document.dart` — `LoadedDocument` sau khi kết hợp checks
+- `desktop/lib/data/models/srs_document.dart` — `SrsDocument{fileName, pageCount, pageTexts, requirements, imagePages}`
+- `desktop/lib/data/models/loaded_document.dart` — `LoadedDocument` sau khi kết hợp checks
 
 ---
 
@@ -202,13 +202,13 @@ Output: List<RequirementItem> {
 ## 5. BƯỚC 3: KIỂM TẤT ĐỊNH (OFFLINE)
 
 **Đường dẫn code:**
-- `app/lib/data/checks/syllabus_checks.dart` — F7/F8/F9
-- `app/lib/data/checks/quality_checks.dart` — vague phrases, missing refs
-- `app/lib/data/checks/contradiction_pass.dart` — consistency smells
-- `app/lib/data/checks/diagram_detector.dart` — diagram intent keywords
-- `app/lib/data/checks/diagram_type_classifier.dart` — classify diagram type
-- `app/lib/data/checks/text_fold.dart` — text utilities
-- `app/lib/data/checks/verifier.dart` — reference verification
+- `desktop/lib/data/checks/syllabus_checks.dart` — F7/F8/F9
+- `desktop/lib/data/checks/quality_checks.dart` — vague phrases, missing refs
+- `desktop/lib/data/checks/contradiction_pass.dart` — consistency smells
+- `desktop/lib/data/checks/diagram_detector.dart` — diagram intent keywords
+- `desktop/lib/data/checks/diagram_type_classifier.dart` — classify diagram type
+- `desktop/lib/data/checks/text_fold.dart` — text utilities
+- `desktop/lib/data/checks/verifier.dart` — reference verification
 
 ### 5.1 Syllabus Checks (F7-F9) — Từ syllabus
 
@@ -248,9 +248,9 @@ Keyword-driven (không AI, không token):
 ### 6.1 Client side
 
 **Đường dẫn:**
-- `app/lib/data/services/review_api.dart` — interface `ReviewApi` (seam real/mock)
-- `app/lib/data/services/api_service.dart` — thực hiện gọi proxy qua Dio
-- `app/lib/data/repositories/review_repository.dart` — orchestration
+- `desktop/lib/data/services/review_api.dart` — interface `ReviewApi` (seam real/mock)
+- `desktop/lib/data/services/api_service.dart` — thực hiện gọi proxy qua Dio
+- `desktop/lib/data/repositories/review_repository.dart` — orchestration
 
 ```
 ReviewRepository.run(filtered, concurrency=4):
@@ -408,15 +408,15 @@ Giới hạn đã biết: tối đa 2 figure/trang (hình lớn nhất trước)
 
 ### 7.3 File liên quan
 
-- `app/lib/data/checks/diagram_detector.dart` — keyword detection
-- `app/lib/data/checks/diagram_type_classifier.dart` — classify UML type
-- `app/lib/data/models/document_map.dart` — DocumentMap/Figure/Section models
-- `app/lib/data/services/document_map_service.dart` — upload + analyze + render bbox
-- `app/lib/data/services/page_image_selector.dart` — selection logic
-- `app/lib/data/services/page_image_renderer.dart` — render to base64 (fallback)
-- `app/lib/data/services/image_budget.dart` — budget tracking
-- `app/lib/data/services/vision_review_service.dart` — orchestration (figure candidates)
-- `app/lib/data/models/diagram_audit.dart` — data models
+- `desktop/lib/data/checks/diagram_detector.dart` — keyword detection
+- `desktop/lib/data/checks/diagram_type_classifier.dart` — classify UML type
+- `desktop/lib/data/models/document_map.dart` — DocumentMap/Figure/Section models
+- `desktop/lib/data/services/document_map_service.dart` — upload + analyze + render bbox
+- `desktop/lib/data/services/page_image_selector.dart` — selection logic
+- `desktop/lib/data/services/page_image_renderer.dart` — render to base64 (fallback)
+- `desktop/lib/data/services/image_budget.dart` — budget tracking
+- `desktop/lib/data/services/vision_review_service.dart` — orchestration (figure candidates)
+- `desktop/lib/data/models/diagram_audit.dart` — data models
 - `server/app/docmap.py` — anatomy extraction (PyMuPDF)
 - `server/app/main.py` — `/documents/analyze`, `/documents/render`
 - `server/app/diagram.py` — `/diagram` endpoint (describe + judge)
@@ -489,9 +489,9 @@ Report exported! User copy URL chia sẻ.
 
 ### 9.2 File liên quan
 
-- `app/lib/data/services/report_exporter.dart` — tạo báo cáo HTML
-- `app/lib/features/workspace/models/html_report.dart` — data model
-- `app/lib/data/services/upload_service.dart` — upload logic
+- `desktop/lib/data/services/report_exporter.dart` — tạo báo cáo HTML
+- `desktop/lib/features/workspace/models/html_report.dart` — data model
+- `desktop/lib/data/services/upload_service.dart` — upload logic
 - `server/app/share.py` — `/share` endpoint
 
 ---
@@ -534,7 +534,7 @@ Mock server cũng có: `server/app/llm/mock.py`
 
 ```
 srs-review-ai/
-├── app/                          Flutter (Dart)
+├── desktop/                          Flutter (Dart)
 │   ├── lib/
 │   │   ├── core/                 config, theme, router, DI
 │   │   │   ├── app_config.dart       API URL, mock mode flags
@@ -677,7 +677,7 @@ cp .env.example .env      # thêm API key hoặc để trống (mock mode)
 uvicorn app.main:app --reload
 
 # Chạy app
-cd srs-review-ai/app
+cd srs-review-ai/desktop
 flutter pub get
 flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8000
 # Hoặc offline:
@@ -685,7 +685,7 @@ flutter run --dart-define=MOCK_MODE=true
 
 # Test
 cd srs-review-ai/server && .venv/bin/python -m pytest tests/
-cd srs-review-ai/app && flutter test
+cd srs-review-ai/desktop && flutter test
 ```
 
 ### Khi sửa code:

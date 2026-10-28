@@ -1,0 +1,704 @@
+[
+  {
+    "step": 1,
+    "label": "F01: mock Supervisor login",
+    "action": "click",
+    "time": "2026-10-25T15:40:56.371Z"
+  },
+  {
+    "step": 2,
+    "label": "F01: Dashboard to Profile via bottom navigation",
+    "action": "click",
+    "time": "2026-10-25T15:41:17.480Z"
+  },
+  {
+    "step": 3,
+    "label": "F01: scroll Profile to logout action",
+    "action": "scroll",
+    "time": "2026-10-25T15:41:32.325Z"
+  },
+  {
+    "step": 4,
+    "label": "F01: logout disposes Supervisor navigation",
+    "action": "click",
+    "time": "2026-10-25T15:41:38.521Z"
+  },
+  {
+    "step": 5,
+    "label": "F01: emulator Escape maps Android Back",
+    "action": "press_key",
+    "time": "2026-10-25T15:44:34.830Z"
+  },
+  {
+    "step": 6,
+    "label": "F01: Android edge-back gesture after logout",
+    "action": "drag",
+    "time": "2026-10-25T15:44:44.410Z"
+  },
+  {
+    "step": 7,
+    "label": "F01: reopen application after root Back",
+    "action": "click",
+    "time": "2026-10-25T15:45:03.781Z"
+  },
+  {
+    "step": 8,
+    "label": "F02: Supervisor login for academic flow",
+    "action": "click",
+    "time": "2026-10-25T15:45:21.858Z"
+  },
+  {
+    "step": 9,
+    "label": "F02: open academic shortcuts from Profile",
+    "action": "click",
+    "time": "2026-10-25T15:45:31.580Z"
+  },
+  {
+    "step": 10,
+    "label": "F02: Profile academic link opens Courses",
+    "action": "click",
+    "time": "2026-10-25T15:46:10.251Z"
+  },
+  {
+    "step": 11,
+    "label": "F02: open create-course form; empty form validation",
+    "action": "click",
+    "time": "2026-10-25T15:46:18.538Z"
+  },
+  {
+    "step": 12,
+    "label": "F02: focus Course code and request real Android IME",
+    "action": "click",
+    "time": "2026-10-25T15:46:40.542Z"
+  },
+  {
+    "step": 13,
+    "label": "F02: enter new Course code through native input",
+    "action": "type_text",
+    "time": "2026-10-25T15:46:50.786Z"
+  },
+  {
+    "step": 14,
+    "label": "F02: ADB Android input text AUDIT26 after desktop Unicode injection did not insert",
+    "action": "native-input",
+    "time": "2026-10-25T15:48:07.841Z"
+  },
+  {
+    "step": 15,
+    "label": "F02: focus Course name while real IME is visible",
+    "action": "click",
+    "time": "2026-10-25T15:48:15.773Z"
+  },
+  {
+    "step": 16,
+    "label": "F02: save new Course with IME visible",
+    "action": "click",
+    "time": "2026-10-25T15:48:41.595Z"
+  },
+  {
+    "step": 17,
+    "label": "F02: verify newly saved course in list after sheet closes",
+    "action": "scroll",
+    "time": "2026-10-25T15:48:49.480Z"
+  },
+  {
+    "step": 18,
+    "label": "F02: scroll to final Course cards",
+    "action": "scroll",
+    "time": "2026-10-25T15:48:56.325Z"
+  },
+  {
+    "step": 19,
+    "label": "F02: return to original course offering",
+    "action": "scroll",
+    "time": "2026-10-25T15:49:10.950Z"
+  },
+  {
+    "step": 20,
+    "label": "F02: reach top of Course list",
+    "action": "scroll",
+    "time": "2026-10-25T15:49:17.515Z"
+  },
+  {
+    "step": 21,
+    "label": "F02: expand SWP391 teaching offerings",
+    "action": "click",
+    "time": "2026-10-25T15:49:27.682Z"
+  },
+  {
+    "step": 22,
+    "label": "F02: open Offering configuration for SWP391 Fall 2026",
+    "action": "click",
+    "time": "2026-10-25T15:49:34.151Z"
+  },
+  {
+    "step": 23,
+    "label": "F02: inspect native teaching-method dropdown",
+    "action": "click",
+    "time": "2026-10-25T15:49:45.559Z"
+  },
+  {
+    "step": 24,
+    "label": "F02: edit offering teaching method to direct",
+    "action": "click",
+    "time": "2026-10-25T15:49:51.899Z"
+  },
+  {
+    "step": 25,
+    "label": "F02: save Offering mutation",
+    "action": "click",
+    "time": "2026-10-25T15:50:00.960Z"
+  },
+  {
+    "step": 26,
+    "label": "F02: Offering to related Classes",
+    "action": "click",
+    "time": "2026-10-25T15:50:08.328Z"
+  },
+  {
+    "step": 27,
+    "label": "F02/F03: open SE1701 Class detail",
+    "action": "click",
+    "time": "2026-10-25T15:50:25.319Z"
+  },
+  {
+    "step": 28,
+    "label": "F03: open SE1701 enrollment sheet",
+    "action": "click",
+    "time": "2026-10-25T15:50:57.006Z"
+  },
+  {
+    "step": 29,
+    "label": "F03: choose manual enrollment directory",
+    "action": "click",
+    "time": "2026-10-25T15:51:06.999Z"
+  },
+  {
+    "step": 30,
+    "label": "F03: select Nguyen Van Binh SE170201 from directory",
+    "action": "click",
+    "time": "2026-10-25T15:51:24.524Z"
+  },
+  {
+    "step": 31,
+    "label": "F03: confirm actual enrollment mutation",
+    "action": "click",
+    "time": "2026-10-25T15:51:31.527Z"
+  },
+  {
+    "step": 32,
+    "label": "F03: verify SE1701 Students tab after enrollment",
+    "action": "click",
+    "time": "2026-10-25T15:51:41.355Z"
+  },
+  {
+    "step": 33,
+    "label": "F03: return to class groups",
+    "action": "click",
+    "time": "2026-10-25T15:51:49.486Z"
+  },
+  {
+    "step": 34,
+    "label": "F03: open Group 01 management from SE1701",
+    "action": "click",
+    "time": "2026-10-25T15:51:58.180Z"
+  },
+  {
+    "step": 35,
+    "label": "F03: inspect membership actions and limit",
+    "action": "scroll",
+    "time": "2026-10-25T15:52:10.609Z"
+  },
+  {
+    "step": 36,
+    "label": "F03: reach Add member command",
+    "action": "scroll",
+    "time": "2026-10-25T15:52:25.410Z"
+  },
+  {
+    "step": 37,
+    "label": "F03: reveal add-member button below member list",
+    "action": "scroll",
+    "time": "2026-10-25T15:52:35.094Z"
+  },
+  {
+    "step": 38,
+    "label": "F03: add member with capacity 4/5",
+    "action": "click",
+    "time": "2026-10-25T15:52:44.342Z"
+  },
+  {
+    "step": 39,
+    "label": "F03: assign enrolled Nguyen Van Binh to Group 01",
+    "action": "click",
+    "time": "2026-10-25T15:52:51.380Z"
+  },
+  {
+    "step": 40,
+    "label": "F03: attempt extra member after reaching 5/5 limit",
+    "action": "click",
+    "time": "2026-10-25T15:53:01.356Z"
+  },
+  {
+    "step": 41,
+    "label": "F03: cancel invalid member mutation",
+    "action": "click",
+    "time": "2026-10-25T15:53:09.367Z"
+  },
+  {
+    "step": 42,
+    "label": "F04: open Group 01 linked Smart Campus project",
+    "action": "click",
+    "time": "2026-10-25T15:53:19.391Z"
+  },
+  {
+    "step": 43,
+    "label": "F04: verify project members after group membership mutation",
+    "action": "click",
+    "time": "2026-10-25T15:53:27.896Z"
+  },
+  {
+    "step": 44,
+    "label": "F04: inspect newly synchronized project member",
+    "action": "scroll",
+    "time": "2026-10-25T15:53:34.993Z"
+  },
+  {
+    "step": 45,
+    "label": "F05: Project to project document/review requests",
+    "action": "click",
+    "time": "2026-10-25T15:53:43.644Z"
+  },
+  {
+    "step": 46,
+    "label": "F05: open Sequence Diagram v2 review for Smart Campus project",
+    "action": "click",
+    "time": "2026-10-25T15:53:55.456Z"
+  },
+  {
+    "step": 47,
+    "label": "F05: inspect submission metadata and Student note",
+    "action": "click",
+    "time": "2026-10-25T15:54:03.478Z"
+  },
+  {
+    "step": 48,
+    "label": "F05: read file, submitter and submission note in context sheet",
+    "action": "scroll",
+    "time": "2026-10-25T15:54:11.863Z"
+  },
+  {
+    "step": 49,
+    "label": "F05: scroll metadata sheet to lower submission fields",
+    "action": "drag",
+    "time": "2026-10-25T15:54:21.303Z"
+  },
+  {
+    "step": 50,
+    "label": "F05: dismiss submission information sheet",
+    "action": "click",
+    "time": "2026-10-25T15:54:53.814Z"
+  },
+  {
+    "step": 51,
+    "label": "F05: start Supervisor review mutation",
+    "action": "click",
+    "time": "2026-10-25T15:55:14.116Z"
+  },
+  {
+    "step": 52,
+    "label": "F05: open AI panel before decision",
+    "action": "click",
+    "time": "2026-10-25T15:55:23.841Z"
+  },
+  {
+    "step": 53,
+    "label": "F05: run scenario AI evaluation through UI",
+    "action": "click",
+    "time": "2026-10-25T15:55:43.346Z"
+  },
+  {
+    "step": 54,
+    "label": "F05: open request-revision validation with empty Supervisor note",
+    "action": "click",
+    "time": "2026-10-25T15:56:19.732Z"
+  },
+  {
+    "step": 55,
+    "label": "F05: cancel decision without changing review status",
+    "action": "click",
+    "time": "2026-10-25T15:56:28.001Z"
+  },
+  {
+    "step": 56,
+    "label": "F05: open approval confirmation with separate blank Supervisor note",
+    "action": "click",
+    "time": "2026-10-25T15:58:03.446Z"
+  },
+  {
+    "step": 57,
+    "label": "F05: confirm actual Supervisor approval for Sequence Diagram v2",
+    "action": "click",
+    "time": "2026-10-25T15:58:22.425Z"
+  },
+  {
+    "step": 58,
+    "label": "F05: inspect immutable review audit after approval",
+    "action": "click",
+    "time": "2026-10-25T15:58:35.726Z"
+  },
+  {
+    "step": 59,
+    "label": "F05: verify approval audit event and actor/version",
+    "action": "scroll",
+    "time": "2026-10-25T15:58:51.196Z"
+  },
+  {
+    "step": 60,
+    "label": "F05: inspect version history after decision",
+    "action": "click",
+    "time": "2026-10-25T15:58:57.958Z"
+  },
+  {
+    "step": 61,
+    "label": "F06: return Home from deep version history",
+    "action": "click",
+    "time": "2026-10-25T15:59:20.015Z"
+  },
+  {
+    "step": 62,
+    "label": "F06: Profile shortcut to Course rules",
+    "action": "click",
+    "time": "2026-10-25T15:59:34.932Z"
+  },
+  {
+    "step": 63,
+    "label": "F06: open Courses from Profile (counts updated)",
+    "action": "click",
+    "time": "2026-10-25T15:59:44.796Z"
+  },
+  {
+    "step": 64,
+    "label": "F06: open SWP391 Rule Set context",
+    "action": "click",
+    "time": "2026-10-25T15:59:53.944Z"
+  },
+  {
+    "step": 65,
+    "label": "F06: open Rule Set editor and inspect validation fields",
+    "action": "click",
+    "time": "2026-10-25T16:00:03.479Z"
+  },
+  {
+    "step": 66,
+    "label": "F06: focus Rule Set name for validation probe",
+    "action": "click",
+    "time": "2026-10-25T16:00:27.736Z"
+  },
+  {
+    "step": 67,
+    "label": "F06: cancel changed Rule name draft with real IME visible",
+    "action": "click",
+    "time": "2026-10-25T16:01:06.333Z"
+  },
+  {
+    "step": 68,
+    "label": "F06: reopen Rule editor after cancel to verify original name/version",
+    "action": "click",
+    "time": "2026-10-25T16:01:16.169Z"
+  },
+  {
+    "step": 69,
+    "label": "F06: save Rule Set creates version 2",
+    "action": "click",
+    "time": "2026-10-25T16:01:22.315Z"
+  },
+  {
+    "step": 70,
+    "label": "F06: open scoped Rule Set assignment menu",
+    "action": "click",
+    "time": "2026-10-25T16:01:29.027Z"
+  },
+  {
+    "step": 71,
+    "label": "F06: open assignment scope form",
+    "action": "click",
+    "time": "2026-10-25T16:01:44.334Z"
+  },
+  {
+    "step": 72,
+    "label": "F06: select Offering within SWP391 assignment scope",
+    "action": "click",
+    "time": "2026-10-25T16:04:15.350Z"
+  },
+  {
+    "step": 73,
+    "label": "F06: choose SWP391 Fall 2026 only available Offering",
+    "action": "click",
+    "time": "2026-10-25T16:04:24.990Z"
+  },
+  {
+    "step": 74,
+    "label": "F06: inspect Class scope constrained by selected Offering",
+    "action": "click",
+    "time": "2026-10-25T16:04:34.952Z"
+  },
+  {
+    "step": 75,
+    "label": "F06: choose SE1701 class override",
+    "action": "click",
+    "time": "2026-10-25T16:04:43.305Z"
+  },
+  {
+    "step": 76,
+    "label": "F06: confirm scoped class Rule assignment",
+    "action": "click",
+    "time": "2026-10-25T16:04:50.107Z"
+  },
+  {
+    "step": 77,
+    "label": "F07: navigate to Profile management shortcuts",
+    "action": "click",
+    "time": "2026-10-25T16:05:00.220Z"
+  },
+  {
+    "step": 78,
+    "label": "F07: open Semester management",
+    "action": "click",
+    "time": "2026-10-25T16:05:06.883Z"
+  },
+  {
+    "step": 79,
+    "label": "F07: inspect referenced Semester allowed actions",
+    "action": "click",
+    "time": "2026-10-25T16:05:20.406Z"
+  },
+  {
+    "step": 80,
+    "label": "F07: edit Fall 2026 semester form",
+    "action": "click",
+    "time": "2026-10-25T16:05:26.699Z"
+  },
+  {
+    "step": 81,
+    "label": "F07: open native date picker for Semester end date",
+    "action": "click",
+    "time": "2026-10-25T16:05:33.929Z"
+  },
+  {
+    "step": 82,
+    "label": "F07: cancel date picker without changing date",
+    "action": "click",
+    "time": "2026-10-25T16:05:41.515Z"
+  },
+  {
+    "step": 83,
+    "label": "F07: save existing Semester and verify success feedback",
+    "action": "click",
+    "time": "2026-10-25T16:05:49.103Z"
+  },
+  {
+    "step": 84,
+    "label": "F07: Profile to Student Directory",
+    "action": "click",
+    "time": "2026-10-25T16:05:56.852Z"
+  },
+  {
+    "step": 85,
+    "label": "F07: open Student Directory with updated enrollment data",
+    "action": "click",
+    "time": "2026-10-25T16:06:03.385Z"
+  },
+  {
+    "step": 86,
+    "label": "F07: focus Directory search",
+    "action": "click",
+    "time": "2026-10-25T16:06:19.806Z"
+  },
+  {
+    "step": 87,
+    "label": "F07: dismiss real IME to inspect empty-state message",
+    "action": "click",
+    "time": "2026-10-25T16:07:03.436Z"
+  },
+  {
+    "step": 88,
+    "label": "F07: expand cascading academic filters",
+    "action": "click",
+    "time": "2026-10-25T16:07:11.804Z"
+  },
+  {
+    "step": 89,
+    "label": "F07: clear search and filters restores actual list",
+    "action": "click",
+    "time": "2026-10-25T16:07:33.403Z"
+  },
+  {
+    "step": 90,
+    "label": "F07: select Class filter from Directory",
+    "action": "click",
+    "time": "2026-10-25T16:07:43.208Z"
+  },
+  {
+    "step": 91,
+    "label": "F07: filter SE1701 shows class-specific enrollment count",
+    "action": "click",
+    "time": "2026-10-25T16:07:49.639Z"
+  },
+  {
+    "step": 92,
+    "label": "F07: Directory enrollment uses selected class",
+    "action": "click",
+    "time": "2026-10-25T16:07:57.426Z"
+  },
+  {
+    "step": 93,
+    "label": "F07: continue to SE1701 native enrollment modal",
+    "action": "click",
+    "time": "2026-10-25T16:08:04.363Z"
+  },
+  {
+    "step": 94,
+    "label": "F07: confirm selected SE1701 in class picker",
+    "action": "click",
+    "time": "2026-10-25T16:08:16.868Z"
+  },
+  {
+    "step": 95,
+    "label": "F07: open enrollment for selected class",
+    "action": "click",
+    "time": "2026-10-25T16:08:22.641Z"
+  },
+  {
+    "step": 96,
+    "label": "F07: dismiss enrollment without additional mutation",
+    "action": "click",
+    "time": "2026-10-25T16:08:30.438Z"
+  },
+  {
+    "step": 97,
+    "label": "F08: hide IME before bottom-tab navigation",
+    "action": "click",
+    "time": "2026-10-25T16:08:50.719Z"
+  },
+  {
+    "step": 98,
+    "label": "F08: open Supervisor notification feed",
+    "action": "click",
+    "time": "2026-10-25T16:08:57.785Z"
+  },
+  {
+    "step": 99,
+    "label": "F08: filter deadline notifications",
+    "action": "click",
+    "time": "2026-10-25T16:09:32.767Z"
+  },
+  {
+    "step": 100,
+    "label": "F08: open deadline notification exact review destination",
+    "action": "click",
+    "time": "2026-10-25T16:09:39.493Z"
+  },
+  {
+    "step": 101,
+    "label": "F08: Back returns to filtered Notifications origin",
+    "action": "click",
+    "time": "2026-10-25T16:09:48.676Z"
+  },
+  {
+    "step": 102,
+    "label": "F04/F1: inspect project creation entry and free group selection",
+    "action": "click",
+    "time": "2026-10-25T16:10:30.414Z"
+  },
+  {
+    "step": 103,
+    "label": "F04/F1: open Project form with eligible group/default academic context",
+    "action": "click",
+    "time": "2026-10-25T16:10:39.022Z"
+  },
+  {
+    "step": 104,
+    "label": "F04/F1: focus new Project name in inherited SE1702 Group02 context",
+    "action": "click",
+    "time": "2026-10-25T16:10:50.223Z"
+  },
+  {
+    "step": 105,
+    "label": "F04/F1: create Project from eligible Group via actual form",
+    "action": "click",
+    "time": "2026-10-25T16:11:25.147Z"
+  },
+  {
+    "step": 106,
+    "label": "F04/F1: search for newly created Project",
+    "action": "click",
+    "time": "2026-10-25T16:11:37.255Z"
+  },
+  {
+    "step": 107,
+    "label": "AUD-U01: refocus search after empty-to-nonempty key recreated field",
+    "action": "click",
+    "time": "2026-10-25T16:12:34.263Z"
+  },
+  {
+    "step": 108,
+    "label": "F04: hide IME after refocused search",
+    "action": "click",
+    "time": "2026-10-25T16:12:57.129Z"
+  },
+  {
+    "step": 109,
+    "label": "F04/F1: open newly created Project with class/group identity",
+    "action": "click",
+    "time": "2026-10-25T16:13:06.791Z"
+  },
+  {
+    "step": 110,
+    "label": "E360: inspect Project action menu at narrow width",
+    "action": "click",
+    "time": "2026-10-25T16:13:53.227Z"
+  },
+  {
+    "step": 111,
+    "label": "E360: open Project edit sheet (no save)",
+    "action": "click",
+    "time": "2026-10-25T16:14:05.050Z"
+  },
+  {
+    "step": 112,
+    "label": "E360: focus Project name with real native keyboard",
+    "action": "click",
+    "time": "2026-10-25T16:14:14.263Z"
+  },
+  {
+    "step": 113,
+    "label": "E360: cancel Project edit while native keyboard visible",
+    "action": "click",
+    "time": "2026-10-25T16:14:36.823Z"
+  },
+  {
+    "step": 114,
+    "label": "E412: Project actions at wide edge viewport",
+    "action": "click",
+    "time": "2026-10-25T16:15:08.904Z"
+  },
+  {
+    "step": 115,
+    "label": "E412: Project editor responsive sheet",
+    "action": "click",
+    "time": "2026-10-25T16:15:15.823Z"
+  },
+  {
+    "step": 116,
+    "label": "E412: real IME for Project name",
+    "action": "click",
+    "time": "2026-10-25T16:15:23.430Z"
+  },
+  {
+    "step": 117,
+    "label": "E412: cancel responsive Project form; finish native checks",
+    "action": "click",
+    "time": "2026-10-25T16:16:28.080Z"
+  }
+]

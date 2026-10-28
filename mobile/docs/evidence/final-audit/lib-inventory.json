@@ -1,0 +1,1041 @@
+[
+  {
+    "file": "lib/app/app.dart",
+    "lines": 92,
+    "dependencies": [
+      "lib/screens/dashboard/dashboard_screen.dart",
+      "lib/screens/navigation_destination_screen.dart",
+      "lib/screens/academic/course_screens.dart",
+      "lib/screens/academic/offering_detail_screen.dart",
+      "lib/screens/academic/class_screens.dart",
+      "lib/theme/app_theme.dart",
+      "lib/screens/management/group_screens.dart",
+      "lib/screens/management/project_screens.dart",
+      "lib/screens/management/document_screens.dart",
+      "lib/screens/management/review_screens.dart",
+      "lib/screens/management/review_history_screens.dart",
+      "lib/app/session.dart",
+      "lib/screens/account/login_screen.dart",
+      "lib/screens/account/account_screens.dart",
+      "lib/screens/academic/directory_screens.dart"
+    ]
+  },
+  {
+    "file": "lib/app/app_navigation.dart",
+    "lines": 12,
+    "dependencies": []
+  },
+  {
+    "file": "lib/app/providers.dart",
+    "lines": 45,
+    "dependencies": [
+      "lib/services/dashboard/fake_dashboard_service.dart",
+      "lib/repositories/dashboard/dashboard_repository.dart",
+      "lib/repositories/dashboard/fake_dashboard_repository.dart",
+      "lib/repositories/counter_repository.dart",
+      "lib/services/demo_counter_service.dart",
+      "lib/services/academic/fake_academic_service.dart",
+      "lib/repositories/academic/academic_repository.dart",
+      "lib/repositories/academic/fake_academic_repository.dart",
+      "lib/repositories/academic/student_device_gateway.dart",
+      "lib/services/academic/student_import_service.dart"
+    ]
+  },
+  {
+    "file": "lib/app/session.dart",
+    "lines": 30,
+    "dependencies": []
+  },
+  {
+    "file": "lib/main.dart",
+    "lines": 8,
+    "dependencies": [
+      "lib/app/app.dart"
+    ]
+  },
+  {
+    "file": "lib/models/academic/academic_models.dart",
+    "lines": 344,
+    "dependencies": [
+      "lib/models/academic/management_queries.dart",
+      "lib/models/academic/review_policy.dart"
+    ]
+  },
+  {
+    "file": "lib/models/academic/academic_policy.dart",
+    "lines": 176,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart"
+    ]
+  },
+  {
+    "file": "lib/models/academic/academic_presentation.dart",
+    "lines": 90,
+    "dependencies": []
+  },
+  {
+    "file": "lib/models/academic/management_queries.dart",
+    "lines": 266,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart"
+    ]
+  },
+  {
+    "file": "lib/models/academic/review_policy.dart",
+    "lines": 157,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart",
+      "lib/models/academic/management_queries.dart"
+    ]
+  },
+  {
+    "file": "lib/models/counter_state.dart",
+    "lines": 6,
+    "dependencies": []
+  },
+  {
+    "file": "lib/models/dashboard/dashboard_snapshot.dart",
+    "lines": 178,
+    "dependencies": []
+  },
+  {
+    "file": "lib/models/dashboard/dashboard_state.dart",
+    "lines": 38,
+    "dependencies": [
+      "lib/models/dashboard/dashboard_snapshot.dart"
+    ]
+  },
+  {
+    "file": "lib/repositories/academic/academic_repository.dart",
+    "lines": 10,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart"
+    ]
+  },
+  {
+    "file": "lib/repositories/academic/fake_academic_repository.dart",
+    "lines": 16,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart",
+      "lib/services/academic/fake_academic_service.dart",
+      "lib/repositories/academic/academic_repository.dart"
+    ]
+  },
+  {
+    "file": "lib/repositories/academic/student_device_gateway.dart",
+    "lines": 5,
+    "dependencies": []
+  },
+  {
+    "file": "lib/repositories/counter_repository.dart",
+    "lines": 24,
+    "dependencies": [
+      "lib/models/counter_state.dart",
+      "lib/services/demo_counter_service.dart"
+    ]
+  },
+  {
+    "file": "lib/repositories/dashboard/dashboard_repository.dart",
+    "lines": 6,
+    "dependencies": [
+      "lib/models/dashboard/dashboard_snapshot.dart"
+    ]
+  },
+  {
+    "file": "lib/repositories/dashboard/fake_dashboard_repository.dart",
+    "lines": 13,
+    "dependencies": [
+      "lib/models/dashboard/dashboard_snapshot.dart",
+      "lib/services/dashboard/fake_dashboard_service.dart",
+      "lib/repositories/dashboard/dashboard_repository.dart"
+    ]
+  },
+  {
+    "file": "lib/repositories/notification_repository.dart",
+    "lines": 55,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/academic/class_screens.dart",
+    "lines": 359,
+    "dependencies": [
+      "lib/app/app_navigation.dart",
+      "lib/models/academic/academic_presentation.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/theme/app_colors.dart",
+      "lib/viewmodels/academic/academic_form_view_model.dart",
+      "lib/viewmodels/academic/academic_view_model.dart",
+      "lib/viewmodels/academic/class_filter_view_model.dart",
+      "lib/widgets/app_academic_layout.dart",
+      "lib/widgets/app_badge.dart",
+      "lib/widgets/app_button.dart",
+      "lib/widgets/app_icon.dart",
+      "lib/widgets/app_card.dart",
+      "lib/widgets/app_states.dart",
+      "lib/screens/academic/widgets/class_overview.dart",
+      "lib/screens/academic/course_screens.dart",
+      "lib/screens/academic/widgets/academic_page.dart",
+      "lib/screens/academic/widgets/academic_form_sheet.dart",
+      "lib/screens/academic/widgets/class_filter_bar.dart",
+      "lib/screens/academic/widgets/class_card.dart",
+      "lib/screens/academic/widgets/group_summary_card.dart",
+      "lib/screens/academic/widgets/student_enrollment_sheet.dart",
+      "lib/screens/academic/widgets/class_review_preview.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/academic/course_screens.dart",
+    "lines": 315,
+    "dependencies": [
+      "lib/app/app_navigation.dart",
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/viewmodels/academic/academic_form_view_model.dart",
+      "lib/widgets/app_academic_layout.dart",
+      "lib/widgets/app_badge.dart",
+      "lib/widgets/app_button.dart",
+      "lib/widgets/app_card.dart",
+      "lib/widgets/app_disclosure.dart",
+      "lib/widgets/app_icon.dart",
+      "lib/widgets/app_states.dart",
+      "lib/screens/academic/widgets/academic_page.dart",
+      "lib/screens/academic/widgets/academic_form_sheet.dart",
+      "lib/screens/academic/widgets/rule_set_panel.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/academic/directory_screens.dart",
+    "lines": 336,
+    "dependencies": [
+      "lib/screens/management/widgets/management_shared.dart",
+      "lib/viewmodels/academic/directory_view_model.dart",
+      "lib/screens/academic/widgets/student_enrollment_sheet.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/academic/offering_detail_screen.dart",
+    "lines": 216,
+    "dependencies": [
+      "lib/app/app_navigation.dart",
+      "lib/models/academic/academic_models.dart",
+      "lib/viewmodels/academic/academic_form_view_model.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/theme/app_colors.dart",
+      "lib/widgets/app_academic_layout.dart",
+      "lib/widgets/app_card.dart",
+      "lib/widgets/app_badge.dart",
+      "lib/widgets/app_button.dart",
+      "lib/widgets/app_icon.dart",
+      "lib/widgets/app_states.dart",
+      "lib/screens/academic/course_screens.dart",
+      "lib/screens/academic/widgets/academic_page.dart",
+      "lib/screens/academic/widgets/academic_form_sheet.dart",
+      "lib/screens/academic/widgets/class_card.dart",
+      "lib/screens/academic/widgets/lab_editor.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/academic/widgets/academic_form_sheet.dart",
+    "lines": 415,
+    "dependencies": [
+      "lib/viewmodels/academic/academic_form_view_model.dart",
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/widgets/app_academic_layout.dart",
+      "lib/widgets/app_button.dart",
+      "lib/widgets/app_disclosure.dart",
+      "lib/models/academic/academic_presentation.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/academic/widgets/academic_page.dart",
+    "lines": 100,
+    "dependencies": [
+      "lib/app/app_navigation.dart",
+      "lib/models/academic/academic_models.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/viewmodels/academic/academic_view_model.dart",
+      "lib/widgets/mobile_header.dart",
+      "lib/widgets/app_bottom_navigation.dart",
+      "lib/widgets/app_states.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/academic/widgets/class_card.dart",
+    "lines": 247,
+    "dependencies": [
+      "lib/app/app_navigation.dart",
+      "lib/models/academic/academic_models.dart",
+      "lib/viewmodels/academic/academic_view_model.dart",
+      "lib/viewmodels/academic/academic_form_view_model.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/widgets/app_academic_layout.dart",
+      "lib/widgets/app_card.dart",
+      "lib/widgets/app_badge.dart",
+      "lib/widgets/app_button.dart",
+      "lib/widgets/app_icon.dart",
+      "lib/screens/academic/widgets/academic_page.dart",
+      "lib/screens/academic/widgets/academic_form_sheet.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/academic/widgets/class_filter_bar.dart",
+    "lines": 263,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart",
+      "lib/viewmodels/academic/class_filter_view_model.dart",
+      "lib/viewmodels/academic/academic_form_view_model.dart",
+      "lib/widgets/app_academic_layout.dart",
+      "lib/widgets/app_button.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_typography.dart",
+      "lib/widgets/app_icon.dart",
+      "lib/widgets/app_filter_controls.dart",
+      "lib/screens/academic/widgets/academic_form_sheet.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/academic/widgets/class_overview.dart",
+    "lines": 117,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart",
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/widgets/app_badge.dart",
+      "lib/widgets/app_card.dart",
+      "lib/widgets/app_states.dart",
+      "lib/widgets/stat_card.dart",
+      "lib/screens/academic/widgets/group_summary_card.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/academic/widgets/class_review_preview.dart",
+    "lines": 215,
+    "dependencies": [
+      "lib/app/app_navigation.dart",
+      "lib/models/academic/academic_models.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/widgets/app_card.dart",
+      "lib/widgets/app_badge.dart",
+      "lib/widgets/app_button.dart",
+      "lib/widgets/app_icon.dart",
+      "lib/models/academic/management_queries.dart",
+      "lib/models/academic/review_policy.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/academic/widgets/group_summary_card.dart",
+    "lines": 242,
+    "dependencies": [
+      "lib/app/app_navigation.dart",
+      "lib/models/academic/academic_models.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_typography.dart",
+      "lib/widgets/app_badge.dart",
+      "lib/widgets/app_card.dart",
+      "lib/widgets/app_button.dart",
+      "lib/widgets/app_meta_grid.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/widgets/app_disclosure.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/academic/widgets/lab_editor.dart",
+    "lines": 290,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart",
+      "lib/models/academic/academic_presentation.dart",
+      "lib/viewmodels/academic/academic_view_model.dart",
+      "lib/viewmodels/academic/academic_form_view_model.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/theme/app_colors.dart",
+      "lib/widgets/app_icon.dart",
+      "lib/widgets/app_academic_layout.dart",
+      "lib/widgets/app_card.dart",
+      "lib/widgets/app_badge.dart",
+      "lib/widgets/app_button.dart",
+      "lib/widgets/app_states.dart",
+      "lib/widgets/app_disclosure.dart",
+      "lib/screens/academic/widgets/academic_form_sheet.dart",
+      "lib/screens/academic/widgets/academic_page.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/academic/widgets/rule_set_panel.dart",
+    "lines": 247,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/viewmodels/academic/academic_view_model.dart",
+      "lib/viewmodels/academic/academic_form_view_model.dart",
+      "lib/widgets/app_academic_layout.dart",
+      "lib/widgets/app_badge.dart",
+      "lib/widgets/app_card.dart",
+      "lib/widgets/app_button.dart",
+      "lib/widgets/app_states.dart",
+      "lib/widgets/app_disclosure.dart",
+      "lib/screens/academic/widgets/academic_form_sheet.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/academic/widgets/student_enrollment_sheet.dart",
+    "lines": 202,
+    "dependencies": [
+      "lib/viewmodels/academic/academic_view_model.dart",
+      "lib/viewmodels/academic/student_enrollment_view_model.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/widgets/app_academic_layout.dart",
+      "lib/widgets/app_badge.dart",
+      "lib/widgets/app_button.dart",
+      "lib/screens/academic/widgets/academic_page.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/account/account_screens.dart",
+    "lines": 215,
+    "dependencies": [
+      "lib/screens/management/widgets/management_shared.dart",
+      "lib/app/session.dart",
+      "lib/repositories/notification_repository.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/account/login_screen.dart",
+    "lines": 285,
+    "dependencies": [
+      "lib/app/session.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/viewmodels/academic/academic_view_model.dart",
+      "lib/widgets/app_academic_layout.dart",
+      "lib/widgets/app_button.dart",
+      "lib/widgets/app_icon.dart",
+      "lib/widgets/app_badge.dart",
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_radius.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/dashboard/dashboard_screen.dart",
+    "lines": 87,
+    "dependencies": [
+      "lib/app/app_navigation.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/viewmodels/dashboard/dashboard_view_model.dart",
+      "lib/widgets/app_bottom_navigation.dart",
+      "lib/widgets/app_button.dart",
+      "lib/widgets/app_states.dart",
+      "lib/widgets/mobile_header.dart",
+      "lib/screens/dashboard/widgets/dashboard_heading.dart",
+      "lib/screens/dashboard/widgets/dashboard_stats.dart",
+      "lib/screens/dashboard/widgets/dashboard_tasks.dart",
+      "lib/screens/dashboard/widgets/dashboard_secondary_sections.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/dashboard/widgets/dashboard_heading.dart",
+    "lines": 85,
+    "dependencies": [
+      "lib/models/dashboard/dashboard_state.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/theme/app_colors.dart",
+      "lib/widgets/app_icon.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/dashboard/widgets/dashboard_review_row.dart",
+    "lines": 58,
+    "dependencies": [
+      "lib/models/dashboard/dashboard_snapshot.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/widgets/app_badge.dart",
+      "lib/widgets/app_icon.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/dashboard/widgets/dashboard_secondary_sections.dart",
+    "lines": 164,
+    "dependencies": [
+      "lib/models/dashboard/dashboard_state.dart",
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/widgets/app_badge.dart",
+      "lib/widgets/app_disclosure.dart",
+      "lib/widgets/app_icon.dart",
+      "lib/screens/dashboard/widgets/dashboard_review_row.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/dashboard/widgets/dashboard_stats.dart",
+    "lines": 47,
+    "dependencies": [
+      "lib/models/dashboard/dashboard_state.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/widgets/stat_card.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/dashboard/widgets/dashboard_tasks.dart",
+    "lines": 78,
+    "dependencies": [
+      "lib/models/dashboard/dashboard_snapshot.dart",
+      "lib/models/dashboard/dashboard_state.dart",
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/widgets/app_card.dart",
+      "lib/widgets/app_disclosure.dart",
+      "lib/widgets/app_icon.dart",
+      "lib/widgets/app_states.dart",
+      "lib/screens/dashboard/widgets/dashboard_review_row.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/demo_screen.dart",
+    "lines": 34,
+    "dependencies": [
+      "lib/viewmodels/counter_view_model.dart",
+      "lib/widgets/demo_counter_value.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/management/document_screens.dart",
+    "lines": 175,
+    "dependencies": [
+      "lib/screens/management/widgets/management_shared.dart",
+      "lib/screens/management/widgets/document_card.dart",
+      "lib/screens/management/widgets/management_filter_bar.dart",
+      "lib/viewmodels/academic/management_list_view_model.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/management/group_screens.dart",
+    "lines": 332,
+    "dependencies": [
+      "lib/screens/management/widgets/management_shared.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/management/project_registrations_screen.dart",
+    "lines": 144,
+    "dependencies": [
+      "lib/screens/management/widgets/management_shared.dart",
+      "lib/viewmodels/academic/management_list_view_model.dart",
+      "lib/viewmodels/academic/management_form_view_model.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/management/project_screens.dart",
+    "lines": 373,
+    "dependencies": [
+      "lib/screens/management/project_registrations_screen.dart",
+      "lib/screens/management/widgets/management_shared.dart",
+      "lib/screens/management/widgets/management_filter_bar.dart",
+      "lib/screens/management/widgets/document_card.dart",
+      "lib/viewmodels/academic/management_list_view_model.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/management/review_history_screens.dart",
+    "lines": 421,
+    "dependencies": [
+      "lib/screens/management/widgets/management_shared.dart",
+      "lib/screens/management/widgets/document_card.dart",
+      "lib/screens/management/widgets/sample_document_reader.dart",
+      "lib/screens/management/widgets/ai_review_panel.dart",
+      "lib/screens/management/widgets/management_filter_bar.dart",
+      "lib/viewmodels/academic/management_list_view_model.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/management/review_screens.dart",
+    "lines": 391,
+    "dependencies": [
+      "lib/screens/management/widgets/management_shared.dart",
+      "lib/screens/management/widgets/management_filter_bar.dart",
+      "lib/screens/management/widgets/document_card.dart",
+      "lib/screens/management/widgets/sample_document_reader.dart",
+      "lib/screens/management/widgets/ai_review_panel.dart",
+      "lib/screens/management/widgets/review_feedback.dart",
+      "lib/viewmodels/academic/management_list_view_model.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/management/widgets/ai_review_panel.dart",
+    "lines": 449,
+    "dependencies": [
+      "lib/screens/management/widgets/management_shared.dart",
+      "lib/viewmodels/academic/review_panel_view_model.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/management/widgets/document_card.dart",
+    "lines": 328,
+    "dependencies": [
+      "lib/widgets/app_status_tracks.dart",
+      "lib/widgets/app_status_tracks.dart",
+      "lib/screens/management/widgets/management_shared.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/management/widgets/management_filter_bar.dart",
+    "lines": 290,
+    "dependencies": [
+      "lib/screens/management/widgets/management_shared.dart",
+      "lib/viewmodels/academic/management_list_view_model.dart",
+      "lib/widgets/app_filter_controls.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/management/widgets/management_form_sheet.dart",
+    "lines": 138,
+    "dependencies": [
+      "lib/screens/management/widgets/project_form_fields.dart",
+      "lib/viewmodels/academic/academic_form_view_model.dart",
+      "lib/viewmodels/academic/management_form_view_model.dart",
+      "lib/models/academic/management_queries.dart",
+      "lib/widgets/app_academic_layout.dart",
+      "lib/widgets/app_button.dart",
+      "lib/widgets/app_states.dart",
+      "lib/widgets/app_card.dart",
+      "lib/widgets/app_meta_grid.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/theme/app_typography.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/screens/academic/widgets/academic_form_sheet.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/management/widgets/management_shared.dart",
+    "lines": 30,
+    "dependencies": [
+      "lib/app/app_navigation.dart",
+      "lib/models/academic/academic_models.dart",
+      "lib/models/academic/academic_presentation.dart",
+      "lib/models/academic/management_queries.dart",
+      "lib/models/academic/review_policy.dart",
+      "lib/viewmodels/academic/academic_view_model.dart",
+      "lib/viewmodels/academic/academic_form_view_model.dart",
+      "lib/viewmodels/academic/management_actions.dart",
+      "lib/viewmodels/academic/review_actions.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_typography.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/widgets/app_academic_layout.dart",
+      "lib/widgets/app_button.dart",
+      "lib/widgets/app_card.dart",
+      "lib/widgets/app_badge.dart",
+      "lib/widgets/app_states.dart",
+      "lib/widgets/app_icon.dart",
+      "lib/widgets/app_disclosure.dart",
+      "lib/widgets/app_meta_grid.dart",
+      "lib/screens/academic/widgets/academic_page.dart",
+      "lib/screens/academic/course_screens.dart",
+      "lib/screens/academic/widgets/academic_form_sheet.dart",
+      "lib/screens/academic/widgets/group_summary_card.dart",
+      "lib/screens/academic/widgets/class_review_preview.dart",
+      "lib/screens/management/widgets/management_form_sheet.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/management/widgets/project_form_fields.dart",
+    "lines": 76,
+    "dependencies": [
+      "lib/screens/management/widgets/management_shared.dart",
+      "lib/viewmodels/academic/management_form_view_model.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/management/widgets/review_feedback.dart",
+    "lines": 143,
+    "dependencies": [
+      "lib/screens/management/widgets/management_shared.dart",
+      "lib/viewmodels/academic/management_form_view_model.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/management/widgets/sample_document_reader.dart",
+    "lines": 412,
+    "dependencies": [
+      "lib/screens/management/widgets/management_shared.dart",
+      "lib/viewmodels/academic/document_reader_view_model.dart"
+    ]
+  },
+  {
+    "file": "lib/screens/navigation_destination_screen.dart",
+    "lines": 58,
+    "dependencies": [
+      "lib/app/app_navigation.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/widgets/app_bottom_navigation.dart",
+      "lib/widgets/app_button.dart",
+      "lib/widgets/app_states.dart",
+      "lib/widgets/mobile_header.dart"
+    ]
+  },
+  {
+    "file": "lib/services/academic/fake_academic_service.dart",
+    "lines": 43,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart"
+    ]
+  },
+  {
+    "file": "lib/services/academic/student_import_service.dart",
+    "lines": 30,
+    "dependencies": [
+      "lib/repositories/academic/student_device_gateway.dart"
+    ]
+  },
+  {
+    "file": "lib/services/dashboard/fake_dashboard_service.dart",
+    "lines": 16,
+    "dependencies": []
+  },
+  {
+    "file": "lib/services/demo_counter_service.dart",
+    "lines": 8,
+    "dependencies": []
+  },
+  {
+    "file": "lib/theme/app_colors.dart",
+    "lines": 25,
+    "dependencies": []
+  },
+  {
+    "file": "lib/theme/app_metrics.dart",
+    "lines": 36,
+    "dependencies": []
+  },
+  {
+    "file": "lib/theme/app_radius.dart",
+    "lines": 9,
+    "dependencies": []
+  },
+  {
+    "file": "lib/theme/app_shadows.dart",
+    "lines": 28,
+    "dependencies": [
+      "lib/theme/app_colors.dart"
+    ]
+  },
+  {
+    "file": "lib/theme/app_spacing.dart",
+    "lines": 14,
+    "dependencies": []
+  },
+  {
+    "file": "lib/theme/app_theme.dart",
+    "lines": 136,
+    "dependencies": [
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_radius.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart"
+    ]
+  },
+  {
+    "file": "lib/theme/app_typography.dart",
+    "lines": 90,
+    "dependencies": [
+      "lib/theme/app_colors.dart"
+    ]
+  },
+  {
+    "file": "lib/viewmodels/academic/academic_form_view_model.dart",
+    "lines": 793,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart",
+      "lib/models/academic/academic_policy.dart",
+      "lib/viewmodels/academic/academic_view_model.dart"
+    ]
+  },
+  {
+    "file": "lib/viewmodels/academic/academic_view_model.dart",
+    "lines": 471,
+    "dependencies": [
+      "lib/app/providers.dart",
+      "lib/models/academic/academic_models.dart",
+      "lib/models/academic/academic_policy.dart",
+      "lib/viewmodels/dashboard/dashboard_view_model.dart",
+      "lib/viewmodels/academic/management_actions.dart"
+    ]
+  },
+  {
+    "file": "lib/viewmodels/academic/class_filter_view_model.dart",
+    "lines": 65,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart",
+      "lib/viewmodels/academic/academic_view_model.dart"
+    ]
+  },
+  {
+    "file": "lib/viewmodels/academic/directory_view_model.dart",
+    "lines": 134,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart",
+      "lib/viewmodels/academic/academic_view_model.dart"
+    ]
+  },
+  {
+    "file": "lib/viewmodels/academic/document_reader_view_model.dart",
+    "lines": 30,
+    "dependencies": []
+  },
+  {
+    "file": "lib/viewmodels/academic/management_actions.dart",
+    "lines": 325,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart",
+      "lib/models/academic/management_queries.dart",
+      "lib/viewmodels/academic/academic_view_model.dart"
+    ]
+  },
+  {
+    "file": "lib/viewmodels/academic/management_form_view_model.dart",
+    "lines": 539,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart",
+      "lib/models/academic/management_queries.dart",
+      "lib/models/academic/academic_presentation.dart",
+      "lib/viewmodels/academic/academic_form_view_model.dart",
+      "lib/viewmodels/academic/academic_view_model.dart",
+      "lib/viewmodels/academic/management_actions.dart",
+      "lib/viewmodels/academic/review_actions.dart",
+      "lib/viewmodels/academic/directory_view_model.dart"
+    ]
+  },
+  {
+    "file": "lib/viewmodels/academic/management_list_view_model.dart",
+    "lines": 575,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart",
+      "lib/models/academic/management_queries.dart",
+      "lib/models/academic/review_policy.dart",
+      "lib/viewmodels/academic/academic_view_model.dart"
+    ]
+  },
+  {
+    "file": "lib/viewmodels/academic/review_actions.dart",
+    "lines": 411,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart",
+      "lib/models/academic/management_queries.dart",
+      "lib/models/academic/review_policy.dart",
+      "lib/models/academic/academic_policy.dart",
+      "lib/viewmodels/academic/academic_view_model.dart",
+      "lib/viewmodels/academic/management_actions.dart"
+    ]
+  },
+  {
+    "file": "lib/viewmodels/academic/review_panel_view_model.dart",
+    "lines": 97,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart",
+      "lib/viewmodels/academic/academic_view_model.dart",
+      "lib/viewmodels/academic/review_actions.dart"
+    ]
+  },
+  {
+    "file": "lib/viewmodels/academic/student_enrollment_view_model.dart",
+    "lines": 194,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart",
+      "lib/app/providers.dart",
+      "lib/viewmodels/academic/academic_view_model.dart"
+    ]
+  },
+  {
+    "file": "lib/viewmodels/counter_view_model.dart",
+    "lines": 18,
+    "dependencies": [
+      "lib/app/providers.dart",
+      "lib/models/counter_state.dart"
+    ]
+  },
+  {
+    "file": "lib/viewmodels/dashboard/dashboard_view_model.dart",
+    "lines": 98,
+    "dependencies": [
+      "lib/app/providers.dart",
+      "lib/models/dashboard/dashboard_snapshot.dart",
+      "lib/models/dashboard/dashboard_state.dart"
+    ]
+  },
+  {
+    "file": "lib/widgets/app_academic_layout.dart",
+    "lines": 345,
+    "dependencies": [
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/widgets/app_icon.dart",
+      "lib/widgets/app_button.dart"
+    ]
+  },
+  {
+    "file": "lib/widgets/app_badge.dart",
+    "lines": 52,
+    "dependencies": [
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart"
+    ]
+  },
+  {
+    "file": "lib/widgets/app_bottom_navigation.dart",
+    "lines": 126,
+    "dependencies": [
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/theme/app_radius.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/widgets/app_icon.dart"
+    ]
+  },
+  {
+    "file": "lib/widgets/app_button.dart",
+    "lines": 144,
+    "dependencies": [
+      "lib/theme/app_metrics.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_colors.dart"
+    ]
+  },
+  {
+    "file": "lib/widgets/app_card.dart",
+    "lines": 32,
+    "dependencies": [
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/theme/app_radius.dart",
+      "lib/theme/app_spacing.dart"
+    ]
+  },
+  {
+    "file": "lib/widgets/app_disclosure.dart",
+    "lines": 119,
+    "dependencies": [
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/widgets/app_icon.dart"
+    ]
+  },
+  {
+    "file": "lib/widgets/app_filter_controls.dart",
+    "lines": 95,
+    "dependencies": [
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/widgets/app_icon.dart"
+    ]
+  },
+  {
+    "file": "lib/widgets/app_icon.dart",
+    "lines": 28,
+    "dependencies": [
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_metrics.dart"
+    ]
+  },
+  {
+    "file": "lib/widgets/app_meta_grid.dart",
+    "lines": 97,
+    "dependencies": [
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/theme/app_colors.dart"
+    ]
+  },
+  {
+    "file": "lib/widgets/app_states.dart",
+    "lines": 151,
+    "dependencies": [
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/theme/app_radius.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/widgets/app_button.dart",
+      "lib/widgets/app_icon.dart"
+    ]
+  },
+  {
+    "file": "lib/widgets/app_status_tracks.dart",
+    "lines": 85,
+    "dependencies": [
+      "lib/models/academic/academic_models.dart",
+      "lib/models/academic/review_policy.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/widgets/app_badge.dart"
+    ]
+  },
+  {
+    "file": "lib/widgets/demo_counter_value.dart",
+    "lines": 12,
+    "dependencies": []
+  },
+  {
+    "file": "lib/widgets/mobile_header.dart",
+    "lines": 72,
+    "dependencies": [
+      "lib/theme/app_colors.dart",
+      "lib/theme/app_metrics.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/widgets/app_icon.dart"
+    ]
+  },
+  {
+    "file": "lib/widgets/stat_card.dart",
+    "lines": 30,
+    "dependencies": [
+      "lib/theme/app_metrics.dart",
+      "lib/theme/app_spacing.dart",
+      "lib/theme/app_typography.dart",
+      "lib/widgets/app_card.dart"
+    ]
+  }
+]

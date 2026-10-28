@@ -1,0 +1,132 @@
+[
+  {
+    "text": "SE1701 / Group 01",
+    "box": {
+      "x": 12,
+      "y": 69,
+      "width": 160.296875,
+      "height": 48,
+      "top": 69,
+      "right": 172.296875,
+      "bottom": 117,
+      "left": 12
+    }
+  },
+  {
+    "text": "Smart Campus Management",
+    "box": {
+      "x": 20,
+      "y": 161.296875,
+      "width": 260,
+      "height": 61.34375,
+      "top": 161.296875,
+      "right": 280,
+      "bottom": 222.640625,
+      "left": 20
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 292,
+      "y": 161.296875,
+      "width": 48,
+      "height": 48,
+      "top": 161.296875,
+      "right": 340,
+      "bottom": 209.296875,
+      "left": 292
+    }
+  },
+  {
+    "text": "Tổng quan\nTài liệu\nThành viên\nLịch sử đánh giá\nThông tin",
+    "box": {
+      "x": 20,
+      "y": 458.828125,
+      "width": 320,
+      "height": 79.890625,
+      "top": 458.828125,
+      "right": 340,
+      "bottom": 538.71875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Tổng quan",
+    "box": {
+      "x": 20,
+      "y": 458.828125,
+      "width": 60.796875,
+      "height": 78.890625,
+      "top": 458.828125,
+      "right": 80.796875,
+      "bottom": 537.71875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Tài liệu",
+    "box": {
+      "x": 84.796875,
+      "y": 458.828125,
+      "width": 60.8125,
+      "height": 78.890625,
+      "top": 458.828125,
+      "right": 145.609375,
+      "bottom": 537.71875,
+      "left": 84.796875
+    }
+  },
+  {
+    "text": "Thành viên",
+    "box": {
+      "x": 149.609375,
+      "y": 458.828125,
+      "width": 60.796875,
+      "height": 78.890625,
+      "top": 458.828125,
+      "right": 210.40625,
+      "bottom": 537.71875,
+      "left": 149.609375
+    }
+  },
+  {
+    "text": "Lịch sử đánh giá",
+    "box": {
+      "x": 214.40625,
+      "y": 458.828125,
+      "width": 60.796875,
+      "height": 78.890625,
+      "top": 458.828125,
+      "right": 275.203125,
+      "bottom": 537.71875,
+      "left": 214.40625
+    }
+  },
+  {
+    "text": "Thông tin",
+    "box": {
+      "x": 279.203125,
+      "y": 458.828125,
+      "width": 60.796875,
+      "height": 78.890625,
+      "top": 458.828125,
+      "right": 340,
+      "bottom": 537.71875,
+      "left": 279.203125
+    }
+  },
+  {
+    "text": "Lịch sử đánh giá\n6 sự kiện\nSequence Diagram v2\nUse Case Diagram v3\nActivity Diagram v2\nState Diagram v1\n\n14/09/2026 · 10:32\n\nNguyễn Minh Anh đã tải lên v3.\n\nSin",
+    "box": {
+      "x": 20,
+      "y": 554.71875,
+      "width": 320,
+      "height": 798.328125,
+      "top": 554.71875,
+      "right": 340,
+      "bottom": 1353.046875,
+      "left": 20
+    }
+  }
+]

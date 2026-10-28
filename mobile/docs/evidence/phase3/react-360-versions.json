@@ -1,0 +1,93 @@
+[
+  {
+    "text": "Không gian đánh giá",
+    "box": {
+      "x": 12,
+      "y": 69,
+      "width": 178.984375,
+      "height": 48,
+      "top": 69,
+      "right": 190.984375,
+      "bottom": 117,
+      "left": 12
+    }
+  },
+  {
+    "text": "Lịch sử phiên bản",
+    "box": {
+      "x": 20,
+      "y": 133,
+      "width": 220.59375,
+      "height": 30.671875,
+      "top": 133,
+      "right": 240.59375,
+      "bottom": 163.671875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Các phiên bản\n2 phiên bản\nv2\nPhiên bản mới nhất\nBất biến\nuse-case-diagram-v2.pdf\nNgười nộp\nNguyễn Minh Anh\nNgày nộp\n03/10/2026 · 08:15\nTài liệu\nĐã nộp lại\nĐánh ",
+    "box": {
+      "x": 20,
+      "y": 564.875,
+      "width": 320,
+      "height": 781.453125,
+      "top": 564.875,
+      "right": 340,
+      "bottom": 1346.328125,
+      "left": 20
+    }
+  },
+  {
+    "text": "Xem phiên bản",
+    "box": {
+      "x": 29,
+      "y": 883.53125,
+      "width": 114.390625,
+      "height": 56.59375,
+      "top": 883.53125,
+      "right": 143.390625,
+      "bottom": 940.125,
+      "left": 29
+    }
+  },
+  {
+    "text": "So sánh với phiên bản trước",
+    "box": {
+      "x": 159.390625,
+      "y": 883.53125,
+      "width": 171.609375,
+      "height": 56.59375,
+      "top": 883.53125,
+      "right": 331,
+      "bottom": 940.125,
+      "left": 159.390625
+    }
+  },
+  {
+    "text": "Xem phiên bản",
+    "box": {
+      "x": 29,
+      "y": 1289.328125,
+      "width": 134.78125,
+      "height": 48,
+      "top": 1289.328125,
+      "right": 163.78125,
+      "bottom": 1337.328125,
+      "left": 29
+    }
+  },
+  {
+    "text": "So sánh thông tin phiên bản\nv1\n\nuse-case-diagram-v1.pdf\n\n30/09/2026 · 10:05\n\nNguyễn Minh Anh\n\nv2\n\nuse-case-diagram-v2.pdf\n\n03/10/2026 · 08:15\n\nNguyễn Minh Anh",
+    "box": {
+      "x": 20,
+      "y": 1362.328125,
+      "width": 320,
+      "height": 298.46875,
+      "top": 1362.328125,
+      "right": 340,
+      "bottom": 1660.796875,
+      "left": 20
+    }
+  }
+]

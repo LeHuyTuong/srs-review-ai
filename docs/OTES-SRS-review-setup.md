@@ -21,7 +21,7 @@ Therefore an OTES-specific review cannot be truthfully completed from this check
 - `README.md`: product scope, architecture, SEP490 claims, quickstart, limitations.
 - `docs/roadmap.md`: current implementation status and remaining demo work.
 - `docs/adr/0001-architecture.md` through `0004-model-selection.md`: architecture, model, parser/licence and contract decisions.
-- Flutter source under `app/lib`, Python proxy under `server/app`, shared contracts and tests.
+- Flutter source under `desktop/lib`, Python proxy under `server/app`, shared contracts and tests.
 
 ### Sample SRS text actually extracted
 
@@ -41,9 +41,9 @@ This sample is intentionally useful as a parser fixture, but it is not evidence 
 
 ## 3. What is already implemented and verified
 
-- Client-side PDF/DOCX parsing and requirement splitting: `app/lib/data/services/parse_service.dart`, `app/lib/data/parsing/requirement_splitter.dart`.
-- Deterministic F7/F8/F9 checks: `app/lib/data/checks/syllabus_checks.dart`.
-- Configurable rubric data: `server/app/rubric.json` and `app/lib/data/checks/rubric_config.dart`.
+- Client-side PDF/DOCX parsing and requirement splitting: `desktop/lib/data/services/parse_service.dart`, `desktop/lib/data/parsing/requirement_splitter.dart`.
+- Deterministic F7/F8/F9 checks: `desktop/lib/data/checks/syllabus_checks.dart`.
+- Configurable rubric data: `server/app/rubric.json` and `desktop/lib/data/checks/rubric_config.dart`.
 - FastAPI review/ask endpoints, cache, quota, app token and quote verification: `server/app/main.py`, `server/app/verify.py`.
 - Shared Python/Dart wire contract: `contracts/review.schema.json`, `contracts/fixtures`, and contract tests.
 - Offline/mock mode and user-facing empty/document/review states.

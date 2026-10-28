@@ -1,0 +1,3296 @@
+--- a/lib/main.dart
++++ b/lib/main.dart
+@@ -3,6 +3,7 @@
+ 
+ import 'app/app.dart';
+ 
++// Khởi tạo phạm vi Riverpod cho toàn bộ ứng dụng trước khi dựng màn hình đầu tiên.
+ void main() {
+   runApp(const ProviderScope(child: SrsReviewApp()));
+ }
+--- a/lib/app/app_navigation.dart
++++ b/lib/app/app_navigation.dart
+@@ -1,6 +1,6 @@
+ import 'package:flutter/material.dart';
+ 
+-/// Giới hạn chuyển trang tại app; Tổng quan được giữ trong stack để khôi phục bộ lọc.
++// Điều hướng trong ứng dụng; giữ Tổng quan trong ngăn xếp để khôi phục bộ lọc.
+ abstract final class AppNavigation {
+   static void open(BuildContext context, String path) {
+     if (path == '/dashboard') {
+--- a/lib/app/app.dart
++++ b/lib/app/app.dart
+@@ -20,12 +20,13 @@
+ import '../screens/account/account_screens.dart';
+ import '../screens/academic/directory_screens.dart';
+ 
+-/// Điểm vào Supervisor; router native nối Dashboard và các màn học vụ đã chuyển.
++// Điểm vào ứng dụng Supervisor; điều hướng Flutter nối Tổng quan với các màn học vụ.
+ class SrsReviewApp extends ConsumerWidget {
+   const SrsReviewApp({super.key});
+ 
+   @override
+   Widget build(BuildContext context, WidgetRef ref) => MaterialApp(
++    // Tạo lại cây điều hướng khi phiên đổi để không giữ màn hình của lần đăng nhập trước.
+     key: ValueKey(ref.watch(sessionProvider)),
+     title: 'SRS Đánh giá AI',
+     debugShowCheckedModeBanner: false,
+@@ -36,6 +37,7 @@
+     home: const DashboardScreen(),
+     builder: (context, child) {
+       final session = ref.watch(sessionProvider);
++      // Chưa có phiên Supervisor thì chỉ dựng màn đăng nhập, kể cả khi mở đường dẫn trực tiếp.
+       if (session?.isSupervisor != true) {
+         return Navigator(
+           key: const ValueKey('signed-out'),
+--- a/lib/app/providers.dart
++++ b/lib/app/providers.dart
+@@ -14,7 +14,7 @@
+ import '../services/academic/student_import_service.dart';
+ import 'session.dart';
+ 
+-// Điểm ghép phụ thuộc: View/ViewModel không tự tạo nguồn dữ liệu cụ thể.
++// Nơi cung cấp các phụ thuộc: giao diện và ViewModel không tự tạo nguồn dữ liệu cụ thể.
+ final demoCounterServiceProvider = Provider<DemoCounterService>(
+   (ref) => DemoCounterService(),
+ );
+@@ -23,6 +23,7 @@
+   (ref) => DemoCounterRepository(ref.watch(demoCounterServiceProvider)),
+ );
+ 
++// Tổng quan đọc cùng Repository học vụ để thống kê phản ánh các thay đổi đã lưu.
+ final dashboardServiceProvider = Provider<FakeDashboardService>((ref) {
+   final repository = ref.watch(academicRepositoryProvider);
+   return FakeDashboardService(
+@@ -35,13 +36,15 @@
+   (ref) => FakeDashboardRepository(ref.watch(dashboardServiceProvider)),
+ );
+ 
+-// Shared fake server store. Only committed domain data survives a session.
++// Kho mô phỏng dùng chung giữ dữ liệu đã lưu khi phiên đăng nhập kết thúc.
+ final academicServiceProvider = Provider<FakeAcademicService>(
+   (ref) => FakeAcademicService(rootBundle),
+ );
++// Tách thao tác chọn tệp và sao chép khỏi ViewModel để thay thế được khi kiểm thử.
+ final studentImportServiceProvider = Provider<StudentDeviceGateway>(
+   (ref) => StudentImportService(),
+ );
++// Tạo Repository theo phạm vi phiên hiện tại, còn kho dữ liệu mô phỏng được dùng chung.
+ final academicRepositoryProvider = Provider<AcademicRepository>(
+   (ref) => FakeAcademicRepository(
+     ref.watch(academicServiceProvider),
+--- a/lib/app/session.dart
++++ b/lib/app/session.dart
+@@ -2,8 +2,8 @@
+ 
+ import '../models/session_scope.dart';
+ 
+-/// Temporary demo session, replaced by Google Sign-In during Firebase integration.
+-/// Incoming/restored role values are untrusted; Mobile admits Supervisor only.
++// Phiên đăng nhập mô phỏng, dự kiến thay bằng Google Sign-In khi tích hợp Firebase.
++// Chỉ nhận vai trò Supervisor, kể cả khi khôi phục phiên từ dữ liệu bên ngoài.
+ class AppSession {
+   const AppSession(
+     this.role, {
+@@ -16,11 +16,14 @@
+   bool get isSupervisor => role == 'supervisor';
+ }
+ 
++// Cung cấp phiên khởi tạo để kiểm thử hoặc khôi phục; ViewModel vẫn kiểm tra vai trò.
+ final initialSessionProvider = Provider<AppSession?>((ref) => null);
++// Phát thay đổi đăng nhập để các provider phụ thuộc được tạo lại theo phiên.
+ final sessionProvider = NotifierProvider<SessionViewModel, AppSession?>(
+   SessionViewModel.new,
+ );
+ 
++// Đóng phạm vi cũ khi phiên thay đổi hoặc provider bị hủy để thu hồi tác vụ còn chờ.
+ final sessionScopeProvider = Provider<SessionScope>((ref) {
+   ref.watch(sessionProvider);
+   final scope = ref.read(sessionProvider.notifier).scope;
+@@ -28,18 +31,21 @@
+   return scope;
+ });
+ 
++// Quản lý đăng nhập mô phỏng và thu hồi quyền thao tác của phiên trước.
+ class SessionViewModel extends Notifier<AppSession?> {
+   SessionScope scope = SessionScope(null);
+   int _generation = 0;
+   @override
+   AppSession? build() {
+     final initial = ref.read(initialSessionProvider);
++    // Phiên khởi tạo khác Supervisor được xem là chưa đăng nhập.
+     final valid = initial?.isSupervisor == true ? initial : null;
+     scope = SessionScope(valid?.userId);
+     ref.onDispose(() => scope.close());
+     return valid;
+   }
+ 
++  // Chỉ chấp nhận Supervisor có đủ thông tin; đây chưa phải bước xác thực tài khoản thật.
+   void signIn(String role, String email, String password) {
+     if (role != 'supervisor') {
+       throw const FormatException('Ứng dụng Mobile chỉ dành cho giảng viên.');
+@@ -47,6 +53,7 @@
+     if (email.trim().isEmpty || password.isEmpty) {
+       throw const FormatException('Vui lòng nhập email và mật khẩu.');
+     }
++    // Đóng phiên trước rồi tạo phạm vi mới, kể cả khi đăng nhập lại cùng email.
+     scope.close();
+     scope = SessionScope('mock:${email.trim().toLowerCase()}');
+     state = AppSession(
+@@ -57,7 +64,7 @@
+   }
+ 
+   void signOut() {
+-    // Revoke synchronously; pending work must fail even before the next frame.
++    // Thu hồi phiên ngay để tác vụ đang chờ không tiếp tục ghi sau khi đăng xuất.
+     if (state == null) return;
+     scope.close();
+     scope = SessionScope(null);
+--- a/lib/models/counter_state.dart
++++ b/lib/models/counter_state.dart
+@@ -1,4 +1,4 @@
+-/// State bất biến của demo foundation, không đại diện dữ liệu nghiệp vụ SRS.
++// Trạng thái bất biến của ví dụ nền tảng, không đại diện dữ liệu nghiệp vụ SRS.
+ class CounterState {
+   const CounterState({this.count = 0});
+ 
+--- a/lib/models/session_scope.dart
++++ b/lib/models/session_scope.dart
+@@ -1,12 +1,13 @@
+ import 'academic/academic_models.dart';
+ 
+-/// A revocable client-operation lifetime, distinct from durable shared data.
++// Giới hạn thời gian hợp lệ của thao tác theo phiên; đóng phiên không xóa dữ liệu chung.
+ class SessionScope {
+   SessionScope(this.userId);
+   final String? userId;
+   bool _active = true;
+   bool get active => _active;
+   void close() => _active = false;
++  // Tác vụ phải kiểm tra lại sau khi chờ dữ liệu để không ghi bằng phiên đã bị thu hồi.
+   void requireActive() {
+     if (!_active) {
+       throw const AcademicFailure(
+--- a/lib/models/academic/academic_models.dart
++++ b/lib/models/academic/academic_models.dart
+@@ -5,6 +5,7 @@
+ 
+ typedef AcademicJson = Map<String, dynamic>;
+ 
++// Khóa cả Map và List lồng nhau để việc sửa bản nháp không làm đổi dữ liệu đang được chia sẻ.
+ dynamic _freeze(dynamic value) {
+   if (value is Map) {
+     return Map<String, dynamic>.unmodifiable(
+@@ -15,7 +16,7 @@
+   return value;
+ }
+ 
+-/// Bản ghi bất biến; giữ các trường chưa chuyển để không làm mất cấu hình/lịch sử.
++// Bản ghi bất biến; giữ các trường chưa chuyển để không làm mất cấu hình/lịch sử.
+ class AcademicRecord {
+   AcademicRecord(AcademicJson json) : data = _freeze(json) as AcademicJson;
+   final AcademicJson data;
+@@ -29,17 +30,18 @@
+   List<String> strings(String key) => values(key).cast<String>();
+   String get id => text('id');
+   String get name => text('name');
++  // Trả bản sao sâu có thể sửa để lệnh cập nhật không tác động trực tiếp vào bản ghi bất biến.
+   AcademicJson toJson() => jsonDecode(jsonEncode(data)) as AcademicJson;
+ }
+ 
+-/// Môn học gốc được dùng xuyên học kỳ, không chứa cấu hình đợt học.
++// Môn học gốc được dùng xuyên học kỳ, không chứa cấu hình đợt học.
+ class Course extends AcademicRecord {
+   Course(super.json);
+   String get code => text('code');
+   String get description => text('description');
+ }
+ 
+-/// Học kỳ dùng ngày ISO để xác định lựa chọn tạo lớp theo đồng hồ fixture.
++// Học kỳ dùng ngày ISO để xác định lựa chọn tạo lớp theo đồng hồ fixture.
+ class AcademicSemester extends AcademicRecord {
+   AcademicSemester(super.json);
+   String get startDate => text('startDate');
+@@ -47,7 +49,7 @@
+   bool get archived => flag('archived');
+ }
+ 
+-/// Đợt môn học sở hữu bản cấu trúc Lab riêng của một Course trong một học kỳ.
++// Đợt môn học sở hữu bản cấu trúc Lab riêng của một Course trong một học kỳ.
+ class CourseOffering extends AcademicRecord {
+   CourseOffering(super.json);
+   String get courseId => text('courseId');
+@@ -61,7 +63,7 @@
+           .toList(growable: false);
+ }
+ 
+-/// Lớp lưu override độc lập; null kế thừa khác với một danh sách Lab rỗng có chủ ý.
++// Lớp giữ cấu hình riêng độc lập; null nghĩa là kế thừa, khác danh sách Lab rỗng có chủ ý.
+ class ClassRoom extends AcademicRecord {
+   ClassRoom(super.json);
+   String get code => text('code');
+@@ -75,6 +77,7 @@
+   int get studentCount => integer('studentCount');
+   int get projectCount => integer('projectCount');
+   int get pendingReviews => integer('pendingReviews');
++  // Dữ liệu cũ thiếu giới hạn nhóm hợp lệ sẽ dùng mặc định 5 thành viên.
+   int get memberLimit {
+     final value = data['maxGroupMembers'];
+     return value is int && value > 0 ? value : 5;
+@@ -94,14 +97,14 @@
+       : null;
+ }
+ 
+-/// Một tiêu chí giữ đủ cờ AI/bằng chứng; điểm đề xuất không phải quyền phê duyệt.
++// Một tiêu chí giữ đủ cờ AI/bằng chứng; điểm đề xuất không phải quyền phê duyệt.
+ class RubricCriterion extends AcademicRecord {
+   RubricCriterion(super.json);
+   num get maxScore => data['maxScore'] as num? ?? 0;
+   bool get enabled => flag('enabled');
+ }
+ 
+-/// Rule Set dùng chung, được gắn vào Course qua đợt/lớp/mục, không tự đổi ownership.
++// Rule Set dùng chung được gắn vào Course qua đợt, lớp hoặc mục tài liệu; không tự đổi nơi sở hữu.
+ class RuleSet extends AcademicRecord {
+   RuleSet(super.json);
+   int get version => integer('version', 1);
+@@ -119,7 +122,7 @@
+       .fold<num>(0, (sum, c) => sum + c.maxScore);
+ }
+ 
+-/// Lab và mục tài liệu giữ ID phụ thuộc; nhân bản phải đổi ID và ánh xạ lại cạnh.
++// Lab và mục tài liệu giữ ID phụ thuộc; nhân bản phải đổi ID và ánh xạ lại cạnh.
+ class AcademicLab extends AcademicRecord {
+   AcademicLab(super.json);
+   String get code => text('code');
+@@ -130,7 +133,7 @@
+           .toList(growable: false);
+ }
+ 
+-/// Cấu hình cụ thể nhất của tài liệu, ưu tiên trước cấu hình lớp/đợt.
++// Cấu hình cụ thể nhất của tài liệu, ưu tiên trước cấu hình lớp/đợt.
+ class LabItem extends AcademicRecord {
+   LabItem(super.json);
+   String get code => text('code');
+@@ -139,7 +142,7 @@
+   List<String> get dependencies => strings('dependsOn');
+ }
+ 
+-/// Nhóm chỉ chứa sinh viên của lớp; giới hạn lấy động từ cấu hình Class.
++// Nhóm chỉ chứa sinh viên của lớp; giới hạn lấy động từ cấu hình Class.
+ class StudentGroup extends AcademicRecord {
+   StudentGroup(super.json);
+   String get classId => text('classId');
+@@ -147,7 +150,7 @@
+   String get projectId => text('projectId');
+ }
+ 
+-/// Sinh viên có thể ghi danh nhiều lớp; classId cũ vẫn được bảo toàn khi đọc fixture.
++// Sinh viên có thể ghi danh nhiều lớp; vẫn đọc classId để tương thích dữ liệu mẫu cũ.
+ class AcademicStudent extends AcademicRecord {
+   AcademicStudent(super.json);
+   String get studentCode => text('studentCode');
+@@ -156,7 +159,7 @@
+       strings('enrolledClassIds').contains(classId);
+ }
+ 
+-/// Snapshot liên kết học vụ và lịch sử chỉ đọc, dùng chung giữa sáu route phase 2.
++// Bản chụp bất biến liên kết dữ liệu học vụ và lịch sử, dùng chung giữa các màn hình.
+ class AcademicSnapshot extends AcademicRecord {
+   AcademicSnapshot(super.json);
+   int get revision => integer('revision');
+@@ -203,6 +206,7 @@
+       semesters.where((v) => v.id == id).firstOrNull;
+   List<CourseOffering> courseOfferings(String id) =>
+       offerings.where((v) => v.courseId == id).toList();
++  // Nhận lớp qua offeringId hoặc cặp môn, học kỳ để tương thích dữ liệu liên kết cũ.
+   List<ClassRoom> offeringClasses(CourseOffering off) => classes
+       .where(
+         (v) =>
+@@ -214,6 +218,7 @@
+       groups.where((v) => v.classId == id).toList();
+   List<AcademicStudent> classStudents(String id) =>
+       students.where((v) => v.belongsTo(id)).toList();
++  // Dự án đã có nhóm lấy phạm vi qua nhóm; chỉ dự án chưa gắn nhóm mới dùng classId trực tiếp.
+   List<AcademicRecord> classProjects(String id) {
+     final groupIds = classGroups(id).map((g) => g.id).toSet();
+     return records('projects')
+@@ -225,7 +230,7 @@
+         .toList();
+   }
+ 
+-  /// Cần chỉnh sửa đã là một quyết định của lượt đánh giá, không còn ở tập đang mở.
++  // Cần chỉnh sửa đã là một quyết định của lượt đánh giá, không còn ở tập đang mở.
+   List<AcademicRecord> classReviews(ClassRoom cls) =>
+       ((data['reviewState'] as AcademicJson)['requests'] as List)
+           .map((v) => AcademicRecord(v as AcademicJson))
+@@ -239,8 +244,10 @@
+                 ].contains(r.text('supervisorStatus')),
+           )
+           .toList();
++  // Cấu trúc riêng của lớp được ưu tiên, kể cả danh sách rỗng; chỉ null mới kế thừa từ đợt.
+   List<AcademicLab> effectiveLabs(ClassRoom cls) =>
+       cls.labOverride ?? offering(cls.offeringId)?.labs ?? [];
++  // Ưu tiên Rule Set ở mục tài liệu, rồi lớp, cuối cùng là mặc định của đợt học.
+   RuleSet? effectiveRule(ClassRoom cls, [LabItem? item]) => rule(
+     item?.ruleSetId.isNotEmpty == true
+         ? item!.ruleSetId
+@@ -248,6 +255,7 @@
+         ? cls.ruleOverride
+         : offering(cls.offeringId)?.ruleSetId ?? '',
+   );
++  // Gom Rule Set từ đợt, lớp và từng mục tài liệu; tập ID loại trùng và bỏ lựa chọn rỗng.
+   Set<String> courseRuleIds(String courseId) {
+     final offs = courseOfferings(courseId);
+     final offIds = offs.map((o) => o.id).toSet();
+@@ -271,7 +279,7 @@
+   AcademicSnapshot replaceCollection(String key, List<AcademicJson> rows) =>
+       AcademicSnapshot({...toJson(), key: rows});
+ 
+-  /// Đồng bộ số liệu Dashboard từ cùng kho fake, không giữ một bản học vụ tách rời.
++  // Tổng quan lấy số liệu từ cùng kho học vụ mô phỏng để phản ánh dữ liệu đã lưu.
+   AcademicJson get dashboardJson {
+     final result = AcademicRecord(data['dashboard'] as AcademicJson).toJson();
+     for (final key in [
+@@ -335,7 +343,7 @@
+   }
+ }
+ 
+-/// Thông điệp nghiệp vụ an toàn để hiển thị; không lộ lỗi kỹ thuật của nguồn dữ liệu.
++// Phân loại lỗi nghiệp vụ để phân biệt dữ liệu không hợp lệ, xung đột, phiên hết hạn và thiếu quyền.
+ enum AcademicErrorCode {
+   validation,
+   conflict,
+@@ -345,6 +353,7 @@
+   notFound,
+ }
+ 
++// Mang thông báo nghiệp vụ và mã lỗi để giao diện xử lý mà không lộ chi tiết kỹ thuật.
+ class AcademicFailure implements Exception {
+   const AcademicFailure(
+     this.message, {
+--- a/lib/models/academic/academic_policy.dart
++++ b/lib/models/academic/academic_policy.dart
+@@ -1,7 +1,8 @@
+ import 'academic_models.dart';
+ 
+-/// Kiểm tra thuần Dart dùng chung ở form và lệnh ghi, bám validateRule của React.
++// Quy tắc kiểm tra thuần Dart dùng chung ở biểu mẫu và lệnh ghi dữ liệu.
+ abstract final class AcademicPolicy {
++  // Kiểm tra cấu hình nộp bài và tiêu chí trước khi lưu hoặc chạy AI; trả lỗi đầu tiên tìm thấy.
+   static String? validateRule(AcademicJson r) {
+     bool finite(String k) => r[k] is num && (r[k] as num).isFinite;
+     if ((r['id']?.toString().trim() ?? '').isEmpty ||
+@@ -20,9 +21,11 @@
+         (max is! num || !max.isFinite || max < 0 || max % 1 != 0)) {
+       return 'Số lần nộp lại phải là số nguyên không âm.';
+     }
++    // Không được bắt buộc AI trước giảng viên nếu chức năng AI đang tắt.
+     if (r['aiRequiredBeforeSupervisor'] == true && r['aiEnabled'] != true) {
+       return 'Không thể bắt buộc AI khi AI bị tắt.';
+     }
++    // Hai ngưỡng phải hữu hạn, nằm trong khoảng 0–100 và ngưỡng đạt phải cao hơn ngưỡng cải thiện.
+     if (!finite('passThreshold') ||
+         !finite('improveThreshold') ||
+         (r['passThreshold'] as num) > 100 ||
+@@ -42,11 +45,13 @@
+         )) {
+       return 'Tiêu chí cần ID duy nhất, tên và điểm tối đa lớn hơn 0.';
+     }
++    // Chỉ kích hoạt khi có tiêu chí bật và không bị đánh dấu thiếu cấu hình danh sách kiểm tra.
+     if (r['status'] == 'active' &&
+         (!cs.any((c) => c['enabled'] == true) ||
+             r['templateMissing'] == true)) {
+       return 'Cần ít nhất một tiêu chí bật và checklist đầy đủ trước khi kích hoạt.';
+     }
++    // Rule Set bắt buộc AI phải có ít nhất một tiêu chí đang bật cho AI xử lý.
+     if (r['status'] == 'active' &&
+         r['aiRequiredBeforeSupervisor'] == true &&
+         !cs.any((c) => c['enabled'] == true && c['aiEnabled'] == true)) {
+@@ -55,6 +60,7 @@
+     return null;
+   }
+ 
++  // Tạo Rule Set ở trạng thái draft để người dùng bổ sung tiêu chí trước khi kích hoạt.
+   static AcademicJson newRule(String id) => {
+     'id': id,
+     'name': '',
+@@ -93,6 +99,7 @@
+     'suggestSuggestions': true,
+   };
+ 
++  // Kiểm tra đợt học, khoảng ngày, giới hạn và mã lớp; lớp đã có nhóm không được chuyển đợt.
+   static String? validateClass(
+     AcademicJson v,
+     AcademicSnapshot s,
+@@ -129,7 +136,7 @@
+     return null;
+   }
+ 
+-  /// Hạ giới hạn không xóa người cũ; khi thêm phải còn chỗ và thuộc đúng lớp.
++  // Hạ giới hạn không xóa người cũ; khi thêm phải còn chỗ và thuộc đúng lớp.
+   static void checkMember(
+     AcademicSnapshot s,
+     StudentGroup group,
+@@ -151,11 +158,12 @@
+     }
+   }
+ 
+-  /// Bản sao đổi ID cả Lab/mục, ánh xạ phụ thuộc và không chia sẻ cấu trúc ghi.
++  // Bản sao đổi ID cả Lab/mục, ánh xạ phụ thuộc và không chia sẻ cấu trúc ghi.
+   static List<AcademicJson> cloneLabs(
+     List<AcademicLab> labs,
+     String Function(String) id,
+   ) {
++    // Tạo bảng ánh xạ ID mục trước, rồi đổi các liên kết phụ thuộc sang ID của bản sao.
+     final ids = {for (final i in labs.expand((l) => l.items)) i.id: id('item')};
+     return [
+       for (final l in labs)
+--- a/lib/models/academic/academic_presentation.dart
++++ b/lib/models/academic/academic_presentation.dart
+@@ -1,11 +1,11 @@
+-/// Định dạng ISO cho UI giống fmtDate/fmtDateTime của React, không đổi giá trị lưu.
++// Định dạng ngày ISO cho giao diện theo bản React tham chiếu, không đổi giá trị lưu.
+ abstract final class AcademicPresentation {
+   static String number(Object? value) =>
+       value is num && value.isFinite && value == value.roundToDouble()
+       ? value.toInt().toString()
+       : value?.toString() ?? '—';
+ 
+-  /// Chỉ chuẩn hóa chữ để hiển thị, giữ nguyên bản ghi lịch sử trong repository.
++  // Chỉ chuẩn hóa chữ để hiển thị, giữ nguyên bản ghi lịch sử trong Repository.
+   static String content(String value) {
+     var text = value
+         .replaceAll('(Finding mô phỏng, chưa đọc file gốc.)', '')
+@@ -47,6 +47,7 @@
+     return text.replaceAll(RegExp(r'\s{2,}'), ' ').trim();
+   }
+ 
++  // Ưu tiên nhãn rút gọn có sẵn; tên dài được cắt gần ranh giới từ để dễ đọc trên Mobile.
+   static String shortCriterion(String name, Map<dynamic, dynamic> labels) {
+     if (labels[name] != null) return labels[name].toString();
+     final localized = label(name);
+@@ -78,6 +79,7 @@
+         'Blended Learning': 'Học tập kết hợp',
+       }[value] ??
+       value;
++  // Ngày không đọc được giữ nguyên để tra cứu; chỉ thay cách hiển thị ngày hợp lệ, không đổi múi giờ.
+   static String date(String value, {bool time = false}) {
+     final d = DateTime.tryParse(value);
+     if (d == null) return value.isEmpty ? '—' : value;
+--- a/lib/models/academic/academic_projections.dart
++++ b/lib/models/academic/academic_projections.dart
+@@ -1,7 +1,8 @@
+ import 'academic_models.dart';
+ 
+-/// Pure business projections shared by ViewModels; no UI dependencies.
++// Các phép tổng hợp nghiệp vụ dùng chung cho ViewModel, độc lập với giao diện.
+ abstract final class AcademicProjections {
++  // Ưu tiên học kỳ đang diễn ra, sắp tới, đã kết thúc rồi lưu trữ; cùng nhóm xếp ngày bắt đầu mới trước.
+   static List<AcademicSemester> semesters(AcademicSnapshot snapshot) {
+     const rank = {
+       'Đang diễn ra': 0,
+@@ -23,6 +24,7 @@
+     if (semester.archived) return 'Lưu trữ';
+     final current = DateTime.fromMillisecondsSinceEpoch(now);
+     final start = DateTime.parse(semester.startDate);
++    // Cộng một ngày để toàn bộ ngày kết thúc vẫn thuộc học kỳ đang diễn ra.
+     final end = DateTime.parse(semester.endDate).add(const Duration(days: 1));
+     if (current.isBefore(start)) return 'Sắp diễn ra';
+     return current.isBefore(end) ? 'Đang diễn ra' : 'Đã kết thúc';
+@@ -32,10 +34,12 @@
+     Iterable<AcademicStudent> students,
+     Iterable<StudentGroup> groups,
+   ) {
++    // Gom ID thành viên thành tập để mỗi sinh viên chỉ được đếm một lần dù xuất hiện ở nhiều nhóm.
+     final members = groups.expand((g) => g.memberIds).toSet();
+     return students.where((student) => members.contains(student.id)).length;
+   }
+ 
++  // Chỉ cộng điểm tối đa của tiêu chí đang bật; trường điểm không phải số đóng góp 0.
+   static num criterionTotal(Iterable<dynamic> criteria) => criteria
+       .where((c) => c['enabled'] == true)
+       .fold<num>(
+@@ -44,6 +48,7 @@
+       );
+ }
+ 
++// Tính số lượng từng thẻ độc lập với thẻ đang xem và ưu tiên tài liệu đang hoặc chờ đánh giá.
+ class ProjectDocumentProjection {
+   ProjectDocumentProjection(List<AcademicRecord> documents, int tab)
+     : counts = List.unmodifiable(
+--- a/lib/models/academic/management_queries.dart
++++ b/lib/models/academic/management_queries.dart
+@@ -1,7 +1,7 @@
+ import 'academic_models.dart';
+ import 'project_context.dart';
+ 
+-/// Phép chiếu trực tiếp từ snapshot chung; không lưu một bản dữ liệu Phase 3 khác.
++// Truy vấn trực tiếp từ bản chụp chung, không giữ bản dữ liệu riêng cho màn quản trị.
+ extension ManagementQueries on AcademicSnapshot {
+   StudentGroup? group(String id) => groups.where((g) => g.id == id).firstOrNull;
+   AcademicRecord? project(String id) =>
+@@ -15,11 +15,13 @@
+   ClassRoom? projectClass(AcademicRecord p) => classRoom(
+     resolveProjectClassId(group(p.text('groupId'))?.classId, p.text('classId')),
+   );
++  // approved, needsRevision và notAccepted đều khép lại lượt đánh giá hiện tại.
+   bool completed(AcademicRecord r) => const [
+     'approved',
+     'needsRevision',
+     'notAccepted',
+   ].contains(r.text('supervisorStatus'));
++  // Có yêu cầu đánh giá hoặc dấu vết phiên bản đã nộp thì dự án được xem là có lịch sử, không được xóa.
+   bool hasProjectHistory(String id) =>
+       project(id)?.flag('hasHistory') == true ||
+       reviewRows('requests').any((r) => r.text('projectId') == id) ||
+@@ -29,6 +31,7 @@
+             (d.text('latestVersion').isNotEmpty ||
+                 d.integer('versionCount') > 0),
+       );
++  // Chỉ xóa nhóm rỗng nếu mọi dự án liên quan đều chưa có lịch sử; kiểm tra cả hai chiều liên kết.
+   bool canDeleteGroup(StudentGroup g) =>
+       g.memberIds.isEmpty &&
+       !records('projects')
+@@ -38,6 +41,7 @@
+       reviewRows('feedback').where((r) => r.text('reviewId') == id).toList();
+   List<AcademicRecord> eventsFor(String id) =>
+       reviewRows('audit').where((r) => r.text('reviewId') == id).toList();
++  // Lấy lần AI cuối khớp yêu cầu và phiên bản; dữ liệu cũ thiếu documentId chỉ đối chiếu phần còn lại.
+   AcademicRecord? evaluation(AcademicRecord r) =>
+       reviewRows('evaluations')
+           .where(
+@@ -49,13 +53,14 @@
+           )
+           .lastOrNull;
+ 
+-  /// Snapshot của bản nộp ưu tiên tuyệt đối; thay Rule Set không sửa lịch sử.
++  // Ưu tiên bản chụp Rule Set của bản nộp; thay cấu hình hiện tại không sửa lịch sử.
+   RuleSet? reviewRule(AcademicRecord r) {
+     if (r.data['ruleSnapshot'] is Map) {
+       return RuleSet(Map<String, dynamic>.from(r.data['ruleSnapshot'] as Map));
+     }
+     final cls = classRoom(r.text('classId'));
+     if (cls == null) return null;
++    // Bản nộp cũ chưa có bản chụp quy tắc thì tra cấu hình hiện tại; thiếu ID mục sẽ đối chiếu theo tên.
+     final item = effectiveLabs(cls)
+         .expand((l) => l.items)
+         .where(
+@@ -89,6 +94,7 @@
+     return null;
+   }
+ 
++  // Phương pháp dạy ưu tiên cấu hình dự án, rồi cấu hình lớp, sau cùng là đợt học.
+   String projectTeachingMethod(AcademicRecord p) {
+     if (p.text('teachingMethodOverride').isNotEmpty) {
+       return p.text('teachingMethodOverride');
+@@ -99,7 +105,7 @@
+         : offering(cls?.offeringId ?? '')?.teachingMethod ?? '—';
+   }
+ 
+-  /// Next step tùy chỉnh được giữ; chỉ các câu gốc của fixture dùng trạng thái tài liệu hiện hành.
++  // Giữ hướng dẫn bước tiếp theo đã tùy chỉnh; chỉ tính lại câu mẫu theo trạng thái tài liệu hiện tại.
+   String projectNextStep(AcademicRecord p) {
+     final originals =
+         (data['presentation'] as Map)['projectNextSteps'] as Map? ?? {};
+@@ -135,6 +141,7 @@
+         : 'Đối chiếu trạng thái tài liệu trước khi tiếp tục.';
+   }
+ 
++  // Chặn đánh giá khi Rule Set chưa active hoặc chưa hoàn tất AI mà cấu hình yêu cầu bắt buộc.
+   String? supervisorBlock(AcademicRecord r) {
+     final rule = reviewRule(r);
+     if (rule == null || !rule.active) {
+@@ -147,7 +154,7 @@
+     return null;
+   }
+ 
+-  /// Ghép cấu trúc Lab hiện hành với bản nộp; tính khóa phụ thuộc từ quyết định thật.
++  // Ghép cấu trúc Lab hiện hành với bản nộp; tính khóa phụ thuộc từ quyết định thật.
+   List<AcademicRecord> projectDocuments(AcademicRecord p) {
+     final cls = projectClass(p);
+     if (cls == null) return [];
+@@ -203,6 +210,7 @@
+       final rule = d.text('ruleSetId').isNotEmpty
+           ? this.rule(d.text('ruleSetId'))
+           : effectiveRule(cls);
++      // Phụ thuộc chỉ được đáp ứng khi giảng viên đã approved; kết quả AI không mở khóa mục tài liệu.
+       final unmet = rule?.flag('prerequisiteApproval', true) == false
+           ? <String>[]
+           : d
+@@ -232,6 +240,8 @@
+     }).toList();
+   }
+ 
++  // Dữ liệu cũ chưa có danh sách phiên bản được dựng một dòng hiện tại để vẫn xem được lịch sử.
++  // Chỉ bổ sung thông tin mới vào dòng isCurrent, giữ nguyên các phiên bản trước.
+   List<AcademicRecord> versionsFor(AcademicRecord r) {
+     final stored = reviewRows('versions')
+         .where((v) => v.text('reviewId') == r.id)
+--- a/lib/models/academic/project_context.dart
++++ b/lib/models/academic/project_context.dart
+@@ -1,3 +1,3 @@
+-/// A linked group's class is authoritative; detached projects retain classId.
++// Dự án đã gắn nhóm lấy lớp của nhóm; dự án chưa gắn nhóm dùng classId lưu trực tiếp.
+ String resolveProjectClassId(String? groupClassId, String directClassId) =>
+     groupClassId?.isNotEmpty == true ? groupClassId! : directClassId;
+--- a/lib/models/academic/review_policy.dart
++++ b/lib/models/academic/review_policy.dart
+@@ -1,9 +1,9 @@
+ import 'academic_models.dart';
+ import 'management_queries.dart';
+ 
+-/// Kịch bản minh họa được trích từ documentSamples.ts; tuyệt đối không đọc/chấm tệp thật.
++// Kịch bản minh họa được trích từ documentSamples.ts; tuyệt đối không đọc/chấm tệp thật.
+ class ReviewPolicy {
+-  /// Ngưỡng có thể là số thập phân; thiếu điểm thủ công thì chưa xếp loại.
++  // Ngưỡng có thể là số thập phân; thiếu điểm thủ công thì chưa xếp loại.
+   static String rating(AcademicRecord run) {
+     final score = run.data['overallScore'] as num?;
+     final max = run.data['maxScore'] as num? ?? 0;
+@@ -17,6 +17,7 @@
+         : 'Cần làm lại';
+   }
+ 
++  // Dựng kết quả minh họa từ nội dung mẫu và bản chụp Rule Set của lần chạy, không chấm tệp thật.
+   static AcademicRecord illustration(
+     AcademicSnapshot s,
+     AcademicRecord run,
+@@ -31,6 +32,7 @@
+     final findings = <AcademicJson>[];
+     for (final c in rule.criteria.where((c) => c.enabled)) {
+       AcademicRecord? scenario;
++      // Tiêu chí mẫu cũ REVIEW01–REVIEW05 khớp theo vị trí; tiêu chí khác khớp tên bằng mẫu tìm kiếm.
+       if (RegExp(r'^REVIEW0[1-5]$').hasMatch(c.id)) {
+         final i = int.parse(c.id.substring(c.id.length - 1)) - 1;
+         if (i < checks.length) scenario = checks[i];
+@@ -44,6 +46,7 @@
+             )
+             .firstOrNull;
+       }
++      // Chỉ đề xuất điểm khi tiêu chí bật AI, cho phép gợi ý điểm và có nội dung mẫu đối chiếu.
+       final score =
+           c.flag('aiEnabled') && c.flag('suggestScore') && scenario != null
+           ? rule.text('scoringMode') == 'binary'
+@@ -98,6 +101,7 @@
+       'criterionResults': results,
+       'findings': findings,
+       'maxScore': results.fold<num>(0, (n, c) => n + (c['maxScore'] as num)),
++      // Chỉ cộng tổng khi mọi tiêu chí đều có điểm; còn tiêu chí thủ công thì chưa xếp loại.
+       'overallScore':
+           results.isNotEmpty && results.every((c) => c['score'] != null)
+           ? (results.fold<num>(0, (n, c) => n + (c['score'] as num)) * 100)
+@@ -107,7 +111,7 @@
+     });
+   }
+ 
+-  /// Chỉ làm mới cách trình bày bản minh họa cũ, không commit lại kết quả lịch sử.
++  // Chỉ làm mới cách trình bày bản minh họa cũ, không lưu lại kết quả lịch sử.
+   static AcademicRecord currentIllustration(
+     AcademicSnapshot s,
+     AcademicRecord run,
+@@ -132,6 +136,7 @@
+     return legacy ? illustration(s, run, title) : run;
+   }
+ 
++  // Phân biệt chưa chạy, đang tải và lỗi trước khi đếm phát hiện; không dùng số 0 để che lỗi AI.
+   static String aiLabel(AcademicSnapshot s, AcademicRecord r) {
+     final raw = s.evaluation(r);
+     if (raw == null) return 'AI chưa có kết quả';
+--- a/lib/models/dashboard/dashboard_snapshot.dart
++++ b/lib/models/dashboard/dashboard_snapshot.dart
+@@ -1,6 +1,6 @@
+ import '../academic/project_context.dart';
+ 
+-/// Dữ liệu chỉ đọc của Tổng quan; không chứa widget hoặc phụ thuộc Riverpod.
++// Dữ liệu chỉ đọc của Tổng quan; không chứa widget hoặc phụ thuộc Riverpod.
+ class DashboardSnapshot {
+   DashboardSnapshot({
+     required this.userName,
+@@ -20,6 +20,7 @@
+        requests = List.unmodifiable(requests),
+        attention = List.unmodifiable(attention);
+ 
++  // Bỏ học kỳ lưu trữ khỏi lựa chọn và ánh xạ nhóm về lớp để thống kê dự án đúng phạm vi.
+   factory DashboardSnapshot.fromJson(Map<String, dynamic> json) {
+     List<Map<String, dynamic>> rows(String key) =>
+         (json[key] as List).cast<Map<String, dynamic>>();
+@@ -65,7 +66,7 @@
+       resolveProjectClassId(groupClasses[project.groupId], project.classId);
+ }
+ 
+-/// Giá trị học kỳ giữ nguyên ID và tên dữ liệu từ bản React tham chiếu.
++// Giá trị học kỳ giữ nguyên ID và tên dữ liệu từ bản React tham chiếu.
+ class SemesterOption {
+   const SemesterOption({required this.id, required this.name});
+   factory SemesterOption.fromJson(Map<String, dynamic> json) =>
+@@ -74,7 +75,7 @@
+   final String name;
+ }
+ 
+-/// Ngữ cảnh lớp dùng để giới hạn thống kê theo học kỳ.
++// Ngữ cảnh lớp dùng để giới hạn thống kê theo học kỳ.
+ class DashboardClass {
+   const DashboardClass({
+     required this.id,
+@@ -94,7 +95,7 @@
+   final bool isActive;
+ }
+ 
+-/// Dự án được liên kết qua nhóm; dự án lưu trữ không tính vào việc cần xử lý.
++// Dự án được liên kết qua nhóm; dự án lưu trữ không tính vào việc cần xử lý.
+ class DashboardProject {
+   const DashboardProject({
+     required this.id,
+@@ -115,7 +116,7 @@
+   final bool isActive;
+ }
+ 
+-/// Tóm tắt yêu cầu; kết quả AI và quyết định giảng viên luôn là hai trường riêng.
++// Tóm tắt yêu cầu; kết quả AI và quyết định giảng viên luôn là hai trường riêng.
+ class DashboardRequest {
+   const DashboardRequest({
+     required this.id,
+@@ -142,6 +143,7 @@
+             if ((counts['suggestions'] as int) > 0)
+               '${counts['suggestions']} gợi ý',
+           ];
++    // Có số liệu AI thì dựng nhãn đề xuất; thiếu số liệu thì phân biệt đang chạy, lỗi và chưa có kết quả.
+     final aiLabel = counts != null
+         ? 'AI đề xuất: ${parts.isEmpty ? 'Không phát hiện lỗi' : parts.join(' · ')}'
+         : switch (ai['status']) {
+@@ -167,7 +169,7 @@
+   final String classCode, groupName, supervisorStatus, aiLabel, relativeTime;
+ }
+ 
+-/// Nhắc việc giữ nhãn, nội dung và sắc thái của nguồn React.
++// Nhắc việc giữ nhãn, nội dung và sắc thái của nguồn React.
+ class DashboardAttention {
+   const DashboardAttention({
+     required this.projectId,
+--- a/lib/models/dashboard/dashboard_state.dart
++++ b/lib/models/dashboard/dashboard_state.dart
+@@ -1,13 +1,13 @@
+ import 'dashboard_snapshot.dart';
+ 
+-/// Số liệu đã tính tại ViewModel để View chỉ dựng các ô thống kê.
++// Số liệu được tính tại ViewModel để giao diện chỉ dựng các ô thống kê.
+ class DashboardStat {
+   const DashboardStat(this.label, this.value);
+   final String label;
+   final int value;
+ }
+ 
+-/// Trạng thái thành công, bao gồm cả phạm vi học kỳ không có dữ liệu.
++// Trạng thái thành công, bao gồm cả phạm vi học kỳ không có dữ liệu.
+ class DashboardState {
+   DashboardState({
+     required this.snapshot,
+--- a/lib/repositories/counter_repository.dart
++++ b/lib/repositories/counter_repository.dart
+@@ -1,13 +1,13 @@
+ import '../models/counter_state.dart';
+ import '../services/demo_counter_service.dart';
+ 
+-/// Hợp đồng dữ liệu counter phục vụ kiểm chứng dependency injection foundation.
++// Hợp đồng dữ liệu bộ đếm phục vụ kiểm chứng cách cung cấp phụ thuộc nền tảng.
+ abstract interface class CounterRepository {
+   CounterState load();
+   CounterState increment();
+ }
+ 
+-/// Chuyển bộ nhớ tạm thành snapshot counter cho ViewModel.
++// Chuyển giá trị bộ nhớ tạm thành trạng thái bộ đếm cho ViewModel.
+ class DemoCounterRepository implements CounterRepository {
+   DemoCounterRepository(this._service);
+ 
+--- a/lib/repositories/notification_repository.dart
++++ b/lib/repositories/notification_repository.dart
+@@ -6,10 +6,12 @@
+ import '../models/academic/academic_models.dart';
+ import '../app/session.dart';
+ 
++// Hợp đồng tải thông báo để màn hình không phụ thuộc trực tiếp vào dữ liệu mẫu.
+ abstract interface class NotificationRepository {
+   Future<List<AcademicRecord>> load();
+ }
+ 
++// Đọc thông báo mẫu và loại các yêu cầu duyệt tham gia lớp, nhóm ngoài luồng Mobile hiện tại.
+ class FakeNotificationRepository implements NotificationRepository {
+   FakeNotificationRepository(this.bundle);
+   final AssetBundle bundle;
+@@ -40,14 +42,17 @@
+           .toList(growable: false);
+ }
+ 
++// Tạo lại nguồn thông báo theo phiên để không tái sử dụng dữ liệu phiên trước.
+ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
+   ref.watch(sessionScopeProvider);
+   return FakeNotificationRepository(rootBundle);
+ });
++// Đưa trạng thái tải và lỗi thông báo lên giao diện; làm mới provider khi người dùng thử lại.
+ final notificationsProvider = FutureProvider<List<AcademicRecord>>(
+   (ref) => ref.watch(notificationRepositoryProvider).load(),
+ );
+ 
++// Lọc theo thẻ đang chọn; nhóm đánh giá dựa vào loại biểu tượng, nhóm AI dựa vào tiêu đề.
+ bool notificationMatches(AcademicRecord n, int tab) => switch (tab) {
+   1 => n.flag('unread'),
+   2 => ['file-up', 'badge-check'].contains(n.text('kind')),
+--- a/lib/repositories/academic/academic_repository.dart
++++ b/lib/repositories/academic/academic_repository.dart
+@@ -1,6 +1,6 @@
+ import '../../models/academic/academic_models.dart';
+ 
+-/// Hợp đồng kho học vụ; adapter Firestore sau này không xuất hiện trong widget.
++// Hợp đồng kho học vụ để có thể thay nguồn bằng Firestore mà không sửa Widget.
+ abstract interface class AcademicRepository {
+   Future<AcademicSnapshot> load();
+   Future<AcademicSnapshot> commit(
+--- a/lib/repositories/academic/course_contract.dart
++++ b/lib/repositories/academic/course_contract.dart
+@@ -1,7 +1,7 @@
+ import '../../models/academic/academic_models.dart';
+ 
+-/// First migrated DTO slice. Preserve unknown legacy fields without trusting
+-/// primitive casts at the data edge. Remaining aggregates migrate independently.
++// Course là phần đầu tiên có DTO kiểm tra dữ liệu đầu vào khi chuẩn bị chuyển nguồn dữ liệu.
++// Giữ trường dữ liệu cũ chưa biết, nhưng kiểm tra kiểu trước khi đọc các trường bắt buộc.
+ class CourseDto {
+   CourseDto._(this._record);
+   final AcademicRecord _record;
+@@ -9,6 +9,7 @@
+   String get code => _record.text('code');
+   String get name => _record.name;
+   AcademicJson toJson() => _record.toJson();
++  // Kiểm tra kiểu và trường bắt buộc trước khi chuẩn hóa mã môn; giữ các trường cũ khi chuyển DTO.
+   factory CourseDto.fromJson(
+     Object? value, {
+     bool requireId = true,
+@@ -36,7 +37,7 @@
+   }
+ }
+ 
+-/// Explicit create/update intent prevents an insertion from becoming an upsert.
++// Phân biệt rõ tạo mới và cập nhật để lệnh tạo không ghi đè môn học đã có.
+ class CourseMutation {
+   CourseMutation({
+     required this.course,
+@@ -60,11 +61,13 @@
+         code: AcademicErrorCode.notFound,
+       );
+     }
++    // So mã môn sau khi chuẩn hóa chữ hoa, loại trừ chính môn đang cập nhật.
+     if (current.courses.any(
+       (c) => c.id != id && c.code.trim().toUpperCase() == course.code,
+     )) {
+       throw const AcademicFailure('Mã môn đã tồn tại.');
+     }
++    // Ghép dữ liệu mới lên bản cũ để giữ trường chưa chuyển đổi; chỉ thêm dòng khi là lệnh tạo.
+     final row = {...?existing?.toJson(), ...course.toJson(), 'id': id};
+     return current.replaceCollection('courses', [
+       for (final old in current.courses)
+@@ -74,9 +77,9 @@
+   }
+ }
+ 
+-/// Additive command seam; legacy aggregate commands remain compatible.
+-/// A real adapter must authorize UID/scope, check expected version and execute
+-/// this intent atomically on the server, never trust a client snapshot upload.
++// Hợp đồng lệnh Course bổ sung vẫn tương thích với cách ghi toàn bộ dữ liệu hiện tại.
++// Khi nối Firestore, phía máy chủ phải kiểm tra UID, phạm vi và phiên bản mong đợi,
++// rồi thực hiện lệnh nguyên tử; không tin toàn bộ dữ liệu do máy khách gửi lên.
+ abstract interface class CourseCommandRepository {
+   Future<AcademicSnapshot> commitCourse(
+     CourseMutation command, {
+@@ -84,6 +87,7 @@
+   });
+ }
+ 
++// Kiểm tra cấu trúc dữ liệu học vụ và các Course trước khi tạo bản chụp bất biến.
+ abstract final class AcademicSnapshotCodec {
+   static AcademicSnapshot decode(Object? value) {
+     if (value is! Map<String, dynamic> || value['courses'] is! List) {
+--- a/lib/repositories/academic/fake_academic_repository.dart
++++ b/lib/repositories/academic/fake_academic_repository.dart
+@@ -4,7 +4,7 @@
+ import '../../models/session_scope.dart';
+ import 'course_contract.dart';
+ 
+-/// Adapter fake dùng chung dữ liệu giữa Course, Class, Rule Set và Dashboard.
++// Repository mô phỏng dùng chung dữ liệu giữa Course, Class, Rule Set và Tổng quan.
+ class FakeAcademicRepository
+     implements AcademicRepository, CourseCommandRepository {
+   const FakeAcademicRepository(this._service, {this.scope});
+@@ -18,6 +18,7 @@
+   @override
+   Future<AcademicSnapshot> load() async {
+     scope?.requireActive();
++    // Kiểm tra phiên cả trước và sau khi tải vì người dùng có thể đăng xuất trong lúc chờ.
+     final result = await _service.load();
+     scope?.requireActive();
+     return result;
+--- a/lib/repositories/academic/student_device_gateway.dart
++++ b/lib/repositories/academic/student_device_gateway.dart
+@@ -1,4 +1,4 @@
+-/// Hợp đồng thiết bị cho import/clipboard; ViewModel không phụ thuộc plugin native.
++// Hợp đồng chọn tệp và sao chép để ViewModel không phụ thuộc tiện ích thiết bị.
+ abstract interface class StudentDeviceGateway {
+   Future<({String name, String? csv})?> pick();
+   Future<void> copy(String text);
+--- a/lib/repositories/dashboard/dashboard_repository.dart
++++ b/lib/repositories/dashboard/dashboard_repository.dart
+@@ -1,6 +1,6 @@
+ import '../../models/dashboard/dashboard_snapshot.dart';
+ 
+-/// Hợp đồng độc lập nguồn dữ liệu để thay fake bằng repository thật sau này.
++// Hợp đồng độc lập với nguồn dữ liệu để thay kho mô phỏng bằng Repository thật sau này.
+ abstract interface class DashboardRepository {
+   Future<DashboardSnapshot> load();
+ }
+--- a/lib/repositories/dashboard/fake_dashboard_repository.dart
++++ b/lib/repositories/dashboard/fake_dashboard_repository.dart
+@@ -2,7 +2,7 @@
+ import '../../services/dashboard/fake_dashboard_service.dart';
+ import 'dashboard_repository.dart';
+ 
+-/// Chuyển dữ liệu fixture sang model, không cấp quyền hoặc quyết định review.
++// Chuyển dữ liệu mẫu sang mô hình Tổng quan, không cấp quyền hay quyết định đánh giá.
+ class FakeDashboardRepository implements DashboardRepository {
+   const FakeDashboardRepository(this._service);
+   final FakeDashboardService _service;
+--- a/lib/screens/demo_screen.dart
++++ b/lib/screens/demo_screen.dart
+@@ -4,7 +4,7 @@
+ import '../viewmodels/counter_view_model.dart';
+ import '../widgets/demo_counter_value.dart';
+ 
+-/// Demo kiểm chứng foundation được giữ lại, không phải màn hình Lab 2 đã chuyển.
++// Màn ví dụ bộ đếm được giữ lại để kiểm chứng nền tảng Flutter.
+ class DemoScreen extends ConsumerWidget {
+   const DemoScreen({super.key});
+ 
+--- a/lib/screens/navigation_destination_screen.dart
++++ b/lib/screens/navigation_destination_screen.dart
+@@ -7,7 +7,7 @@
+ import '../widgets/app_states.dart';
+ import '../widgets/mobile_header.dart';
+ 
+-/// Điểm dừng điều hướng cho màn ngoài phạm vi; không giả lập nghiệp vụ đã hoàn thành.
++// Điểm dừng điều hướng cho màn ngoài phạm vi; không giả lập nghiệp vụ đã hoàn thành.
+ class NavigationDestinationScreen extends StatelessWidget {
+   const NavigationDestinationScreen({required this.path, super.key});
+   final String path;
+--- a/lib/screens/academic/class_screens.dart
++++ b/lib/screens/academic/class_screens.dart
+@@ -26,7 +26,7 @@
+ import 'widgets/student_enrollment_sheet.dart';
+ import 'widgets/class_review_preview.dart';
+ 
+-/// Danh mục lớp dùng bộ lọc Riverpod và card chung với trang đợt học.
++// Danh mục lớp dùng bộ lọc Riverpod và thẻ lớp dùng chung với trang đợt học.
+ class ClassListScreen extends ConsumerWidget {
+   const ClassListScreen({super.key});
+   @override
+@@ -64,7 +64,7 @@
+   );
+ }
+ 
+-/// Năm tab theo dõi lớp; nhóm/dự án/review chỉ là phần tóm tắt trong phạm vi lớp.
++// Năm thẻ theo dõi lớp; nhóm, dự án và yêu cầu đánh giá đều giới hạn trong lớp đang xem.
+ class ClassDetailScreen extends ConsumerStatefulWidget {
+   const ClassDetailScreen({required this.classId, super.key});
+   final String classId;
+@@ -332,7 +332,7 @@
+   );
+ }
+ 
+-/// Tiêu đề phần theo SectionHeader của React, có thể nối tới danh sách đầy đủ.
++// Tiêu đề phần theo SectionHeader của React, có thể nối tới danh sách đầy đủ.
+ class AcademicSectionTitle extends StatelessWidget {
+   const AcademicSectionTitle(
+     this.title,
+--- a/lib/screens/academic/course_screens.dart
++++ b/lib/screens/academic/course_screens.dart
+@@ -16,7 +16,7 @@
+ import 'widgets/academic_form_sheet.dart';
+ import 'widgets/rule_set_panel.dart';
+ 
+-/// Danh mục môn gốc và đợt giảng dạy, giữ disclosure đóng như React.
++// Danh mục môn gốc và đợt giảng dạy; các phần chi tiết mặc định thu gọn.
+ class CourseListScreen extends StatelessWidget {
+   const CourseListScreen({super.key});
+   @override
+@@ -178,7 +178,7 @@
+   );
+ }
+ 
+-/// Chi tiết môn tập trung Rule Set theo phạm vi gán, không tạo ownership mới.
++// Chi tiết môn tập hợp Rule Set theo phạm vi đang gán, không đổi nơi sở hữu bộ quy tắc.
+ class CourseDetailScreen extends StatelessWidget {
+   const CourseDetailScreen({required this.courseId, super.key});
+   final String courseId;
+@@ -230,7 +230,7 @@
+   );
+ }
+ 
+-/// Route thư viện bắt đầu bằng chọn Course như bản Lab 2.
++// Thư viện Rule Set bắt đầu bằng chọn Course để xác định phạm vi cấu hình.
+ class RuleSetSelectionScreen extends StatelessWidget {
+   const RuleSetSelectionScreen({super.key});
+   @override
+--- a/lib/screens/academic/directory_screens.dart
++++ b/lib/screens/academic/directory_screens.dart
+@@ -2,6 +2,7 @@
+ import '../../viewmodels/academic/directory_view_model.dart';
+ import 'widgets/student_enrollment_sheet.dart';
+ 
++// Hiển thị học kỳ theo thứ tự nghiệp vụ; chỉ đưa ra thao tác xóa khi chưa có lớp hoặc đợt học.
+ class SemesterListScreen extends ConsumerWidget {
+   const SemesterListScreen({super.key});
+   @override
+@@ -132,6 +133,7 @@
+   );
+ }
+ 
++// Hiển thị danh bạ theo bộ lọc học vụ và mở luồng ghi danh vào lớp được chọn.
+ class StudentDirectoryScreen extends ConsumerWidget {
+   const StudentDirectoryScreen({super.key});
+   @override
+@@ -278,6 +280,7 @@
+   String? selected;
+   @override
+   Widget build(BuildContext context) {
++    // Chỉ đưa lớp chưa lưu trữ vào lựa chọn ghi danh; lựa chọn cũ không còn hợp lệ thì dùng lớp đầu tiên.
+     final classes = ref
+         .watch(academicViewModelProvider)
+         .requireValue
+--- a/lib/screens/academic/offering_detail_screen.dart
++++ b/lib/screens/academic/offering_detail_screen.dart
+@@ -20,7 +20,7 @@
+ import 'widgets/class_card.dart';
+ import 'widgets/lab_editor.dart';
+ 
+-/// Ba tab cấu hình/Lab/lớp của đợt; bản nháp cấu hình chỉ lưu khi nhấn nút.
++// Ba thẻ cấu hình, Lab và lớp của đợt; bản nháp cấu hình chỉ lưu khi nhấn nút.
+ class OfferingDetailScreen extends StatefulWidget {
+   const OfferingDetailScreen({required this.offeringId, super.key});
+   final String offeringId;
+@@ -135,7 +135,7 @@
+   );
+ }
+ 
+-/// Tái sử dụng schema form trong card nội tuyến để tránh hai logic lưu cấu hình.
++// Dùng lại cấu trúc biểu mẫu của ViewModel để thống nhất cách lưu cấu hình đợt học.
+ class OfferingConfiguration extends ConsumerStatefulWidget {
+   const OfferingConfiguration({required this.offering, super.key});
+   final CourseOffering offering;
+--- a/lib/screens/academic/widgets/academic_form_sheet.dart
++++ b/lib/screens/academic/widgets/academic_form_sheet.dart
+@@ -14,7 +14,7 @@
+ Future<bool?> showAcademicForm(BuildContext context, AcademicFormSpec spec) =>
+     showAppSheet<bool>(context, AcademicFormSheet(spec: spec));
+ 
+-/// Form dùng một schema từ ViewModel; cùng validation được dùng cho dialog và test.
++// Biểu mẫu dùng cấu trúc trường và quy tắc kiểm tra từ ViewModel, thống nhất với kiểm thử.
+ class AcademicFormSheet extends ConsumerWidget {
+   const AcademicFormSheet({required this.spec, super.key});
+   final AcademicFormSpec spec;
+@@ -164,7 +164,7 @@
+   }
+ }
+ 
+-/// Field native quản lý controller trình bày; dữ liệu và quy tắc ở ViewModel.
++// Trường nhập Flutter quản lý nội dung đang gõ; dữ liệu và quy tắc thuộc ViewModel.
+ class AcademicFieldView extends StatefulWidget {
+   const AcademicFieldView({
+     required this.field,
+@@ -373,7 +373,7 @@
+             : TextInputType.text,
+         decoration: decoration,
+         onChanged: (v) {
+-          // Giữ chuỗi nhập dở/không biểu diễn được bằng JSON; validation vẫn ở VM.
++          // Giữ chuỗi đang nhập dở hoặc số không hữu hạn để ViewModel báo lỗi, tránh ép thành số sai.
+           final parsed = num.tryParse(v);
+           widget.onChanged(
+             f.type == 'number'
+--- a/lib/screens/academic/widgets/academic_page.dart
++++ b/lib/screens/academic/widgets/academic_page.dart
+@@ -10,7 +10,7 @@
+ import '../../../widgets/app_bottom_navigation.dart';
+ import '../../../widgets/app_states.dart';
+ 
+-/// Khung chung sáu route; lỗi tải có retry và không làm mất điều hướng chính.
++// Khung chung các màn học vụ; lỗi tải cho phép thử lại và giữ điều hướng chính.
+ class AcademicPage extends ConsumerWidget {
+   const AcademicPage({
+     required this.path,
+@@ -77,7 +77,7 @@
+   );
+ }
+ 
+-/// Lỗi thao tác hiển thị tại chỗ; widget chỉ chuyển lệnh cho ViewModel.
++// Lỗi thao tác hiển thị tại chỗ; widget chỉ chuyển lệnh cho ViewModel.
+ Future<void> academicAction(
+   BuildContext context,
+   Future<void> Function() action,
+--- a/lib/screens/academic/widgets/class_card.dart
++++ b/lib/screens/academic/widgets/class_card.dart
+@@ -17,7 +17,7 @@
+ import 'academic_page.dart';
+ import 'academic_form_sheet.dart';
+ 
+-/// Card lớp dùng lại trong danh mục và đợt học, thao tác qua ViewModel chung.
++// Thẻ lớp dùng chung trong danh mục và đợt học; thao tác qua ViewModel học vụ.
+ class AcademicClassCard extends ConsumerWidget {
+   const AcademicClassCard({
+     required this.room,
+--- a/lib/screens/academic/widgets/class_filter_bar.dart
++++ b/lib/screens/academic/widgets/class_filter_bar.dart
+@@ -14,7 +14,7 @@
+ import 'academic_form_sheet.dart';
+ import '../../../widgets/app_search_field.dart';
+ 
+-/// Thanh lọc mobile giữ chip học kỳ/trạng thái và drawer áp dụng một lần.
++// Thanh lọc hiển thị học kỳ, trạng thái và bảng chọn chỉ áp dụng khi xác nhận.
+ class ClassFilterBar extends ConsumerWidget {
+   const ClassFilterBar({required this.snapshot, super.key});
+   final AcademicSnapshot snapshot;
+@@ -180,6 +180,7 @@
+ }
+ 
+ class _ClassFilterSheetState extends State<_ClassFilterSheet> {
++  // Giữ lựa chọn tạm trong bảng; đóng bảng khi chưa Áp dụng không thay bộ lọc đang xem.
+   late Map<String, List<String>> facets = {...widget.initial.facets};
+   @override
+   Widget build(BuildContext context) {
+--- a/lib/screens/academic/widgets/class_overview.dart
++++ b/lib/screens/academic/widgets/class_overview.dart
+@@ -11,7 +11,7 @@
+ import '../../../widgets/stat_card.dart';
+ import 'group_summary_card.dart';
+ 
+-/// Tổng quan lớp chỉ hiển thị thống kê và tình trạng nhóm từ snapshot học vụ.
++// Tổng quan lớp hiển thị thống kê và tình trạng nhóm từ bản chụp dữ liệu học vụ.
+ class ClassOverview extends StatelessWidget {
+   const ClassOverview({
+     required this.snapshot,
+--- a/lib/screens/academic/widgets/class_review_preview.dart
++++ b/lib/screens/academic/widgets/class_review_preview.dart
+@@ -13,7 +13,7 @@
+ import '../../../models/academic/management_queries.dart';
+ import '../../../models/academic/review_policy.dart';
+ 
+-/// Chỉ trình bày yêu cầu trong lớp; quyền phê duyệt thuộc màn hình Review phase sau.
++// Tóm tắt yêu cầu đánh giá trong lớp và dẫn tới màn xử lý; không ra quyết định tại thẻ này.
+ class ClassReviewPreview extends StatelessWidget {
+   const ClassReviewPreview({
+     required this.review,
+--- a/lib/screens/academic/widgets/group_summary_card.dart
++++ b/lib/screens/academic/widgets/group_summary_card.dart
+@@ -12,7 +12,7 @@
+ import '../../../theme/app_metrics.dart';
+ import '../../../widgets/app_disclosure.dart';
+ 
+-/// Tóm tắt nhóm của ClassDetail, không triển khai màn hình quản trị dự án ngoài phase.
++// Tóm tắt nhóm trong chi tiết lớp và dẫn tới màn quản trị nhóm hoặc dự án liên quan.
+ class GroupSummaryCard extends StatelessWidget {
+   const GroupSummaryCard({
+     required this.group,
+--- a/lib/screens/academic/widgets/lab_editor.dart
++++ b/lib/screens/academic/widgets/lab_editor.dart
+@@ -19,7 +19,7 @@
+ import 'academic_form_sheet.dart';
+ import 'academic_page.dart';
+ 
+-/// Chuyển LabStructureEditor ở phạm vi đợt học, không tự lan sửa sang lớp override.
++// Chỉnh cấu trúc Lab của đợt học; lớp có cấu hình riêng giữ nguyên cấu trúc của mình.
+ class LabEditor extends ConsumerWidget {
+   const LabEditor({required this.offering, required this.snapshot, super.key});
+   final CourseOffering offering;
+--- a/lib/screens/academic/widgets/rule_set_panel.dart
++++ b/lib/screens/academic/widgets/rule_set_panel.dart
+@@ -14,7 +14,7 @@
+ import '../../../widgets/app_disclosure.dart';
+ import 'academic_form_sheet.dart';
+ 
+-/// Hai nhóm cấu hình Rule Set và công tắc thư viện, giữ phạm vi Course của React.
++// Hai nhóm cấu hình Rule Set và công tắc thư viện, giữ phạm vi Course của React.
+ class RuleSetPanel extends ConsumerStatefulWidget {
+   const RuleSetPanel({
+     required this.courseId,
+@@ -34,6 +34,7 @@
+   Widget build(BuildContext context) {
+     final s = widget.snapshot;
+     final ids = s.courseRuleIds(widget.courseId);
++    // Mặc định chỉ hiện Rule Set đang gán ở môn; bật thư viện mới hiện các bộ dùng chung khác.
+     final rules = s.rules.where((r) => library || ids.contains(r.id));
+     return Column(
+       crossAxisAlignment: CrossAxisAlignment.stretch,
+@@ -178,7 +179,7 @@
+   }
+ }
+ 
+-/// Xem cấu hình đầy đủ ở chế độ chỉ đọc, không biến thao tác xem thành chỉnh sửa.
++// Xem cấu hình đầy đủ ở chế độ chỉ đọc, không biến thao tác xem thành chỉnh sửa.
+ class RuleDetails extends StatelessWidget {
+   const RuleDetails({required this.rule, super.key});
+   final RuleSet rule;
+--- a/lib/screens/academic/widgets/student_enrollment_sheet.dart
++++ b/lib/screens/academic/widgets/student_enrollment_sheet.dart
+@@ -12,7 +12,7 @@
+ import '../../../widgets/app_button.dart';
+ import 'academic_page.dart';
+ 
+-/// Ba cách thêm sinh viên cùng một modal; QR là mã tham gia của lớp đang xem.
++// Ba cách thêm sinh viên trong cùng bảng nhập; QR chứa mã tham gia của lớp đang xem.
+ class StudentEnrollmentSheet extends ConsumerWidget {
+   const StudentEnrollmentSheet({required this.classId, super.key});
+   final String classId;
+--- a/lib/screens/account/account_screens.dart
++++ b/lib/screens/account/account_screens.dart
+@@ -2,6 +2,7 @@
+ import '../../app/session.dart';
+ import '../../repositories/notification_repository.dart';
+ 
++// Hiển thị hồ sơ từ dữ liệu mẫu và gửi thao tác đăng xuất tới ViewModel quản lý phiên.
+ class ProfileScreen extends ConsumerWidget {
+   const ProfileScreen({super.key});
+   @override
+@@ -120,6 +121,7 @@
+   );
+ }
+ 
++// Hiển thị thông báo theo thẻ; lỗi tải có thao tác thử lại qua provider.
+ class NotificationsScreen extends ConsumerStatefulWidget {
+   const NotificationsScreen({super.key});
+   @override
+--- a/lib/screens/account/login_screen.dart
++++ b/lib/screens/account/login_screen.dart
+@@ -10,6 +10,7 @@
+ import '../../widgets/app_badge.dart';
+ import '../../theme/app_colors.dart';
+ 
++// Màn đăng nhập dành cho Supervisor; biểu mẫu kiểm tra đầu vào trước khi tạo phiên mô phỏng.
+ class LoginScreen extends ConsumerStatefulWidget {
+   const LoginScreen({super.key});
+   @override
+@@ -17,7 +18,7 @@
+ }
+ 
+ class _LoginState extends ConsumerState<LoginScreen> {
+-  // Existing mock fields only; Firebase will replace this with Google Sign-In.
++  // Thông tin điền sẵn chỉ phục vụ đăng nhập mô phỏng; dự kiến thay bằng Google Sign-In.
+   final email = TextEditingController(text: 'an.nguyen@university.edu.vn');
+   final password = TextEditingController(text: 'password');
+   final form = GlobalKey<FormState>();
+--- a/lib/screens/dashboard/dashboard_screen.dart
++++ b/lib/screens/dashboard/dashboard_screen.dart
+@@ -14,7 +14,7 @@
+ import 'widgets/dashboard_tasks.dart';
+ import 'widgets/dashboard_secondary_sections.dart';
+ 
+-/// View Tổng quan chỉ quan sát state và chuyển tương tác đến ViewModel/router.
++// Màn Tổng quan theo dõi trạng thái và chuyển thao tác tới ViewModel hoặc bộ điều hướng.
+ class DashboardScreen extends ConsumerWidget {
+   const DashboardScreen({super.key});
+ 
+--- a/lib/screens/dashboard/widgets/dashboard_heading.dart
++++ b/lib/screens/dashboard/widgets/dashboard_heading.dart
+@@ -7,7 +7,7 @@
+ import '../../../theme/app_colors.dart';
+ import '../../../widgets/app_icon.dart';
+ 
+-/// Lời chào và bộ chọn học kỳ từ dữ liệu ViewModel; chỉ phát sự kiện chọn ID.
++// Lời chào và bộ chọn học kỳ từ dữ liệu ViewModel; chỉ phát sự kiện chọn ID.
+ class DashboardHeading extends StatelessWidget {
+   const DashboardHeading({
+     required this.state,
+--- a/lib/screens/dashboard/widgets/dashboard_review_row.dart
++++ b/lib/screens/dashboard/widgets/dashboard_review_row.dart
+@@ -7,7 +7,7 @@
+ import '../../../widgets/app_badge.dart';
+ import '../../../widgets/app_icon.dart';
+ 
+-/// Tóm tắt yêu cầu đúng thứ tự React; không suy luận kết quả AI từ trạng thái cũ.
++// Tóm tắt yêu cầu đúng thứ tự React; không suy luận kết quả AI từ trạng thái cũ.
+ class DashboardReviewRow extends StatelessWidget {
+   const DashboardReviewRow({
+     required this.request,
+--- a/lib/screens/dashboard/widgets/dashboard_secondary_sections.dart
++++ b/lib/screens/dashboard/widgets/dashboard_secondary_sections.dart
+@@ -10,7 +10,7 @@
+ import '../../../widgets/app_icon.dart';
+ import 'dashboard_review_row.dart';
+ 
+-/// Các mục thu gọn phụ dùng cùng dữ liệu và thứ tự nội dung của Dashboard React.
++// Các mục thu gọn phụ dùng cùng dữ liệu và thứ tự nội dung của Dashboard React.
+ class DashboardSecondarySections extends StatelessWidget {
+   const DashboardSecondarySections({
+     required this.state,
+--- a/lib/screens/dashboard/widgets/dashboard_stats.dart
++++ b/lib/screens/dashboard/widgets/dashboard_stats.dart
+@@ -4,7 +4,7 @@
+ import '../../../theme/app_metrics.dart';
+ import '../../../widgets/stat_card.dart';
+ 
+-/// Mỗi hàng cao bằng ô dài nhất, như CSS grid; không cố định tỷ lệ thẻ.
++// Mỗi hàng cao bằng ô dài nhất; số cột đổi theo chiều rộng màn hình và không cố định tỷ lệ thẻ.
+ class DashboardStats extends StatelessWidget {
+   const DashboardStats({required this.stats, super.key});
+   final List<DashboardStat> stats;
+--- a/lib/screens/dashboard/widgets/dashboard_tasks.dart
++++ b/lib/screens/dashboard/widgets/dashboard_tasks.dart
+@@ -12,7 +12,7 @@
+ import '../../../widgets/app_states.dart';
+ import 'dashboard_review_row.dart';
+ 
+-/// Việc cần làm chỉ nhận danh sách đã lọc; giới hạn ba dòng đầu theo React.
++// Việc cần làm chỉ nhận danh sách đã lọc; giới hạn ba dòng đầu theo React.
+ class DashboardTasks extends StatelessWidget {
+   const DashboardTasks({
+     required this.state,
+--- a/lib/screens/management/document_screens.dart
++++ b/lib/screens/management/document_screens.dart
+@@ -3,7 +3,7 @@
+ import 'widgets/management_filter_bar.dart';
+ import '../../viewmodels/academic/management_list_view_model.dart';
+ 
+-/// Danh mục logical document toàn dự án, chỉ hiện mục đã có bản nộp hoặc nháp như React.
++// Danh mục tài liệu theo cấu trúc dự án; chỉ hiện mục đã có bản nộp hoặc bản nháp.
+ class DocumentListScreen extends ConsumerWidget {
+   const DocumentListScreen({super.key});
+   @override
+@@ -85,7 +85,7 @@
+   );
+ }
+ 
+-/// Danh sách tài liệu theo dự án với bốn phạm vi và thứ tự ưu tiên xử lý từ React.
++// Danh sách tài liệu theo dự án với bốn phạm vi và thứ tự ưu tiên xử lý từ React.
+ class ProjectDocumentsScreen extends ConsumerWidget {
+   const ProjectDocumentsScreen({required this.projectId, super.key});
+   final String projectId;
+--- a/lib/screens/management/group_screens.dart
++++ b/lib/screens/management/group_screens.dart
+@@ -1,6 +1,6 @@
+ import 'widgets/management_shared.dart';
+ 
+-/// Danh sách nhóm chia theo lớp đang hoạt động, dùng lại thẻ nhóm Phase 2.
++// Danh sách nhóm chia theo lớp đang hoạt động, dùng chung thẻ nhóm với chi tiết lớp.
+ class GroupListScreen extends StatelessWidget {
+   const GroupListScreen({super.key});
+   @override
+@@ -70,7 +70,7 @@
+   );
+ }
+ 
+-/// Màn quản trị nhóm chỉ gửi lệnh đến ViewModel; thành viên/history được giữ nhất quán trong kho chung.
++// Màn quản trị nhóm gửi lệnh đến ViewModel; thành viên và lịch sử được giữ nhất quán trong kho chung.
+ class GroupDetailScreen extends ConsumerWidget {
+   const GroupDetailScreen({required this.groupId, super.key});
+   final String groupId;
+--- a/lib/screens/management/project_registrations_screen.dart
++++ b/lib/screens/management/project_registrations_screen.dart
+@@ -2,7 +2,7 @@
+ import '../../viewmodels/academic/management_list_view_model.dart';
+ import '../../viewmodels/academic/management_form_view_model.dart';
+ 
+-/// Đăng ký chỉ có quyền Supervisor; phê duyệt tạo dự án trong cùng commit.
++// Màn xử lý đăng ký dành cho Supervisor; phê duyệt tạo dự án cùng lần lưu quyết định.
+ class ProjectRegistrationsScreen extends ConsumerWidget {
+   const ProjectRegistrationsScreen({super.key});
+   @override
+@@ -38,7 +38,7 @@
+   );
+ }
+ 
+-/// Nhận xét nội tuyến như React; lỗi giữ nguyên nháp, quyết định thành công cập nhật danh sách.
++// Nhận xét tại chỗ; lỗi giữ bản nháp, còn quyết định thành công cập nhật danh sách.
+ class _RegistrationCard extends ConsumerStatefulWidget {
+   const _RegistrationCard({
+     required this.registration,
+--- a/lib/screens/management/project_screens.dart
++++ b/lib/screens/management/project_screens.dart
+@@ -4,7 +4,7 @@
+ import 'widgets/document_card.dart';
+ import '../../viewmodels/academic/management_list_view_model.dart';
+ 
+-/// Danh sách dự án có phạm vi học kỳ/trạng thái giống ProjectListPage.
++// Danh sách dự án có phạm vi học kỳ/trạng thái giống ProjectListPage.
+ class ProjectListScreen extends ConsumerWidget {
+   const ProjectListScreen({super.key});
+   @override
+@@ -95,7 +95,7 @@
+   );
+ }
+ 
+-/// Chi tiết dự án với năm tab thật, không tạo bản sao dữ liệu nhóm hoặc tài liệu.
++// Chi tiết dự án với năm tab thật, không tạo bản sao dữ liệu nhóm hoặc tài liệu.
+ class ProjectDetailScreen extends ConsumerWidget {
+   const ProjectDetailScreen({required this.projectId, super.key});
+   final String projectId;
+@@ -112,6 +112,7 @@
+       final off = s.offering(cls?.offeringId ?? '');
+       final docs = s.projectDocuments(p);
+       final archived = p.text('state') == 'archived';
++      // Dự án lưu trữ hoặc lớp không còn hoạt động chỉ cho xem; lớp phải hoạt động mới được khôi phục dự án.
+       final readOnly = archived || cls?.archived != false;
+       final key = 'project:$projectId';
+       final state = ref.watch(managementListProvider(key));
+--- a/lib/screens/management/review_history_screens.dart
++++ b/lib/screens/management/review_history_screens.dart
+@@ -5,7 +5,7 @@
+ import 'widgets/management_filter_bar.dart';
+ import '../../viewmodels/academic/management_list_view_model.dart';
+ 
+-/// Route kết quả dùng chính panel AI của workspace, tránh hai cách tính điểm khác nhau.
++// Màn kết quả dùng lại bảng AI của màn đánh giá để thống nhất cách trình bày điểm.
+ class AiResultScreen extends StatelessWidget {
+   const AiResultScreen({required this.reviewId, super.key});
+   final String reviewId;
+@@ -32,7 +32,7 @@
+   );
+ }
+ 
+-/// Context card dùng chung ở hai màn lịch sử; không phải thẻ có nút xử lý review.
++// Thẻ ngữ cảnh dùng chung ở hai màn lịch sử, chỉ hiển thị thông tin liên kết.
+ class ReviewContextCard extends StatelessWidget {
+   const ReviewContextCard({
+     required this.review,
+@@ -76,7 +76,7 @@
+   );
+ }
+ 
+-/// Phiên bản đã nộp bất biến; so sánh metadata, không hứa hẹn diff nội dung tệp thật.
++// Giữ nguyên phiên bản đã nộp; chỉ so sánh thông tin mô tả, chưa so sánh nội dung tệp thật.
+ class VersionHistoryScreen extends ConsumerWidget {
+   const VersionHistoryScreen({required this.reviewId, super.key});
+   final String reviewId;
+@@ -260,7 +260,7 @@
+   }
+ }
+ 
+-/// Lịch sử chỉ đọc công bố đúng phản hồi được chọn; không hiển thị nháp trong quyết định.
++// Lịch sử chỉ đọc công bố đúng phản hồi được chọn; không hiển thị nháp trong quyết định.
+ class ReviewHistoryScreen extends StatelessWidget {
+   const ReviewHistoryScreen({required this.reviewId, super.key});
+   final String reviewId;
+@@ -356,7 +356,7 @@
+   );
+ }
+ 
+-/// Danh mục nhật ký mọi bản nộp, lọc theo sự kiện cuối thay vì ngày tạo yêu cầu.
++// Danh mục nhật ký mọi bản nộp, lọc theo sự kiện cuối thay vì ngày tạo yêu cầu.
+ class ReviewHistoryIndexScreen extends ConsumerWidget {
+   const ReviewHistoryIndexScreen({super.key});
+   @override
+--- a/lib/screens/management/review_screens.dart
++++ b/lib/screens/management/review_screens.dart
+@@ -6,7 +6,7 @@
+ import 'widgets/review_feedback.dart';
+ import '../../viewmodels/academic/management_list_view_model.dart';
+ 
+-/// Yêu cầu đánh giá mặc định chờ xử lý trong học kỳ hiện tại; needsRevision đã hoàn tất lượt.
++// Yêu cầu đánh giá mặc định chờ xử lý trong học kỳ hiện tại; needsRevision đã hoàn tất lượt.
+ class ReviewListScreen extends ConsumerWidget {
+   const ReviewListScreen({super.key});
+   @override
+@@ -48,10 +48,11 @@
+   );
+ }
+ 
+-/// Không gian đánh giá có bốn panel, thanh quyết định cố định và đọc tài liệu native.
++// Màn đánh giá có bốn phần, thanh quyết định cố định và trình đọc tài liệu mẫu bằng Flutter.
+ class ReviewWorkspaceScreen extends ConsumerWidget {
+   const ReviewWorkspaceScreen({required this.reviewId, super.key});
+   final String reviewId;
++  // Đặt thanh quyết định trong phần AI khi chưa có kết quả và phạm vi còn cho phép đánh giá.
+   bool inlineDecision(AcademicSnapshot s, WidgetRef ref) {
+     final r = s.review(reviewId);
+     if (r == null) return false;
+@@ -80,6 +81,7 @@
+       final key = 'workspace:$reviewId';
+       final state = ref.watch(managementListProvider(key));
+       final vm = ref.read(managementListProvider(key).notifier);
++      // Tách phản hồi của phiên bản đang xem khỏi phản hồi cũ để không trộn nội dung giữa các bản nộp.
+       final current = s
+           .feedbackFor(r.id)
+           .where((f) => f.text('version') == r.text('version'))
+@@ -223,7 +225,8 @@
+   );
+ }
+ 
+-/// Nút quyết định được khóa theo rule snapshot và quyền ghi dự án/lớp, không tự phê duyệt từ điểm AI.
++// Khóa nút quyết định theo bản chụp Rule Set và quyền sửa dự án, lớp.
++// Điểm AI không tự phê duyệt tài liệu.
+ class ReviewDecisionBar extends ConsumerWidget {
+   const ReviewDecisionBar({
+     required this.review,
+@@ -319,7 +322,7 @@
+   }
+ }
+ 
+-/// Context liên kết tới dự án/nhóm/lớp/rule để có thể truy vết ngược từ bản nộp.
++// Ngữ cảnh liên kết tới dự án, nhóm, lớp và Rule Set để truy vết từ bản nộp.
+ class ReviewContextDetails extends StatelessWidget {
+   const ReviewContextDetails({
+     required this.review,
+--- a/lib/screens/management/widgets/ai_review_panel.dart
++++ b/lib/screens/management/widgets/ai_review_panel.dart
+@@ -1,7 +1,7 @@
+ import 'management_shared.dart';
+ import '../../../viewmodels/academic/review_panel_view_model.dart';
+ 
+-/// Kết quả bảng tiêu chí và lịch sử AI; giảng viên luôn phải tự ra quyết định.
++// Kết quả bảng tiêu chí và lịch sử AI; giảng viên luôn phải tự ra quyết định.
+ class AiReviewPanel extends ConsumerWidget {
+   const AiReviewPanel({
+     required this.review,
+@@ -27,6 +27,7 @@
+       value,
+       ((s.data['presentation'] as Map)['shortCriteria'] as Map?) ?? {},
+     );
++    // Ưu tiên quy tắc đã chụp trong lần AI để kết quả cũ không đổi theo cấu hình đang áp dụng.
+     final rule = e?.data['ruleSnapshot'] is Map
+         ? RuleSet(e!.data['ruleSnapshot'] as AcademicJson)
+         : s.reviewRule(r);
+@@ -42,6 +43,7 @@
+     final findings = (e?.values('findings') ?? [])
+         .map((v) => AcademicRecord(v as AcademicJson))
+         .toList();
++    // Tiêu chí chưa có điểm hoặc chưa đạt điểm tối đa đều cần chú ý, kể cả tiêu chí phải chấm thủ công.
+     final attention = results
+         .where(
+           (c) =>
+@@ -52,6 +54,7 @@
+     final visible = state.attentionOnly && attention.isNotEmpty
+         ? attention
+         : results;
++    // Chỉ chạy AI cho lượt chưa kết thúc, có quy tắc và tiêu chí bật, trong dự án và lớp chưa lưu trữ.
+     final canRun =
+         !s.completed(r) &&
+         rule?.flag('aiEnabled') == true &&
+@@ -87,6 +90,7 @@
+     );
+     final max = e?.data['maxScore'] as num? ?? 0;
+     final score = e?.data['overallScore'] as num?;
++    // Thiếu tổng điểm hoặc điểm tối đa không dương thì chưa tính phần trăm, tránh xếp loại sai.
+     final percent = score != null && max > 0 ? score / max * 100 : null;
+     return Column(
+       crossAxisAlignment: CrossAxisAlignment.stretch,
+@@ -336,6 +340,7 @@
+             ],
+           ),
+         if (state.error.isNotEmpty) AppNotice(state.error, error: true),
++        // Lỗi thao tác có thể để lại bản ghi loading; cho thử lại để ViewModel thay lần chạy bị gián đoạn.
+         if (state.error.isNotEmpty && e?.text('evaluationStatus') == 'loading')
+           AppButton(label: 'Thử lại Đánh giá AI', onPressed: vm.run),
+         AppDisclosure(
+--- a/lib/screens/management/widgets/document_card.dart
++++ b/lib/screens/management/widgets/document_card.dart
+@@ -2,7 +2,7 @@
+ import '../../../widgets/app_status_tracks.dart';
+ import 'management_shared.dart';
+ 
+-/// Thẻ logical document dùng chung; ba biến thể giữ đúng bố cục DocumentCard/Roadmap của React.
++// Thẻ tài liệu theo mục Lab, dùng chung cho lộ trình, danh sách gọn và danh sách chi tiết.
+ class ManagementDocumentCard extends StatelessWidget {
+   const ManagementDocumentCard({
+     required this.document,
+@@ -226,7 +226,7 @@
+   }
+ }
+ 
+-/// Timeline chỉ đọc giữ thời gian, tiêu đề, tác giả và trích dẫn thành các dòng riêng như React.
++// Dòng thời gian chỉ đọc, hiển thị riêng thời gian, tiêu đề, tác giả và trích dẫn.
+ class ReviewTimeline extends StatelessWidget {
+   const ReviewTimeline({required this.events, super.key});
+   final List<AcademicRecord> events;
+--- a/lib/screens/management/widgets/management_filter_bar.dart
++++ b/lib/screens/management/widgets/management_filter_bar.dart
+@@ -3,7 +3,7 @@
+ import '../../../widgets/app_filter_controls.dart';
+ import '../../../widgets/app_search_field.dart';
+ 
+-/// Thanh lọc giữ toolbar/chip/trạng thái mobile của React; phép lọc do ViewModel thực hiện.
++// Thanh lọc hiển thị điều kiện và số lượng; ViewModel thực hiện phép lọc.
+ class ManagementFilterBar extends ConsumerWidget {
+   const ManagementFilterBar({
+     required this.kind,
+@@ -14,7 +14,7 @@
+   final String kind, noun, hint;
+   @override
+   Widget build(BuildContext context, WidgetRef ref) {
+-    // Toolbar const vẫn phải theo dõi mutation của kho chung, không giữ số đếm cũ.
++    // Thanh công cụ vẫn theo dõi thay đổi kho chung để cập nhật số đếm dù Widget dùng const.
+     ref.watch(academicViewModelProvider);
+     final state = ref.watch(managementListProvider(kind));
+     final vm = ref.read(managementListProvider(kind).notifier);
+@@ -211,6 +211,7 @@
+ }
+ 
+ class _FilterSheetState extends ConsumerState<_FilterSheet> {
++  // Sửa bộ lọc trên bản nháp; chỉ chuyển vào ViewModel khi người dùng nhấn Áp dụng.
+   late Map<String, List<String>> draft = {...widget.initial};
+   static const titles = {
+     'semester': 'Học kỳ',
+--- a/lib/screens/management/widgets/management_form_sheet.dart
++++ b/lib/screens/management/widgets/management_form_sheet.dart
+@@ -19,7 +19,7 @@
+ Future<bool?> showManagementForm(BuildContext context, AcademicFormSpec spec) =>
+     showAppSheet<bool>(context, ManagementFormSheet(spec: spec));
+ 
+-/// Bề mặt form native dùng field và modal Phase 2; ViewModel sở hữu nháp/lỗi/lệnh ghi.
++// Biểu mẫu dùng trường nhập và bảng chung; ViewModel giữ bản nháp, lỗi và lệnh ghi.
+ class ManagementFormSheet extends ConsumerWidget {
+   const ManagementFormSheet({required this.spec, super.key});
+   final AcademicFormSpec spec;
+--- a/lib/screens/management/widgets/project_form_fields.dart
++++ b/lib/screens/management/widgets/project_form_fields.dart
+@@ -1,7 +1,7 @@
+ import 'management_shared.dart';
+ import '../../../viewmodels/academic/management_form_view_model.dart';
+ 
+-/// Bốn section của ProjectFormModal; tái dùng field/schema và nguồn kế thừa từ ViewModel.
++// Bốn phần biểu mẫu dự án dùng chung trường nhập và thông tin kế thừa từ ViewModel.
+ class ProjectFormFields extends ConsumerWidget {
+   const ProjectFormFields({required this.spec, super.key});
+   final AcademicFormSpec spec;
+--- a/lib/screens/management/widgets/review_feedback.dart
++++ b/lib/screens/management/widgets/review_feedback.dart
+@@ -1,7 +1,7 @@
+ import 'management_shared.dart';
+ import '../../../viewmodels/academic/management_form_view_model.dart';
+ 
+-/// Phản hồi chính thức chỉ đọc; tác giả được sửa/bỏ nháp riêng kể cả nháp chưa công bố.
++// Phản hồi chính thức chỉ đọc; tác giả được sửa/bỏ nháp riêng kể cả nháp chưa công bố.
+ class ReviewFeedbackCard extends ConsumerWidget {
+   const ReviewFeedbackCard({
+     required this.feedback,
+@@ -15,6 +15,7 @@
+     final f = feedback;
+     final r = snapshot.review(f.text('reviewId'));
+     final p = r == null ? null : snapshot.project(r.text('projectId'));
++    // Chỉ tác giả được sửa phản hồi chưa công bố khi dự án active và lớp chưa lưu trữ.
+     final editable =
+         !f.flag('official') &&
+         f.text('author') == (snapshot.data['currentUser'] as Map)['name'] &&
+@@ -80,7 +81,7 @@
+   }
+ }
+ 
+-/// Composer nội tuyến giữ nháp trong Riverpod; gửi thành công mới xóa nội dung/tham chiếu.
++// Khung soạn phản hồi giữ bản nháp trong Riverpod; gửi thành công mới xóa nội dung và tham chiếu.
+ class ReviewFeedbackComposer extends ConsumerStatefulWidget {
+   const ReviewFeedbackComposer({required this.reviewId, super.key});
+   final String reviewId;
+--- a/lib/screens/management/widgets/sample_document_reader.dart
++++ b/lib/screens/management/widgets/sample_document_reader.dart
+@@ -1,7 +1,7 @@
+ import 'management_shared.dart';
+ import '../../../viewmodels/academic/document_reader_view_model.dart';
+ 
+-/// Đọc nội dung mẫu từ React, không giả vờ đây là byte PDF/DOCX của sinh viên.
++// Đọc nội dung mẫu từ React; chưa đọc dữ liệu PDF hoặc DOCX thật của sinh viên.
+ class SampleDocumentReader extends ConsumerWidget {
+   const SampleDocumentReader({
+     required this.review,
+@@ -15,6 +15,7 @@
+   @override
+   Widget build(BuildContext context, WidgetRef ref) {
+     final r = review;
++    // Tách trạng thái đọc theo yêu cầu và phiên bản để mở bản nộp khác không dùng nhầm trang đang xem.
+     final key = 'reader:${r.id}:${r.text('version')}';
+     final reading = ref.watch(documentReaderProvider(key));
+     final page = reading.page;
+@@ -161,6 +162,7 @@
+   @override
+   void initState() {
+     super.initState();
++    // Theo dõi cuộn để nhớ vị trí; lần đầu chưa có vị trí thì cuộn tới trang đã chọn sau khi dựng xong.
+     controller.addListener(_remember);
+     WidgetsBinding.instance.addPostFrameCallback((_) {
+       if (widget.offset == null && selected.currentContext != null) {
+@@ -172,6 +174,7 @@
+   void _remember() => widget.onOffsetChanged(controller.offset);
+   @override
+   void dispose() {
++    // Gỡ listener trước khi hủy bộ điều khiển để không giữ liên kết tới màn đọc đã đóng.
+     controller.removeListener(_remember);
+     controller.dispose();
+     super.dispose();
+@@ -223,7 +226,7 @@
+   );
+ }
+ 
+-/// Trang mẫu tương đương PageContent; phân trang theo số checklist và pageCount của bản nộp.
++// Trang mẫu phân chia nội dung theo số mục đối chiếu và pageCount của bản nộp.
+ class DocumentSamplePage extends StatelessWidget {
+   const DocumentSamplePage({
+     required this.review,
+@@ -242,6 +245,7 @@
+     final checks = (sample?['checks'] as List? ?? [])
+         .map((v) => AcademicRecord(v as AcademicJson))
+         .toList();
++    // Trang đầu dành cho bìa; chia các mục mẫu cho trang còn lại và chặn mẫu số nhỏ hơn 1.
+     final perPage =
+         (checks.length / (r.integer('pageCount', 1) - 1).clamp(1, 10000))
+             .ceil();
+@@ -333,7 +337,7 @@
+   }
+ }
+ 
+-/// Hình học lấy từ StaticDiagram của React; Canvas giữ cả chữ SVG mà flutter_svg không dựng.
++// Hình học lấy từ StaticDiagram của React; Canvas giữ cả chữ SVG mà flutter_svg không dựng.
+ class _SampleDiagram extends StatelessWidget {
+   const _SampleDiagram();
+   @override
+--- a/lib/services/demo_counter_service.dart
++++ b/lib/services/demo_counter_service.dart
+@@ -1,4 +1,4 @@
+-/// Bộ nhớ tạm của demo; counter được đặt lại khi khởi động lại ứng dụng.
++// Bộ nhớ tạm của demo; bộ đếm được đặt lại khi khởi động lại ứng dụng.
+ class DemoCounterService {
+   int _value = 0;
+ 
+--- a/lib/services/academic/fake_academic_service.dart
++++ b/lib/services/academic/fake_academic_service.dart
+@@ -6,12 +6,13 @@
+ import '../../models/session_scope.dart';
+ import '../../repositories/academic/course_contract.dart';
+ 
+-/// Shared in-memory fake server: committed data outlives client sessions.
++// Kho mô phỏng trong bộ nhớ giữ dữ liệu đã lưu qua các phiên đăng nhập.
+ class FakeAcademicService {
+   FakeAcademicService(this._bundle);
+   final AssetBundle _bundle;
+   AcademicSnapshot? _snapshot;
+   Future<AcademicSnapshot>? _loading;
++  // Dùng lại dữ liệu đã tải hoặc lần tải đang chờ để tránh đọc và khởi tạo kho nhiều lần.
+   Future<AcademicSnapshot> load() =>
+       _snapshot != null ? Future.value(_snapshot!) : _loading ??= _read();
+   Future<AcademicSnapshot> _read() async {
+@@ -20,11 +21,12 @@
+         jsonDecode(await _bundle.loadString('assets/fixtures/academic.json')),
+       );
+     } finally {
++      // Xóa dấu đang tải cả khi lỗi để lần thử lại có thể đọc dữ liệu mẫu lần nữa.
+       _loading = null;
+     }
+   }
+ 
+-  /// So phiên bản trước khi thay snapshot để một form cũ không ghi đè dữ liệu mới.
++  // Lưu lệnh Course qua bước kiểm tra phiên bản chung để biểu mẫu cũ không ghi đè dữ liệu mới.
+   Future<AcademicSnapshot> commitCourse(
+     CourseMutation command,
+     int expectedRevision, {
+@@ -43,12 +45,14 @@
+     await load();
+     scope?.requireActive();
+     final current = _snapshot!;
++    // Từ chối bản nháp dựa trên revision cũ trước khi thay dữ liệu chung.
+     if (current.revision != expectedRevision) {
+       throw const AcademicFailure(
+         'Dữ liệu đã thay đổi. Đóng form và mở lại để tiếp tục.',
+         code: AcademicErrorCode.conflict,
+       );
+     }
++    // Kiểm tra toàn bộ Course trước khi lưu; mã môn trùng chỉ khác hoa thường cũng bị từ chối.
+     final ids = <String>{}, codes = <String>{};
+     for (final course in next.courses) {
+       CourseDto.fromJson(course.toJson());
+@@ -59,6 +63,7 @@
+         throw const AcademicFailure('Mã môn đã tồn tại.');
+       }
+     }
++    // Chỉ tăng revision sau khi mọi kiểm tra thành công để các biểu mẫu cũ nhận biết xung đột.
+     return _snapshot = AcademicSnapshot({
+       ...next.toJson(),
+       'revision': current.revision + 1,
+--- a/lib/services/academic/student_import_service.dart
++++ b/lib/services/academic/student_import_service.dart
+@@ -3,7 +3,7 @@
+ 
+ import '../../repositories/academic/student_device_gateway.dart';
+ 
+-/// Cầu nối thiết bị được DI; Widget không đọc tệp hoặc gọi clipboard trực tiếp.
++// Cung cấp thao tác thiết bị qua phụ thuộc được truyền vào; Widget không tự đọc tệp hoặc sao chép.
+ class StudentImportService implements StudentDeviceGateway {
+   @override
+   Future<({String name, String? csv})?> pick() async {
+@@ -16,6 +16,7 @@
+       ],
+     );
+     if (file == null) return null;
++    // Chỉ CSV được đọc thành văn bản; XLSX trả tên tệp để ViewModel dùng dữ liệu xem trước mẫu.
+     return (
+       name: file.name,
+       csv: file.name.toLowerCase().endsWith('.csv')
+--- a/lib/services/dashboard/fake_dashboard_service.dart
++++ b/lib/services/dashboard/fake_dashboard_service.dart
+@@ -2,13 +2,13 @@
+ 
+ import 'package:flutter/services.dart';
+ 
+-/// Đọc fixture đã trích từ store React; không mô phỏng backend Lab 3 cuối cùng.
++// Đọc dữ liệu mẫu từ React hoặc nguồn học vụ được truyền vào; chưa kết nối máy chủ thật.
+ class FakeDashboardService {
+   const FakeDashboardService(this._bundle, {this.loadData});
+   final AssetBundle _bundle;
+   final Future<Map<String, dynamic>> Function()? loadData;
+ 
+-  /// Lỗi thiếu asset hoặc JSON không hợp lệ được chuyển lên repository/ViewModel.
++  // Lỗi thiếu tài nguyên hoặc JSON không hợp lệ được chuyển lên Repository và ViewModel.
+   Future<Map<String, dynamic>> load() async => loadData != null
+       ? await loadData!()
+       : jsonDecode(await _bundle.loadString('assets/fixtures/dashboard.json'))
+--- a/lib/theme/app_colors.dart
++++ b/lib/theme/app_colors.dart
+@@ -1,6 +1,6 @@
+ import 'package:flutter/material.dart';
+ 
+-/// Giá trị @theme chính xác từ src/index.css của nguồn React chỉ đọc.
++// Giá trị @theme chính xác từ src/index.css của nguồn React chỉ đọc.
+ abstract final class AppColors {
+   static const brand = Color(0xFF146B55);
+   static const brandSoft = Color(0xFFEAF4ED);
+@@ -20,6 +20,6 @@
+   static const rustSoft = Color(0xFFFBF0EA);
+   static const danger = Color(0xFFA34343);
+   static const dangerSoft = Color(0xFFFAEEEE);
+-  // Màu trắng còn được dùng trực tiếp cho nền và chữ trong component React.
++  // Màu trắng còn được dùng trực tiếp cho nền và chữ trong thành phần React.
+   static const white = Color(0xFFFFFFFF);
+ }
+--- a/lib/theme/app_metrics.dart
++++ b/lib/theme/app_metrics.dart
+@@ -1,4 +1,4 @@
+-/// Kích thước đo từ CSS React; tập trung tại theme để tránh số rời trong screen.
++// Kích thước đo từ CSS React; tập trung tại cấu hình giao diện để tránh số rời trong màn hình.
+ abstract final class AppMetrics {
+   static const border = 1.0;
+   static const navGap = 2.0;
+--- a/lib/theme/app_radius.dart
++++ b/lib/theme/app_radius.dart
+@@ -1,9 +1,9 @@
+-/// Bo góc từ handoff và CSS thực tế; giữ riêng giá trị modal đang dùng.
++// Bo góc theo thông số bàn giao và CSS thực tế; giữ riêng giá trị bảng nhập liệu đang dùng.
+ abstract final class AppRadius {
+   static const chip = 6.0;
+   static const button = 8.0;
+   static const card = 12.0;
+-  static const dialog = 16.0; // Giá trị handoff Lab 2.
++  static const dialog = 16.0; // Thông số bàn giao Lab 2.
+   static const modal = 12.0; // Giá trị thực tế trong Modal.tsx.
+   static const pill = 999.0;
+ }
+--- a/lib/theme/app_shadows.dart
++++ b/lib/theme/app_shadows.dart
+@@ -2,7 +2,7 @@
+ 
+ import 'app_colors.dart';
+ 
+-/// Độ nổi từ handoff; chỉ áp dụng cho component nguồn thực sự có bóng.
++// Độ nổi theo thông số bàn giao; chỉ áp dụng cho thành phần nguồn có bóng.
+ abstract final class AppShadows {
+   static final elevation1 = [
+     BoxShadow(
+--- a/lib/theme/app_spacing.dart
++++ b/lib/theme/app_spacing.dart
+@@ -1,4 +1,4 @@
+-/// Thang khoảng cách Lab 2 và các kích thước đo từ layout React.
++// Thang khoảng cách Lab 2 và kích thước đo từ bố cục React.
+ abstract final class AppSpacing {
+   static const xs = 4.0;
+   static const s = 8.0;
+--- a/lib/theme/app_theme.dart
++++ b/lib/theme/app_theme.dart
+@@ -5,7 +5,7 @@
+ import 'app_spacing.dart';
+ import 'app_typography.dart';
+ 
+-/// Theme sáng bám token React, chủ động tắt tint và hình dạng Material mặc định.
++// Giao diện sáng theo thông số React, tắt lớp phủ màu và hình dạng Material mặc định.
+ abstract final class AppTheme {
+   static final _buttonShape = RoundedRectangleBorder(
+     borderRadius: BorderRadius.circular(AppRadius.button),
+--- a/lib/theme/app_typography.dart
++++ b/lib/theme/app_typography.dart
+@@ -2,7 +2,7 @@
+ 
+ import 'app_colors.dart';
+ 
+-/// Vai trò chữ từ CSS effective của React, tách biệt thang handoff cũ.
++// Kiểu chữ theo CSS đang áp dụng của React, tách biệt thông số bàn giao cũ.
+ abstract final class AppTypography {
+   static const fontFamily = 'Inter';
+   static const body = TextStyle(
+@@ -14,7 +14,7 @@
+     height: 1.45,
+     color: AppColors.ink,
+   );
+-  // PageHeading hiện tại khác thang tiêu đề trong handoff cũ.
++  // PageHeading hiện tại khác thang tiêu đề trong thông số bàn giao cũ.
+   static final pageHeading = body.copyWith(
+     fontSize: 26,
+     fontWeight: FontWeight.w600,
+@@ -61,7 +61,7 @@
+     fontWeight: FontWeight.w600,
+   );
+ 
+-  // Giữ thang handoff để truy vết; không ghi đè mức 14px trong .mobile-app.
++  // Giữ thông số bàn giao để truy vết; không ghi đè mức 14px trong .mobile-app.
+   static final lab2PageTitle = body.copyWith(
+     fontSize: 22,
+     fontWeight: FontWeight.w700,
+--- a/lib/viewmodels/counter_view_model.dart
++++ b/lib/viewmodels/counter_view_model.dart
+@@ -3,15 +3,16 @@
+ import '../app/providers.dart';
+ import '../models/counter_state.dart';
+ 
++// Cung cấp trạng thái bộ đếm ví dụ qua Repository để kiểm chứng luồng Riverpod.
+ final counterViewModelProvider =
+     NotifierProvider<CounterViewModel, CounterState>(CounterViewModel.new);
+ 
+-/// Điều phối counter foundation qua repository, giữ View độc lập bộ nhớ tạm.
++// Điều phối bộ đếm qua Repository để giao diện độc lập với bộ nhớ tạm.
+ class CounterViewModel extends Notifier<CounterState> {
+   @override
+   CounterState build() => ref.watch(counterRepositoryProvider).load();
+ 
+-  /// Tăng số đếm qua nguồn dữ liệu và thay snapshot state bất biến.
++  // Tăng bộ đếm qua nguồn dữ liệu rồi thay trạng thái bằng bản chụp bất biến.
+   void increment() {
+     state = ref.read(counterRepositoryProvider).increment();
+   }
+--- a/lib/viewmodels/academic/academic_form_view_model.dart
++++ b/lib/viewmodels/academic/academic_form_view_model.dart
+@@ -6,7 +6,7 @@
+ import '../../app/session.dart';
+ import '../../models/academic/academic_projections.dart';
+ 
+-/// Danh tính riêng cho mỗi lần mở form, tránh tái sử dụng bản nháp đã hủy.
++// Định danh riêng cho mỗi lần mở biểu mẫu, tránh dùng lại bản nháp đã hủy.
+ class AcademicFormSpec {
+   const AcademicFormSpec(
+     this.kind, {
+@@ -22,7 +22,7 @@
+   final int section;
+ }
+ 
+-/// Metadata thuần trình bày để tất cả form dùng chung field native và token.
++// Mô tả trường nhập để các biểu mẫu dùng chung thành phần Flutter và kiểu trình bày.
+ class AcademicField {
+   const AcademicField(
+     this.key,
+@@ -44,7 +44,7 @@
+   final int lines;
+ }
+ 
+-/// State bản nháp bất biến; lỗi ghi không làm mất các giá trị đang nhập.
++// Trạng thái bản nháp bất biến; lỗi lưu không làm mất các giá trị đang nhập.
+ class AcademicFormState {
+   AcademicFormState(
+     AcademicJson value, {
+@@ -58,12 +58,13 @@
+   final String saveError;
+ }
+ 
++// Mỗi lần mở biểu mẫu có bản nháp riêng; tự hủy khi không còn màn hình theo dõi.
+ final academicFormProvider = NotifierProvider.autoDispose
+     .family<AcademicFormViewModel, AcademicFormState, AcademicFormSpec>(
+       AcademicFormViewModel.new,
+     );
+ 
+-/// Điều phối dữ liệu/validation form; widget không tự áp dụng quy tắc hoặc ghi kho.
++// Điều phối dữ liệu và kiểm tra biểu mẫu; Widget không tự áp dụng quy tắc hoặc ghi kho.
+ class AcademicFormViewModel extends Notifier<AcademicFormState> {
+   AcademicFormViewModel(this.spec);
+   final AcademicFormSpec spec;
+@@ -75,8 +76,10 @@
+       AcademicProjections.criterionTotal(state.draft.values('criteria'));
+   @override
+   AcademicFormState build() {
++    // Tạo lại bản nháp khi phiên đổi để không mang dữ liệu đang nhập sang lần đăng nhập khác.
+     ref.watch(sessionScopeProvider);
+     final s = snapshot;
++    // Chọn đợt có học kỳ chưa lưu trữ và chưa qua ngày kết thúc theo đồng hồ dữ liệu mẫu.
+     final first = s.offerings.where((o) {
+       final sem = s.semester(o.semesterId);
+       return sem != null &&
+@@ -194,7 +197,7 @@
+   void selectSection(int section) =>
+       state = AcademicFormState(state.draft.toJson(), section: section);
+ 
+-  /// Sửa bản sao; đổi phạm vi gán phải xóa lựa chọn con để không ghi chéo Course.
++  // Sửa bản sao của bản nháp; đổi phạm vi gán sẽ xóa lựa chọn con để không ghi chéo Course.
+   void set(String key, dynamic value) {
+     if (state.saving) return;
+     final v = state.draft.toJson();
+@@ -240,6 +243,7 @@
+     for (var i = 0; i < state.draft.values('criteria').length; i++)
+       if (i != index) state.draft.values('criteria')[i],
+   ]);
++  // Kiểm tra theo loại biểu mẫu trước khi cho lưu; quy tắc Class và Rule Set dùng chung với lệnh ghi.
+   String? get invalid {
+     final v = state.draft.data;
+     bool blank(String key) => state.draft.text(key).trim().isEmpty;
+@@ -279,6 +283,7 @@
+ 
+   List<CourseOffering> get assignmentOfferings =>
+       snapshot.courseOfferings(spec.courseId);
++  // Chỉ hiện lớp cùng Course và đợt được chọn; lớp cũ thiếu offeringId được khớp theo học kỳ.
+   List<ClassRoom> get assignmentClasses {
+     final off = snapshot.offering(state.draft.text('offeringId'));
+     return off == null
+@@ -294,6 +299,7 @@
+               .toList();
+   }
+ 
++  // Danh sách mục dùng cấu trúc riêng của lớp nếu có; không có cấu hình riêng mới kế thừa Lab của đợt.
+   List<LabItem> get assignmentItems {
+     final off = snapshot.offering(state.draft.text('offeringId'));
+     final cls = snapshot.classRoom(state.draft.text('classId'));
+@@ -687,6 +693,7 @@
+     ];
+   }
+ 
++  // Hạ giới hạn chỉ cảnh báo nhóm vượt mức, không tự xóa thành viên đã có.
+   bool get overLimit =>
+       spec.kind == 'class' &&
+       snapshot
+@@ -699,7 +706,7 @@
+                     : 0),
+           );
+ 
+-  /// Chỉ đóng khi commit thành công; lỗi giữ draft để sửa hoặc thử lưu lại.
++  // Chỉ báo thành công khi đã lưu trong phiên còn hiệu lực; lỗi giữ bản nháp để thử lại.
+   Future<bool> save() async {
+     final scope = ref.read(sessionScopeProvider);
+     if (state.saving || invalid != null) return false;
+@@ -747,6 +754,7 @@
+     }
+   }
+ 
++  // Ghép bản nháp vào đúng Lab hoặc mục được mở; các mục khác được giữ nguyên trong lần ghi.
+   Future<void> _saveLabDraft(AcademicJson draft) async {
+     final labs = snapshot.offering(spec.offeringId)!.labs;
+     if (spec.kind == 'lab') {
+@@ -777,6 +785,7 @@
+     }
+   }
+ 
++  // Lấy hậu tố số lớn nhất để gợi ý mã tiếp theo, tránh dùng số lượng hiện có sau khi đã xóa Lab.
+   static String suggestLabCode(List<AcademicLab> labs) {
+     final nums = labs
+         .map(
+@@ -788,6 +797,7 @@
+     return 'Lab ${nums.isEmpty ? labs.length + 1 : nums.reduce((a, b) => a > b ? a : b) + 1}';
+   }
+ 
++  // Tăng hậu tố số của mã mục cuối và giữ số 0 đầu; thiếu mẫu số thì dùng mã dự phòng.
+   static String suggestItemCode(AcademicLab? lab) {
+     final last = lab?.items.lastOrNull?.code;
+     final m = RegExp(r'^(.*?)(\d+)$').firstMatch(last ?? '');
+--- a/lib/viewmodels/academic/academic_view_model.dart
++++ b/lib/viewmodels/academic/academic_view_model.dart
+@@ -9,23 +9,25 @@
+ import '../../models/session_scope.dart';
+ import '../../repositories/academic/course_contract.dart';
+ 
++// Cung cấp dữ liệu học vụ dùng chung; chỉ tải lại khi có yêu cầu, không tự lặp sau lỗi.
+ final academicViewModelProvider =
+     AsyncNotifierProvider<AcademicViewModel, AcademicSnapshot>(
+       AcademicViewModel.new,
+       retry: (n, e) => null,
+     );
+ 
+-/// State học vụ chung; lệnh ghi kiểm tra phạm vi trước khi commit toàn snapshot.
++// Quản lý trạng thái học vụ chung; lệnh nghiệp vụ kiểm tra phạm vi trước khi lưu bản chụp.
+ class AcademicViewModel extends AsyncNotifier<AcademicSnapshot> {
+   AcademicSnapshot get snapshot => state.requireValue;
+ 
+-  /// Phân biệt tác vụ AI đang chạy với bản loading bị gián đoạn để cho phép retry.
++  // Phân biệt tác vụ AI đang chạy với bản ghi loading bị gián đoạn để cho phép thử lại.
+   final Set<String> activeEvaluationIds = {};
+   bool _writing = false;
+   int _sequence = 0;
+   late SessionScope sessionScope;
+   @override
+   Future<AcademicSnapshot> build() {
++    // Phiên thay đổi thì tạo lại trạng thái điều phối, bỏ dấu các lần ghi và chạy AI của phiên trước.
+     sessionScope = ref.watch(sessionScopeProvider);
+     activeEvaluationIds.clear();
+     _writing = false;
+@@ -36,7 +38,7 @@
+       '$prefix-${DateTime.now().microsecondsSinceEpoch}-${_sequence++}';
+   void retry() => ref.invalidateSelf();
+ 
+-  /// Nhân bản chỉ tạo bản nháp để chỉnh; hủy editor không thêm rule vào thư viện.
++  // Nhân bản chỉ tạo bản nháp để sửa; hủy biểu mẫu không thêm Rule Set vào thư viện.
+   AcademicJson cloneRuleDraft(RuleSet rule) => {
+     ...rule.toJson(),
+     'id': nextId('rule'),
+@@ -45,7 +47,7 @@
+     'version': 1,
+   };
+ 
+-  /// Mutation lỗi giữ nguyên dữ liệu đang xem; chặn double-submit và state sau dispose.
++  // Lỗi lưu giữ nguyên dữ liệu đang xem; chặn gửi lặp và cập nhật trạng thái khi phiên đã đóng.
+   Future<void> mutate(
+     AcademicSnapshot Function(AcademicSnapshot) change, {
+     CourseMutation? courseCommand,
+@@ -60,6 +62,7 @@
+     try {
+       final candidate = change(old);
+       final repository = ref.read(academicRepositoryProvider);
++      // Course dùng hợp đồng lệnh khi Repository hỗ trợ; các lệnh cũ vẫn kiểm tra revision trước khi lưu.
+       final next =
+           courseCommand != null && repository is CourseCommandRepository
+           ? await (repository as CourseCommandRepository).commitCourse(
+@@ -67,6 +70,7 @@
+               expectedRevision: old.revision,
+             )
+           : await repository.commit(candidate, expectedRevision: old.revision);
++      // Chỉ công bố kết quả khi ViewModel còn tồn tại và phiên khởi chạy còn hiệu lực.
+       if (ref.mounted && operationScope.active) {
+         state = AsyncData(next);
+         ref.invalidate(dashboardViewModelProvider);
+@@ -81,6 +85,7 @@
+       if (r.id == v['id']) v else r.toJson(),
+     if (!s.records(key).any((r) => r.id == v['id'])) v,
+   ];
++  // Dùng chung chốt kiểm tra lớp còn tồn tại và chưa lưu trữ trước các lệnh ghi.
+   ClassRoom activeClass(AcademicSnapshot s, String id) {
+     final cls = s.classRoom(id);
+     if (cls == null) throw const AcademicFailure('Không tìm thấy lớp.');
+@@ -92,6 +97,7 @@
+     return cls;
+   }
+ 
++  // Chuẩn hóa Course qua DTO rồi gửi lệnh tạo hoặc cập nhật rõ ràng để bảo vệ ID đã tồn tại.
+   Future<void> saveCourse(AcademicJson input) async {
+     final draft = CourseDto.fromJson(
+       input,
+@@ -106,7 +112,8 @@
+     await mutate(command.apply, courseCommand: command);
+   }
+ 
+-  /// Đợt mới dùng rule active và bản sao Lab đợt trước; sửa đợt không đổi override lớp.
++  // Đợt học phải dùng Rule Set active; đợt mới lấy cấu trúc Lab từ đợt đầu tiên của môn nếu có.
++  // Sửa cấu hình đợt không thay cấu hình riêng của lớp.
+   Future<void> saveOffering(AcademicJson input) => mutate((s) {
+     final course = s.course(input['courseId'] as String);
+     final sem = s.semester(input['semesterId'] as String);
+@@ -134,7 +141,7 @@
+     return s.replaceCollection('offerings', upsert(s, 'offerings', v));
+   });
+ 
+-  /// Giữ override và người cũ khi hạ giới hạn; khóa chuyển đợt nếu đã có nhóm.
++  // Giữ cấu hình riêng và thành viên hiện có khi hạ giới hạn; cấm chuyển đợt nếu lớp đã có nhóm.
+   Future<void> saveClass(AcademicJson input) => mutate((s) {
+     final old = s.classRoom(input['id'] as String? ?? '');
+     if (old != null) activeClass(s, old.id);
+@@ -164,11 +171,12 @@
+     return s.replaceCollection('classes', upsert(s, 'classes', v));
+   });
+ 
+-  /// Tạo phiên bản rule mới; reviewState, phiên bản và kết quả lịch sử không bị sửa.
++  // Lưu Rule Set tạo phiên bản mới; không sửa reviewState hoặc kết quả đánh giá trong lịch sử.
+   Future<void> saveRule(AcademicJson input) => mutate((s) {
+     final error = AcademicPolicy.validateRule(input);
+     if (error != null) throw AcademicFailure(error);
+     final old = s.rule(input['id'] as String);
++    // Bản nháp Rule Set cũ không được ghi đè phiên bản đã thay đổi trong lúc biểu mẫu đang mở.
+     if (old != null && old.version != input['version']) {
+       throw const AcademicFailure(
+         'Bộ quy tắc đã thay đổi. Mở lại cấu hình trước khi lưu.',
+@@ -183,7 +191,7 @@
+     );
+   });
+ 
+-  /// Chỉ gán trong Course đang mở; ghi mục cấp lớp phải clone cấu trúc kế thừa.
++  // Chỉ gán Rule Set trong Course đang mở; gán riêng mục ở lớp sẽ sao chép cấu trúc kế thừa.
+   Future<void> assignRule({
+     required String courseId,
+     required String ruleId,
+@@ -230,6 +238,7 @@
+     };
+     return s.replaceCollection(key, upsert(s, key, v));
+   });
++  // Chỉ đổi giữa active và archived; lưu trữ giữ nguyên nhóm, dự án và lịch sử liên quan.
+   Future<void> setClassState(String id, String status) => mutate((s) {
+     final cls = s.classRoom(id);
+     if (cls == null || !['active', 'archived'].contains(status)) {
+@@ -243,7 +252,7 @@
+     );
+   });
+ 
+-  /// Không xóa lớp có người/nhóm/dự án/lịch sử; lưu trữ thay vì mất liên kết.
++  // Không xóa lớp có người/nhóm/dự án/lịch sử; lưu trữ thay vì mất liên kết.
+   Future<void> deleteClass(String id) => mutate((s) {
+     final cls = s.classRoom(id);
+     if (cls == null) throw const AcademicFailure('Không tìm thấy lớp.');
+@@ -263,6 +272,7 @@
+         if (c.id != id) c.toJson(),
+     ]);
+   });
++  // Tạo nhóm rỗng trong lớp còn hoạt động; tên sau khi bỏ khoảng trắng phải khác các nhóm cùng lớp.
+   Future<void> createGroup(String classId, String name) => mutate((s) {
+     final cls = activeClass(s, classId);
+     final n = name.trim();
+@@ -295,6 +305,7 @@
+       }),
+     );
+   });
++  // Chỉ thêm sinh viên đúng lớp, chưa có nhóm và còn trong giới hạn; cập nhật liên kết qua lệnh dùng chung.
+   Future<void> addGroupMember(String groupId, String studentId) => mutate((s) {
+     final group = s.groups.where((g) => g.id == groupId).firstOrNull;
+     if (group == null) throw const AcademicFailure('Không tìm thấy nhóm.');
+@@ -303,7 +314,7 @@
+     return syncGroupMembers(s, group, [...group.memberIds, studentId]);
+   });
+ 
+-  /// Lọc trùng trong batch/lớp; lỗi định dạng hoặc vượt sĩ số không ghi dở dang.
++  // Lọc trùng trong danh sách nhập và lớp; lỗi định dạng hoặc vượt sĩ số hủy toàn bộ lần ghi.
+   Future<void> enrollStudents(String classId, List<AcademicJson> rows) =>
+       mutate((s) {
+         final cls = activeClass(s, classId);
+@@ -350,6 +361,7 @@
+           }),
+         );
+       });
++  // Đổi phần hậu tố mã tham gia và đặt hạn mẫu cố định; chưa phải cơ chế phát mã từ máy chủ Firebase.
+   Future<void> regenerateQr(String classId) => mutate((s) {
+     final cls = activeClass(s, classId);
+     final suffix = DateTime.now().microsecondsSinceEpoch
+@@ -368,7 +380,7 @@
+     );
+   });
+ 
+-  /// Thay cấu trúc đúng một phạm vi, không lan sửa đổi sang lớp đang có override.
++  // Thay cấu trúc đúng phạm vi đã chọn, không lan sửa đổi sang lớp đang có cấu hình riêng.
+   Future<void> saveLabs(
+     String offeringId,
+     List<AcademicJson> labs, {
+@@ -389,6 +401,7 @@
+       }),
+     );
+   });
++  // Lưu bản sao Lab với ID mới để sửa cấu trúc gốc không làm thay đổi mẫu đã lưu.
+   Future<void> saveTemplate(AcademicLab lab, String scope) => mutate(
+     (s) => s.replaceCollection('labTemplates', [
+       ...s.values('labTemplates').cast<AcademicJson>(),
+@@ -401,7 +414,7 @@
+     ]),
+   );
+ 
+-  /// Thao tác cấu trúc Lab là một lần ghi; xóa mục đồng thời gỡ cạnh phụ thuộc.
++  // Thao tác cấu trúc Lab là một lần ghi; xóa mục đồng thời gỡ cạnh phụ thuộc.
+   Future<void> editLabStructure(
+     String offeringId,
+     String action, {
+@@ -448,6 +461,7 @@
+         final delta = action == 'up' ? -1 : 1;
+         itemId.isEmpty ? move(labs, li, delta) : move(items, ii, delta);
+       }
++      // Khi xóa cả Lab hoặc một mục, đồng thời gỡ các liên kết phụ thuộc trỏ tới những mục bị xóa.
+       if (action == 'delete') {
+         final ids = itemId.isEmpty
+             ? items.map((i) => i['id']).toSet()
+--- a/lib/viewmodels/academic/class_filter_view_model.dart
++++ b/lib/viewmodels/academic/class_filter_view_model.dart
+@@ -4,7 +4,7 @@
+ import 'academic_view_model.dart';
+ import '../../app/session.dart';
+ 
+-/// Bộ lọc bất biến; danh sách Course phụ thuộc học kỳ, không phụ thuộc từ khóa.
++// Bộ lọc bất biến; danh sách Course phụ thuộc học kỳ, không phụ thuộc từ khóa.
+ class ClassFilterState {
+   const ClassFilterState({this.q = '', this.facets = const {}});
+   final String q;
+@@ -12,12 +12,13 @@
+   List<String> values(String key) => facets[key] ?? [];
+ }
+ 
++// Giữ bộ lọc lớp dùng chung trong phiên; phiên mới trở về học kỳ hiện tại và lớp active.
+ final classFilterProvider =
+     NotifierProvider<ClassFilterViewModel, ClassFilterState>(
+       ClassFilterViewModel.new,
+     );
+ 
+-/// Giữ filter và chế độ xem trong phiên fake; không ghi vào nguồn React.
++// Giữ bộ lọc và chế độ xem trong phiên mô phỏng, không ghi vào dữ liệu nguồn.
+ class ClassFilterViewModel extends Notifier<ClassFilterState> {
+   final Map<String, ClassFilterState> saved = {};
+   @override
+@@ -39,6 +40,7 @@
+   void clear() => state = const ClassFilterState();
+   void set(String key, List<String> values) {
+     final f = {...state.facets, key: values};
++    // Đổi học kỳ thì bỏ môn đã chọn để không giữ điều kiện con thuộc học kỳ cũ.
+     if (key == 'semester') f['course'] = [];
+     state = ClassFilterState(q: state.q, facets: f);
+   }
+@@ -48,6 +50,7 @@
+     state = ClassFilterState(q: state.q, facets: {...state.facets});
+   }
+ 
++  // Mỗi nhóm điều kiện phải khớp ít nhất một giá trị; sau đó tìm mã lớp, mã môn hoặc tên môn.
+   List<ClassRoom> visible(AcademicSnapshot s) => s.classes.where((c) {
+     final fields = {
+       'semester': c.semesterId,
+--- a/lib/viewmodels/academic/directory_view_model.dart
++++ b/lib/viewmodels/academic/directory_view_model.dart
+@@ -5,11 +5,13 @@
+ import '../../app/session.dart';
+ import '../../models/academic/academic_projections.dart';
+ 
++// Cung cấp bộ lọc danh bạ theo phiên và tự hủy khi không còn màn hình theo dõi.
+ final studentDirectoryProvider =
+     NotifierProvider.autoDispose<StudentDirectoryViewModel, AcademicRecord>(
+       StudentDirectoryViewModel.new,
+     );
+ 
++// Lọc sinh viên theo phạm vi học vụ và từ khóa; số người có nhóm được tổng hợp bằng ID duy nhất.
+ class StudentDirectoryViewModel extends Notifier<AcademicRecord> {
+   @override
+   AcademicRecord build() {
+@@ -24,6 +26,7 @@
+ 
+   AcademicSnapshot get snapshot =>
+       ref.read(academicViewModelProvider).requireValue;
++  // Đổi học kỳ xóa lựa chọn môn và lớp; đổi môn xóa lớp để tránh giữ phạm vi con không phù hợp.
+   void set(String key, String value) => state = AcademicRecord({
+     ...state.toJson(),
+     key: value,
+@@ -51,6 +54,7 @@
+             ),
+       )
+       .toList();
++  // Danh bạ hiện lọc theo classId trực tiếp của sinh viên và các lớp phù hợp, rồi tìm tên, mã hoặc email.
+   List<AcademicStudent> get visible {
+     final ids = classes
+         .where(
+@@ -77,9 +81,11 @@
+       AcademicProjections.groupedStudents(visible, snapshot.groups);
+ }
+ 
++// Các lệnh học kỳ dùng chung cơ chế ghi dữ liệu và revision của AcademicViewModel.
+ extension SemesterCommands on AcademicViewModel {
+   List<AcademicSemester> get orderedSemesters =>
+       AcademicProjections.semesters(snapshot);
++  // Tên, năm học và khoảng ngày phải hợp lệ; cập nhật giữ nguyên trạng thái lưu trữ đang có.
+   Future<void> saveSemester(AcademicJson input) => mutate((s) {
+     final start = DateTime.tryParse(input['startDate']?.toString() ?? '');
+     final end = DateTime.tryParse(input['endDate']?.toString() ?? '');
+@@ -113,6 +119,7 @@
+       }),
+     );
+   });
++  // Chỉ đổi cờ lưu trữ của học kỳ để giữ các liên kết lớp và đợt học phục vụ tra cứu.
+   Future<void> archiveSemester(String id, bool archived) => mutate((s) {
+     final old = s.semester(id);
+     if (old == null) throw const AcademicFailure('Không tìm thấy học kỳ.');
+@@ -121,6 +128,7 @@
+       upsert(s, 'semesters', {...old.toJson(), 'archived': archived}),
+     );
+   });
++  // Chỉ xóa học kỳ chưa có lớp hoặc đợt học; có liên kết thì phải lưu trữ để giữ lịch sử.
+   Future<void> deleteSemester(String id) => mutate((s) {
+     if (s.semester(id) == null) {
+       throw const AcademicFailure('Không tìm thấy học kỳ.');
+--- a/lib/viewmodels/academic/document_reader_view_model.dart
++++ b/lib/viewmodels/academic/document_reader_view_model.dart
+@@ -2,19 +2,20 @@
+ 
+ import '../../app/session.dart';
+ 
+-/// State đọc gắn với review + phiên bản; không ghi vị trí xem vào lịch sử tài liệu.
++// Trạng thái đọc gắn với yêu cầu và phiên bản; vị trí xem không ghi vào lịch sử tài liệu.
+ class DocumentReadingState {
+   const DocumentReadingState({this.page = 0, this.offset});
+   final int page;
+   final double? offset;
+ }
+ 
++// Khóa truyền vào chứa yêu cầu và phiên bản để các bản nộp không dùng chung vị trí đọc.
+ final documentReaderProvider = NotifierProvider.autoDispose
+     .family<DocumentReaderViewModel, DocumentReadingState, String>(
+       DocumentReaderViewModel.new,
+     );
+ 
+-/// Giữ trang và vị trí toàn màn hình khi đóng/mở lại như readingOffset của React.
++// Giữ trang và vị trí cuộn khi chuyển chế độ đọc trong cùng vòng đời provider.
+ class DocumentReaderViewModel extends Notifier<DocumentReadingState> {
+   DocumentReaderViewModel(this.key);
+   final String key;
+@@ -24,10 +25,12 @@
+     return const DocumentReadingState();
+   }
+ 
++  // Giới hạn trang theo tổng số trang để thao tác trước, sau không vượt phạm vi tài liệu.
+   void selectPage(int page, int total) => state = DocumentReadingState(
+     page: page.clamp(0, (total - 1).clamp(0, 10000)),
+     offset: state.offset,
+   );
++  // Chỉ nhớ vị trí cuộn hữu hạn, không âm để có thể khôi phục chế độ đọc toàn màn hình.
+   void rememberOffset(double value) {
+     if (value.isFinite && value >= 0) {
+       state = DocumentReadingState(page: state.page, offset: value);
+--- a/lib/viewmodels/academic/management_actions.dart
++++ b/lib/viewmodels/academic/management_actions.dart
+@@ -2,9 +2,9 @@
+ import '../../models/academic/management_queries.dart';
+ import 'academic_view_model.dart';
+ 
+-/// Các lệnh quản trị vẫn commit qua AcademicViewModel và revision của Phase 2.
++// Các lệnh quản trị lưu qua AcademicViewModel và kiểm tra revision của kho học vụ chung.
+ extension ManagementActions on AcademicViewModel {
+-  /// Trưởng nhóm là thành viên đầu tiên như React; đồng bộ ba phía, giữ lịch sử nguyên vẹn.
++  // Thành viên đầu tiên là trưởng nhóm; đồng bộ nhóm, sinh viên và thành viên dự án.
+   AcademicSnapshot syncGroupMembers(
+     AcademicSnapshot s,
+     StudentGroup g,
+@@ -46,6 +46,7 @@
+     });
+   }
+ 
++  // Đổi tên trong lớp còn hoạt động; bỏ khoảng trắng và so không phân biệt hoa thường để chống trùng.
+   Future<void> renameGroup(String id, String name) => mutate((s) {
+     final g = s.group(id);
+     if (g == null) throw const AcademicFailure('Không tìm thấy nhóm.');
+@@ -67,6 +68,7 @@
+       upsert(s, 'groups', {...g.toJson(), 'name': name.trim()}),
+     );
+   });
++  // Gỡ liên kết thành viên và đồng bộ lại vai trò trong dự án, giữ tài liệu và lịch sử đã nộp.
+   Future<void> removeMember(String groupId, String studentId) => mutate((s) {
+     final g = s.group(groupId);
+     if (g == null) throw const AcademicFailure('Không tìm thấy nhóm.');
+@@ -77,6 +79,7 @@
+       g.memberIds.where((id) => id != studentId).toList(),
+     );
+   });
++  // Chỉ xóa nhóm rỗng chưa có lịch sử; dự án rỗng được tháo khỏi nhóm và giữ lại lớp để tra cứu.
+   Future<void> deleteGroup(String id) => mutate((s) {
+     final g = s.group(id);
+     if (g == null) throw const AcademicFailure('Không tìm thấy nhóm.');
+@@ -108,6 +111,7 @@
+     });
+     return recountClasses(next);
+   });
++  // Tính lại số nhóm, dự án và lượt đánh giá đang mở từ quan hệ hiện tại sau mỗi thay đổi liên quan.
+   AcademicSnapshot recountClasses(AcademicSnapshot s) => s.replaceCollection(
+     'classes',
+     s.classes
+@@ -125,7 +129,7 @@
+   Future<void> saveProject(AcademicJson input) =>
+       mutate((s) => saveProjectIn(s, input));
+ 
+-  /// Một nhóm chỉ gắn một dự án; lớp/môn/học kỳ luôn suy ra từ nhóm, không nhập lại.
++  // Một nhóm chỉ gắn một dự án; lớp/môn/học kỳ luôn suy ra từ nhóm, không nhập lại.
+   AcademicSnapshot saveProjectIn(
+     AcademicSnapshot s,
+     AcademicJson input, {
+@@ -142,6 +146,7 @@
+         s.semester(cls.semesterId)?.archived == true) {
+       throw const AcademicFailure('Đợt học không còn hoạt động.');
+     }
++    // Mặc định không cho nhóm sở hữu thêm dự án; luồng duyệt đăng ký chỉ chặn dự án active khác.
+     if (s
+         .records('projects')
+         .any(
+@@ -202,6 +207,7 @@
+     return recountClasses(next);
+   }
+ 
++  // Chỉ gán dự án chưa thuộc nhóm nào và cùng lớp; lưu liên kết hai phía rồi đồng bộ thành viên.
+   Future<void> assignProject(String groupId, String projectId) => mutate((s) {
+     final g = s.group(groupId);
+     final p = s.project(projectId);
+@@ -225,6 +231,7 @@
+       syncGroupMembers(next, next.group(g.id)!, g.memberIds),
+     );
+   });
++  // Lưu trữ hoặc khôi phục dự án khi lớp còn hoạt động; không xóa dữ liệu đánh giá.
+   Future<void> setProjectState(String id, String value) => mutate((s) {
+     final p = s.project(id);
+     if (p == null) throw const AcademicFailure('Không tìm thấy dự án.');
+@@ -238,6 +245,7 @@
+       upsert(s, 'projects', {...p.toJson(), 'state': value}),
+     );
+   });
++  // Từ chối xóa dự án có lịch sử; dự án rỗng bị xóa thì gỡ projectId ở nhóm và tính lại số lượng lớp.
+   Future<void> deleteProject(String id) => mutate((s) {
+     final p = s.project(id);
+     if (p == null) throw const AcademicFailure('Không tìm thấy dự án.');
+@@ -263,6 +271,8 @@
+     );
+   });
+ 
++  // Chỉ quyết định yêu cầu pending còn người đăng ký thuộc nhóm và có Lab, Rule Set hợp lệ.
++  // Duyệt tạo dự án cùng lần lưu; yêu cầu sửa hoặc từ chối phải có lý do.
+   Future<void> decideRegistration(String id, String status, String feedback) =>
+       mutate((s) {
+         final r = s
+--- a/lib/viewmodels/academic/management_form_view_model.dart
++++ b/lib/viewmodels/academic/management_form_view_model.dart
+@@ -10,12 +10,13 @@
+ import 'directory_view_model.dart';
+ import '../../app/session.dart';
+ 
++// Bản nháp quản trị gắn với lần mở biểu mẫu; tự hủy khi màn hình không còn theo dõi.
+ final managementFormProvider = NotifierProvider.autoDispose
+     .family<ManagementFormViewModel, AcademicFormState, AcademicFormSpec>(
+       ManagementFormViewModel.new,
+     );
+ 
+-/// Bản nháp các thao tác Phase 3; tái dùng schema/field Phase 2, validation nằm ngoài widget.
++// Quản lý bản nháp thao tác dự án, nhóm và đánh giá; dùng chung trường nhập và kiểm tra ngoài Widget.
+ class ManagementFormViewModel extends Notifier<AcademicFormState> {
+   ManagementFormViewModel(this.spec);
+   final AcademicFormSpec spec;
+@@ -25,6 +26,7 @@
+       ref.read(academicViewModelProvider.notifier);
+   @override
+   AcademicFormState build() {
++    // Phiên thay đổi thì bỏ bản nháp cũ, không dùng lại lựa chọn phản hồi hoặc dự án của phiên trước.
+     ref.watch(sessionScopeProvider);
+     final s = snapshot;
+     final old = AcademicRecord(spec.data);
+@@ -96,6 +98,7 @@
+         ? {...draft.strings('included'), id}.toList()
+         : draft.strings('included').where((v) => v != id).toList(),
+   );
++  // Chỉ chọn sinh viên thuộc lớp của nhóm và chưa là thành viên của bất kỳ nhóm nào trong lớp đó.
+   List<AcademicStudent> get availableMembers {
+     final s = snapshot;
+     final g = s.group(spec.data['id']?.toString() ?? '');
+@@ -109,6 +112,7 @@
+         .toList();
+   }
+ 
++  // Chỉ đưa ra dự án cùng lớp chưa được nhóm nào gán projectId.
+   List<AcademicRecord> get availableProjects {
+     final s = snapshot;
+     final g = s.group(spec.data['id']?.toString() ?? '');
+@@ -406,6 +410,7 @@
+     }
+   }
+ 
++  // Kiểm tra trường bắt buộc trước, rồi điều kiện riêng về ngày, thành viên, dự án và quyền đánh giá.
+   String? get invalid {
+     if (state.saving) return 'Đang lưu';
+     for (final f in fields) {
+@@ -472,6 +477,7 @@
+     state = AcademicFormState(d);
+   }
+ 
++  // Chặn lưu khi dữ liệu chưa hợp lệ; giữ bản nháp nếu lỗi và chỉ trả thành công khi phiên còn hiệu lực.
+   Future<bool> save() async {
+     final scope = ref.read(sessionScopeProvider);
+     if (invalid != null) return false;
+@@ -481,6 +487,7 @@
+       switch (spec.kind) {
+         case 'semester':
+           await commands.saveSemester(d);
++        // Ngày hạn nộp được ghép giờ 23:59; tắt cấu hình riêng thì xóa giá trị để tiếp tục kế thừa.
+         case 'project':
+           await commands.saveProject({
+             ...d,
+--- a/lib/viewmodels/academic/management_list_view_model.dart
++++ b/lib/viewmodels/academic/management_list_view_model.dart
+@@ -7,7 +7,7 @@
+ import '../../app/session.dart';
+ import '../../models/academic/academic_projections.dart';
+ 
+-/// Filter, tab và sắp xếp riêng từng route; saved views chỉ tồn tại trong phiên fake.
++// Bộ lọc, thẻ chọn và sắp xếp riêng từng danh sách; chế độ xem đã lưu chỉ tồn tại trong phiên.
+ class ManagementListState {
+   const ManagementListState({
+     this.q = '',
+@@ -20,6 +20,7 @@
+   final Map<String, List<String>> facets;
+ }
+ 
++// Giữ bộ lọc độc lập theo khóa danh sách hoặc trang chi tiết, làm mới theo phiên đăng nhập.
+ final managementListProvider =
+     NotifierProvider.family<
+       ManagementListViewModel,
+@@ -27,7 +28,8 @@
+       String
+     >(ManagementListViewModel.new);
+ 
+-/// Phép lọc AND giữa facet, OR trong facet; tùy chọn con chỉ phụ thuộc phạm vi cha.
++// Các nhóm điều kiện kết hợp AND, các giá trị cùng nhóm kết hợp OR.
++// Lựa chọn con được giới hạn theo phạm vi cha.
+ class ManagementListViewModel extends Notifier<ManagementListState> {
+   ManagementListViewModel(this.kind);
+   final String kind;
+@@ -45,6 +47,7 @@
+   @override
+   ManagementListState build() {
+     ref.watch(sessionScopeProvider);
++    // Bỏ chế độ xem của phiên trước; dự án và yêu cầu đánh giá mặc định giới hạn trong học kỳ hiện tại.
+     saved.clear();
+     return ManagementListState(
+       facets: {
+@@ -74,6 +77,7 @@
+     sort: v,
+     tab: state.tab,
+   );
++  // Khi áp dụng bộ lọc, loại giá trị con không còn phù hợp với các điều kiện cha đã chọn.
+   void apply(Map<String, List<String>> facets) {
+     final next = {...facets};
+     for (var i = 0; i < hierarchy.length; i++) {
+@@ -166,6 +170,7 @@
+     );
+   }
+ 
++  // Đếm lựa chọn trong phạm vi các điều kiện còn lại và từ khóa; bỏ chính điều kiện đang đếm.
+   int facetCount(String key, String value) => rows
+       .where(
+         (r) =>
+@@ -248,6 +253,7 @@
+     };
+   }
+ 
++  // Ghép dự án, tài liệu hoặc yêu cầu thành cùng cấu trúc để dùng chung bộ lọc học vụ.
+   List<AcademicRecord> get rows {
+     final s = snapshot;
+     if (kind == 'projects') {
+@@ -348,6 +354,7 @@
+                 : aiStatus == 'loading'
+                 ? 'running'
+                 : 'notRun',
++            // Trạng thái tổng hợp chỉ phục vụ bộ lọc tương thích cũ, không thay quyết định giảng viên hay trạng thái AI.
+             'legacyReviewStatus': status == 'waiting'
+                 ? r.text('documentStatus') == 'resubmitted'
+                       ? 'resubmitted'
+@@ -366,6 +373,7 @@
+         .toList();
+   }
+ 
++  // Lọc từ khóa rồi từng điều kiện; lịch sử dùng thời gian sự kiện cuối, yêu cầu dùng requestedTs.
+   List<AcademicRecord> get visible {
+     final list = rows.where((r) {
+       if (!r
+@@ -386,11 +394,13 @@
+           final boundary = DateTime.tryParse(e.value.first);
+           if (boundary == null) continue;
+           if (state.facets['time']?.firstOrNull != 'custom') continue;
++          // Giới hạn tùy chọn tính đến hết phút được chọn ở mốc kết thúc.
+           if (e.key == 'from' && ts < boundary.millisecondsSinceEpoch ||
+               e.key == 'to' && ts > boundary.millisecondsSinceEpoch + 59999) {
+             return false;
+           }
+         } else if (e.key == 'schedule' && e.value.any((v) => v.length == 1)) {
++          // Giá trị lịch học một chữ số khớp từng ngày trong mã lịch ghép, như 2 khớp 25.
+           if (!e.value.any((v) => r.text('schedule').contains(v))) return false;
+         } else if (!e.value.contains(r.text(e.key))) {
+           return false;
+@@ -420,6 +430,7 @@
+                     '2099',
+               );
+         }
++        // Chưa có kết quả AI hoàn tất được xếp sau; ưu tiên số lỗi rồi số cảnh báo, không coi thiếu kết quả là sạch.
+         if (state.sort == 'AI có lỗi nhiều nhất') {
+           int count(AcademicRecord r, String level) {
+             final raw = snapshot.evaluation(r);
+@@ -454,6 +465,7 @@
+     'thisMonth': 'Tháng này',
+     'custom': 'Tùy chọn',
+   };
++  // Tính khoảng lọc theo đồng hồ dữ liệu mẫu; trừ 1 mili giây để mốc cuối thuộc đúng kỳ đã chọn.
+   (int, int)? timeRange(String preset) {
+     final now = DateTime.fromMillisecondsSinceEpoch(snapshot.integer('now'));
+     final today = DateTime(now.year, now.month, now.day);
+@@ -482,6 +494,7 @@
+         : (pair.$1.millisecondsSinceEpoch, pair.$2.millisecondsSinceEpoch - 1);
+   }
+ 
++  // Đọc thời gian sự kiện cuối theo định dạng hiển thị; không đọc được thì dùng 0 để sắp xếp.
+   int eventTime(AcademicRecord r) {
+     final time = snapshot.eventsFor(r.id).lastOrNull?.text('time') ?? '';
+     final m = RegExp(r'(\d{2})/(\d{2})/(\d{4}).*?(\d{2}):(\d{2})')
+@@ -497,6 +510,7 @@
+           ).millisecondsSinceEpoch;
+   }
+ 
++  // Lựa chọn con chỉ phụ thuộc các cấp cha trong bản nháp bộ lọc, không bị từ khóa thu hẹp.
+   Map<String, String> options(String key, Map<String, List<String>> draft) {
+     if (key == 'time') return timeLabels;
+     if (key == 'schedule') {
+--- a/lib/viewmodels/academic/review_actions.dart
++++ b/lib/viewmodels/academic/review_actions.dart
+@@ -5,7 +5,7 @@
+ import 'academic_view_model.dart';
+ import 'management_actions.dart';
+ 
+-/// Lượt đánh giá, phản hồi và nhật ký ghi cùng transaction fake có kiểm tra revision.
++// Lượt đánh giá, phản hồi và nhật ký được lưu cùng bản chụp mô phỏng có kiểm tra revision.
+ extension ReviewActions on AcademicViewModel {
+   AcademicJson reviewData(AcademicSnapshot s) =>
+       AcademicRecord(s.data['reviewState'] as AcademicJson).toJson();
+@@ -36,6 +36,7 @@
+     'documentVersion': ?version,
+     'selectedFeedbackIds': ?selected,
+   };
++  // Chặn ghi lượt đã kết thúc, dự án hoặc lớp lưu trữ; thao tác giảng viên còn phải qua điều kiện AI.
+   AcademicRecord writableReview(
+     AcademicSnapshot s,
+     String id, {
+@@ -63,6 +64,7 @@
+     return r;
+   }
+ 
++  // Ghép dữ liệu đánh giá rồi tính lại lượt đang mở ở nhóm và lớp để số đếm luôn cùng bản chụp.
+   AcademicSnapshot withReview(AcademicSnapshot s, AcademicJson data) {
+     var next = AcademicSnapshot({...s.toJson(), 'reviewState': data});
+     next = next.replaceCollection(
+@@ -87,6 +89,7 @@
+     return recountClasses(next);
+   }
+ 
++  // Chỉ chuyển waiting sang inReview; chụp Rule Set nếu chưa có và ghi sự kiện bắt đầu cùng lần lưu.
+   Future<void> startReview(String id) => mutate((s) {
+     final r = writableReview(s, id);
+     if (r.text('supervisorStatus') != 'waiting') return s;
+@@ -109,6 +112,7 @@
+     return withReview(s, d);
+   });
+ 
++  // Thêm phản hồi nháp theo phiên bản hiện tại; nếu đang waiting thì đồng thời bắt đầu đánh giá.
+   Future<void> addFeedback(String id, AcademicJson input) => mutate((s) {
+     final r = writableReview(s, id);
+     final message = input['message']?.toString().trim() ?? '';
+@@ -157,6 +161,7 @@
+     ];
+     return withReview(s, d);
+   });
++  // Chỉ tác giả được sửa hoặc bỏ phản hồi chưa công bố trong dự án, lớp còn cho phép ghi.
+   Future<void> updateFeedback(
+     String id, {
+     String? message,
+@@ -189,7 +194,7 @@
+     return withReview(s, d);
+   });
+ 
+-  /// Chỉ phản hồi được chọn của phiên bản hiện tại trở thành chính thức; quyết định không thể sửa.
++  // Chỉ phản hồi được chọn của phiên bản hiện tại trở thành chính thức; quyết định không thể sửa.
+   Future<void> decideReview(
+     String id,
+     String decision, {
+@@ -208,6 +213,7 @@
+     final d = reviewData(s);
+     final selected = included.toSet();
+     final feedback = s.reviewRows('feedback').map((v) => v.toJson()).toList();
++    // Yêu cầu chỉnh sửa tạo thêm phản hồi tổng quan và tự chọn phản hồi đó để công bố trong quyết định.
+     if (decision == 'needsRevision') {
+       final fid = nextId('fb');
+       selected.add(fid);
+@@ -223,6 +229,7 @@
+         'official': false,
+       });
+     }
++    // Chỉ công bố phản hồi được chọn khớp yêu cầu và phiên bản hiện tại; ID ở bản nộp khác bị loại.
+     final validIds = feedback
+         .where(
+           (f) =>
+@@ -272,7 +279,7 @@
+     return withReview(s, d);
+   });
+ 
+-  /// Hai commit theo loading/kết quả; token và phiên bản chặn kết quả trễ ghi vào bản nộp khác.
++  // Lưu hai bước: loading rồi kết quả; token nhận diện lần chạy, phiên bản giới hạn bản nộp được cập nhật.
+   Future<void> runEvaluation(String id, {bool simulateError = false}) async {
+     final operationScope = sessionScope;
+     operationScope.requireActive();
+@@ -314,6 +321,7 @@
+           'evaluationStatus': 'loading',
+           'createdAt': timestamp(),
+         };
++        // Lần thử mới giữ lịch sử cũ; các bản ghi loading bị gián đoạn được đánh dấu error trước khi thêm lần chạy.
+         d['evaluations'] = [
+           for (final e in s.reviewRows('evaluations'))
+             if (e.text('reviewId') == id &&
+@@ -344,6 +352,7 @@
+         return withReview(s, d);
+       });
+       await Future<void>.delayed(const Duration(milliseconds: 1200));
++      // Sau thời gian chờ, kiểm tra lại phiên để kết quả trễ không ghi sau khi đăng xuất.
+       operationScope.requireActive();
+       await mutate((s) {
+         final run = s
+@@ -367,6 +376,7 @@
+         ];
+         d['requests'] = [
+           for (final v in s.reviewRows('requests'))
++            // Chỉ cập nhật trạng thái yêu cầu nếu phiên bản vẫn khớp lần AI; kết quả lần chạy được lưu riêng theo token.
+             if (v.id == id && v.text('version') == run.text('documentVersion'))
+               {
+                 ...v.toJson(),
+@@ -408,6 +418,7 @@
+   }
+ }
+ 
++// Đọc danh sách đánh giá từ dữ liệu cũ; thiếu danh sách thì dùng rỗng để ghép thêm sự kiện mới.
+ extension ReviewValues on AcademicSnapshot {
+   List<dynamic> valuesOfReview(String key) =>
+       (data['reviewState'] as Map)[key] as List? ?? [];
+--- a/lib/viewmodels/academic/review_panel_view_model.dart
++++ b/lib/viewmodels/academic/review_panel_view_model.dart
+@@ -5,7 +5,7 @@
+ import 'review_actions.dart';
+ import '../../app/session.dart';
+ 
+-/// Trạng thái tương tác AI riêng từng bản nộp, không trộn với kết quả bất biến trong repository.
++// Trạng thái tương tác AI theo yêu cầu đánh giá, tách riêng kết quả lưu trong Repository.
+ class ReviewPanelState {
+   const ReviewPanelState({
+     this.attentionOnly = true,
+@@ -18,12 +18,13 @@
+   final String error;
+ }
+ 
++// Giữ phần mở rộng và phát hiện đã thêm theo yêu cầu; đổi phiên sẽ khởi tạo lại trạng thái tương tác.
+ final reviewPanelProvider = NotifierProvider.autoDispose
+     .family<ReviewPanelViewModel, ReviewPanelState, String>(
+       ReviewPanelViewModel.new,
+     );
+ 
+-/// Điều phối tương tác AI và hiển thị lỗi, giữ kết quả/nhật ký ở kho học vụ chung.
++// Điều phối tương tác AI và hiển thị lỗi; kết quả và nhật ký lưu ở kho học vụ chung.
+ class ReviewPanelViewModel extends Notifier<ReviewPanelState> {
+   ReviewPanelViewModel(this.id);
+   final String id;
+@@ -43,6 +44,7 @@
+     expanded: values,
+     added: state.added,
+   );
++  // Xóa lỗi cũ trước khi chạy lại; chỉ cập nhật giao diện nếu phiên khởi chạy còn hiệu lực.
+   Future<void> run() async {
+     final scope = ref.read(sessionScopeProvider);
+     state = ReviewPanelState(
+@@ -73,6 +75,8 @@
+     }
+   }
+ 
++  // Trong vòng đời bảng AI, phát hiện đã thêm thành công không được thêm lần nữa.
++  // Chỉ đánh dấu đã thêm sau khi lưu phản hồi nháp thành công.
+   Future<void> addFinding(AcademicRecord f) async {
+     final scope = ref.read(sessionScopeProvider);
+     if (state.added.contains(f.id)) return;
+--- a/lib/viewmodels/academic/student_enrollment_view_model.dart
++++ b/lib/viewmodels/academic/student_enrollment_view_model.dart
+@@ -5,12 +5,13 @@
+ import 'academic_view_model.dart';
+ import '../../app/session.dart';
+ 
++// Bản nháp ghi danh tách theo lớp và bị tạo lại khi phiên đổi, tránh trộn danh sách đang chọn.
+ final studentEnrollmentProvider = NotifierProvider.autoDispose
+     .family<StudentEnrollmentViewModel, EnrollmentState, String>(
+       StudentEnrollmentViewModel.new,
+     );
+ 
+-/// Bản nháp thêm sinh viên; hủy modal không ghi danh hoặc thay đổi danh sách lớp.
++// Bản nháp thêm sinh viên; hủy bảng nhập không ghi danh hoặc thay đổi danh sách lớp.
+ class EnrollmentState {
+   const EnrollmentState({
+     this.tab = 0,
+@@ -45,7 +46,7 @@
+   );
+ }
+ 
+-/// Parse/kiểm tra CSV và chọn danh bạ ở ViewModel, ghi batch qua kho học vụ.
++// Đọc, kiểm tra CSV và chọn sinh viên từ danh bạ; ghi danh sách qua kho học vụ.
+ class StudentEnrollmentViewModel extends Notifier<EnrollmentState> {
+   StudentEnrollmentViewModel(this.classId);
+   final String classId;
+@@ -65,6 +66,7 @@
+     state = state.copy(selected: selected);
+   }
+ 
++  // Bỏ sinh viên đã có trong lớp theo mã, tìm trong danh bạ và chỉ hiển thị tối đa 8 kết quả.
+   List<AcademicRecord> get candidates {
+     final codes = snapshot
+         .classStudents(classId)
+@@ -83,6 +85,7 @@
+         .toList();
+   }
+ 
++  // Phân loại thiếu trường, sai định dạng và trùng mã; tập mã gồm sinh viên trong lớp và các dòng đã đọc.
+   List<AcademicJson> validate(List<AcademicJson> rows) {
+     final seen = snapshot
+         .classStudents(classId)
+@@ -109,6 +112,8 @@
+     }).toList();
+   }
+ 
++  // Bỏ dòng trống và tiêu đề nhận diện theo mã; đọc tối đa 500 dòng với dấu phẩy, chấm phẩy hoặc tab.
++  // Cách tách hiện tại không xử lý trường CSV có dấu phân cách nằm trong dấu nháy.
+   void loadCsv(String csv, String name) {
+     var lines = csv
+         .split(RegExp(r'\r?\n'))
+@@ -137,7 +142,7 @@
+     );
+   }
+ 
+-  /// XLSX của Lab 2 chỉ xem dữ liệu mẫu; không giả là bộ đọc spreadsheet thật.
++  // Với XLSX chỉ xem trước dữ liệu mẫu; chưa đọc nội dung bảng tính thật.
+   void sample([String name = 'danh-sach-SE1701.xlsx']) => state = state.copy(
+     fileName: name,
+     rows: validate([
+@@ -145,6 +150,7 @@
+       ...snapshot.classStudents(classId).take(2).map((s) => s.toJson()),
+     ]),
+   );
++  // Sau khi chọn tệp, chỉ nhận kết quả nếu màn nhập còn tồn tại và phiên ban đầu chưa bị đóng.
+   Future<void> pick() async {
+     final scope = ref.read(sessionScopeProvider);
+     try {
+@@ -162,6 +168,7 @@
+       ref.read(studentImportServiceProvider).copy(value);
+   Future<void> regenerate() =>
+       ref.read(academicViewModelProvider.notifier).regenerateQr(classId);
++  // Chỉ gửi dòng xem trước hợp lệ hoặc sinh viên đã chọn; chặn gửi lặp và giữ lỗi để người dùng thử lại.
+   Future<bool> save() async {
+     final scope = ref.read(sessionScopeProvider);
+     if (state.busy) return false;
+--- a/lib/viewmodels/dashboard/dashboard_view_model.dart
++++ b/lib/viewmodels/dashboard/dashboard_view_model.dart
+@@ -6,6 +6,7 @@
+ import '../../app/session.dart';
+ import '../../models/session_scope.dart';
+ 
++// Cung cấp trạng thái tải, lỗi và dữ liệu Tổng quan dùng chung cho các phần thống kê.
+ final dashboardViewModelProvider =
+     AsyncNotifierProvider<DashboardViewModel, DashboardState>(
+       DashboardViewModel.new,
+@@ -13,18 +14,20 @@
+       retry: (retryCount, error) => null,
+     );
+ 
+-/// Tải dữ liệu và tính thống kê đúng quan hệ học kỳ → lớp → nhóm → dự án.
++// Tải dữ liệu và tính thống kê đúng quan hệ học kỳ → lớp → nhóm → dự án.
+ class DashboardViewModel extends AsyncNotifier<DashboardState> {
+   SessionScope? _scope;
+   String? _selection;
+   @override
+   Future<DashboardState> build() async {
+     final scope = ref.watch(sessionScopeProvider);
++    // Đổi phiên thì bỏ học kỳ đã chọn của phiên trước; làm mới dữ liệu trong cùng phiên vẫn giữ lựa chọn.
+     if (!identical(_scope, scope)) {
+       _scope = scope;
+       _selection = null;
+     }
+     final snapshot = await ref.watch(dashboardRepositoryProvider).load();
++    // Không đưa kết quả tải của phiên đã đăng xuất lên Tổng quan.
+     scope.requireActive();
+     final selected = _selection;
+     _selection =
+@@ -34,7 +37,7 @@
+     return _present(snapshot, _selection!);
+   }
+ 
+-  /// Bỏ qua ID lạ; chọn tất cả bằng chuỗi rỗng. Lọc cục bộ không gọi lại nguồn dữ liệu.
++  // Bỏ qua ID lạ; chọn tất cả bằng chuỗi rỗng. Lọc cục bộ không gọi lại nguồn dữ liệu.
+   void selectSemester(String id) {
+     final current = state.asData?.value;
+     if (current == null ||
+@@ -45,7 +48,7 @@
+     state = AsyncData(_present(current.snapshot, id));
+   }
+ 
+-  /// Khởi tạo lại vòng tải; AsyncNotifier bỏ qua kết quả cũ sau khi bị hủy.
++  // Khởi tạo lại vòng tải; AsyncNotifier bỏ qua kết quả cũ sau khi bị hủy.
+   void retry() => ref.invalidateSelf();
+ 
+   DashboardState _present(DashboardSnapshot data, String semesterId) {
+@@ -56,6 +59,7 @@
+     final projects = data.projects
+         .where((p) => classIds.contains(data.projectClassId(p)))
+         .toList();
++    // Chỉ dự án active mới thuộc tập cần xử lý; dự án lưu trữ vẫn được thống kê riêng.
+     final activeIds = projects
+         .where((p) => p.isActive)
+         .map((p) => p.id)
+--- a/lib/widgets/app_academic_layout.dart
++++ b/lib/widgets/app_academic_layout.dart
+@@ -7,7 +7,7 @@
+ import 'app_icon.dart';
+ import 'app_button.dart';
+ 
+-/// Tiêu đề PageHeading dùng đúng vai trò chữ của các trang học vụ Lab 2.
++// Tiêu đề PageHeading dùng đúng vai trò chữ của các trang học vụ Lab 2.
+ class AppPageHeading extends StatelessWidget {
+   const AppPageHeading({
+     required this.title,
+@@ -41,7 +41,7 @@
+   );
+ }
+ 
+-/// Tabs giữ trạng thái trình bày tại View; không nắm nghiệp vụ học vụ.
++// Các thẻ chọn chỉ điều khiển phần hiển thị, không xử lý nghiệp vụ học vụ.
+ class AppTabs extends StatelessWidget {
+   const AppTabs({
+     required this.labels,
+@@ -145,7 +145,7 @@
+   }
+ }
+ 
+-/// Thông báo giải thích phạm vi kế thừa hoặc lỗi, dùng lại ở form và trang.
++// Thông báo giải thích phạm vi kế thừa hoặc lỗi, dùng chung ở biểu mẫu và trang.
+ class AppNotice extends StatelessWidget {
+   const AppNotice(this.message, {this.error = false, super.key});
+   final String message;
+@@ -180,7 +180,7 @@
+   );
+ }
+ 
+-/// Menu thao tác có nhãn truy cập và vùng chạm Android tối thiểu 48dp.
++// Menu thao tác có nhãn truy cập và vùng chạm Android tối thiểu 48dp.
+ class AppMoreMenu extends StatelessWidget {
+   const AppMoreMenu({
+     required this.actions,
+@@ -211,7 +211,7 @@
+   );
+ }
+ 
+-/// Modal native giữ header/footer, cuộn nội dung và tránh bàn phím che nút lưu.
++// Bảng nhập liệu Flutter giữ phần đầu/cuối, cuộn nội dung và tránh bàn phím che nút lưu.
+ Future<T?> showAppSheet<T>(BuildContext context, Widget child) =>
+     showModalBottomSheet<T>(
+       context: context,
+--- a/lib/widgets/app_badge.dart
++++ b/lib/widgets/app_badge.dart
+@@ -5,7 +5,7 @@
+ import '../theme/app_spacing.dart';
+ import '../theme/app_typography.dart';
+ 
+-/// Nhãn luôn có chữ; tone chỉ quyết định cặp màu tương ứng Badge.tsx.
++// Nhãn luôn có chữ; tone chỉ quyết định cặp màu tương ứng Badge.tsx.
+ class AppBadge extends StatelessWidget {
+   const AppBadge(
+     this.label, {
+--- a/lib/widgets/app_bottom_navigation.dart
++++ b/lib/widgets/app_bottom_navigation.dart
+@@ -7,7 +7,7 @@
+ import '../theme/app_typography.dart';
+ import 'app_icon.dart';
+ 
+-/// Năm điểm đến theo nguồn React; selected dựa trên route, không dựa số lần bấm.
++// Năm điểm đến theo nguồn React; selected được xác định bằng đường dẫn hiện tại.
+ class AppBottomNavigation extends StatelessWidget {
+   const AppBottomNavigation({
+     required this.path,
+@@ -36,7 +36,7 @@
+       return '/projects';
+     }
+     if (path.startsWith('/review-history')) return '/reviews';
+-    // Source không chọn tab nào khi route chưa thuộc một nhóm, như đợt môn học.
++    // Không chọn mục nào nếu đường dẫn chưa thuộc nhóm điều hướng, như trang đợt môn học.
+     return destinations
+             .where((d) => path.startsWith(d.path))
+             .firstOrNull
+@@ -96,7 +96,7 @@
+                                     : AppColors.muted,
+                               ),
+                               const SizedBox(height: AppSpacing.xs),
+-                              // Advance width của Inter native khác bản web một chút;
++                              // Độ rộng chữ Inter trên Flutter khác bản web một chút;
+                               // co nhẹ nhãn khi thiếu chỗ để giữ đủ chữ như ảnh React.
+                               FittedBox(
+                                 fit: BoxFit.scaleDown,
+--- a/lib/widgets/app_button.dart
++++ b/lib/widgets/app_button.dart
+@@ -4,9 +4,10 @@
+ import '../theme/app_spacing.dart';
+ import '../theme/app_colors.dart';
+ 
++// Các kiểu nút dùng chung chỉ quyết định cách trình bày, không cấp quyền thao tác nghiệp vụ.
+ enum AppButtonVariant { primary, secondary, danger }
+ 
+-/// Nút dùng chung; khi tải hoặc vô hiệu sẽ chặn thao tác và giữ nhãn truy cập.
++// Nút dùng chung; khi tải hoặc vô hiệu sẽ chặn thao tác và giữ nhãn truy cập.
+ class AppButton extends StatelessWidget {
+   const AppButton({
+     required this.label,
+--- a/lib/widgets/app_card.dart
++++ b/lib/widgets/app_card.dart
+@@ -5,7 +5,7 @@
+ import '../theme/app_radius.dart';
+ import '../theme/app_spacing.dart';
+ 
+-/// Thẻ phẳng với viền và padding tương đương Card.tsx, không tự thêm bóng.
++// Thẻ phẳng với viền và khoảng đệm tương đương Card.tsx, không tự thêm bóng.
+ class AppCard extends StatelessWidget {
+   const AppCard({
+     required this.child,
+--- a/lib/widgets/app_disclosure.dart
++++ b/lib/widgets/app_disclosure.dart
+@@ -8,7 +8,7 @@
+ import '../theme/app_typography.dart';
+ import 'app_icon.dart';
+ 
+-/// Khối thu gọn tương đương details/summary; state mở/đóng chỉ là trạng thái UI.
++// Khối thu gọn tương đương details/summary; mở hoặc đóng chỉ thay đổi cách hiển thị.
+ class AppDisclosure extends StatefulWidget {
+   const AppDisclosure({
+     required this.title,
+--- a/lib/widgets/app_filter_controls.dart
++++ b/lib/widgets/app_filter_controls.dart
+@@ -6,7 +6,7 @@
+ import '../theme/app_metrics.dart';
+ import 'app_icon.dart';
+ 
+-/// Bộ chọn gọn trong thanh lọc, giữ kích thước theo nhãn và vùng chạm 48dp.
++// Bộ chọn gọn trong thanh lọc, giữ kích thước theo nhãn và vùng chạm 48dp.
+ class AppSelectButton extends StatelessWidget {
+   const AppSelectButton({
+     required this.label,
+@@ -62,7 +62,7 @@
+   );
+ }
+ 
+-/// Chip lọc cuộn ngang, nhấn để gỡ đúng một điều kiện như SmartFilterBar.
++// Chip lọc cuộn ngang, nhấn để gỡ đúng một điều kiện như SmartFilterBar.
+ class AppFilterChip extends StatelessWidget {
+   const AppFilterChip({required this.label, required this.onRemove, super.key});
+   final String label;
+--- a/lib/widgets/app_icon.dart
++++ b/lib/widgets/app_icon.dart
+@@ -4,7 +4,7 @@
+ import '../theme/app_colors.dart';
+ import '../theme/app_metrics.dart';
+ 
+-/// Dùng hình học Lucide từ React, không thay bằng icon Material gần giống.
++// Dùng hình học Lucide từ React, không thay bằng icon Material gần giống.
+ class AppIcon extends StatelessWidget {
+   const AppIcon(
+     this.name, {
+--- a/lib/widgets/app_meta_grid.dart
++++ b/lib/widgets/app_meta_grid.dart
+@@ -4,7 +4,7 @@
+ import '../theme/app_typography.dart';
+ import '../theme/app_colors.dart';
+ 
+-/// MetaGrid hai cột của React; mục lẻ ở hàng cuối vẫn giữ vị trí cột đầu.
++// MetaGrid hai cột của React; mục lẻ ở hàng cuối vẫn giữ vị trí cột đầu.
+ class AppMetaGrid extends StatelessWidget {
+   const AppMetaGrid({
+     required this.items,
+--- a/lib/widgets/app_search_field.dart
++++ b/lib/widgets/app_search_field.dart
+@@ -1,6 +1,6 @@
+ import 'package:flutter/material.dart';
+ 
+-/// Stable editing identity: provider updates never replace a focused field.
++// Giữ nguyên ô đang nhập khi provider cập nhật để không mất vị trí con trỏ.
+ class AppSearchField extends StatefulWidget {
+   const AppSearchField({
+     required this.value,
+@@ -22,8 +22,8 @@
+   @override
+   void didUpdateWidget(covariant AppSearchField oldWidget) {
+     super.didUpdateWidget(oldWidget);
+-    // Only synchronize explicit external clear/restore; preserve caret/composing
+-    // on ordinary keystrokes, where controller and provider already agree.
++    // Chỉ đồng bộ khi giá trị ngoài khác nội dung đang nhập, như xóa hoặc khôi phục bộ lọc.
++    // Khi gõ bình thường, giữ con trỏ và phần chữ đang ghép dấu.
+     if (controller.text != widget.value) {
+       controller.value = TextEditingValue(
+         text: widget.value,
+--- a/lib/widgets/app_states.dart
++++ b/lib/widgets/app_states.dart
+@@ -8,7 +8,7 @@
+ import 'app_button.dart';
+ import 'app_icon.dart';
+ 
+-/// Trạng thái rỗng giữ nhãn và hành động phục hồi, không chỉ có biểu tượng.
++// Trạng thái rỗng giữ nhãn và hành động phục hồi, không chỉ có biểu tượng.
+ class AppEmptyState extends StatelessWidget {
+   const AppEmptyState({
+     required this.title,
+@@ -80,7 +80,7 @@
+   );
+ }
+ 
+-/// Viền đứt nét giữ đúng EmptyState React mà không cần thêm package hình học.
++// Viền đứt nét giữ đúng EmptyState React mà không cần thêm package hình học.
+ class _DashedCardBorder extends CustomPainter {
+   @override
+   void paint(Canvas canvas, Size size) {
+@@ -116,7 +116,7 @@
+   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+ }
+ 
+-/// Loading có nhãn truy cập; không biến lỗi tải dữ liệu thành danh sách rỗng.
++// Trạng thái đang tải có nhãn hỗ trợ truy cập, được hiển thị riêng với lỗi và dữ liệu rỗng.
+ class AppLoadingState extends StatelessWidget {
+   const AppLoadingState({super.key});
+   @override
+@@ -135,7 +135,7 @@
+   );
+ }
+ 
+-/// Thông báo lỗi thân thiện; không đưa nội dung exception kỹ thuật lên màn hình.
++// Thông báo lỗi thân thiện, không đưa chi tiết ngoại lệ kỹ thuật lên màn hình.
+ class AppErrorState extends StatelessWidget {
+   const AppErrorState({required this.onRetry, super.key});
+   final VoidCallback onRetry;
+--- a/lib/widgets/app_status_tracks.dart
++++ b/lib/widgets/app_status_tracks.dart
+@@ -6,7 +6,7 @@
+ import '../theme/app_typography.dart';
+ import 'app_badge.dart';
+ 
+-/// Nhãn trạng thái từ metadata React; wrapper giữ badge gọn khi đặt trong Column giãn ngang.
++// Nhãn trạng thái lấy từ dữ liệu mô tả; giữ nhãn gọn khi cột cha giãn ngang.
+ class AppStatusBadge extends StatelessWidget {
+   const AppStatusBadge(this.status, {required this.snapshot, super.key});
+   final String status;
+@@ -34,7 +34,8 @@
+   }
+ }
+ 
+-/// Ba track độc lập giống StatusTracks.tsx; tuyệt đối không suy ra approved từ kết quả AI.
++// Ba luồng trạng thái độc lập: tài liệu, đề xuất AI và quyết định giảng viên.
++// Không suy ra approved từ kết quả AI.
+ class AppStatusTracks extends StatelessWidget {
+   const AppStatusTracks({
+     required this.snapshot,
+--- a/lib/widgets/demo_counter_value.dart
++++ b/lib/widgets/demo_counter_value.dart
+@@ -1,6 +1,6 @@
+ import 'package:flutter/material.dart';
+ 
+-/// Hiển thị giá trị counter foundation mà không tự quản lý state.
++// Hiển thị giá trị bộ đếm nền tảng mà không tự quản lý trạng thái.
+ class DemoCounterValue extends StatelessWidget {
+   const DemoCounterValue({required this.count, super.key});
+ 
+--- a/lib/widgets/mobile_header.dart
++++ b/lib/widgets/mobile_header.dart
+@@ -6,7 +6,7 @@
+ import '../theme/app_typography.dart';
+ import 'app_icon.dart';
+ 
+-/// Header mobile căn trái theo React; Scaffold cấp phần safe area phía trên.
++// Phần đầu ứng dụng căn trái theo React và dùng SafeArea để tránh vùng hệ thống.
+ class MobileHeader extends StatelessWidget implements PreferredSizeWidget {
+   const MobileHeader({required this.onHome, super.key});
+   final VoidCallback onHome;
+--- a/lib/widgets/stat_card.dart
++++ b/lib/widgets/stat_card.dart
+@@ -5,7 +5,7 @@
+ import '../theme/app_typography.dart';
+ import 'app_card.dart';
+ 
+-/// Ô thống kê nhận giá trị đã tính, chiều cao tự giãn theo nhãn và cỡ chữ.
++// Ô thống kê nhận giá trị đã tính, chiều cao tự giãn theo nhãn và cỡ chữ.
+ class StatCard extends StatelessWidget {
+   const StatCard({required this.label, required this.value, super.key});
+   final String label;

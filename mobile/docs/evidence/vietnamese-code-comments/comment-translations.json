@@ -1,0 +1,188 @@
+{
+  "translations": {
+    "app/session.dart": [
+      [
+        "/// Temporary demo session, replaced by Google Sign-In during Firebase integration.\n/// Incoming/restored role values are untrusted; Mobile admits Supervisor only.",
+        "// Phiên đăng nhập mô phỏng, dự kiến thay bằng Google Sign-In khi tích hợp Firebase.\n// Chỉ nhận vai trò Supervisor, kể cả khi khôi phục phiên từ dữ liệu bên ngoài."
+      ],
+      [
+        "// Revoke synchronously; pending work must fail even before the next frame.",
+        "// Thu hồi phiên ngay để tác vụ đang chờ không tiếp tục ghi sau khi đăng xuất."
+      ]
+    ],
+    "models/session_scope.dart": [
+      [
+        "/// A revocable client-operation lifetime, distinct from durable shared data.",
+        "// Giới hạn thời gian hợp lệ của thao tác theo phiên; đóng phiên không xóa dữ liệu chung."
+      ]
+    ],
+    "app/providers.dart": [
+      [
+        "// Shared fake server store. Only committed domain data survives a session.",
+        "// Kho mô phỏng dùng chung giữ dữ liệu đã lưu khi phiên đăng nhập kết thúc."
+      ]
+    ],
+    "services/academic/fake_academic_service.dart": [
+      [
+        "/// Shared in-memory fake server: committed data outlives client sessions.",
+        "// Kho mô phỏng trong bộ nhớ giữ dữ liệu đã lưu qua các phiên đăng nhập."
+      ]
+    ],
+    "repositories/academic/course_contract.dart": [
+      [
+        "/// First migrated DTO slice. Preserve unknown legacy fields without trusting\n/// primitive casts at the data edge. Remaining aggregates migrate independently.",
+        "// Course là phần đầu tiên có DTO kiểm tra dữ liệu đầu vào khi chuẩn bị chuyển nguồn dữ liệu.\n// Giữ trường dữ liệu cũ chưa biết, nhưng kiểm tra kiểu trước khi đọc các trường bắt buộc."
+      ],
+      [
+        "/// Explicit create/update intent prevents an insertion from becoming an upsert.",
+        "// Phân biệt rõ tạo mới và cập nhật để lệnh tạo không ghi đè môn học đã có."
+      ],
+      [
+        "/// Additive command seam; legacy aggregate commands remain compatible.\n/// A real adapter must authorize UID/scope, check expected version and execute\n/// this intent atomically on the server, never trust a client snapshot upload.",
+        "// Hợp đồng lệnh Course bổ sung vẫn tương thích với cách ghi toàn bộ dữ liệu hiện tại.\n// Khi nối Firestore, phía máy chủ phải kiểm tra UID, phạm vi và phiên bản mong đợi,\n// rồi thực hiện lệnh nguyên tử; không tin toàn bộ dữ liệu do máy khách gửi lên."
+      ]
+    ],
+    "widgets/app_search_field.dart": [
+      [
+        "/// Stable editing identity: provider updates never replace a focused field.",
+        "// Giữ nguyên ô đang nhập khi provider cập nhật để không mất vị trí con trỏ."
+      ],
+      [
+        "// Only synchronize explicit external clear/restore; preserve caret/composing\n    // on ordinary keystrokes, where controller and provider already agree.",
+        "// Chỉ đồng bộ khi giá trị ngoài khác nội dung đang nhập, như xóa hoặc khôi phục bộ lọc.\n    // Khi gõ bình thường, giữ con trỏ và phần chữ đang ghép dấu."
+      ]
+    ],
+    "screens/account/login_screen.dart": [
+      [
+        "// Existing mock fields only; Firebase will replace this with Google Sign-In.",
+        "// Thông tin điền sẵn chỉ phục vụ đăng nhập mô phỏng; dự kiến thay bằng Google Sign-In."
+      ]
+    ],
+    "models/academic/academic_projections.dart": [
+      [
+        "/// Pure business projections shared by ViewModels; no UI dependencies.",
+        "// Các phép tổng hợp nghiệp vụ dùng chung cho ViewModel, độc lập với giao diện."
+      ]
+    ],
+    "models/academic/project_context.dart": [
+      [
+        "/// A linked group's class is authoritative; detached projects retain classId.",
+        "// Dự án đã gắn nhóm lấy lớp của nhóm; dự án chưa gắn nhóm dùng classId lưu trực tiếp."
+      ]
+    ]
+  },
+  "rewords": {
+    "State bất biến của demo foundation": "Trạng thái bất biến của ví dụ nền tảng",
+    "counter được đặt lại": "bộ đếm được đặt lại",
+    "Điểm vào Supervisor; router native nối Dashboard và các màn học vụ đã chuyển.": "Điểm vào ứng dụng Supervisor; điều hướng Flutter nối Tổng quan với các màn học vụ.",
+    "Giới hạn chuyển trang tại app; Tổng quan được giữ trong stack để khôi phục bộ lọc.": "Điều hướng trong ứng dụng; giữ Tổng quan trong ngăn xếp để khôi phục bộ lọc.",
+    "Điểm ghép phụ thuộc: View/ViewModel": "Nơi cung cấp các phụ thuộc: giao diện và ViewModel",
+    "Đọc fixture đã trích từ store React; không mô phỏng backend Lab 3 cuối cùng.": "Đọc dữ liệu mẫu từ React hoặc nguồn học vụ được truyền vào; chưa kết nối máy chủ thật.",
+    "Lỗi thiếu asset hoặc JSON không hợp lệ được chuyển lên repository/ViewModel.": "Lỗi thiếu tài nguyên hoặc JSON không hợp lệ được chuyển lên Repository và ViewModel.",
+    "Điều phối counter foundation qua repository, giữ View độc lập bộ nhớ tạm.": "Điều phối bộ đếm qua Repository để giao diện độc lập với bộ nhớ tạm.",
+    "Tăng số đếm qua nguồn dữ liệu và thay snapshot state bất biến.": "Tăng bộ đếm qua nguồn dữ liệu rồi thay trạng thái bằng bản chụp bất biến.",
+    "Cầu nối thiết bị được DI; Widget không đọc tệp hoặc gọi clipboard trực tiếp.": "Cung cấp thao tác thiết bị qua phụ thuộc được truyền vào; Widget không tự đọc tệp hoặc sao chép.",
+    "So phiên bản trước khi thay snapshot để một form cũ không ghi đè dữ liệu mới.": "Lưu lệnh Course qua bước kiểm tra phiên bản chung để biểu mẫu cũ không ghi đè dữ liệu mới.",
+    "Nhãn luôn có chữ; tone chỉ quyết định cặp màu tương ứng Badge.tsx.": "Nhãn luôn có chữ; tone chỉ quyết định cặp màu tương ứng Badge.tsx.",
+    "Hợp đồng kho học vụ; adapter Firestore sau này không xuất hiện trong widget.": "Hợp đồng kho học vụ để có thể thay nguồn bằng Firestore mà không sửa Widget.",
+    "Tabs giữ trạng thái trình bày tại View; không nắm nghiệp vụ học vụ.": "Các thẻ chọn chỉ điều khiển phần hiển thị, không xử lý nghiệp vụ học vụ.",
+    "Modal native giữ header/footer, cuộn nội dung và tránh bàn phím che nút lưu.": "Bảng nhập liệu Flutter giữ phần đầu/cuối, cuộn nội dung và tránh bàn phím che nút lưu.",
+    "Năm điểm đến theo nguồn React; selected dựa trên route, không dựa số lần bấm.": "Năm điểm đến theo nguồn React; selected được xác định bằng đường dẫn hiện tại.",
+    "Source không chọn tab nào khi route chưa thuộc một nhóm, như đợt môn học.": "Không chọn mục nào nếu đường dẫn chưa thuộc nhóm điều hướng, như trang đợt môn học.",
+    "Advance width của Inter native khác bản web một chút;": "Độ rộng chữ Inter trên Flutter khác bản web một chút;",
+    "Hợp đồng thiết bị cho import/clipboard; ViewModel không phụ thuộc plugin native.": "Hợp đồng chọn tệp và sao chép để ViewModel không phụ thuộc tiện ích thiết bị.",
+    "Adapter fake dùng chung dữ liệu giữa Course, Class, Rule Set và Dashboard.": "Repository mô phỏng dùng chung dữ liệu giữa Course, Class, Rule Set và Tổng quan.",
+    "Hợp đồng dữ liệu counter phục vụ kiểm chứng dependency injection foundation.": "Hợp đồng dữ liệu bộ đếm phục vụ kiểm chứng cách cung cấp phụ thuộc nền tảng.",
+    "Chuyển bộ nhớ tạm thành snapshot counter cho ViewModel.": "Chuyển giá trị bộ nhớ tạm thành trạng thái bộ đếm cho ViewModel.",
+    "Hợp đồng độc lập nguồn dữ liệu để thay fake bằng repository thật sau này.": "Hợp đồng độc lập với nguồn dữ liệu để thay kho mô phỏng bằng Repository thật sau này.",
+    "Danh mục môn gốc và đợt giảng dạy, giữ disclosure đóng như React.": "Danh mục môn gốc và đợt giảng dạy; các phần chi tiết mặc định thu gọn.",
+    "Chi tiết môn tập trung Rule Set theo phạm vi gán, không tạo ownership mới.": "Chi tiết môn tập hợp Rule Set theo phạm vi đang gán, không đổi nơi sở hữu bộ quy tắc.",
+    "Route thư viện bắt đầu bằng chọn Course như bản Lab 2.": "Thư viện Rule Set bắt đầu bằng chọn Course để xác định phạm vi cấu hình.",
+    "Thẻ phẳng với viền và padding tương đương Card.tsx, không tự thêm bóng.": "Thẻ phẳng với viền và khoảng đệm tương đương Card.tsx, không tự thêm bóng.",
+    "Danh mục lớp dùng bộ lọc Riverpod và card chung với trang đợt học.": "Danh mục lớp dùng bộ lọc Riverpod và thẻ lớp dùng chung với trang đợt học.",
+    "Năm tab theo dõi lớp; nhóm/dự án/review chỉ là phần tóm tắt trong phạm vi lớp.": "Năm thẻ theo dõi lớp; nhóm, dự án và yêu cầu đánh giá đều giới hạn trong lớp đang xem.",
+    "Ba tab cấu hình/Lab/lớp của đợt; bản nháp cấu hình chỉ lưu khi nhấn nút.": "Ba thẻ cấu hình, Lab và lớp của đợt; bản nháp cấu hình chỉ lưu khi nhấn nút.",
+    "Tái sử dụng schema form trong card nội tuyến để tránh hai logic lưu cấu hình.": "Dùng lại cấu trúc biểu mẫu của ViewModel để thống nhất cách lưu cấu hình đợt học.",
+    "Demo kiểm chứng foundation được giữ lại, không phải màn hình Lab 2 đã chuyển.": "Màn ví dụ bộ đếm được giữ lại để kiểm chứng nền tảng Flutter.",
+    "Danh mục logical document toàn dự án, chỉ hiện mục đã có bản nộp hoặc nháp như React.": "Danh mục tài liệu theo cấu trúc dự án; chỉ hiện mục đã có bản nộp hoặc bản nháp.",
+    "Ba track độc lập giống StatusTracks.tsx; tuyệt đối không suy ra approved từ kết quả AI.": "Ba luồng trạng thái độc lập: tài liệu, đề xuất AI và quyết định giảng viên.\n// Không suy ra approved từ kết quả AI.",
+    "Nhãn trạng thái từ metadata React; wrapper giữ badge gọn khi đặt trong Column giãn ngang.": "Nhãn trạng thái lấy từ dữ liệu mô tả; giữ nhãn gọn khi cột cha giãn ngang.",
+    "Màn quản trị nhóm chỉ gửi lệnh đến ViewModel; thành viên/history được giữ nhất quán trong kho chung.": "Màn quản trị nhóm gửi lệnh đến ViewModel; thành viên và lịch sử được giữ nhất quán trong kho chung.",
+    "Khối thu gọn tương đương details/summary; state mở/đóng chỉ là trạng thái UI.": "Khối thu gọn tương đương details/summary; mở hoặc đóng chỉ thay đổi cách hiển thị.",
+    "Màu trắng còn được dùng trực tiếp cho nền và chữ trong component React.": "Màu trắng còn được dùng trực tiếp cho nền và chữ trong thành phần React.",
+    "Hiển thị giá trị counter foundation mà không tự quản lý state.": "Hiển thị giá trị bộ đếm nền tảng mà không tự quản lý trạng thái.",
+    "Loading có nhãn truy cập; không biến lỗi tải dữ liệu thành danh sách rỗng.": "Trạng thái đang tải có nhãn hỗ trợ truy cập, được hiển thị riêng với lỗi và dữ liệu rỗng.",
+    "Thông báo lỗi thân thiện; không đưa nội dung exception kỹ thuật lên màn hình.": "Thông báo lỗi thân thiện, không đưa chi tiết ngoại lệ kỹ thuật lên màn hình.",
+    "Header mobile căn trái theo React; Scaffold cấp phần safe area phía trên.": "Phần đầu ứng dụng căn trái theo React và dùng SafeArea để tránh vùng hệ thống.",
+    "Kích thước đo từ CSS React; tập trung tại theme để tránh số rời trong screen.": "Kích thước đo từ CSS React; tập trung tại cấu hình giao diện để tránh số rời trong màn hình.",
+    "Snapshot của bản nộp ưu tiên tuyệt đối; thay Rule Set không sửa lịch sử.": "Ưu tiên bản chụp Rule Set của bản nộp; thay cấu hình hiện tại không sửa lịch sử.",
+    "Next step tùy chỉnh được giữ; chỉ các câu gốc của fixture dùng trạng thái tài liệu hiện hành.": "Giữ hướng dẫn bước tiếp theo đã tùy chỉnh; chỉ tính lại câu mẫu theo trạng thái tài liệu hiện tại.",
+    "Lớp lưu override độc lập; null kế thừa khác với một danh sách Lab rỗng có chủ ý.": "Lớp giữ cấu hình riêng độc lập; null nghĩa là kế thừa, khác danh sách Lab rỗng có chủ ý.",
+    "Rule Set dùng chung, được gắn vào Course qua đợt/lớp/mục, không tự đổi ownership.": "Rule Set dùng chung được gắn vào Course qua đợt, lớp hoặc mục tài liệu; không tự đổi nơi sở hữu.",
+    "Sinh viên có thể ghi danh nhiều lớp; classId cũ vẫn được bảo toàn khi đọc fixture.": "Sinh viên có thể ghi danh nhiều lớp; vẫn đọc classId để tương thích dữ liệu mẫu cũ.",
+    "Snapshot liên kết học vụ và lịch sử chỉ đọc, dùng chung giữa sáu route phase 2.": "Bản chụp bất biến liên kết dữ liệu học vụ và lịch sử, dùng chung giữa các màn hình.",
+    "Đồng bộ số liệu Dashboard từ cùng kho fake, không giữ một bản học vụ tách rời.": "Tổng quan lấy số liệu từ cùng kho học vụ mô phỏng để phản ánh dữ liệu đã lưu.",
+    "Kiểm tra thuần Dart dùng chung ở form và lệnh ghi, bám validateRule của React.": "Quy tắc kiểm tra thuần Dart dùng chung ở biểu mẫu và lệnh ghi dữ liệu.",
+    "Đăng ký chỉ có quyền Supervisor; phê duyệt tạo dự án trong cùng commit.": "Màn xử lý đăng ký dành cho Supervisor; phê duyệt tạo dự án cùng lần lưu quyết định.",
+    "Nhận xét nội tuyến như React; lỗi giữ nguyên nháp, quyết định thành công cập nhật danh sách.": "Nhận xét tại chỗ; lỗi giữ bản nháp, còn quyết định thành công cập nhật danh sách.",
+    "Metadata thuần trình bày để tất cả form dùng chung field native và token.": "Mô tả trường nhập để các biểu mẫu dùng chung thành phần Flutter và kiểu trình bày.",
+    "State bản nháp bất biến; lỗi ghi không làm mất các giá trị đang nhập.": "Trạng thái bản nháp bất biến; lỗi lưu không làm mất các giá trị đang nhập.",
+    "Điều phối dữ liệu/validation form; widget không tự áp dụng quy tắc hoặc ghi kho.": "Điều phối dữ liệu và kiểm tra biểu mẫu; Widget không tự áp dụng quy tắc hoặc ghi kho.",
+    "Sửa bản sao; đổi phạm vi gán phải xóa lựa chọn con để không ghi chéo Course.": "Sửa bản sao của bản nháp; đổi phạm vi gán sẽ xóa lựa chọn con để không ghi chéo Course.",
+    "Chỉ đóng khi commit thành công; lỗi giữ draft để sửa hoặc thử lưu lại.": "Chỉ báo thành công khi đã lưu trong phiên còn hiệu lực; lỗi giữ bản nháp để thử lại.",
+    "Form dùng một schema từ ViewModel; cùng validation được dùng cho dialog và test.": "Biểu mẫu dùng cấu trúc trường và quy tắc kiểm tra từ ViewModel, thống nhất với kiểm thử.",
+    "Field native quản lý controller trình bày; dữ liệu và quy tắc ở ViewModel.": "Trường nhập Flutter quản lý nội dung đang gõ; dữ liệu và quy tắc thuộc ViewModel.",
+    "Giữ chuỗi nhập dở/không biểu diễn được bằng JSON; validation vẫn ở VM.": "Giữ chuỗi đang nhập dở hoặc số không hữu hạn để ViewModel báo lỗi, tránh ép thành số sai.",
+    "Route kết quả dùng chính panel AI của workspace, tránh hai cách tính điểm khác nhau.": "Màn kết quả dùng lại bảng AI của màn đánh giá để thống nhất cách trình bày điểm.",
+    "Context card dùng chung ở hai màn lịch sử; không phải thẻ có nút xử lý review.": "Thẻ ngữ cảnh dùng chung ở hai màn lịch sử, chỉ hiển thị thông tin liên kết.",
+    "Phiên bản đã nộp bất biến; so sánh metadata, không hứa hẹn diff nội dung tệp thật.": "Giữ nguyên phiên bản đã nộp; chỉ so sánh thông tin mô tả, chưa so sánh nội dung tệp thật.",
+    "Không gian đánh giá có bốn panel, thanh quyết định cố định và đọc tài liệu native.": "Màn đánh giá có bốn phần, thanh quyết định cố định và trình đọc tài liệu mẫu bằng Flutter.",
+    "Nút quyết định được khóa theo rule snapshot và quyền ghi dự án/lớp, không tự phê duyệt từ điểm AI.": "Khóa nút quyết định theo bản chụp Rule Set và quyền sửa dự án, lớp.\n// Điểm AI không tự phê duyệt tài liệu.",
+    "Context liên kết tới dự án/nhóm/lớp/rule để có thể truy vết ngược từ bản nộp.": "Ngữ cảnh liên kết tới dự án, nhóm, lớp và Rule Set để truy vết từ bản nộp.",
+    "Chuyển dữ liệu fixture sang model, không cấp quyền hoặc quyết định review.": "Chuyển dữ liệu mẫu sang mô hình Tổng quan, không cấp quyền hay quyết định đánh giá.",
+    "State học vụ chung; lệnh ghi kiểm tra phạm vi trước khi commit toàn snapshot.": "Quản lý trạng thái học vụ chung; lệnh nghiệp vụ kiểm tra phạm vi trước khi lưu bản chụp.",
+    "Phân biệt tác vụ AI đang chạy với bản loading bị gián đoạn để cho phép retry.": "Phân biệt tác vụ AI đang chạy với bản ghi loading bị gián đoạn để cho phép thử lại.",
+    "Nhân bản chỉ tạo bản nháp để chỉnh; hủy editor không thêm rule vào thư viện.": "Nhân bản chỉ tạo bản nháp để sửa; hủy biểu mẫu không thêm Rule Set vào thư viện.",
+    "Mutation lỗi giữ nguyên dữ liệu đang xem; chặn double-submit và state sau dispose.": "Lỗi lưu giữ nguyên dữ liệu đang xem; chặn gửi lặp và cập nhật trạng thái khi phiên đã đóng.",
+    "Đợt mới dùng rule active và bản sao Lab đợt trước; sửa đợt không đổi override lớp.": "Đợt học phải dùng Rule Set active; đợt mới lấy cấu trúc Lab từ đợt đầu tiên của môn nếu có.\n  // Sửa cấu hình đợt không thay cấu hình riêng của lớp.",
+    "Giữ override và người cũ khi hạ giới hạn; khóa chuyển đợt nếu đã có nhóm.": "Giữ cấu hình riêng và thành viên hiện có khi hạ giới hạn; cấm chuyển đợt nếu lớp đã có nhóm.",
+    "Tạo phiên bản rule mới; reviewState, phiên bản và kết quả lịch sử không bị sửa.": "Lưu Rule Set tạo phiên bản mới; không sửa reviewState hoặc kết quả đánh giá trong lịch sử.",
+    "Chỉ gán trong Course đang mở; ghi mục cấp lớp phải clone cấu trúc kế thừa.": "Chỉ gán Rule Set trong Course đang mở; gán riêng mục ở lớp sẽ sao chép cấu trúc kế thừa.",
+    "Lọc trùng trong batch/lớp; lỗi định dạng hoặc vượt sĩ số không ghi dở dang.": "Lọc trùng trong danh sách nhập và lớp; lỗi định dạng hoặc vượt sĩ số hủy toàn bộ lần ghi.",
+    "Thay cấu trúc đúng một phạm vi, không lan sửa đổi sang lớp đang có override.": "Thay cấu trúc đúng phạm vi đã chọn, không lan sửa đổi sang lớp đang có cấu hình riêng.",
+    "Các lệnh quản trị vẫn commit qua AcademicViewModel và revision của Phase 2.": "Các lệnh quản trị lưu qua AcademicViewModel và kiểm tra revision của kho học vụ chung.",
+    "Trưởng nhóm là thành viên đầu tiên như React; đồng bộ ba phía, giữ lịch sử nguyên vẹn.": "Thành viên đầu tiên là trưởng nhóm; đồng bộ nhóm, sinh viên và thành viên dự án.",
+    "Bản nháp các thao tác Phase 3; tái dùng schema/field Phase 2, validation nằm ngoài widget.": "Quản lý bản nháp thao tác dự án, nhóm và đánh giá; dùng chung trường nhập và kiểm tra ngoài Widget.",
+    "Filter, tab và sắp xếp riêng từng route; saved views chỉ tồn tại trong phiên fake.": "Bộ lọc, thẻ chọn và sắp xếp riêng từng danh sách; chế độ xem đã lưu chỉ tồn tại trong phiên.",
+    "Phép lọc AND giữa facet, OR trong facet; tùy chọn con chỉ phụ thuộc phạm vi cha.": "Các nhóm điều kiện kết hợp AND, các giá trị cùng nhóm kết hợp OR.\n// Lựa chọn con được giới hạn theo phạm vi cha.",
+    "Tóm tắt nhóm của ClassDetail, không triển khai màn hình quản trị dự án ngoài phase.": "Tóm tắt nhóm trong chi tiết lớp và dẫn tới màn quản trị nhóm hoặc dự án liên quan.",
+    "Chuyển LabStructureEditor ở phạm vi đợt học, không tự lan sửa sang lớp override.": "Chỉnh cấu trúc Lab của đợt học; lớp có cấu hình riêng giữ nguyên cấu trúc của mình.",
+    "Lượt đánh giá, phản hồi và nhật ký ghi cùng transaction fake có kiểm tra revision.": "Lượt đánh giá, phản hồi và nhật ký được lưu cùng bản chụp mô phỏng có kiểm tra revision.",
+    "Hai commit theo loading/kết quả; token và phiên bản chặn kết quả trễ ghi vào bản nộp khác.": "Lưu hai bước: loading rồi kết quả; token nhận diện lần chạy, phiên bản giới hạn bản nộp được cập nhật.",
+    "Trạng thái tương tác AI riêng từng bản nộp, không trộn với kết quả bất biến trong repository.": "Trạng thái tương tác AI theo yêu cầu đánh giá, tách riêng kết quả lưu trong Repository.",
+    "Điều phối tương tác AI và hiển thị lỗi, giữ kết quả/nhật ký ở kho học vụ chung.": "Điều phối tương tác AI và hiển thị lỗi; kết quả và nhật ký lưu ở kho học vụ chung.",
+    "Parse/kiểm tra CSV và chọn danh bạ ở ViewModel, ghi batch qua kho học vụ.": "Đọc, kiểm tra CSV và chọn sinh viên từ danh bạ; ghi danh sách qua kho học vụ.",
+    "XLSX của Lab 2 chỉ xem dữ liệu mẫu; không giả là bộ đọc spreadsheet thật.": "Với XLSX chỉ xem trước dữ liệu mẫu; chưa đọc nội dung bảng tính thật.",
+    "Khung chung sáu route; lỗi tải có retry và không làm mất điều hướng chính.": "Khung chung các màn học vụ; lỗi tải cho phép thử lại và giữ điều hướng chính.",
+    "Bề mặt form native dùng field và modal Phase 2; ViewModel sở hữu nháp/lỗi/lệnh ghi.": "Biểu mẫu dùng trường nhập và bảng chung; ViewModel giữ bản nháp, lỗi và lệnh ghi.",
+    "Thanh lọc giữ toolbar/chip/trạng thái mobile của React; phép lọc do ViewModel thực hiện.": "Thanh lọc hiển thị điều kiện và số lượng; ViewModel thực hiện phép lọc.",
+    "Toolbar const vẫn phải theo dõi mutation của kho chung, không giữ số đếm cũ.": "Thanh công cụ vẫn theo dõi thay đổi kho chung để cập nhật số đếm dù Widget dùng const.",
+    "Card lớp dùng lại trong danh mục và đợt học, thao tác qua ViewModel chung.": "Thẻ lớp dùng chung trong danh mục và đợt học; thao tác qua ViewModel học vụ.",
+    "Giữ filter và chế độ xem trong phiên fake; không ghi vào nguồn React.": "Giữ bộ lọc và chế độ xem trong phiên mô phỏng, không ghi vào dữ liệu nguồn.",
+    "Bốn section của ProjectFormModal; tái dùng field/schema và nguồn kế thừa từ ViewModel.": "Bốn phần biểu mẫu dự án dùng chung trường nhập và thông tin kế thừa từ ViewModel.",
+    "Theme sáng bám token React, chủ động tắt tint và hình dạng Material mặc định.": "Giao diện sáng theo thông số React, tắt lớp phủ màu và hình dạng Material mặc định.",
+    "Composer nội tuyến giữ nháp trong Riverpod; gửi thành công mới xóa nội dung/tham chiếu.": "Khung soạn phản hồi giữ bản nháp trong Riverpod; gửi thành công mới xóa nội dung và tham chiếu.",
+    "Đọc nội dung mẫu từ React, không giả vờ đây là byte PDF/DOCX của sinh viên.": "Đọc nội dung mẫu từ React; chưa đọc dữ liệu PDF hoặc DOCX thật của sinh viên.",
+    "Giữ trang và vị trí toàn màn hình khi đóng/mở lại như readingOffset của React.": "Giữ trang và vị trí cuộn khi chuyển chế độ đọc trong cùng vòng đời provider.",
+    "State đọc gắn với review + phiên bản; không ghi vị trí xem vào lịch sử tài liệu.": "Trạng thái đọc gắn với yêu cầu và phiên bản; vị trí xem không ghi vào lịch sử tài liệu.",
+    "Chỉ trình bày yêu cầu trong lớp; quyền phê duyệt thuộc màn hình Review phase sau.": "Tóm tắt yêu cầu đánh giá trong lớp và dẫn tới màn xử lý; không ra quyết định tại thẻ này.",
+    "Thanh lọc mobile giữ chip học kỳ/trạng thái và drawer áp dụng một lần.": "Thanh lọc hiển thị học kỳ, trạng thái và bảng chọn chỉ áp dụng khi xác nhận.",
+    "Vai trò chữ từ CSS effective của React, tách biệt thang handoff cũ.": "Kiểu chữ theo CSS đang áp dụng của React, tách biệt thông số bàn giao cũ.",
+    "Bo góc từ handoff và CSS thực tế; giữ riêng giá trị modal đang dùng.": "Bo góc theo thông số bàn giao và CSS thực tế; giữ riêng giá trị bảng nhập liệu đang dùng.",
+    "Giá trị handoff Lab 2.": "Thông số bàn giao Lab 2.",
+    "Độ nổi từ handoff; chỉ áp dụng cho component nguồn thực sự có bóng.": "Độ nổi theo thông số bàn giao; chỉ áp dụng cho thành phần nguồn có bóng.",
+    "Thang khoảng cách Lab 2 và các kích thước đo từ layout React.": "Thang khoảng cách Lab 2 và kích thước đo từ bố cục React.",
+    "PageHeading hiện tại khác thang tiêu đề trong handoff cũ.": "PageHeading hiện tại khác thang tiêu đề trong thông số bàn giao cũ.",
+    "Giữ thang handoff để truy vết; không ghi đè mức 14px trong .mobile-app.": "Giữ thông số bàn giao để truy vết; không ghi đè mức 14px trong .mobile-app."
+  }
+}

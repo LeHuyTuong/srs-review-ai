@@ -35,7 +35,7 @@ Không phải: nền tảng RAG, công cụ chấm điểm chính thức, dashbo
 
 | Hạng mục | Trạng thái | Nguồn |
 |---|---|---|
-| Kiến trúc MVVM + Riverpod + Dio, màn hình desktop | Có, chạy | `app/lib/` |
+| Kiến trúc MVVM + Riverpod + Dio, màn hình desktop | Có, chạy | `desktop/lib/` |
 | Parse PDF (Syncfusion) / DOCX (XML) → `SrsDocument` | Có; **token-per-line** làm chết `_sectionHeading`, `_ucNameRow`, `_bareCaption` | commit `5d05f3a`, [manifest](evidence/otes-m0-syncfusion-manifest.json) |
 | `RequirementSplitter` | Tìm 50/50 UC hợp lệ; **bỏ im lặng** `UC0134`, `UC0114` | manifest `malformed_ids_dropped_silently` |
 | F7/F8/F9 `SyllabusChecks` | Có; ngưỡng 20–25 UC, 3–7 transactions là **provisional** chờ rubric GV | `data/checks/` |
@@ -45,7 +45,7 @@ Không phải: nền tảng RAG, công cụ chấm điểm chính thức, dashbo
 | Deploy Vercel thật | **Chưa** | — |
 | Token/latency thật từ provider | **Chưa đo** | evidence README |
 | Cap hiện tại | `maxRequirementsPerRun = 40` (`app_config.dart`), `maxSizeBytes = 20 MiB` (`file_picker_service.dart`) — OTES có 63 occurrence và 27.37 MiB → **bị cắt ngầm** | code |
-| Test | 3 file Dart test, 4 file pytest | `app/test`, `server/tests` |
+| Test | 3 file Dart test, 4 file pytest | `desktop/test`, `server/tests` |
 
 Số OTES giữ nguyên bộ ba: **63 occurrence / 52 ID nguyên văn / 51 ID chuẩn hoá**
 (probe pdftotext) và **50 UC hợp lệ qua Syncfusion** — hai đường đo khác nhau,

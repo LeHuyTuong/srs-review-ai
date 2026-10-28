@@ -1,0 +1,12 @@
+{
+  "baseline": "Final Audit source-before.json",
+  "changed": [
+    "lib\\app\\app.dart",
+    "lib\\app\\session.dart",
+    "lib\\screens\\account\\login_screen.dart",
+    "test\\phase4_test.dart",
+    "integration_test\\phase4_test.dart"
+  ],
+  "expectedSourceAndTestChanges": 5,
+  "reactGitStatus": "clean (checked this patch)"
+}

@@ -39,8 +39,8 @@ documents get reviewed), without turning the codebase into two apps.
 | --- | --- |
 | Windows | Windows 10 1809+ / Windows 11 — x64. **Code-only on this dev machine**: cannot be built, run or tested locally. |
 | macOS | macOS 11 (Big Sur)+ — Universal (arm64 + x86_64). **Can be built, run and verified locally.** |
-| Linux | **Explicitly out of scope.** No `app/linux/` folder will be created. |
-| Codebase | **Same repo, same `app/` package, same `pubspec.yaml`.** No fork, no `desktop/` package, no separate `main_desktop.dart` entrypoint unless strictly necessary. |
+| Linux | **Explicitly out of scope.** No `desktop/linux/` folder will be created. |
+| Codebase | **Same repo, same `desktop/` package, same `pubspec.yaml`.** No fork, no `desktop/` package, no separate `main_desktop.dart` entrypoint unless strictly necessary. |
 | Form factor added | `desktop` — a third form factor alongside `mobile` and `web`, driven off `defaultTargetPlatform` / `kIsWeb`, not a separate build target with separate code paths. |
 
 ### 3.1 Verification constraint (must be stated in every downstream design doc)
@@ -246,7 +246,7 @@ the shell-level right rail.
 
 ## 6. Non-goals
 
-- **No Linux build.** No `app/linux/` folder, no Linux CI, no Linux in scope.
+- **No Linux build.** No `desktop/linux/` folder, no Linux CI, no Linux in scope.
 - **No separate app, package, or entrypoint.** No `main_desktop.dart`, no
   `srs_review_ai_desktop` package, no forked widget tree.
 - **No UI rewrite / redesign.** The existing Liquid-Glass workspace design
@@ -351,7 +351,7 @@ static review is possible.
 - AC-1.5 *(Windows)* A written review checklist confirms: `main.cpp` size change,
   `WM_GETMINMAXINFO` handler, `generated_plugins.cmake`, and every shortcut
   resolves to `control` (not `meta`) via `defaultTargetPlatform`.
-- AC-1.6 No file under `app/lib/features/**/view/**` or `data/**` gains an import
+- AC-1.6 No file under `desktop/lib/features/**/view/**` or `data/**` gains an import
   that violates the layering guardrail; no `Color(0x…)` /
   `BorderRadius.circular(` outside `core/theme/`.
 

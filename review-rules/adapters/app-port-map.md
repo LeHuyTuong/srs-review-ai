@@ -106,9 +106,9 @@ Hai quyết định chạm số trong app. Danh sách file đầy đủ:
 | File | Đổi gì |
 |---|---|
 | `server/app/rubric.json` | `deterministic_checks.uc_count`: bỏ khoá `max`, hoặc giữ `max` nhưng đổi ngữ nghĩa thành `"max": null` — **chọn cách 2** để `rubric_config.dart` không crash khi cast; ghi `"gate": "Defense requires >=20 completed use cases; no upper bound (rulebook 1.0 Q1). UC size 3-7 is a separate scored criterion."` |
-| `app/lib/data/checks/rubric_config.dart` | `ucCountMax` → `int?`; `fromJson` đọc `ucCount['max'] as int?`; fallback `ucCountMax: null` |
-| `app/lib/data/checks/syllabus_checks.dart` | check `ucCount`: chỉ fail khi `< min`; `> max` không còn là finding (hoặc info nếu muốn giữ tín hiệu) |
-| `app/test/syllabus_checks_test.dart` | test `'passes inside the recommended 20-25 range'` → đổi tên + case: 63 UC phải **pass** |
+| `desktop/lib/data/checks/rubric_config.dart` | `ucCountMax` → `int?`; `fromJson` đọc `ucCount['max'] as int?`; fallback `ucCountMax: null` |
+| `desktop/lib/data/checks/syllabus_checks.dart` | check `ucCount`: chỉ fail khi `< min`; `> max` không còn là finding (hoặc info nếu muốn giữ tín hiệu) |
+| `desktop/test/syllabus_checks_test.dart` | test `'passes inside the recommended 20-25 range'` → đổi tên + case: 63 UC phải **pass** |
 | `server/tests/test_contract.py` | dòng assert `uc_count.min == 20` giữ; thêm assert `max is None` |
 
 **Việc B — Q6: weights `.25 / .40 / .20 / .15`**
@@ -118,7 +118,7 @@ Hai quyết định chạm số trong app. Danh sách file đầy đủ:
 | `server/app/rubric.json` | `version: "v2"` → **`"v3"`**; `quality_criteria`: clear .25, testable .40, complete .20, consistent .15; `provenance` giữ chữ "starting proposal", thêm "Reweighted 2026-09-15 per rulebook 1.0 Q6: testable raised because it was the dominant failure on OTES." |
 | `server/tests/test_rubric_pins.py` | `assert rubric["version"] == "v3"`; dict weights mới. **Đây là tripwire cố ý** — test này phải đỏ trước khi sửa, xanh sau khi sửa |
 | `server/tests/test_api.py` | `assert body["rubric_version"] == "v3"` |
-| `app/lib/data/checks/rubric_config.dart` | fallback `version: 'v3-local'` |
+| `desktop/lib/data/checks/rubric_config.dart` | fallback `version: 'v3-local'` |
 | `server/app/prompt.py` | nếu prompt có nêu weights hoặc thứ tự ưu tiên tiêu chí → cập nhật cho khớp (kiểm tra bằng grep `0.3` / `testable`) |
 
 Sau A + B: `server/.venv/bin/python -m pytest` và `flutter test` phải xanh; **verdict cache cũ tự vô hiệu** vì key băm version. Ghi vào `docs/adr/0009-rulebook-1.5-weights.md` theo `templates/adr.md` (0008 đã dùng cho đánh giá KiraAI) — chính rulebook đòi mọi thay đổi có ADR, app phải làm gương.

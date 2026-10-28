@@ -1,0 +1,70 @@
+// Audit evidence only. Expected invariants intentionally expose defects.
+// This file does not modify the production source, fixtures, or baseline tests.
+import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:srs_review_ai_mobile/app/providers.dart';
+import 'package:srs_review_ai_mobile/app/session.dart';
+import 'package:srs_review_ai_mobile/models/academic/management_queries.dart';
+import 'package:srs_review_ai_mobile/viewmodels/academic/academic_view_model.dart';
+import 'package:srs_review_ai_mobile/viewmodels/academic/management_actions.dart';
+import 'package:srs_review_ai_mobile/viewmodels/dashboard/dashboard_view_model.dart';
+import '../../../test/support/academic_fixture.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  late TestAcademicRepository repo;
+  late ProviderContainer c;
+  late AcademicViewModel vm;
+  setUp(() async {
+    repo = TestAcademicRepository(academicFixture());
+    c = ProviderContainer(overrides: [
+      academicRepositoryProvider.overrideWithValue(repo),
+      initialSessionProvider.overrideWithValue(const AppSession('supervisor')),
+    ]);
+    await c.read(academicViewModelProvider.future);
+    vm = c.read(academicViewModelProvider.notifier);
+  });
+  tearDown(() => c.dispose());
+
+  test('AUD-B01: unrelated mutation must preserve Dashboard semester selection', () async {
+    await c.read(dashboardViewModelProvider.future);
+    final selected = repo.snapshot.semesters.last.id;
+    c.read(dashboardViewModelProvider.notifier).selectSemester(selected);
+    await vm.createGroup('se1701', 'Audit filter retention');
+    final after = await c.read(dashboardViewModelProvider.future);
+    print('AUD-B01 expected semester=$selected actual=${after.semesterId}');
+    expect(after.semesterId, selected);
+  });
+
+  test('AUD-B02: preserved detached project must remain in Dashboard class totals', () async {
+    await vm.createGroup('se1701', 'Audit detached project');
+    final g = repo.snapshot.groups.last;
+    await vm.saveProject({'groupId': g.id, 'name': 'Audit project', 'startDate': '2026-09-01', 'deadline': '2026-12-15T23:59'});
+    final pid = repo.snapshot.group(g.id)!.projectId;
+    await vm.deleteGroup(g.id);
+    expect(repo.snapshot.classProjects('se1701').map((p) => p.id), contains(pid));
+    final d = await c.read(dashboardViewModelProvider.future);
+    final expected = repo.snapshot.records('projects').where((p) => p.text('state') == 'active' && repo.snapshot.projectClass(p)?.semesterId == d.semesterId).length;
+    print('AUD-B02 preserved classId=${repo.snapshot.project(pid)!.text('classId')} expected active=$expected actual=${d.activeProjects}');
+    expect(d.activeProjects, expected);
+  });
+
+  test('AUD-B03: distinct valid course codes must not silently overwrite one ID', () async {
+    final count = repo.snapshot.courses.length;
+    await vm.saveCourse({'code': 'AUDIT A', 'name': 'First audit course'});
+    await vm.saveCourse({'code': 'AUDIT-A', 'name': 'Second audit course'});
+    print('AUD-B03 expected courses=${count + 2} actual=${repo.snapshot.courses.length}; AUDIT A exists=${repo.snapshot.courses.any((x) => x.code == 'AUDIT A')}');
+    expect(repo.snapshot.courses.length, count + 2);
+    expect(repo.snapshot.courses.any((x) => x.code == 'AUDIT A'), true);
+  });
+
+  test('AUD-A02: sign-out must clear user-scoped academic cache before next identity', () async {
+    await vm.saveCourse({'code': 'AUDITSESSION', 'name': 'Previous session private draft'});
+    c.read(sessionProvider.notifier).signOut();
+    expect(c.read(sessionProvider), isNull);
+    c.read(sessionProvider.notifier).signIn('supervisor', 'another@example.test', 'demo');
+    final data = await c.read(academicViewModelProvider.future);
+    print('AUD-A02 previous identity data retained=${data.courses.any((x) => x.code == 'AUDITSESSION')}');
+    expect(data.courses.any((x) => x.code == 'AUDITSESSION'), false);
+  });
+}

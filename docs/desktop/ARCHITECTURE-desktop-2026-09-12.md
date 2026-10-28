@@ -28,7 +28,7 @@ working tree on 2026-09-12.
 | `!isWide` ⇒ `Scaffold.drawer` + floating `_GlassTabBar` + hamburger | `workspace_shell.dart:176,186,191,200` |
 | `WorkspacePage` hard-codes content `maxWidth: 1100` | `workspace_shell.dart:977` |
 | Sub-tab state is private | `document_review_view.dart:31` — `WorkspaceTab _tab` inside `_DocumentReviewViewState` |
-| `WorkspaceTab` is used **only** in `document_review_view.dart` | grep across `app/lib` + `app/test` |
+| `WorkspaceTab` is used **only** in `document_review_view.dart` | grep across `desktop/lib` + `desktop/test` |
 | Real search fields exist | `inventory_tab.dart:58` (`_query`), `findings_tab.dart:224` (`_query`) — both `_query` are **private state**, no `FocusNode` is exposed |
 | No `Shortcuts`/`Actions` anywhere in `lib/` | grep |
 | macOS window has no size at all | `macos/Runner/MainFlutterWindow.swift` (15 lines, only VC + plugins) |
@@ -39,7 +39,7 @@ working tree on 2026-09-12.
 | `dart:io` is banned | `core/app_config.dart:8-10` — comment states the app must compile for web |
 | Framework already binds `Escape → DismissIntent` | `flutter/packages/flutter/lib/src/widgets/app.dart:1272` (`WidgetsApp._defaultShortcuts`) |
 | `DismissAction` is abstract, no default impl | `widgets/actions.dart:1561` — so the app must supply its own |
-| Existing tests run at 390×844, 1280×852, 1440×900, 1077×909 | grep `physicalSize` in `app/test` |
+| Existing tests run at 390×844, 1280×852, 1440×900, 1077×909 | grep `physicalSize` in `desktop/test` |
 
 ---
 
@@ -229,57 +229,57 @@ contentMaxWidth     = !isDesktop
 
 Paths are relative to the repo root `srs-review-ai/`.
 
-### 3.1 New — Dart (`app/lib/`)
+### 3.1 New — Dart (`desktop/lib/`)
 
 | File | Purpose |
 | --- | --- |
-| `app/lib/core/platform/app_platform.dart` | `AppPlatform.isDesktop`, `.isWeb`, `.usesCommandKey`, `.formFactor`. `foundation.dart` only — no `dart:io`. |
-| `app/lib/core/layout/app_breakpoint.dart` | `AppBreakpoint` enum, all breakpoint/size constants, `AppBreakpoints.forWidth`. |
-| `app/lib/core/layout/app_viewport.dart` | `AppViewportData` (resolved layout decisions) + `AppViewport` `InheritedWidget` with a MediaQuery-based fallback. |
-| `app/lib/features/workspace/models/workspace_tab.dart` | `enum WorkspaceTab` **moved** out of `document_review_view.dart`. |
-| `app/lib/features/workspace/view_model/workspace_tab_controller.dart` | `WorkspaceTabController extends Notifier<WorkspaceTab>` + `workspaceTabProvider`. No material import. |
-| `app/lib/features/workspace/view_model/workspace_shortcut_commands.dart` | `WorkspaceShortcutCommands` (8 nullable command slots) + `workspaceShortcutCommandsProvider`. `foundation.dart` + `riverpod` only. |
-| `app/lib/features/workspace/view/workspace_shortcuts.dart` | Intent classes, `AppShortcut` descriptors + `kAppShortcuts`, `buildWorkspaceShortcuts()`, `isTextEntryFocused()`, `WorkspaceShortcuts` widget. |
-| `app/lib/features/workspace/view/shortcuts_modal.dart` | `showShortcutsModal(context, ref)` — the F1/`?` sheet listing every binding with platform glyphs. Reuses `_show` conventions. |
-| `app/lib/features/workspace/view/readiness_panel.dart` | `ReadinessPanel` **moved** out of `document_review_view.dart` (was `_ReadinessPanel`), now public and reads `workspaceTabProvider` itself. |
+| `desktop/lib/core/platform/app_platform.dart` | `AppPlatform.isDesktop`, `.isWeb`, `.usesCommandKey`, `.formFactor`. `foundation.dart` only — no `dart:io`. |
+| `desktop/lib/core/layout/app_breakpoint.dart` | `AppBreakpoint` enum, all breakpoint/size constants, `AppBreakpoints.forWidth`. |
+| `desktop/lib/core/layout/app_viewport.dart` | `AppViewportData` (resolved layout decisions) + `AppViewport` `InheritedWidget` with a MediaQuery-based fallback. |
+| `desktop/lib/features/workspace/models/workspace_tab.dart` | `enum WorkspaceTab` **moved** out of `document_review_view.dart`. |
+| `desktop/lib/features/workspace/view_model/workspace_tab_controller.dart` | `WorkspaceTabController extends Notifier<WorkspaceTab>` + `workspaceTabProvider`. No material import. |
+| `desktop/lib/features/workspace/view_model/workspace_shortcut_commands.dart` | `WorkspaceShortcutCommands` (8 nullable command slots) + `workspaceShortcutCommandsProvider`. `foundation.dart` + `riverpod` only. |
+| `desktop/lib/features/workspace/view/workspace_shortcuts.dart` | Intent classes, `AppShortcut` descriptors + `kAppShortcuts`, `buildWorkspaceShortcuts()`, `isTextEntryFocused()`, `WorkspaceShortcuts` widget. |
+| `desktop/lib/features/workspace/view/shortcuts_modal.dart` | `showShortcutsModal(context, ref)` — the F1/`?` sheet listing every binding with platform glyphs. Reuses `_show` conventions. |
+| `desktop/lib/features/workspace/view/readiness_panel.dart` | `ReadinessPanel` **moved** out of `document_review_view.dart` (was `_ReadinessPanel`), now public and reads `workspaceTabProvider` itself. |
 
 ### 3.2 New — tests
 
 | File | Purpose |
 | --- | --- |
-| `app/test/support/desktop_test_platform.dart` | `withDesktopPlatform(TargetPlatform, WidgetTester, body)` helper that sets `debugDefaultTargetPlatformOverride` and resets it inline. |
-| `app/test/desktop/app_breakpoint_test.dart` | Pure unit tests for `AppBreakpoint.forWidth` and `AppViewportData.resolve` (no widgets). |
-| `app/test/desktop/desktop_layout_test.dart` | Overflow-free pump at 640×480, 800×600, 960×680, 1280×860, 1440×900, 1920×1080, 2560×1440, 3840×2160 under `macOS`; rail present / tab bar absent; right rail + `maxWidth` at ultra & cinema; 4-up metrics. |
-| `app/test/desktop/workspace_shortcuts_test.dart` | Every P0 binding under `macOS` (⌘) and `windows` (Ctrl); typing guard; Esc-one-modal-per-press; destination & sub-tab switching. |
+| `desktop/test/support/desktop_test_platform.dart` | `withDesktopPlatform(TargetPlatform, WidgetTester, body)` helper that sets `debugDefaultTargetPlatformOverride` and resets it inline. |
+| `desktop/test/desktop/app_breakpoint_test.dart` | Pure unit tests for `AppBreakpoint.forWidth` and `AppViewportData.resolve` (no widgets). |
+| `desktop/test/desktop/desktop_layout_test.dart` | Overflow-free pump at 640×480, 800×600, 960×680, 1280×860, 1440×900, 1920×1080, 2560×1440, 3840×2160 under `macOS`; rail present / tab bar absent; right rail + `maxWidth` at ultra & cinema; 4-up metrics. |
+| `desktop/test/desktop/workspace_shortcuts_test.dart` | Every P0 binding under `macOS` (⌘) and `windows` (Ctrl); typing guard; Esc-one-modal-per-press; destination & sub-tab switching. |
 
 ### 3.3 Modified — Dart
 
 | File | Change |
 | --- | --- |
-| `app/lib/main.dart` | Add `builder: (context, child) => WorkspaceShortcuts(child: child ?? const SizedBox.shrink())` to `MaterialApp.router`. Nothing else. `themeMode: ThemeMode.system` stays. |
-| `app/lib/features/workspace/view/workspace_shell.dart` | Replace `isWide` (line 56) with `AppViewportData`; wrap body in `AppViewport`; pass `showMenuButton: !viewport.showRail`; gate `_GlassTabBar` and `drawer` on `!showRail`; inset content by the right-rail width; add `_WorkspaceRightRail`; register all 8 shortcut commands; add desktop-only rail tooltips and a desktop-only "Keyboard shortcuts" top-bar button; `WorkspacePage` resolves `maxWidth` from the viewport. |
-| `app/lib/features/workspace/view/document_review_view.dart` | Delete the local `WorkspaceTab` enum (re-export for compatibility is **not** needed — nothing else imports it); `_tab` → `ref.watch(workspaceTabProvider)`; `ConsumerStatefulWidget` → `ConsumerWidget`; inner `Flex` uses `viewport.showInnerSplit`; delete `_ReadinessPanel` (moved) and import `ReadinessPanel`. |
-| `app/lib/features/workspace/view/workspace_modals.dart` | `showHelpModal` gains a "Keyboard shortcuts" row → `showShortcutsModal`. No change to any existing string. |
-| `app/lib/features/workspace/view/inventory_tab.dart` | **P0: no change.** (P1 only, for `Ctrl/Cmd+F`.) |
-| `app/lib/features/workspace/view/findings_tab.dart` | **P0: no change.** (P1 only, for `Ctrl/Cmd+F`.) |
-| `app/lib/core/widgets/content_shell.dart` | **No change** — `WorkspacePage` keeps passing `maxWidth`. |
+| `desktop/lib/main.dart` | Add `builder: (context, child) => WorkspaceShortcuts(child: child ?? const SizedBox.shrink())` to `MaterialApp.router`. Nothing else. `themeMode: ThemeMode.system` stays. |
+| `desktop/lib/features/workspace/view/workspace_shell.dart` | Replace `isWide` (line 56) with `AppViewportData`; wrap body in `AppViewport`; pass `showMenuButton: !viewport.showRail`; gate `_GlassTabBar` and `drawer` on `!showRail`; inset content by the right-rail width; add `_WorkspaceRightRail`; register all 8 shortcut commands; add desktop-only rail tooltips and a desktop-only "Keyboard shortcuts" top-bar button; `WorkspacePage` resolves `maxWidth` from the viewport. |
+| `desktop/lib/features/workspace/view/document_review_view.dart` | Delete the local `WorkspaceTab` enum (re-export for compatibility is **not** needed — nothing else imports it); `_tab` → `ref.watch(workspaceTabProvider)`; `ConsumerStatefulWidget` → `ConsumerWidget`; inner `Flex` uses `viewport.showInnerSplit`; delete `_ReadinessPanel` (moved) and import `ReadinessPanel`. |
+| `desktop/lib/features/workspace/view/workspace_modals.dart` | `showHelpModal` gains a "Keyboard shortcuts" row → `showShortcutsModal`. No change to any existing string. |
+| `desktop/lib/features/workspace/view/inventory_tab.dart` | **P0: no change.** (P1 only, for `Ctrl/Cmd+F`.) |
+| `desktop/lib/features/workspace/view/findings_tab.dart` | **P0: no change.** (P1 only, for `Ctrl/Cmd+F`.) |
+| `desktop/lib/core/widgets/content_shell.dart` | **No change** — `WorkspacePage` keeps passing `maxWidth`. |
 
 ### 3.4 Modified — native
 
 | File | Change |
 | --- | --- |
-| `app/macos/Runner/MainFlutterWindow.swift` | `setFrame(1280×860)`, `minSize = 960×680`, `center()`, `title = "SRS Review AI"`. |
-| `app/macos/Runner/DebugProfile.entitlements` | **Add** `com.apple.security.network.client` and `com.apple.security.files.user-selected.read-only`. |
-| `app/macos/Runner/Release.entitlements` | Same two keys. |
-| `app/windows/runner/main.cpp` | `Size(1280, 860)`; title `L"SRS Review AI"`. |
-| `app/windows/runner/win32_window.h` | Declare `void SetMinSize(const Size& size);` and add `Size min_size_ = Size(0, 0);` to the private section. |
-| `app/windows/runner/win32_window.cpp` | Implement `SetMinSize`; add `case WM_GETMINMAXINFO:` to `MessageHandler`. |
-| `app/windows/runner/flutter_window.cpp` | Call `SetMinSize(Size(960, 680));` at the top of `FlutterWindow::OnCreate()` (after the `Win32Window::OnCreate()` guard). |
-| `app/windows/flutter/generated_plugins.cmake` | **Do not hand-edit.** Regenerate on Windows (see §9 R4). |
+| `desktop/macos/Runner/MainFlutterWindow.swift` | `setFrame(1280×860)`, `minSize = 960×680`, `center()`, `title = "SRS Review AI"`. |
+| `desktop/macos/Runner/DebugProfile.entitlements` | **Add** `com.apple.security.network.client` and `com.apple.security.files.user-selected.read-only`. |
+| `desktop/macos/Runner/Release.entitlements` | Same two keys. |
+| `desktop/windows/runner/main.cpp` | `Size(1280, 860)`; title `L"SRS Review AI"`. |
+| `desktop/windows/runner/win32_window.h` | Declare `void SetMinSize(const Size& size);` and add `Size min_size_ = Size(0, 0);` to the private section. |
+| `desktop/windows/runner/win32_window.cpp` | Implement `SetMinSize`; add `case WM_GETMINMAXINFO:` to `MessageHandler`. |
+| `desktop/windows/runner/flutter_window.cpp` | Call `SetMinSize(Size(960, 680));` at the top of `FlutterWindow::OnCreate()` (after the `Win32Window::OnCreate()` guard). |
+| `desktop/windows/flutter/generated_plugins.cmake` | **Do not hand-edit.** Regenerate on Windows (see §9 R4). |
 
 ### 3.5 Not created
 
-- No `app/linux/` (out of scope).
+- No `desktop/linux/` (out of scope).
 - No `main_desktop.dart`, no new package, no `pubspec.yaml` change.
 
 ---
@@ -799,7 +799,7 @@ sequenceDiagram
 
 ## 7. Required packages
 
-**No new dependency. `app/pubspec.yaml` is not modified.**
+**No new dependency. `desktop/pubspec.yaml` is not modified.**
 
 How each "we need a plugin for that" instinct is avoided:
 
@@ -827,10 +827,10 @@ go_router: ^17.x
 
 ### T01 — Core layout & platform foundation — **P0**
 
-**Depends on:** — · **Files (new):** `app/lib/core/platform/app_platform.dart`,
-`app/lib/core/layout/app_breakpoint.dart`, `app/lib/core/layout/app_viewport.dart`,
-`app/test/support/desktop_test_platform.dart`,
-`app/test/desktop/app_breakpoint_test.dart`
+**Depends on:** — · **Files (new):** `desktop/lib/core/platform/app_platform.dart`,
+`desktop/lib/core/layout/app_breakpoint.dart`, `desktop/lib/core/layout/app_viewport.dart`,
+`desktop/test/support/desktop_test_platform.dart`,
+`desktop/test/desktop/app_breakpoint_test.dart`
 
 1. `AppPlatform` with `isDesktop` / `isWeb` / `usesCommandKey` / `formFactor`.
 2. `AppBreakpoint` + `AppBreakpoints` constants + `forWidth`.
@@ -853,13 +853,13 @@ touched** (so the 20 existing test files are provably unaffected).
 ### T02 — Native window sizing & macOS entitlements — **P0**
 
 **Depends on:** — (independent of T01) · **Files (modified):**
-`app/macos/Runner/MainFlutterWindow.swift`,
-`app/macos/Runner/DebugProfile.entitlements`,
-`app/macos/Runner/Release.entitlements`,
-`app/windows/runner/main.cpp`,
-`app/windows/runner/win32_window.h`,
-`app/windows/runner/win32_window.cpp`,
-`app/windows/runner/flutter_window.cpp`
+`desktop/macos/Runner/MainFlutterWindow.swift`,
+`desktop/macos/Runner/DebugProfile.entitlements`,
+`desktop/macos/Runner/Release.entitlements`,
+`desktop/windows/runner/main.cpp`,
+`desktop/windows/runner/win32_window.h`,
+`desktop/windows/runner/win32_window.cpp`,
+`desktop/windows/runner/flutter_window.cpp`
 
 1. macOS `MainFlutterWindow.swift`:
    ```swift
@@ -906,13 +906,13 @@ Windows: **code review only — unverified on Windows** (see §9 R2).
 ### T03 — Shell layout: breakpoint-driven rail, right rail, tab state lift — **P0**
 
 **Depends on:** T01 · **Files (new):**
-`app/lib/features/workspace/models/workspace_tab.dart`,
-`app/lib/features/workspace/view_model/workspace_tab_controller.dart`,
-`app/lib/features/workspace/view/readiness_panel.dart`,
-`app/test/desktop/desktop_layout_test.dart`
+`desktop/lib/features/workspace/models/workspace_tab.dart`,
+`desktop/lib/features/workspace/view_model/workspace_tab_controller.dart`,
+`desktop/lib/features/workspace/view/readiness_panel.dart`,
+`desktop/test/desktop/desktop_layout_test.dart`
 **Files (modified):**
-`app/lib/features/workspace/view/workspace_shell.dart`,
-`app/lib/features/workspace/view/document_review_view.dart`
+`desktop/lib/features/workspace/view/workspace_shell.dart`,
+`desktop/lib/features/workspace/view/document_review_view.dart`
 
 1. Move `enum WorkspaceTab` to `models/workspace_tab.dart`; delete it from
    `document_review_view.dart`. (Nothing else imports it.)
@@ -954,13 +954,13 @@ desktop tests pass; the breakpoint crossing does not reset the workspace
 ### T04 — Keyboard shortcut layer & discoverability — **P0**
 
 **Depends on:** T01, T03 · **Files (new):**
-`app/lib/features/workspace/view_model/workspace_shortcut_commands.dart`,
-`app/lib/features/workspace/view/workspace_shortcuts.dart`,
-`app/lib/features/workspace/view/shortcuts_modal.dart`,
-`app/test/desktop/workspace_shortcuts_test.dart`
-**Files (modified):** `app/lib/main.dart`,
-`app/lib/features/workspace/view/workspace_shell.dart`,
-`app/lib/features/workspace/view/workspace_modals.dart`
+`desktop/lib/features/workspace/view_model/workspace_shortcut_commands.dart`,
+`desktop/lib/features/workspace/view/workspace_shortcuts.dart`,
+`desktop/lib/features/workspace/view/shortcuts_modal.dart`,
+`desktop/test/desktop/workspace_shortcuts_test.dart`
+**Files (modified):** `desktop/lib/main.dart`,
+`desktop/lib/features/workspace/view/workspace_shell.dart`,
+`desktop/lib/features/workspace/view/workspace_modals.dart`
 
 1. `workspace_shortcut_commands.dart` — slots + provider (§4.1).
 2. `workspace_shortcuts.dart`:
@@ -1004,7 +1004,7 @@ CI on both platform overrides.
 
 **Depends on:** T01–T04 · **Files (modified/new):** `docs/desktop/**`
 
-1. Run, in this order, from `app/`:
+1. Run, in this order, from `desktop/`:
    ```sh
    env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy \
        -u ALL_PROXY -u all_proxy \
@@ -1059,7 +1059,7 @@ T02 is independent of everything else and can be done in parallel with T01.
    `defaultTargetPlatform` is read — it reports the *host* OS in a browser
    (see the comment at `core/app_config.dart:24-26`).
 2. **Breakpoint constants live only in `core/layout/app_breakpoint.dart`.** No
-   magic `1100` / `1440` anywhere else. `grep -rn ">= 1100" app/lib` must return
+   magic `1100` / `1440` anywhere else. `grep -rn ">= 1100" desktop/lib` must return
    nothing after T03.
 3. **The single source of layout truth is `AppViewportData`.** Widgets read
    `AppViewport.of(context)`; they never re-derive from `MediaQuery`. The

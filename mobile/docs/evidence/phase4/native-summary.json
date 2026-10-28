@@ -1,0 +1,47 @@
+[
+  {
+    "widthDp": 360,
+    "passed": true,
+    "checks": [
+      "new routes and exact notification link",
+      "semester native form and mutations",
+      "enrollment sheet",
+      "academic/group/project/review navigation",
+      "student note separation",
+      "logout and role gate (Back isolation covered by widget tests)"
+    ],
+    "screenshotCount": 9,
+    "nativeKeyboardInset": 0.0,
+    "realKeyboardVerified": false
+  },
+  {
+    "widthDp": 390,
+    "passed": true,
+    "checks": [
+      "new routes and exact notification link",
+      "semester native form and mutations",
+      "enrollment sheet",
+      "academic/group/project/review navigation",
+      "student note separation",
+      "logout and role gate (Back isolation covered by widget tests)"
+    ],
+    "screenshotCount": 9,
+    "nativeKeyboardInset": 0.0,
+    "realKeyboardVerified": false
+  },
+  {
+    "widthDp": 412,
+    "passed": true,
+    "checks": [
+      "new routes and exact notification link",
+      "semester native form and mutations",
+      "enrollment sheet",
+      "academic/group/project/review navigation",
+      "student note separation",
+      "logout and role gate (Back isolation covered by widget tests)"
+    ],
+    "screenshotCount": 9,
+    "nativeKeyboardInset": 0.0,
+    "realKeyboardVerified": false
+  }
+]

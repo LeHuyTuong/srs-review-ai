@@ -90,7 +90,7 @@ Bảo vệ chung cho POST: `X-App-Token` header (401 nếu sai), giới hạn pa
 
 ### Cross-language Testing
 - `server/tests/test_contract.py` — parse fixtures bằng Pydantic
-- `app/test/contract_test.dart` — parse cùng fixtures bằng Dart models
+- `desktop/test/contract_test.dart` — parse cùng fixtures bằng Dart models
 - `tools/check_guardrails.py` — enforce `x-contract-version` đồng nhất
 
 ---
@@ -108,7 +108,7 @@ Repository integrity tooling — architecture enforcement và git hooks.
 
 ### 6 Nhóm Rule (check_guardrails.py)
 1. **SECRETS** — quét API key patterns (`AIza...`, `sk-...`, `gsk_...`), đảm bảo `.env` git-ignored
-2. **NO DIRECT LLM ACCESS FROM APP** — quét `app/lib/` tìm provider URLs, forbidden packages, key refs
+2. **NO DIRECT LLM ACCESS FROM APP** — quét `desktop/lib/` tìm provider URLs, forbidden packages, key refs
 3. **MVVM LAYERING** — View không import service/repo; ViewModel không import widget; Data layer không import Flutter material
 4. **DEPENDENCY PINS** — enforce `pubspec.yaml` pin đúng major (dio ^5, syncfusion ^34, ...)
 5. **CONTRACT VERSION AGREEMENT** — `x-contract-version` đồng nhất giữa schema, Python, Dart
@@ -137,7 +137,7 @@ Repository integrity tooling — architecture enforcement và git hooks.
 ## 5. Flutter App → Server Connection
 
 ### Base URL
-- **File:** `app/lib/core/app_config.dart`
+- **File:** `desktop/lib/core/app_config.dart`
 ```dart
 static String get apiBaseUrl {
   const override = String.fromEnvironment('API_BASE_URL');
@@ -155,16 +155,16 @@ static String get apiBaseUrl {
 ### Auth Mechanism
 - **Shared token model** — không JWT, không OAuth, không session cookies.
 - **Server** (`server/app/main.py` line 57-63): `require_app_token()` — no-op khi `APP_TOKEN` unset, 401 nếu `X-App-Token` sai.
-- **Client** (`app/lib/requirement_review/services/api_service.dart` line 44-47): gửi 2 headers:
+- **Client** (`desktop/lib/requirement_review/services/api_service.dart` line 44-47): gửi 2 headers:
   - `X-App-Token` — shared secret
   - `X-User-Id` — identity cho rate limit (fallback về IP)
 
 ### API Client / Service Classes
-- **Interface:** `app/lib/requirement_review/services/review_api.dart` — `isProxyUp()`, `fetchRubric()`, `review()`, `ask()`
+- **Interface:** `desktop/lib/requirement_review/services/review_api.dart` — `isProxyUp()`, `fetchRubric()`, `review()`, `ask()`
 - **Implementations:**
   - `ApiService` (`api_service.dart`) — real HTTP qua Dio, retry exponential backoff, error translation
   - `MockReviewApi` (`mock_review_api.dart`) — offline deterministic, rule-based
-- **Repository:** `app/lib/requirement_review/repositories/review_repository.dart` — concurrent review (bounded 4), `ReviewProgress` stream, cancellation
+- **Repository:** `desktop/lib/requirement_review/repositories/review_repository.dart` — concurrent review (bounded 4), `ReviewProgress` stream, cancellation
 
 ### Endpoints App Gọi
 | Method | Path | Dart Method | Mục đích |
@@ -183,12 +183,12 @@ shared_preferences   In-memory cache            Structured JSON
 ```
 
 ### MVVM Architecture
-- **View:** `app/lib/features/workspace/view/`
-- **ViewModel:** `app/lib/features/workspace/view_model/`
-- **Repository:** `app/lib/document_import/repositories/`, `app/lib/requirement_review/repositories/`
-- **Service:** `app/lib/document_import/services/`, `app/lib/requirement_review/services/`, `app/lib/review_history/services/`
+- **View:** `desktop/lib/features/workspace/view/`
+- **ViewModel:** `desktop/lib/features/workspace/view_model/`
+- **Repository:** `desktop/lib/document_import/repositories/`, `desktop/lib/requirement_review/repositories/`
+- **Service:** `desktop/lib/document_import/services/`, `desktop/lib/requirement_review/services/`, `desktop/lib/review_history/services/`
 - **Models:** `models/` trong từng component (hand-written, strict parsing)
-- **Checks:** `app/lib/deterministic_checks/` (deterministic F7/F8/F9 rules)
+- **Checks:** `desktop/lib/deterministic_checks/` (deterministic F7/F8/F9 rules)
 
 ---
 

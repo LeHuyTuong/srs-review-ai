@@ -98,7 +98,7 @@ tuần 1 để đo bytes/duration thật trước khi chốt Phase 3–4.
 ### 2.4 Ảnh: hiện tại không có đường nào để tốn token
 
 `grep image_b64`: chỉ khớp trong `server/` (`schemas.py:48`, `main.py:119`,
-`llm/gemini.py:52-53`). **Không có file nào trong `app/lib` khớp.** Tức là:
+`llm/gemini.py:52-53`). **Không có file nào trong `desktop/lib` khớp.** Tức là:
 server *sẵn sàng* nhận ảnh, app *không bao giờ* gửi. Vấn đề "tốn token vì ảnh"
 theo nghĩa chi phí đang chạy là **0**; vấn đề thật là **báo cáo hiện đang nói
 dối một cách vô thức**: nó review UC mà không hề thấy sơ đồ Use Case / ERD của
@@ -115,7 +115,7 @@ nguồn dữ liệu**, không chỉ thêm nút bấm.
 
 ### 2.5 Hệ quả lên trần tính năng
 
-`app/lib/core/app_config.dart`: `maxRequirementsPerRun = 40` trong khi OTES có
+`desktop/lib/core/app_config.dart`: `maxRequirementsPerRun = 40` trong khi OTES có
 63 bảng UC; `file_picker_service.dart` chặn 20 MiB trong khi OTES 27.37 MiB →
 **file thật của chính dự án bị app từ chối trước khi vào tới workflow.**
 
@@ -162,7 +162,7 @@ licence trước khi thêm dependency (xem §6).
 
 ### Phase 0 · Fixture hoá sự thật (0.5 ngày, **chặn mọi phase sau**)
 - Viết test chạy đúng pipeline thật: `ParseService` → `pageTexts` của
-  `OTES_officially_document.docx.pdf`, dump ra `app/test/fixtures/otes_pages.json`
+  `OTES_officially_document.docx.pdf`, dump ra `desktop/test/fixtures/otes_pages.json`
   (commit vào repo, để mọi probe sau chạy offline và không phụ thuộc máy bạn).
 - Đo trên fixture đó: (a) bao nhiêu trang có chuỗi dính kiểu
   `Thisusecasehelpslecturercreateexam`, (b) dòng `Use Case No.` còn nguyên không,
@@ -192,9 +192,9 @@ Sửa đúng ba chỗ đã gọi tên ở §2.1b, theo thứ tự:
 - **Gate:** 63/52/51 + cả 8 occurrence UC04 + mọi bước luồng, khớp fixture.
 
 ### Phase 2 · Kiểm tra tất định — **đã có một nửa, đừng viết lại**
-`app/lib/data/checks/syllabus_checks.dart` (318 dòng) **đã có F7/F8/F9** +
+`desktop/lib/data/checks/syllabus_checks.dart` (318 dòng) **đã có F7/F8/F9** +
 `LanguageDetector` + `TransactionCounter`, đọc ngưỡng từ `rubric_config.dart`,
-và `app/test/syllabus_checks_test.dart` đang xanh (36 test Flutter). Không viết
+và `desktop/test/syllabus_checks_test.dart` đang xanh (36 test Flutter). Không viết
 lại. Chúng chỉ **đang nhận đầu vào sai**, nên F7 in ra "Found 0 use cases" trên
 đúng tài liệu 63 UC (§2.1).
 - (a) `SrsDocument.useCaseCount` phải đếm **occurrence**, không đếm item đã gộp;
@@ -298,20 +298,20 @@ Vay NALABS (MIT) làm danh sách keyword cho Phase 2 → ghi nguồn trong file 
 
 | File | Thay đổi |
 |---|---|
-| `app/lib/data/models/srs_document.dart` | phẳng → phân cấp; thêm `unitKey`, `occurrence`, `reviewStatus`, `blockIds` |
-| `app/lib/data/parsing/requirement_splitter.dart` | sửa **đúng 3 root cause** §2.1b: header `Use Case No.` (`:38-41`), bước đánh số bị ăn (`:113-118`), map theo ID (`:48-59`) |
-| `app/lib/data/checks/syllabus_checks.dart` | **không viết lại**; thêm `section_completeness` / `duplicate_id` / `cross_section_pair`, sửa input |
-| `app/lib/data/models/srs_document.dart` | `useCaseCount` đếm occurrence; `imagePageIndexes` → `imagePages(provenance)` đúng bản chất |
-| `app/lib/data/services/parse_service.dart` | xuất block + bbox (tuỳ engine), ghi rõ phương thức trích xuất |
-| `app/lib/data/repositories/review_repository.dart` | khoá theo `unitKey`, thêm checkpoint, gửi `context` nén |
-| `app/lib/core/app_config.dart` | cap file ≥ 32 MiB, `maxRequirementsPerRun` thành lựa chọn có thông báo |
-| `app/lib/data/services/file_picker_service.dart` | bỏ chặn 20 MiB, giữ kiểm tra hợp lệ |
+| `desktop/lib/data/models/srs_document.dart` | phẳng → phân cấp; thêm `unitKey`, `occurrence`, `reviewStatus`, `blockIds` |
+| `desktop/lib/data/parsing/requirement_splitter.dart` | sửa **đúng 3 root cause** §2.1b: header `Use Case No.` (`:38-41`), bước đánh số bị ăn (`:113-118`), map theo ID (`:48-59`) |
+| `desktop/lib/data/checks/syllabus_checks.dart` | **không viết lại**; thêm `section_completeness` / `duplicate_id` / `cross_section_pair`, sửa input |
+| `desktop/lib/data/models/srs_document.dart` | `useCaseCount` đếm occurrence; `imagePageIndexes` → `imagePages(provenance)` đúng bản chất |
+| `desktop/lib/data/services/parse_service.dart` | xuất block + bbox (tuỳ engine), ghi rõ phương thức trích xuất |
+| `desktop/lib/data/repositories/review_repository.dart` | khoá theo `unitKey`, thêm checkpoint, gửi `context` nén |
+| `desktop/lib/core/app_config.dart` | cap file ≥ 32 MiB, `maxRequirementsPerRun` thành lựa chọn có thông báo |
+| `desktop/lib/data/services/file_picker_service.dart` | bỏ chặn 20 MiB, giữ kiểm tra hợp lệ |
 | `server/app/schemas.py` | thêm `unit_key`, `page_range`, `context`, `image_reviewed` |
 | `server/app/main.py` | trả coverage (đã xem / chưa xem ảnh); cache key gồm unit
   + toàn bộ input ảnh hưởng đáp án, bao gồm **image hash/no-image state** |
 | `server/app/prompt.py` | unit + ngữ cảnh nén; **giữ nguyên** luật trích dẫn nguyên văn |
-| mới: `app/lib/data/checks/{structure,consistency}_checks.dart` + test vàng OTES | Phase 2 |
-| mới: `app/lib/data/services/checkpoint_service.dart` | Phase 3 |
+| mới: `desktop/lib/data/checks/{structure,consistency}_checks.dart` + test vàng OTES | Phase 2 |
+| mới: `desktop/lib/data/services/checkpoint_service.dart` | Phase 3 |
 
 Không đụng: `guardrails` (vẫn cấm LLM SDK trong app), rubric weights, mock mode,
 prompt rule "trích dẫn nguyên văn".

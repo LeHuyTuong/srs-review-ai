@@ -1,0 +1,203 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:analyzer/dart/analysis/utilities.dart';
+import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/ast/visitor.dart';
+
+// Chạy bằng cấu hình package của bộ Flutter tools; không thêm analyzer vào ứng dụng.
+// Kiểm tra cấu trúc phụ thuộc, còn tính đúng nghiệp vụ được bảo vệ bằng regression tests.
+void main() {
+  final root = Directory.current.uri;
+  final files =
+      Directory('lib')
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.dart'))
+          .toList()
+        ..sort((a, b) => a.path.compareTo(b.path));
+  final graph = <String, List<String>>{};
+  final violations = <String>[];
+  final buildFindings = <String>[];
+  final sdkFindings = <String>[];
+  final missing = <String>[];
+  String name(Uri uri) => root.resolveUri(uri).path.substring(root.path.length);
+  for (final file in files) {
+    final path = name(file.absolute.uri);
+    final unit = parseString(content: file.readAsStringSync(), path: path).unit;
+    graph[path] = [];
+    for (final directive in unit.directives) {
+      if (directive is! UriBasedDirective) continue;
+      final uri = directive.uri.stringValue!;
+      final isView =
+          path.contains('/views/') ||
+          path.startsWith('lib/widgets/') ||
+          path == 'lib/screens/navigation_destination_screen.dart';
+      final isVm =
+          path.contains('/viewmodels/') || path.startsWith('lib/core/session/');
+      if ((isView || isVm) &&
+          RegExp(
+            r'^(dart:io|package:(firebase_|cloud_firestore|http/|file_selector/)|package:flutter/services.dart)',
+          ).hasMatch(uri)) {
+        sdkFindings.add('$path -> $uri');
+      }
+      Uri? resolved;
+      if (uri.startsWith('package:srs_review_ai_mobile/')) {
+        resolved = root.resolve(
+          'lib/${uri.substring('package:srs_review_ai_mobile/'.length)}',
+        );
+      } else if (!uri.contains(':')) {
+        resolved = file.absolute.uri.resolve(uri);
+      }
+      if (resolved == null) continue;
+      final target = name(resolved);
+      graph[path]!.add(target);
+      if (!File.fromUri(resolved).existsSync()) missing.add('$path -> $target');
+      if (path.startsWith('lib/core/domain/') ||
+          path.startsWith('lib/core/contracts/')) {
+        if (!target.startsWith('lib/core/domain/') &&
+            !target.startsWith('lib/core/contracts/'))
+          violations.add('$path -> $target');
+      }
+      if (path.contains('/data/') &&
+          (target.contains('/presentation/') ||
+              target.startsWith('lib/app/') ||
+              target.startsWith('lib/core/session/')))
+        violations.add('$path -> $target');
+      if (isVm &&
+          (target.contains('/views/') ||
+              target.startsWith('lib/widgets/') ||
+              target.startsWith('lib/theme/') ||
+              target.startsWith('lib/app/')))
+        violations.add('$path -> $target');
+      if (isView &&
+          (target.contains('/data/') || target.startsWith('lib/core/di/')))
+        violations.add('$path -> $target');
+    }
+    if (path.contains('/views/')) unit.accept(BuildAudit(path, buildFindings));
+    if (path.startsWith('lib/core/domain/') ||
+        path.startsWith('lib/core/contracts/')) {
+      for (final d in unit.directives.whereType<ImportDirective>()) {
+        final uri = d.uri.stringValue!;
+        if (uri.startsWith('package:') &&
+            !uri.startsWith('package:srs_review_ai_mobile/'))
+          violations.add('$path -> $uri (không phải Dart thuần)');
+      }
+    }
+  }
+  final active = <String>[];
+  final visited = <String>{};
+  final cycles = <List<String>>[];
+  void visit(String node) {
+    if (active.contains(node)) {
+      cycles.add([...active.sublist(active.indexOf(node)), node]);
+      return;
+    }
+    if (!visited.add(node)) return;
+    active.add(node);
+    for (final next in graph[node] ?? <String>[]) {
+      visit(next);
+    }
+    active.removeLast();
+  }
+
+  for (final node in graph.keys) {
+    visit(node);
+  }
+  final preserved = <String, bool>{};
+  final baseline = Directory('.local/architecture-before');
+  if (baseline.existsSync()) {
+    final targets = <String, String>{
+      'lib/services/academic/fake_academic_service.dart':
+          'lib/features/academic/data/services/fake_academic_service.dart',
+      for (final folder in ['theme', 'widgets'])
+        for (final file in Directory(
+          '${baseline.path}/lib/$folder',
+        ).listSync().whereType<File>().where((f) => f.path.endsWith('.dart')))
+          name(file.absolute.uri)
+                  .substring('.local/architecture-before/'.length):
+              'lib/$folder/${file.uri.pathSegments.last}',
+    };
+    for (final entry in targets.entries) {
+      preserved[entry.key] =
+          declarationTokens(
+            File('${baseline.path}/${entry.key}').readAsStringSync(),
+          ) ==
+          declarationTokens(File(entry.value).readAsStringSync());
+    }
+  }
+  final result = {
+    'files': files.length,
+    'edges': graph.values.fold<int>(0, (n, e) => n + e.length),
+    'cycles': cycles,
+    'upwardImports': violations,
+    'missingLocalImports': missing,
+    'sdkImportsInViewsOrViewModels': sdkFindings,
+    'businessCollectionOperationsInBuild': buildFindings,
+    'preservedDeclarationTokens': preserved,
+    'graph': graph,
+    'limits': 'Kiểm tra import/AST là kiểm tra cấu trúc, không thay thế audit nghiệp vụ hoặc kiểm thử thiết bị.',
+  };
+  File('docs/evidence/architecture-refactor/dependencies-after.json')
+      .writeAsStringSync(const JsonEncoder.withIndent('  ').convert(result));
+  final passed =
+      cycles.isEmpty &&
+      violations.isEmpty &&
+      missing.isEmpty &&
+      sdkFindings.isEmpty &&
+      buildFindings.isEmpty &&
+      preserved.values.every((p) => p);
+  print(
+    'Files: ${files.length}; cycles: ${cycles.length}; upward imports: ${violations.length}; missing imports: ${missing.length}; SDK imports: ${sdkFindings.length}; collection logic in build: ${buildFindings.length}; preserved: ${preserved.values.where((p) => p).length}/${preserved.length}',
+  );
+  if (!passed) {
+    print(const JsonEncoder.withIndent('  ').convert(result..remove('graph')));
+    exitCode = 1;
+  }
+}
+
+String declarationTokens(String source) {
+  final unit = parseString(content: source).unit;
+  return unit.declarations
+      .map((declaration) {
+        final tokens = <String>[];
+        var token = declaration.beginToken;
+        while (true) {
+          tokens.add('${token.type}:${token.lexeme}');
+          if (identical(token, declaration.endToken)) break;
+          token = token.next!;
+        }
+        return tokens.join('\n');
+      })
+      .join('\n');
+}
+
+class BuildAudit extends RecursiveAstVisitor<void> {
+  BuildAudit(this.path, this.findings);
+  final String path;
+  final List<String> findings;
+  bool inBuild = false;
+  @override
+  void visitMethodDeclaration(MethodDeclaration node) {
+    final previous = inBuild;
+    inBuild = node.name.lexeme == 'build';
+    super.visitMethodDeclaration(node);
+    inBuild = previous;
+  }
+
+  @override
+  void visitMethodInvocation(MethodInvocation node) {
+    if (inBuild &&
+        {
+          'where',
+          'any',
+          'every',
+          'fold',
+          'reduce',
+          'sort',
+          'toSet',
+        }.contains(node.methodName.name))
+      findings.add('$path:${node.offset}: ${node.methodName.name}');
+    super.visitMethodInvocation(node);
+  }
+}

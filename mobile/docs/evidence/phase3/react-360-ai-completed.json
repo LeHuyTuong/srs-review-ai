@@ -1,0 +1,171 @@
+[
+  {
+    "text": "Không gian đánh giá",
+    "box": {
+      "x": 12,
+      "y": 69,
+      "width": 178.984375,
+      "height": 48,
+      "top": 69,
+      "right": 190.984375,
+      "bottom": 117,
+      "left": 12
+    }
+  },
+  {
+    "text": "Kết quả AI",
+    "box": {
+      "x": 20,
+      "y": 129,
+      "width": 129.125,
+      "height": 30.671875,
+      "top": 129,
+      "right": 149.125,
+      "bottom": 159.671875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Tiêu chí\nMở tất cả\nCần chú ý (6)\nTất cả (10)\nP02 · Bản đồ người dùng\n0/10\nP05 · Thông tin Persona\n0/10\nP07 · Bằng chứng & giả định\n0/10\nP08 · Tổng hợp nghiên cứ",
+    "box": {
+      "x": 20,
+      "y": 875.3125,
+      "width": 320,
+      "height": 594.5625,
+      "top": 875.3125,
+      "right": 340,
+      "bottom": 1469.875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Mở tất cả",
+    "box": {
+      "x": 261.40625,
+      "y": 875.3125,
+      "width": 78.59375,
+      "height": 48,
+      "top": 875.3125,
+      "right": 340,
+      "bottom": 923.3125,
+      "left": 261.40625
+    }
+  },
+  {
+    "text": "Cần chú ý (6)",
+    "box": {
+      "x": 24,
+      "y": 939.3125,
+      "width": 154,
+      "height": 48,
+      "top": 939.3125,
+      "right": 178,
+      "bottom": 987.3125,
+      "left": 24
+    }
+  },
+  {
+    "text": "Tất cả (10)",
+    "box": {
+      "x": 182,
+      "y": 939.3125,
+      "width": 154,
+      "height": 48,
+      "top": 939.3125,
+      "right": 336,
+      "bottom": 987.3125,
+      "left": 182
+    }
+  },
+  {
+    "text": "P02 · Bản đồ người dùng\n0/10",
+    "box": {
+      "x": 37,
+      "y": 1008.3125,
+      "width": 286,
+      "height": 68.59375,
+      "top": 1008.3125,
+      "right": 323,
+      "bottom": 1076.90625,
+      "left": 37
+    }
+  },
+  {
+    "text": "P05 · Thông tin Persona\n0/10",
+    "box": {
+      "x": 37,
+      "y": 1085.90625,
+      "width": 286,
+      "height": 68.59375,
+      "top": 1085.90625,
+      "right": 323,
+      "bottom": 1154.5,
+      "left": 37
+    }
+  },
+  {
+    "text": "P07 · Bằng chứng & giả định\n0/10",
+    "box": {
+      "x": 37,
+      "y": 1163.5,
+      "width": 286,
+      "height": 68.59375,
+      "top": 1163.5,
+      "right": 323,
+      "bottom": 1232.09375,
+      "left": 37
+    }
+  },
+  {
+    "text": "P08 · Tổng hợp nghiên cứu\n0/10",
+    "box": {
+      "x": 37,
+      "y": 1241.09375,
+      "width": 286,
+      "height": 68.59375,
+      "top": 1241.09375,
+      "right": 323,
+      "bottom": 1309.6875,
+      "left": 37
+    }
+  },
+  {
+    "text": "P09 · Kịch bản & mục tiêu\n0/10",
+    "box": {
+      "x": 37,
+      "y": 1318.6875,
+      "width": 286,
+      "height": 68.59375,
+      "top": 1318.6875,
+      "right": 323,
+      "bottom": 1387.28125,
+      "left": 37
+    }
+  },
+  {
+    "text": "P10 · Quyết định & kiểm chứng\n0/10",
+    "box": {
+      "x": 37,
+      "y": 1396.28125,
+      "width": 286,
+      "height": 68.59375,
+      "top": 1396.28125,
+      "right": 323,
+      "bottom": 1464.875,
+      "left": 37
+    }
+  },
+  {
+    "text": "Chạy lại Đánh giá AI",
+    "box": {
+      "x": 20,
+      "y": 1554.875,
+      "width": 320,
+      "height": 48,
+      "top": 1554.875,
+      "right": 340,
+      "bottom": 1602.875,
+      "left": 20
+    }
+  }
+]

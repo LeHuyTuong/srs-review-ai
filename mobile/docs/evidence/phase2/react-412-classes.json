@@ -1,0 +1,315 @@
+[
+  {
+    "kind": "pageHeading",
+    "text": "QUẢN LÝ LỚP HỌC\n\nLớp của tôi\n\nThêm sinh viên trong trang chi tiết của từng lớp.",
+    "box": {
+      "x": 20,
+      "y": 69,
+      "width": 372,
+      "height": 87.265625,
+      "top": 69,
+      "right": 392,
+      "bottom": 156.265625,
+      "left": 20
+    }
+  },
+  {
+    "text": "QUẢN LÝ LỚP HỌC\n\nLớp của tôi\n\nThêm sinh viên trong trang chi tiết của từng lớp.",
+    "box": {
+      "x": 20,
+      "y": 69,
+      "width": 372,
+      "height": 87.265625,
+      "top": 69,
+      "right": 392,
+      "bottom": 156.265625,
+      "left": 20
+    }
+  },
+  {
+    "text": "Lớp của tôi",
+    "box": {
+      "x": 20,
+      "y": 97.296875,
+      "width": 137.375,
+      "height": 30.671875,
+      "top": 97.296875,
+      "right": 157.375,
+      "bottom": 127.96875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Tạo lớp",
+    "box": {
+      "x": 20,
+      "y": 172.265625,
+      "width": 372,
+      "height": 48,
+      "top": 172.265625,
+      "right": 392,
+      "bottom": 220.265625,
+      "left": 20
+    }
+  },
+  {
+    "text": "Fall 2026\nBộ lọc · 1\nHọc kỳ: Fall 2026\nTrạng thái lớp: Đang giảng dạy\nXóa bộ lọc\n\n6 lớp",
+    "box": {
+      "x": 20,
+      "y": 236.265625,
+      "width": 372,
+      "height": 198.296875,
+      "top": 236.265625,
+      "right": 392,
+      "bottom": 434.5625,
+      "left": 20
+    }
+  },
+  {
+    "text": "Fall 2026",
+    "box": {
+      "x": 20,
+      "y": 294.265625,
+      "width": 108.796875,
+      "height": 48,
+      "top": 294.265625,
+      "right": 128.796875,
+      "bottom": 342.265625,
+      "left": 20
+    }
+  },
+  {
+    "text": "Bộ lọc · 1",
+    "box": {
+      "x": 136.796875,
+      "y": 294.265625,
+      "width": 105.984375,
+      "height": 48,
+      "top": 294.265625,
+      "right": 242.78125,
+      "bottom": 342.265625,
+      "left": 136.796875
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 344,
+      "y": 294.265625,
+      "width": 48,
+      "height": 48,
+      "top": 294.265625,
+      "right": 392,
+      "bottom": 342.265625,
+      "left": 344
+    }
+  },
+  {
+    "text": "Học kỳ: Fall 2026",
+    "box": {
+      "x": 20,
+      "y": 354.265625,
+      "width": 155.34375,
+      "height": 48,
+      "top": 354.265625,
+      "right": 175.34375,
+      "bottom": 402.265625,
+      "left": 20
+    }
+  },
+  {
+    "text": "Trạng thái lớp: Đang giảng dạy",
+    "box": {
+      "x": 183.34375,
+      "y": 354.265625,
+      "width": 243.359375,
+      "height": 48,
+      "top": 354.265625,
+      "right": 426.703125,
+      "bottom": 402.265625,
+      "left": 183.34375
+    }
+  },
+  {
+    "text": "Xóa bộ lọc",
+    "box": {
+      "x": 434.703125,
+      "y": 354.265625,
+      "width": 79.046875,
+      "height": 48,
+      "top": 354.265625,
+      "right": 513.75,
+      "bottom": 402.265625,
+      "left": 434.703125
+    }
+  },
+  {
+    "text": "SE1701\nĐang giảng dạy\n\nSWP391 · Software Project\n\nFall 2026 · T3 – T6 · Sáng\n\n34 sinh viên\n8 nhóm\n8 dự án\n4 tài liệu chờ đánh giá\n",
+    "box": {
+      "x": 20,
+      "y": 450.5625,
+      "width": 372,
+      "height": 1670.90625,
+      "top": 450.5625,
+      "right": 392,
+      "bottom": 2121.46875,
+      "left": 20
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 327,
+      "y": 467.5625,
+      "width": 48,
+      "height": 48,
+      "top": 467.5625,
+      "right": 375,
+      "bottom": 515.5625,
+      "left": 327
+    }
+  },
+  {
+    "text": "Chỉnh sửa",
+    "box": {
+      "x": 37,
+      "y": 654.046875,
+      "width": 165,
+      "height": 48,
+      "top": 654.046875,
+      "right": 202,
+      "bottom": 702.046875,
+      "left": 37
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 327,
+      "y": 748.046875,
+      "width": 48,
+      "height": 48,
+      "top": 748.046875,
+      "right": 375,
+      "bottom": 796.046875,
+      "left": 327
+    }
+  },
+  {
+    "text": "Chỉnh sửa",
+    "box": {
+      "x": 37,
+      "y": 934.53125,
+      "width": 165,
+      "height": 48,
+      "top": 934.53125,
+      "right": 202,
+      "bottom": 982.53125,
+      "left": 37
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 327,
+      "y": 1028.53125,
+      "width": 48,
+      "height": 48,
+      "top": 1028.53125,
+      "right": 375,
+      "bottom": 1076.53125,
+      "left": 327
+    }
+  },
+  {
+    "text": "Chỉnh sửa",
+    "box": {
+      "x": 37,
+      "y": 1215.015625,
+      "width": 165,
+      "height": 48,
+      "top": 1215.015625,
+      "right": 202,
+      "bottom": 1263.015625,
+      "left": 37
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 327,
+      "y": 1309.015625,
+      "width": 48,
+      "height": 48,
+      "top": 1309.015625,
+      "right": 375,
+      "bottom": 1357.015625,
+      "left": 327
+    }
+  },
+  {
+    "text": "Chỉnh sửa",
+    "box": {
+      "x": 37,
+      "y": 1495.5,
+      "width": 165,
+      "height": 48,
+      "top": 1495.5,
+      "right": 202,
+      "bottom": 1543.5,
+      "left": 37
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 327,
+      "y": 1589.5,
+      "width": 48,
+      "height": 48,
+      "top": 1589.5,
+      "right": 375,
+      "bottom": 1637.5,
+      "left": 327
+    }
+  },
+  {
+    "text": "Chỉnh sửa",
+    "box": {
+      "x": 37,
+      "y": 1775.984375,
+      "width": 165,
+      "height": 48,
+      "top": 1775.984375,
+      "right": 202,
+      "bottom": 1823.984375,
+      "left": 37
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 327,
+      "y": 1869.984375,
+      "width": 48,
+      "height": 48,
+      "top": 1869.984375,
+      "right": 375,
+      "bottom": 1917.984375,
+      "left": 327
+    }
+  },
+  {
+    "text": "Chỉnh sửa",
+    "box": {
+      "x": 37,
+      "y": 2056.46875,
+      "width": 165,
+      "height": 48,
+      "top": 2056.46875,
+      "right": 202,
+      "bottom": 2104.46875,
+      "left": 37
+    }
+  }
+]

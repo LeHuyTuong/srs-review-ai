@@ -1,0 +1,145 @@
+[
+  {
+    "text": "SE1701 / Group 01",
+    "box": {
+      "x": 12,
+      "y": 69,
+      "width": 160.296875,
+      "height": 48,
+      "top": 69,
+      "right": 172.296875,
+      "bottom": 117,
+      "left": 12
+    }
+  },
+  {
+    "text": "Smart Campus Management",
+    "box": {
+      "x": 20,
+      "y": 161.296875,
+      "width": 290,
+      "height": 61.34375,
+      "top": 161.296875,
+      "right": 310,
+      "bottom": 222.640625,
+      "left": 20
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 322,
+      "y": 161.296875,
+      "width": 48,
+      "height": 48,
+      "top": 161.296875,
+      "right": 370,
+      "bottom": 209.296875,
+      "left": 322
+    }
+  },
+  {
+    "text": "Tổng quan\nTài liệu\nThành viên\nLịch sử đánh giá\nThông tin",
+    "box": {
+      "x": 20,
+      "y": 458.828125,
+      "width": 350,
+      "height": 59.59375,
+      "top": 458.828125,
+      "right": 370,
+      "bottom": 518.421875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Tổng quan",
+    "box": {
+      "x": 20,
+      "y": 458.828125,
+      "width": 66.796875,
+      "height": 58.59375,
+      "top": 458.828125,
+      "right": 86.796875,
+      "bottom": 517.421875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Tài liệu",
+    "box": {
+      "x": 90.796875,
+      "y": 458.828125,
+      "width": 66.8125,
+      "height": 58.59375,
+      "top": 458.828125,
+      "right": 157.609375,
+      "bottom": 517.421875,
+      "left": 90.796875
+    }
+  },
+  {
+    "text": "Thành viên",
+    "box": {
+      "x": 161.609375,
+      "y": 458.828125,
+      "width": 66.796875,
+      "height": 58.59375,
+      "top": 458.828125,
+      "right": 228.40625,
+      "bottom": 517.421875,
+      "left": 161.609375
+    }
+  },
+  {
+    "text": "Lịch sử đánh giá",
+    "box": {
+      "x": 232.40625,
+      "y": 458.828125,
+      "width": 66.796875,
+      "height": 58.59375,
+      "top": 458.828125,
+      "right": 299.203125,
+      "bottom": 517.421875,
+      "left": 232.40625
+    }
+  },
+  {
+    "text": "Thông tin",
+    "box": {
+      "x": 303.203125,
+      "y": 458.828125,
+      "width": 66.796875,
+      "height": 58.59375,
+      "top": 458.828125,
+      "right": 370,
+      "bottom": 517.421875,
+      "left": 303.203125
+    }
+  },
+  {
+    "text": "Hệ thống quản lý cơ sở vật chất, lịch phòng và dịch vụ trong khuôn viên trường.\n\nHọc kỳ\nFall 2026\nMôn học\nSWP391 · Software Project\nLớp\nSE1701\nNhóm\nGroup 01\nGiả",
+    "box": {
+      "x": 20,
+      "y": 534.421875,
+      "width": 350,
+      "height": 424.640625,
+      "top": 534.421875,
+      "right": 370,
+      "bottom": 959.0625,
+      "left": 20
+    }
+  },
+  {
+    "text": "Chỉnh sửa thông tin dự án",
+    "box": {
+      "x": 20,
+      "y": 975.0625,
+      "width": 350,
+      "height": 48,
+      "top": 975.0625,
+      "right": 370,
+      "bottom": 1023.0625,
+      "left": 20
+    }
+  }
+]

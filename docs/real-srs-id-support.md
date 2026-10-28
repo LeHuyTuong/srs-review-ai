@@ -35,10 +35,10 @@ Verified with the user's actual capstone files:
 
 ## Files
 
-* `app/lib/data/parsing/requirement_splitter.dart` — extend `_idAtLineStart`,
+* `desktop/lib/data/parsing/requirement_splitter.dart` — extend `_idAtLineStart`,
   update doc comment.
-* `app/test/…splitter…_test.dart` — new cases.
-* `app/build/web` + `/tmp/srs_web_snapshot` — rebuild + refresh.
+* `desktop/test/…splitter…_test.dart` — new cases.
+* `desktop/build/web` + `/tmp/srs_web_snapshot` — rebuild + refresh.
 
 ## Risks
 

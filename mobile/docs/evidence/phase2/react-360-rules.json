@@ -1,0 +1,42 @@
+[
+  {
+    "kind": "pageHeading",
+    "text": "Bộ quy tắc\n\nChọn môn học trước khi cấu hình.",
+    "box": {
+      "x": 20,
+      "y": 69,
+      "width": 320,
+      "height": 58.96875,
+      "top": 69,
+      "right": 340,
+      "bottom": 127.96875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Bộ quy tắc\n\nChọn môn học trước khi cấu hình.\n\nSWP391\nSoftware Project\nSWR302\nSoftware Requirements\nPRN212\nProgramming with .NET\nPR",
+    "box": {
+      "x": 20,
+      "y": 69,
+      "width": 320,
+      "height": 425.34375,
+      "top": 69,
+      "right": 340,
+      "bottom": 494.34375,
+      "left": 20
+    }
+  },
+  {
+    "text": "Bộ quy tắc",
+    "box": {
+      "x": 20,
+      "y": 69,
+      "width": 132.78125,
+      "height": 30.671875,
+      "top": 69,
+      "right": 152.78125,
+      "bottom": 99.671875,
+      "left": 20
+    }
+  }
+]

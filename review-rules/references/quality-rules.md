@@ -1,6 +1,6 @@
 # Quality rules — tính chất của một requirement viết đúng
 
-Áp cho từng dòng FR / UC step / NFR. Mỗi luật ghi: **cách nhận biết** (deterministic được không) và **check tương ứng trong app** nếu có (`CheckId` trong `app/lib/data/models/deterministic_finding.dart`).
+Áp cho từng dòng FR / UC step / NFR. Mỗi luật ghi: **cách nhận biết** (deterministic được không) và **check tương ứng trong app** nếu có (`CheckId` trong `desktop/lib/data/models/deterministic_finding.dart`).
 
 ## A. 9 (+1) tính chất — Wiegers / ISO 29148
 

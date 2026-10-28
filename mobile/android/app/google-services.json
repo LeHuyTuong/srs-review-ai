@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "141641534624",
+    "project_id": "srs-review-ai-ff68b",
+    "storage_bucket": "srs-review-ai-ff68b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:141641534624:android:e3d9871e3b5b6a8d71cdc5",
+        "android_client_info": {
+          "package_name": "com.example.srs_review_ai_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBD-uawNSgrGBnJLlbGQQlkqKvH7xhgdcw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -68,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: app
+        working-directory: desktop
     steps:
       - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
@@ -148,7 +148,7 @@ jobs:
             target: macos
     defaults:
       run:
-        working-directory: app
+        working-directory: desktop
     steps:
       - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2

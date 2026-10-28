@@ -2,7 +2,7 @@
 
 **1.5** (theo `RULEBOOK.md`; lịch sử: v0.2 thay thang all-or-nothing của v0.1 bằng **chấm liên tục** · v0.2.1 thêm **luật một-chỗ** §1b sau khi kiểm chéo phát hiện v0.2 vẫn đếm hai lần ở 7 chỗ khác · 1.1 thêm chain 7 · 1.5 thêm D3 ×2 và D4 = n/a). Lý do đổi ghi ở §7; đừng sửa lại về all-or-nothing mà không đọc mục đó, và đừng thêm tiêu chí mà không đọc §1b.
 
-Cùng hình dạng `5 + 2 + 2 + 1` với `app/lib/features/workspace/models/document_verdict.dart`, nhưng **cách tính từng thành phần khác app** — xem §9.
+Cùng hình dạng `5 + 2 + 2 + 1` với `desktop/lib/features/workspace/models/document_verdict.dart`, nhưng **cách tính từng thành phần khác app** — xem §9.
 
 ## 1. Severity
 

@@ -7,22 +7,22 @@
 service-account*.json
 
 # ---------- Flutter / Dart ----------
-app/.dart_tool/
-app/.flutter-plugins
-app/.flutter-plugins-dependencies
-app/build/
-app/ios/Pods/
-app/macos/Pods/
-app/windows/flutter/ephemeral/
-app/linux/flutter/ephemeral/
-app/android/.gradle/
-app/android/local.properties
-app/android/app/debug/
-app/android/app/profile/
-app/android/app/release/
-app/**/*.g.dart
-app/**/*.freezed.dart
-app/**/*.mocks.dart
+desktop/.dart_tool/
+desktop/.flutter-plugins
+desktop/.flutter-plugins-dependencies
+desktop/build/
+desktop/ios/Pods/
+desktop/macos/Pods/
+desktop/windows/flutter/ephemeral/
+desktop/linux/flutter/ephemeral/
+desktop/android/.gradle/
+desktop/android/local.properties
+desktop/android/app/debug/
+desktop/android/app/profile/
+desktop/android/app/release/
+desktop/**/*.g.dart
+desktop/**/*.freezed.dart
+desktop/**/*.mocks.dart
 *.iml
 
 # ---------- Python / FastAPI ----------
@@ -49,7 +49,7 @@ Thumbs.db
 *.log
 coverage/
 # flutter test --file-reporter output (CI annotator input; local runs too)
-/app/test_report.json
+/desktop/test_report.json
 
 # presigned-upload landing zone (dev default; never commit uploaded documents)
 server/.uploads/
@@ -65,7 +65,7 @@ server/*.render.*.png
 
 node_modules/
 
-# Skill draw.io cá nhân — công cụ tác giả, không phải phần app/pipeline chấm, giữ local
+# Skill draw.io cá nhân — công cụ tác giả, không phải phần desktop/pipeline chấm, giữ local
 # (2026-09-25: file zip là bản nén gốc, thêm vào đây vì `git add -A` sẽ đưa nó
 # lên theo dõi dù cây đã giải nén bên dưới đã bị ignore — đẩy 1 file .zip là
 # đẩy nguyên bộ skill lên origin.)
@@ -98,13 +98,13 @@ skills/sds-reviewer/
 
 # ---------- Local run logs and hand-captured CLI output ----------
 # a1/a2.out.txt + full.err.txt were one-off captures while debugging the vision
-# chain; dev_web.out/err come from app/tool/dev_web.ps1 runs. All machine output,
+# chain; dev_web.out/err come from desktop/tool/dev_web.ps1 runs. All machine output,
 # not evidence — evidence lives in docs/evidence/ with a date in its name.
 # Patterns kept narrow on purpose: a blanket *.txt would swallow the notes-*.json
 # neighbours and review-rules material.
-/app/*.out.txt
-/app/*.err.txt
-/app/tool/logs/
+/desktop/*.out.txt
+/desktop/*.err.txt
+/desktop/tool/logs/
 
 # Provider replies cached by docs/evidence/scripts/probe_vision_reality.py.
 # Regenerated on the next run; the numbers it produced are the committed JSON.
@@ -130,7 +130,7 @@ server/.classes/
 # owner chose to keep it for reference, so it is ignored rather than deleted —
 # root scope only, so a video inside a docs folder can still be committed.
 /*.mp4
-/app/run.bat
+/desktop/run.bat
 /server/run_server.bat
 
 # 2026-09-30: a self-contained diagram gallery belonging to another project sat

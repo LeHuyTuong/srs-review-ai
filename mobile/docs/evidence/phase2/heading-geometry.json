@@ -1,0 +1,398 @@
+[
+  {
+    "width": 360,
+    "screen": "courses",
+    "react": {
+      "x": 20,
+      "y": 69,
+      "width": 320,
+      "height": 58.96875,
+      "top": 69,
+      "right": 340,
+      "bottom": 127.96875,
+      "left": 20
+    },
+    "flutter": {
+      "x": 20,
+      "y": 114.33333333333334,
+      "width": 320,
+      "height": 59
+    },
+    "deltaY": 0,
+    "deltaHeight": 0.03125
+  },
+  {
+    "width": 360,
+    "screen": "course",
+    "react": {
+      "x": 20,
+      "y": 133,
+      "width": 320,
+      "height": 58.96875,
+      "top": 133,
+      "right": 340,
+      "bottom": 191.96875,
+      "left": 20
+    },
+    "flutter": {
+      "x": 20,
+      "y": 178.33333333333334,
+      "width": 320,
+      "height": 59
+    },
+    "deltaY": 0,
+    "deltaHeight": 0.03125
+  },
+  {
+    "width": 360,
+    "screen": "offering",
+    "react": {
+      "x": 20,
+      "y": 133,
+      "width": 320,
+      "height": 89.640625,
+      "top": 133,
+      "right": 340,
+      "bottom": 222.640625,
+      "left": 20
+    },
+    "flutter": {
+      "x": 20,
+      "y": 178.33333333333334,
+      "width": 320,
+      "height": 90.00000000000003
+    },
+    "deltaY": 0,
+    "deltaHeight": 0.3593750000000284
+  },
+  {
+    "width": 360,
+    "screen": "classes",
+    "react": {
+      "x": 20,
+      "y": 69,
+      "width": 320,
+      "height": 87.265625,
+      "top": 69,
+      "right": 340,
+      "bottom": 156.265625,
+      "left": 20
+    },
+    "flutter": {
+      "x": 20,
+      "y": 114.33333333333334,
+      "width": 320,
+      "height": 87
+    },
+    "deltaY": 0,
+    "deltaHeight": -0.265625
+  },
+  {
+    "width": 360,
+    "screen": "class",
+    "react": {
+      "x": 20,
+      "y": 133,
+      "width": 320,
+      "height": 87.265625,
+      "top": 133,
+      "right": 340,
+      "bottom": 220.265625,
+      "left": 20
+    },
+    "flutter": {
+      "x": 20,
+      "y": 178.33333333333334,
+      "width": 320,
+      "height": 87.00000000000003
+    },
+    "deltaY": 0,
+    "deltaHeight": -0.2656249999999716
+  },
+  {
+    "width": 360,
+    "screen": "rules",
+    "react": {
+      "x": 20,
+      "y": 69,
+      "width": 320,
+      "height": 58.96875,
+      "top": 69,
+      "right": 340,
+      "bottom": 127.96875,
+      "left": 20
+    },
+    "flutter": {
+      "x": 20,
+      "y": 114.33333333333334,
+      "width": 320,
+      "height": 59
+    },
+    "deltaY": 0,
+    "deltaHeight": 0.03125
+  },
+  {
+    "width": 390,
+    "screen": "courses",
+    "react": {
+      "x": 20,
+      "y": 69,
+      "width": 350,
+      "height": 58.96875,
+      "top": 69,
+      "right": 370,
+      "bottom": 127.96875,
+      "left": 20
+    },
+    "flutter": {
+      "x": 20,
+      "y": 118,
+      "width": 350,
+      "height": 59
+    },
+    "deltaY": 0,
+    "deltaHeight": 0.03125
+  },
+  {
+    "width": 390,
+    "screen": "course",
+    "react": {
+      "x": 20,
+      "y": 133,
+      "width": 350,
+      "height": 58.96875,
+      "top": 133,
+      "right": 370,
+      "bottom": 191.96875,
+      "left": 20
+    },
+    "flutter": {
+      "x": 20,
+      "y": 182,
+      "width": 350,
+      "height": 59
+    },
+    "deltaY": 0,
+    "deltaHeight": 0.03125
+  },
+  {
+    "width": 390,
+    "screen": "offering",
+    "react": {
+      "x": 20,
+      "y": 133,
+      "width": 350,
+      "height": 89.640625,
+      "top": 133,
+      "right": 370,
+      "bottom": 222.640625,
+      "left": 20
+    },
+    "flutter": {
+      "x": 20,
+      "y": 182,
+      "width": 350,
+      "height": 90
+    },
+    "deltaY": 0,
+    "deltaHeight": 0.359375
+  },
+  {
+    "width": 390,
+    "screen": "classes",
+    "react": {
+      "x": 20,
+      "y": 69,
+      "width": 350,
+      "height": 87.265625,
+      "top": 69,
+      "right": 370,
+      "bottom": 156.265625,
+      "left": 20
+    },
+    "flutter": {
+      "x": 20,
+      "y": 118,
+      "width": 350,
+      "height": 87
+    },
+    "deltaY": 0,
+    "deltaHeight": -0.265625
+  },
+  {
+    "width": 390,
+    "screen": "class",
+    "react": {
+      "x": 20,
+      "y": 133,
+      "width": 350,
+      "height": 87.265625,
+      "top": 133,
+      "right": 370,
+      "bottom": 220.265625,
+      "left": 20
+    },
+    "flutter": {
+      "x": 20,
+      "y": 182,
+      "width": 350,
+      "height": 87
+    },
+    "deltaY": 0,
+    "deltaHeight": -0.265625
+  },
+  {
+    "width": 390,
+    "screen": "rules",
+    "react": {
+      "x": 20,
+      "y": 69,
+      "width": 350,
+      "height": 58.96875,
+      "top": 69,
+      "right": 370,
+      "bottom": 127.96875,
+      "left": 20
+    },
+    "flutter": {
+      "x": 20,
+      "y": 118,
+      "width": 350,
+      "height": 59
+    },
+    "deltaY": 0,
+    "deltaHeight": 0.03125
+  },
+  {
+    "width": 412,
+    "screen": "courses",
+    "react": {
+      "x": 20,
+      "y": 69,
+      "width": 372,
+      "height": 58.96875,
+      "top": 69,
+      "right": 392,
+      "bottom": 127.96875,
+      "left": 20
+    },
+    "flutter": {
+      "x": 20,
+      "y": 121,
+      "width": 372,
+      "height": 59
+    },
+    "deltaY": 0,
+    "deltaHeight": 0.03125
+  },
+  {
+    "width": 412,
+    "screen": "course",
+    "react": {
+      "x": 20,
+      "y": 133,
+      "width": 372,
+      "height": 58.96875,
+      "top": 133,
+      "right": 392,
+      "bottom": 191.96875,
+      "left": 20
+    },
+    "flutter": {
+      "x": 20,
+      "y": 185,
+      "width": 372,
+      "height": 59
+    },
+    "deltaY": 0,
+    "deltaHeight": 0.03125
+  },
+  {
+    "width": 412,
+    "screen": "offering",
+    "react": {
+      "x": 20,
+      "y": 133,
+      "width": 372,
+      "height": 89.640625,
+      "top": 133,
+      "right": 392,
+      "bottom": 222.640625,
+      "left": 20
+    },
+    "flutter": {
+      "x": 20,
+      "y": 185,
+      "width": 372,
+      "height": 90
+    },
+    "deltaY": 0,
+    "deltaHeight": 0.359375
+  },
+  {
+    "width": 412,
+    "screen": "classes",
+    "react": {
+      "x": 20,
+      "y": 69,
+      "width": 372,
+      "height": 87.265625,
+      "top": 69,
+      "right": 392,
+      "bottom": 156.265625,
+      "left": 20
+    },
+    "flutter": {
+      "x": 20,
+      "y": 121,
+      "width": 372,
+      "height": 87
+    },
+    "deltaY": 0,
+    "deltaHeight": -0.265625
+  },
+  {
+    "width": 412,
+    "screen": "class",
+    "react": {
+      "x": 20,
+      "y": 133,
+      "width": 372,
+      "height": 87.265625,
+      "top": 133,
+      "right": 392,
+      "bottom": 220.265625,
+      "left": 20
+    },
+    "flutter": {
+      "x": 20,
+      "y": 185,
+      "width": 372,
+      "height": 87
+    },
+    "deltaY": 0,
+    "deltaHeight": -0.265625
+  },
+  {
+    "width": 412,
+    "screen": "rules",
+    "react": {
+      "x": 20,
+      "y": 69,
+      "width": 372,
+      "height": 58.96875,
+      "top": 69,
+      "right": 392,
+      "bottom": 127.96875,
+      "left": 20
+    },
+    "flutter": {
+      "x": 20,
+      "y": 121,
+      "width": 372,
+      "height": 59
+    },
+    "deltaY": 0,
+    "deltaHeight": 0.03125
+  }
+]

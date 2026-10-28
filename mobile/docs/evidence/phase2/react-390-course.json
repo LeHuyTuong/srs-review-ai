@@ -1,0 +1,159 @@
+[
+  {
+    "kind": "pageHeading",
+    "text": "SWP391\n\nSoftware Project",
+    "box": {
+      "x": 20,
+      "y": 133,
+      "width": 350,
+      "height": 58.96875,
+      "top": 133,
+      "right": 370,
+      "bottom": 191.96875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Môn học\n\nSWP391\n\nSoftware Project\nBộ quy tắc môn học\nQuy tắc nộp bài\nChecklist & tiêu chí\nQuy tắc nộp bài theo loại tài liệu\n\nLớp ",
+    "box": {
+      "x": 20,
+      "y": 69,
+      "width": 350,
+      "height": 703.625,
+      "top": 69,
+      "right": 370,
+      "bottom": 772.625,
+      "left": 20
+    }
+  },
+  {
+    "text": "Môn học",
+    "box": {
+      "x": 12,
+      "y": 69,
+      "width": 100.359375,
+      "height": 48,
+      "top": 69,
+      "right": 112.359375,
+      "bottom": 117,
+      "left": 12
+    }
+  },
+  {
+    "text": "Software Project",
+    "box": {
+      "x": 20,
+      "y": 161.296875,
+      "width": 208.765625,
+      "height": 30.671875,
+      "top": 161.296875,
+      "right": 228.765625,
+      "bottom": 191.96875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Quy tắc nộp bài\nChecklist & tiêu chí",
+    "box": {
+      "x": 20,
+      "y": 250.0625,
+      "width": 350,
+      "height": 49,
+      "top": 250.0625,
+      "right": 370,
+      "bottom": 299.0625,
+      "left": 20
+    }
+  },
+  {
+    "text": "Quy tắc nộp bài",
+    "box": {
+      "x": 20,
+      "y": 250.0625,
+      "width": 173,
+      "height": 48,
+      "top": 250.0625,
+      "right": 193,
+      "bottom": 298.0625,
+      "left": 20
+    }
+  },
+  {
+    "text": "Checklist & tiêu chí",
+    "box": {
+      "x": 197,
+      "y": 250.0625,
+      "width": 173,
+      "height": 48,
+      "top": 250.0625,
+      "right": 370,
+      "bottom": 298.0625,
+      "left": 197
+    }
+  },
+  {
+    "text": "Quy tắc nộp bài theo loại tài liệu\n\nLớp kế thừa quy tắc theo đợt học. Ưu tiên: Mục tài liệu → Lớp → Đợt học. Bản nộp cũ giữ nguyên",
+    "box": {
+      "x": 20,
+      "y": 315.0625,
+      "width": 350,
+      "height": 384.5625,
+      "top": 315.0625,
+      "right": 370,
+      "bottom": 699.625,
+      "left": 20
+    }
+  },
+  {
+    "text": "Thêm bộ quy tắc",
+    "box": {
+      "x": 20,
+      "y": 420.25,
+      "width": 147.234375,
+      "height": 48,
+      "top": 420.25,
+      "right": 167.234375,
+      "bottom": 468.25,
+      "left": 20
+    }
+  },
+  {
+    "text": "Thư viện dùng chung",
+    "box": {
+      "x": 175.234375,
+      "y": 420.25,
+      "width": 177.421875,
+      "height": 48,
+      "top": 420.25,
+      "right": 352.65625,
+      "bottom": 468.25,
+      "left": 175.234375
+    }
+  },
+  {
+    "text": "Cấu hình nộp bài",
+    "box": {
+      "x": 37,
+      "y": 634.625,
+      "width": 260,
+      "height": 48,
+      "top": 634.625,
+      "right": 297,
+      "bottom": 682.625,
+      "left": 37
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 305,
+      "y": 634.625,
+      "width": 48,
+      "height": 48,
+      "top": 634.625,
+      "right": 353,
+      "bottom": 682.625,
+      "left": 305
+    }
+  }
+]

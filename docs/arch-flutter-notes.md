@@ -40,7 +40,7 @@ lib/
 ```
 
 **Nhận xét:**
-- **Component-first**: sáu component headless dưới `app/lib/` (mỗi cái tự chứa `models/` + `services/` + `repositories/`), cộng `core/` (config, routing, DI, theme, widget chung) và `features/` (presentation). ADR 0013 là quyết định; `docs/architecture-refactored.md` là bản đồ đầy đủ.
+- **Component-first**: sáu component headless dưới `desktop/lib/` (mỗi cái tự chứa `models/` + `services/` + `repositories/`), cộng `core/` (config, routing, DI, theme, widget chung) và `features/` (presentation). ADR 0013 là quyết định; `docs/architecture-refactored.md` là bản đồ đầy đủ.
 - **MVVM giữ nguyên nhưng tách trách nhiệm**: `view/` chỉ render + gọi command; `WorkspaceViewModel extends Notifier` giữ state và là façade một dòng cho 7 controller use case; `models/` là immutable value objects.
 - **Clean-ish ở tầng component**: `Repository` → `Service` → `Dio`, với interface `ReviewApi` làm seam giữa real/mock (dependency inversion).
 - **Không có domain layer riêng biệt** — value type của từng capability nằm trong `models/` của component đó (`document_import/models/`, `requirement_review/models/`, …).

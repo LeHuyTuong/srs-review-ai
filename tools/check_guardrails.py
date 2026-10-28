@@ -9,7 +9,7 @@ Nine rules:
   1. SECRETS   — no API key ever enters git history.
   2. NO DIRECT LLM — the Flutter app may only talk to our own proxy (AC6).
   3. LAYERING  — the component boundaries from docs/architecture-refactored.md
-     (ADR 0013): six headless components under app/lib/, one-way only, with
+     (ADR 0013): six headless components under desktop/lib/, one-way only, with
      the workspace controllers as the only bridge to the presentation layer.
   4. PINS      — dependency versions whose majors are known traps.
   5. CONTRACT  — schema, Python and Dart agree on one contract version.
@@ -17,7 +17,7 @@ Nine rules:
   7. NATIVE PLUGINS — a plugin is imported only in a file that exposes a way
      to replace it (a probe, an injected fake, a conditional stub).
   8. FULL-SCREEN SURFACES — every modal fills the screen; the bottom-sheet
-     family is banned in app/lib (ADR 0014).
+     family is banned in desktop/lib (ADR 0014).
   9. LINE ENDINGS — no stored blob carries a CR; the index is the source of
      truth, because core.autocrlf=true keeps this working tree in CRLF.
 
@@ -157,7 +157,7 @@ FORBIDDEN_IN_APP = [
 
 def check_no_direct_llm(files: list[Path]) -> list[Violation]:
     violations: list[Violation] = []
-    app_lib = REPO / "app" / "lib"
+    app_lib = REPO / "desktop" / "lib"
     for path in files:
         if not path.is_relative_to(app_lib):
             continue
@@ -190,7 +190,7 @@ class LayerRule:
     exclude: tuple[str, ...] = ()
 
 
-# The six components of app/lib/. They are leaves: presentation and core may
+# The six components of desktop/lib/. They are leaves: presentation and core may
 # depend on them, they may not depend on presentation, and none of them is
 # allowed to reach into another component's services or repositories.
 COMPONENTS = (
@@ -201,7 +201,7 @@ COMPONENTS = (
     "review_history/",
     "report_export/",
 )
-COMPONENT_PATHS = tuple(f"app/lib/{component}" for component in COMPONENTS)
+COMPONENT_PATHS = tuple(f"desktop/lib/{component}" for component in COMPONENTS)
 FLUTTER_WIDGET_LIBS = (
     "package:flutter/material.dart",
     "package:flutter/widgets.dart",
@@ -240,7 +240,7 @@ def component_rules(path: str) -> list[LayerRule]:
 LAYER_RULES = [
     LayerRule(
         name="view-no-machine-parts",
-        applies_to=("app/lib/features/", "/view/"),
+        applies_to=("desktop/lib/features/", "/view/"),
         forbidden=(
             "document_import/repositories/",
             "document_import/services/",
@@ -254,21 +254,21 @@ LAYER_RULES = [
     ),
     LayerRule(
         name="view-no-controllers",
-        applies_to=("app/lib/features/", "/view/"),
+        applies_to=("desktop/lib/features/", "/view/"),
         forbidden=("view_model/controllers/",),
         reason="views talk to the notifier, whose public surface is what the tests pin; reaching "
         "into a controller skips the façade",
     ),
     LayerRule(
         name="viewmodel-no-widgets",
-        applies_to=("app/lib/features/", "/view_model/"),
+        applies_to=("desktop/lib/features/", "/view_model/"),
         forbidden=(*FLUTTER_WIDGET_LIBS, "/view/", "package:dio/"),
         reason="ViewModels and their use-case controllers hold UI state, not widgets or "
         "transport — they stay testable without a widget tree",
     ),
     LayerRule(
         name="core-no-component-machinery",
-        applies_to=("app/lib/core/",),
+        applies_to=("desktop/lib/core/",),
         forbidden=tuple(
             f"{component}services/" for component in COMPONENTS
         )
@@ -330,9 +330,9 @@ REQUIRED_PINS = {
 
 
 def check_pins() -> list[Violation]:
-    pubspec = REPO / "app" / "pubspec.yaml"
+    pubspec = REPO / "desktop" / "pubspec.yaml"
     if not pubspec.exists():
-        return [Violation("pins", "app/pubspec.yaml", 0, "file is missing")]
+        return [Violation("pins", "desktop/pubspec.yaml", 0, "file is missing")]
     violations: list[Violation] = []
     lines = pubspec.read_text(encoding="utf-8").splitlines()
     found: dict[str, tuple[int, str]] = {}
@@ -343,7 +343,7 @@ def check_pins() -> list[Violation]:
     for package, expected in REQUIRED_PINS.items():
         if package not in found:
             violations.append(
-                Violation("pins", "app/pubspec.yaml", 0, f"{package} is not declared but is required")
+                Violation("pins", "desktop/pubspec.yaml", 0, f"{package} is not declared but is required")
             )
             continue
         number, constraint = found[package]
@@ -351,7 +351,7 @@ def check_pins() -> list[Violation]:
             violations.append(
                 Violation(
                     "pins",
-                    "app/pubspec.yaml",
+                    "desktop/pubspec.yaml",
                     number,
                     f"{package} is '{constraint}' but must stay on '{expected}x' "
                     "(major upgrades break the documented API)",
@@ -367,7 +367,7 @@ def check_contract_version() -> list[Violation]:
     violations: list[Violation] = []
     schema = REPO / "contracts" / "review.schema.json"
     server = REPO / "server" / "app" / "contracts" / "schemas.py"
-    dart = REPO / "app" / "lib" / "requirement_review" / "models" / "review_models.dart"
+    dart = REPO / "desktop" / "lib" / "requirement_review" / "models" / "review_models.dart"
     # server/app/schemas.py is a compatibility shim that re-exports this one; the
     # version constant lives with the layer that owns the contract.
 
@@ -415,7 +415,7 @@ THEME_DIR_FRAGMENT = "core/theme/"
 
 def check_design_tokens(files: list[Path]) -> list[Violation]:
     violations: list[Violation] = []
-    app_lib = REPO / "app" / "lib"
+    app_lib = REPO / "desktop" / "lib"
     for path in files:
         if path.suffix != ".dart" or not path.is_relative_to(app_lib):
             continue
@@ -500,14 +500,14 @@ NATIVE_PLUGIN_RULES: tuple[NativePluginRule, ...] = (
         "nobody awaits, so the verdict has to be asked for before the plugin is touched",
         adapters=(
             NativePluginAdapter(
-                path="app/lib/diagram_audit/services/page_image_renderer.dart",
+                path="desktop/lib/diagram_audit/services/page_image_renderer.dart",
                 seams=(
                     (
-                        "app/lib/diagram_audit/services/page_image_renderer.dart",
+                        "desktop/lib/diagram_audit/services/page_image_renderer.dart",
                         r"typedef PdfDocumentOpener =[\s\S]{0,80}?Function\(",
                     ),
                     (
-                        "app/lib/diagram_audit/services/page_image_renderer.dart",
+                        "desktop/lib/diagram_audit/services/page_image_renderer.dart",
                         r"typedef PdfSupportProbe =[\s\S]{0,80}?Function\(",
                     ),
                 ),
@@ -522,14 +522,14 @@ NATIVE_PLUGIN_RULES: tuple[NativePluginRule, ...] = (
         "stub to fall back to",
         adapters=(
             NativePluginAdapter(
-                path="app/lib/review_history/services/session_database_platform_io.dart",
+                path="desktop/lib/review_history/services/session_database_platform_io.dart",
                 seams=(
                     (
-                        "app/lib/review_history/services/session_database_platform.dart",
+                        "desktop/lib/review_history/services/session_database_platform.dart",
                         r"export 'session_database_platform_stub\.dart'",
                     ),
                     (
-                        "app/lib/review_history/services/session_database_platform_stub.dart",
+                        "desktop/lib/review_history/services/session_database_platform_stub.dart",
                         r"throw UnsupportedError",
                     ),
                 ),
@@ -543,24 +543,24 @@ NATIVE_PLUGIN_RULES: tuple[NativePluginRule, ...] = (
         "through an injected picker or an injected dialog",
         adapters=(
             NativePluginAdapter(
-                path="app/lib/document_import/services/file_picker_service.dart",
+                path="desktop/lib/document_import/services/file_picker_service.dart",
                 seams=(
                     (
-                        "app/lib/document_import/repositories/document_repository.dart",
+                        "desktop/lib/document_import/repositories/document_repository.dart",
                         r"FilePickerService\? picker",
                     ),
                 ),
                 seam_note="DocumentRepository's injectable picker",
             ),
             NativePluginAdapter(
-                path="app/lib/report_export/report_exporter.dart",
+                path="desktop/lib/report_export/report_exporter.dart",
                 seams=(
                     (
-                        "app/lib/report_export/report_exporter.dart",
+                        "desktop/lib/report_export/report_exporter.dart",
                         r"typedef SaveFileDialog =[\s\S]{0,80}?Function\(",
                     ),
                     (
-                        "app/lib/report_export/report_exporter.dart",
+                        "desktop/lib/report_export/report_exporter.dart",
                         r"typedef ShareSheet =[\s\S]{0,80}?Function\(",
                     ),
                 ),
@@ -574,50 +574,50 @@ NATIVE_PLUGIN_RULES: tuple[NativePluginRule, ...] = (
         "through the provider main() overrides or take the instance as a parameter",
         adapters=(
             NativePluginAdapter(
-                path="app/lib/core/providers.dart",
+                path="desktop/lib/core/providers.dart",
                 seams=(
                     (
-                        "app/lib/core/providers.dart",
+                        "desktop/lib/core/providers.dart",
                         r"sharedPreferencesProvider = Provider<SharedPreferences>",
                     ),
                 ),
                 seam_note="the overridable sharedPreferencesProvider",
             ),
             NativePluginAdapter(
-                path="app/lib/main.dart",
+                path="desktop/lib/main.dart",
                 seams=(
                     (
-                        "app/lib/main.dart",
+                        "desktop/lib/main.dart",
                         r"sharedPreferencesProvider\.overrideWithValue\(prefs\)",
                     ),
                 ),
                 seam_note="the override that supplies the loaded instance",
             ),
             NativePluginAdapter(
-                path="app/lib/review_history/services/session_store.dart",
+                path="desktop/lib/review_history/services/session_store.dart",
                 seams=(
                     (
-                        "app/lib/review_history/services/session_store.dart",
+                        "desktop/lib/review_history/services/session_store.dart",
                         r"SharedPreferencesSessionStore\(this\._prefs\)",
                     ),
                 ),
                 seam_note="the constructor that takes the prefs instance",
             ),
             NativePluginAdapter(
-                path="app/lib/review_history/services/session_database.dart",
+                path="desktop/lib/review_history/services/session_database.dart",
                 seams=(
                     (
-                        "app/lib/review_history/services/session_database.dart",
+                        "desktop/lib/review_history/services/session_database.dart",
                         r"required SharedPreferences prefs",
                     ),
                 ),
                 seam_note="the constructor that takes the prefs instance",
             ),
             NativePluginAdapter(
-                path="app/lib/features/teacher/data/teacher_store.dart",
+                path="desktop/lib/features/teacher/data/teacher_store.dart",
                 seams=(
                     (
-                        "app/lib/features/teacher/data/teacher_store.dart",
+                        "desktop/lib/features/teacher/data/teacher_store.dart",
                         r"TeacherStore openTeacherStore\(SharedPreferences prefs\)",
                     ),
                 ),
@@ -638,7 +638,7 @@ def package_name(import_uri: str) -> str | None:
 
 def check_native_plugins(files: list[Path]) -> list[Violation]:
     violations: list[Violation] = []
-    app_lib = REPO / "app" / "lib"
+    app_lib = REPO / "desktop" / "lib"
     by_package = {rule.package: rule for rule in NATIVE_PLUGIN_RULES}
     registered = {
         (rule.package, adapter.path): adapter
@@ -709,17 +709,17 @@ def check_native_plugins(files: list[Path]) -> list[Violation]:
 # 8. FULL-SCREEN SURFACES — every modal fills the screen (ADR 0014)
 # --------------------------------------------------------------------------
 # Every modal opens through showFullScreenSurface / WFullScreenSurface
-# (app/lib/core/widgets/full_screen_surface.dart — the only showDialog call
+# (desktop/lib/core/widgets/full_screen_surface.dart — the only showDialog call
 # site in the app). The bottom-sheet family is the surface model that lost:
 # its height is negotiated (isScrollControlled, fractions), so long content
 # ends up in an inner scroll of a moving panel. Measured 2026-09-26: 18
 # surfaces x {390x844, 1280x900} all fill the window, and the four APIs below
-# occurred 0 times in app/lib (docs/evidence/surface-audit-2026-09-26.md).
+# occurred 0 times in desktop/lib (docs/evidence/surface-audit-2026-09-26.md).
 #
 # `showBottomSheet` needs its own needle: `BottomSheet(` does not match it
 # (the preceding `w` breaks the identifier boundary). Comments are skipped —
 # source_sheet.dart's doc comment names DraggableScrollableSheet to explain
-# what the source sheet is NOT. Tests (app/test/) are out of scope: that is
+# what the source sheet is NOT. Tests (desktop/test/) are out of scope: that is
 # where the absence of these APIs is asserted.
 
 FORBIDDEN_SURFACE = re.compile(
@@ -732,7 +732,7 @@ FORBIDDEN_SURFACE = re.compile(
 
 def check_full_screen_surfaces(files: list[Path]) -> list[Violation]:
     violations: list[Violation] = []
-    app_lib = REPO / "app" / "lib"
+    app_lib = REPO / "desktop" / "lib"
     for path in files:
         if path.suffix != ".dart" or not path.is_relative_to(app_lib):
             continue
@@ -750,7 +750,7 @@ def check_full_screen_surfaces(files: list[Path]) -> list[Violation]:
                         number,
                         f"'{match.group(1)}' — every modal is a full-screen surface: open it via "
                         "showFullScreenSurface / WFullScreenSurface "
-                        "(app/lib/core/widgets/full_screen_surface.dart, ADR 0014)",
+                        "(desktop/lib/core/widgets/full_screen_surface.dart, ADR 0014)",
                     )
                 )
     return violations

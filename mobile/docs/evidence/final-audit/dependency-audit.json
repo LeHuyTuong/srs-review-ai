@@ -1,0 +1,20 @@
+{
+  "cyclesSCC": [
+    [
+      "lib/models/academic/review_policy.dart",
+      "lib/models/academic/management_queries.dart",
+      "lib/models/academic/academic_models.dart"
+    ],
+    [
+      "lib/viewmodels/academic/management_actions.dart",
+      "lib/viewmodels/academic/academic_view_model.dart"
+    ],
+    [
+      "lib/screens/management/widgets/project_form_fields.dart",
+      "lib/screens/management/widgets/management_form_sheet.dart",
+      "lib/screens/management/widgets/management_shared.dart"
+    ]
+  ],
+  "fileCount": 96,
+  "lineCount": 15521
+}

@@ -21,18 +21,18 @@ def esc(text):
 
 
 def repo_path(url):
-    """file:// URL of a suite -> repo-relative path ('app/test/...') or ''."""
+    """file:// URL of a suite -> repo-relative path ('desktop/test/...') or ''."""
     if not url or not url.startswith('file:'):
         return ''
     path = url[5:]
     if path.startswith('//'):
         path = path[2:]
-    # Suites live under app/ (the jobs run with working-directory: app), and
-    # the URL is absolute, so the last '/app/' segment marks the repo root.
-    idx = path.rfind('/app/')
+    # Suites live under desktop/ (the jobs run with working-directory: desktop), and
+    # the URL is absolute, so the last '/desktop/' segment marks the repo root.
+    idx = path.rfind('/desktop/')
     if idx == -1:
         return ''
-    return 'app' + path[idx + 4:]
+    return 'desktop' + path[idx + 8:]
 
 
 def main(argv):

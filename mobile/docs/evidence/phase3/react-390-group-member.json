@@ -1,0 +1,171 @@
+[
+  {
+    "text": "SE1701",
+    "box": {
+      "x": 12,
+      "y": -329,
+      "width": 87.9375,
+      "height": 48,
+      "top": -329,
+      "right": 99.9375,
+      "bottom": -281,
+      "left": 12
+    }
+  },
+  {
+    "text": "Group 01",
+    "box": {
+      "x": 20,
+      "y": -236.703125,
+      "width": 111.90625,
+      "height": 30.671875,
+      "top": -236.703125,
+      "right": 131.90625,
+      "bottom": -206.03125,
+      "left": 20
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 322,
+      "y": -236.703125,
+      "width": 48,
+      "height": 48,
+      "top": -236.703125,
+      "right": 370,
+      "bottom": -188.703125,
+      "left": 322
+    }
+  },
+  {
+    "text": "Dự án\n\nSmart Campus Management\n\nHệ thống quản lý cơ sở vật chất, lịch phòng và dịch vụ trong khuôn viên trường.\n\nXem dự án",
+    "box": {
+      "x": 20,
+      "y": 3.078125,
+      "width": 350,
+      "height": 207.875,
+      "top": 3.078125,
+      "right": 370,
+      "bottom": 210.953125,
+      "left": 20
+    }
+  },
+  {
+    "text": "Thành viên\n4/5 thành viên\nMA\n\nNguyễn Minh Anh\n\nSE170120 · Trưởng nhóm\n\nXóa khỏi nhóm\nHN\n\nTrần Hoàng Nam\n\nSE170121\n\nXóa khỏi nhóm\nGH\n\nLê Gia Huy\n\nSE170122\n\nXóa k",
+    "box": {
+      "x": 20,
+      "y": 226.953125,
+      "width": 350,
+      "height": 450.359375,
+      "top": 226.953125,
+      "right": 370,
+      "bottom": 677.3125,
+      "left": 20
+    }
+  },
+  {
+    "text": "Xóa khỏi nhóm",
+    "box": {
+      "x": 218.5625,
+      "y": 286.484375,
+      "width": 134.4375,
+      "height": 48,
+      "top": 286.484375,
+      "right": 353,
+      "bottom": 334.484375,
+      "left": 218.5625
+    }
+  },
+  {
+    "text": "Xóa khỏi nhóm",
+    "box": {
+      "x": 218.5625,
+      "y": 358.234375,
+      "width": 134.4375,
+      "height": 48,
+      "top": 358.234375,
+      "right": 353,
+      "bottom": 406.234375,
+      "left": 218.5625
+    }
+  },
+  {
+    "text": "Xóa khỏi nhóm",
+    "box": {
+      "x": 218.5625,
+      "y": 419.828125,
+      "width": 134.4375,
+      "height": 48,
+      "top": 419.828125,
+      "right": 353,
+      "bottom": 467.828125,
+      "left": 218.5625
+    }
+  },
+  {
+    "text": "Xóa khỏi nhóm",
+    "box": {
+      "x": 218.5625,
+      "y": 481.421875,
+      "width": 134.4375,
+      "height": 48,
+      "top": 481.421875,
+      "right": 353,
+      "bottom": 529.421875,
+      "left": 218.5625
+    }
+  },
+  {
+    "text": "Thêm thành viên",
+    "box": {
+      "x": 20,
+      "y": 552.71875,
+      "width": 350,
+      "height": 48,
+      "top": 552.71875,
+      "right": 370,
+      "bottom": 600.71875,
+      "left": 20
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 330,
+      "y": 388.015625,
+      "width": 48,
+      "height": 48,
+      "top": 388.015625,
+      "right": 378,
+      "bottom": 436.015625,
+      "left": 330
+    }
+  },
+  {
+    "text": "Hủy",
+    "box": {
+      "x": 20,
+      "y": 707,
+      "width": 61.25,
+      "height": 48,
+      "top": 707,
+      "right": 81.25,
+      "bottom": 755,
+      "left": 20
+    }
+  },
+  {
+    "text": "Thêm vào nhóm",
+    "box": {
+      "x": 89.25,
+      "y": 707,
+      "width": 142.6875,
+      "height": 48,
+      "top": 707,
+      "right": 231.9375,
+      "bottom": 755,
+      "left": 89.25
+    }
+  }
+]

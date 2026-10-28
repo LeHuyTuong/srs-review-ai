@@ -1,0 +1,132 @@
+[
+  {
+    "text": "Yêu cầu đánh giá",
+    "box": {
+      "x": 12,
+      "y": -61,
+      "width": 156.421875,
+      "height": 48,
+      "top": -61,
+      "right": 168.421875,
+      "bottom": -13,
+      "left": 12
+    }
+  },
+  {
+    "text": "Thông tin",
+    "box": {
+      "x": 259.625,
+      "y": -61,
+      "width": 80.375,
+      "height": 48,
+      "top": -61,
+      "right": 340,
+      "bottom": -13,
+      "left": 259.625
+    }
+  },
+  {
+    "text": "Use Case Diagram",
+    "box": {
+      "x": 20,
+      "y": -5,
+      "width": 230.84375,
+      "height": 32.5,
+      "top": -5,
+      "right": 250.84375,
+      "bottom": 27.5,
+      "left": 20
+    }
+  },
+  {
+    "text": "Tài liệu\nAI\nPhản hồi\nLịch sử",
+    "box": {
+      "x": 20,
+      "y": 69.09375,
+      "width": 320,
+      "height": 56,
+      "top": 69.09375,
+      "right": 340,
+      "bottom": 125.09375,
+      "left": 20
+    }
+  },
+  {
+    "text": "Tài liệu",
+    "box": {
+      "x": 24,
+      "y": 73.09375,
+      "width": 75,
+      "height": 48,
+      "top": 73.09375,
+      "right": 99,
+      "bottom": 121.09375,
+      "left": 24
+    }
+  },
+  {
+    "text": "AI",
+    "box": {
+      "x": 103,
+      "y": 73.09375,
+      "width": 75,
+      "height": 48,
+      "top": 73.09375,
+      "right": 178,
+      "bottom": 121.09375,
+      "left": 103
+    }
+  },
+  {
+    "text": "Phản hồi",
+    "box": {
+      "x": 182,
+      "y": 73.09375,
+      "width": 75,
+      "height": 48,
+      "top": 73.09375,
+      "right": 257,
+      "bottom": 121.09375,
+      "left": 182
+    }
+  },
+  {
+    "text": "Lịch sử",
+    "box": {
+      "x": 261,
+      "y": 73.09375,
+      "width": 75,
+      "height": 48,
+      "top": 73.09375,
+      "right": 336,
+      "bottom": 121.09375,
+      "left": 261
+    }
+  },
+  {
+    "text": "Lịch sử đánh giá\n\n30/09/2026 · 10:05\n\nNguyễn Minh Anh đã tải lên v1.\n\nSinh viên\n\n30/09/2026 · 15:30\n\nGiảng viên yêu cầu chỉnh sửa v1.\n\nNguyễn Văn An\n\n“Bổ sung A",
+    "box": {
+      "x": 20,
+      "y": 133.09375,
+      "width": 320,
+      "height": 693.125,
+      "top": 133.09375,
+      "right": 340,
+      "bottom": 826.21875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Bắt đầu đánh giá",
+    "box": {
+      "x": 20,
+      "y": 608.5,
+      "width": 320,
+      "height": 48,
+      "top": 608.5,
+      "right": 340,
+      "bottom": 656.5,
+      "left": 20
+    }
+  }
+]

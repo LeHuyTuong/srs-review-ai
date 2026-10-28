@@ -1,0 +1,249 @@
+[
+  {
+    "at": "2026-10-25T18:37:14.406Z",
+    "action": "Login Supervisor A"
+  },
+  {
+    "at": "2026-10-25T18:37:34.843Z",
+    "action": "Open Dashboard semester selector"
+  },
+  {
+    "at": "2026-10-25T18:37:41.708Z",
+    "action": "Select Spring 2027"
+  },
+  {
+    "at": "2026-10-25T18:37:49.592Z",
+    "action": "Open Profile"
+  },
+  {
+    "at": "2026-10-25T18:37:55.281Z",
+    "action": "Open Course list"
+  },
+  {
+    "at": "2026-10-25T18:38:00.491Z",
+    "action": "Add Course"
+  },
+  {
+    "at": "2026-10-25T18:38:11.207Z",
+    "action": "Focus Course code"
+  },
+  {
+    "action": "Type SWP391 into focused Course code via Android input bridge"
+  },
+  {
+    "at": "2026-10-25T18:38:31.075Z",
+    "action": "Focus Course name"
+  },
+  {
+    "action": "Type Duplicate course into focused name via Android input bridge"
+  },
+  {
+    "at": "2026-10-25T18:38:49.261Z",
+    "action": "Attempt duplicate Course save"
+  },
+  {
+    "at": "2026-10-25T18:38:57.560Z",
+    "action": "Dismiss native IME to inspect duplicate error"
+  },
+  {
+    "at": "2026-10-25T18:39:11.712Z",
+    "action": "Focus code to correct duplicate"
+  },
+  {
+    "action": "Append P45 to duplicate code via Android bridge"
+  },
+  {
+    "at": "2026-10-25T18:39:25.762Z",
+    "action": "Save corrected unique Course SWP391P45"
+  },
+  {
+    "at": "2026-10-25T18:39:30.126Z",
+    "action": "Return Dashboard after Course mutation"
+  },
+  {
+    "at": "2026-10-25T18:39:35.176Z",
+    "action": "Open Projects for sequential Gboard search"
+  },
+  {
+    "at": "2026-10-25T18:39:40.826Z",
+    "action": "Focus shared Project search"
+  },
+  {
+    "at": "2026-10-25T18:39:47.727Z",
+    "action": "Gboard letter s"
+  },
+  {
+    "at": "2026-10-25T18:39:52.691Z",
+    "action": "Gboard letter m without refocus"
+  },
+  {
+    "at": "2026-10-25T18:39:57.863Z",
+    "action": "Gboard letter a without refocus"
+  },
+  {
+    "at": "2026-10-25T18:40:02.359Z",
+    "action": "Gboard letter r without refocus"
+  },
+  {
+    "at": "2026-10-25T18:40:08.427Z",
+    "action": "Gboard letter t without refocus"
+  },
+  {
+    "at": "2026-10-25T18:40:41.028Z",
+    "action": "Clear search and filters while IME remains open"
+  },
+  {
+    "at": "2026-10-25T18:40:47.761Z",
+    "action": "Dismiss Gboard"
+  },
+  {
+    "at": "2026-10-25T18:40:53.033Z",
+    "action": "Open Profile for group management"
+  },
+  {
+    "at": "2026-10-25T18:41:00.216Z",
+    "action": "Scroll Profile to groups"
+  },
+  {
+    "at": "2026-10-25T18:41:04.495Z",
+    "action": "Open Group list"
+  },
+  {
+    "at": "2026-10-25T18:41:10.862Z",
+    "action": "Add empty group in SE1701"
+  },
+  {
+    "at": "2026-10-25T18:41:15.892Z",
+    "action": "Create empty Group09"
+  },
+  {
+    "at": "2026-10-25T18:41:24.299Z",
+    "action": "Scroll to new Group09"
+  },
+  {
+    "at": "2026-10-25T18:41:34.606Z",
+    "action": "Continue to Group09"
+  },
+  {
+    "at": "2026-10-25T18:41:39.662Z",
+    "action": "Open Group09 information"
+  },
+  {
+    "at": "2026-10-25T18:41:48.813Z",
+    "action": "Open Group09 detail"
+  },
+  {
+    "at": "2026-10-25T18:41:53.077Z",
+    "action": "Create Project for empty Group09"
+  },
+  {
+    "at": "2026-10-25T18:41:59.846Z",
+    "action": "Focus new Project name"
+  },
+  {
+    "action": "Type P45 Detached into Project name via Android bridge"
+  },
+  {
+    "at": "2026-10-25T18:42:18.827Z",
+    "action": "Save P45 Detached Project"
+  },
+  {
+    "at": "2026-10-25T18:42:27.479Z",
+    "action": "Open Group09 actions"
+  },
+  {
+    "at": "2026-10-25T18:42:34.111Z",
+    "action": "Delete audit-created empty Group09"
+  },
+  {
+    "at": "2026-10-25T18:42:40.914Z",
+    "action": "Confirm removal of audit-created empty Group09"
+  },
+  {
+    "at": "2026-10-25T18:42:45.379Z",
+    "action": "Open Project list after detach"
+  },
+  {
+    "at": "2026-10-25T18:42:53.745Z",
+    "action": "Focus Project search after detach"
+  },
+  {
+    "action": "Type P45 into Project search via Android bridge"
+  },
+  {
+    "at": "2026-10-25T18:43:08.395Z",
+    "action": "Dismiss IME to view detached Project"
+  },
+  {
+    "at": "2026-10-25T18:43:14.251Z",
+    "action": "Return Dashboard after group detach"
+  },
+  {
+    "at": "2026-10-25T18:43:21.513Z",
+    "action": "Open Dashboard semester selector after detach"
+  },
+  {
+    "at": "2026-10-25T18:43:27.314Z",
+    "action": "Select Fall 2026 after detach"
+  },
+  {
+    "at": "2026-10-25T18:43:33.972Z",
+    "action": "Scroll Dashboard to secondary sections"
+  },
+  {
+    "action": "Swipe Dashboard upward to secondary sections"
+  },
+  {
+    "action": "Android swipe Dashboard up, desktop wheel/drag had no observed scroll"
+  },
+  {
+    "at": "2026-10-25T18:44:12.033Z",
+    "action": "Expand Dashboard quick access counts"
+  },
+  {
+    "at": "2026-10-25T18:44:36.213Z",
+    "action": "Open Profile before ending session A"
+  },
+  {
+    "at": "2026-10-25T18:44:41.119Z",
+    "action": "Scroll Profile to logout A"
+  },
+  {
+    "at": "2026-10-25T18:44:45.899Z",
+    "action": "Logout session A"
+  },
+  {
+    "at": "2026-10-25T18:44:52.763Z",
+    "action": "Focus login email for session B"
+  },
+  {
+    "action": "Replace focused mock login email with b@example.test using Android key events"
+  },
+  {
+    "at": "2026-10-25T18:45:13.346Z",
+    "action": "Login session B"
+  },
+  {
+    "at": "2026-10-25T18:45:18.714Z",
+    "action": "Open Projects in session B"
+  },
+  {
+    "at": "2026-10-25T18:45:30.114Z",
+    "action": "Open Profile in B"
+  },
+  {
+    "at": "2026-10-25T18:45:35.120Z",
+    "action": "Scroll Profile B to logout"
+  },
+  {
+    "at": "2026-10-25T18:45:41.531Z",
+    "action": "Reach logout B"
+  },
+  {
+    "at": "2026-10-25T18:45:48.512Z",
+    "action": "Logout B before Android Back"
+  },
+  {
+    "action": "Android Back after logout B"
+  }
+]
