@@ -1,0 +1,16 @@
+# HTTPS front for the proxy. Caddy obtains and renews the Let's Encrypt
+# certificate on its own once DOMAIN points at this VPS and ports 80/443 are
+# open — no certbot, no cron.
+{$DOMAIN} {
+	encode gzip
+
+	# The app's file cap is 30 MB and SRS_MAX_UPLOAD_BYTES defaults to 40 MiB;
+	# a little headroom over that, and nothing bigger reaches uvicorn.
+	request_body {
+		max_size 45MB
+	}
+
+	# Caddy sets no response timeout by default, so a /review that waits on
+	# Gemini (request_timeout_s 90 + pacer cooldown up to 45) is not cut off.
+	reverse_proxy api:8000
+}

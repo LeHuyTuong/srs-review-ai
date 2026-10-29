@@ -1,0 +1,39 @@
+# Build context is server/. The Dockerfile COPYs only requirements.txt and
+# app/, but a future `COPY . .` would sweep everything below into an image
+# layer — server/.env (the real GEMINI_API_KEY) above all. Excluding it here
+# makes that impossible rather than merely unlikely.
+
+# Real secrets and local env.
+.env
+.env.*
+!.env.example
+
+# Python build/runtime state.
+.venv
+venv
+**/__pycache__
+**/*.py[cod]
+.pytest_cache
+.ruff_cache
+.mypy_cache
+
+# Local runtime stores and uploaded-document caches (see ../.gitignore).
+.uploads
+.cache
+.shares
+.submissions
+.classes
+*-*.pdf
+*.docmap.json
+*.meta.json
+*.render.*.png
+*.log
+
+# Not needed in the image.
+tests
+tool_summarize_batch.py
+
+# Deployment files themselves.
+Dockerfile
+docker-compose.yml
+Caddyfile
