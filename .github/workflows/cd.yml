@@ -90,9 +90,24 @@ jobs:
           done
           exit $missing
 
-      - name: Set up SSH
+      # Username + password login IS ssh (it is what Termius does); no SSH
+      # key is involved. sshpass types VPS_PASSWORD into the ssh prompt.
+      - name: Connect to VPS (user + password)
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+          sudo apt-get update -qq && sudo apt-get install -y -qq sshpass netcat-openbsd
+          echo "Target: $VPS_USER@<VPS_HOST>:$VPS_PORT"
+          case "$VPS_PORT" in
+            ''|*[!0-9]*) echo "::error::VPS_PORT must be a number (got a non-numeric value). Leave it empty for 22."; exit 1 ;;
+          esac
+
+          # 1. Can GitHub reach the SSH port at all?
+          if ! nc -z -w 10 "$VPS_HOST" "$VPS_PORT"; then
+            echo "::error::Cannot reach port $VPS_PORT on the VPS from GitHub. Check VPS_HOST/VPS_PORT, the VPS firewall (ufw allow $VPS_PORT/tcp), and whether the provider blocks connections from outside Vietnam."
+            exit 1
+          fi
+          echo "port $VPS_PORT is reachable"
+
+          # 2. Host key
           install -m 700 -d ~/.ssh
           if [ -n "$VPS_KNOWN_HOSTS" ]; then
             # Pinned host key: a server that answers with a different key is
@@ -100,7 +115,11 @@ jobs:
             printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
           else
             echo "::warning::VPS_KNOWN_HOSTS is not set - trusting whatever host key the VPS presents right now."
-            ssh-keyscan -p "$VPS_PORT" "$VPS_HOST" > ~/.ssh/known_hosts 2>/dev/null
+            ssh-keyscan -T 15 -p "$VPS_PORT" "$VPS_HOST" > ~/.ssh/known_hosts || true
+          fi
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "::error::Got no host key from the VPS (ssh-keyscan returned nothing)."
+            exit 1
           fi
           chmod 644 ~/.ssh/known_hosts
           cat > ~/.ssh/config <<EOF
@@ -112,8 +131,21 @@ jobs:
             PubkeyAuthentication no
             StrictHostKeyChecking yes
             ServerAliveInterval 30
+            ConnectTimeout 15
           EOF
+
+          # 3. Log in with the password. sshpass exit codes name the cause.
+          set +e
           sshpass -e ssh vps 'echo "connected to $(hostname) as $(whoami)"'
+          rc=$?
+          set -e
+          case $rc in
+            0) ;;
+            5) echo "::error::Wrong password: the VPS rejected VPS_USER/VPS_PASSWORD."; exit 1 ;;
+            6) echo "::error::Host key not accepted - VPS_KNOWN_HOSTS does not match this VPS."; exit 1 ;;
+            255) echo "::error::ssh failed (exit 255). If the log above says 'Permission denied (publickey)', the VPS forbids password login for this user: set 'PasswordAuthentication yes' (and for root 'PermitRootLogin yes') in /etc/ssh/sshd_config, then 'systemctl restart ssh'."; exit 1 ;;
+            *) echo "::error::sshpass/ssh failed with exit code $rc."; exit 1 ;;
+          esac
 
       - name: Check the VPS is ready
         run: |
