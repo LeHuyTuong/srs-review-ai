@@ -12,5 +12,5 @@
 
 	# Caddy sets no response timeout by default, so a /review that waits on
 	# Gemini (request_timeout_s 90 + pacer cooldown up to 45) is not cut off.
-	reverse_proxy api:8000
+	reverse_proxy server:8000
 }

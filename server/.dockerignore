@@ -1,23 +1,45 @@
-# Build context is server/. The Dockerfile COPYs only requirements.txt and
-# app/, but a future `COPY . .` would sweep everything below into an image
-# layer — server/.env (the real GEMINI_API_KEY) above all. Excluding it here
-# makes that impossible rather than merely unlikely.
+# Include any files or directories that you don't want to be copied to your
+# container here (e.g., local build artifacts, temporary files, etc.).
+#
+# For more help, visit the .dockerignore file reference guide at
+# https://docs.docker.com/go/build-context-dockerignore/
 
-# Real secrets and local env.
-.env
-.env.*
-!.env.example
-
-# Python build/runtime state.
-.venv
-venv
+**/.DS_Store
 **/__pycache__
-**/*.py[cod]
-.pytest_cache
-.ruff_cache
-.mypy_cache
+**/.venv
+**/.classpath
+**/.dockerignore
+**/.env
+**/.git
+**/.gitignore
+**/.project
+**/.settings
+**/.toolstarget
+**/.vs
+**/.vscode
+**/*.*proj.user
+**/*.dbmdl
+**/*.jfm
+**/bin
+**/charts
+**/docker-compose*
+**/compose.y*ml
+**/Dockerfile*
+**/node_modules
+**/npm-debug.log
+**/obj
+**/secrets.dev.yaml
+**/values.dev.yaml
+LICENSE
+README.md
 
-# Local runtime stores and uploaded-document caches (see ../.gitignore).
+# ---- srs-review-ai: never bake local data into an image ----
+# The image is pushed to a PUBLIC Docker Hub repo and `COPY . .` takes every
+# path not listed here. server/ holds runtime data from local runs: uploaded
+# SRS documents (.uploads), cached review results (.cache), share links,
+# submissions and class rosters. On the VPS those live in the /data volume.
+**/.env.*
+!**/.env.example
 .uploads
 .cache
 .shares
@@ -28,12 +50,14 @@ venv
 *.meta.json
 *.render.*.png
 *.log
+*.bat
 
-# Not needed in the image.
+# Dev-only: tests, linters' caches, helper scripts and deploy files.
 tests
+.pytest_cache
+.ruff_cache
+.mypy_cache
 tool_summarize_batch.py
-
-# Deployment files themselves.
-Dockerfile
-docker-compose.yml
+requirements-dev.txt
 Caddyfile
+README.Docker.md

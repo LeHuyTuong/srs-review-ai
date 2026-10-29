@@ -1,0 +1,163 @@
+name: Deploy server to VPS
+
+# Ships server/ to the VPS and restarts it with docker compose.
+#
+# Flow: test (ruff + pytest, same gates as ci.yml) -> wait for approval on the
+# `production` environment -> rsync server/ over SSH -> docker compose up
+# --build -> health check.
+#
+# Layout on the VPS (DEPLOY_PATH, default /root/srs-review-ai):
+#   /root/srs-review-ai/.env          <- created by hand, never overwritten
+#   /root/srs-review-ai/compose.yaml  <- everything else is copied from server/
+#   /root/srs-review-ai/Dockerfile ...
+#
+# Secrets (Settings -> Secrets and variables -> Actions):
+#   VPS_HOST, VPS_USER, VPS_PASSWORD   required
+#   VPS_PORT                           optional, default 22
+#   VPS_KNOWN_HOSTS                    optional; output of `ssh-keyscan -p <port> <host>`.
+#                                      Without it the host key is fetched on every
+#                                      run and trusted as-is.
+# Variable (same page, Variables tab):
+#   VPS_DEPLOY_PATH                    optional, default /root/srs-review-ai
+#
+# App secrets (GEMINI_API_KEY, APP_TOKEN) live only in .env ON THE VPS.
+
+on:
+  push:
+    branches: [feat/deployToVps, main, dev]
+    paths:
+      - "server/**"
+      - ".github/workflows/cd.yml"
+  workflow_dispatch:
+
+# Never run two deploys at once, and never cancel one halfway through a
+# `docker compose up`.
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Server tests (ruff + pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: server/requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: ruff format --check .
+      # Offline mock provider — no API key needed here.
+      - run: pytest
+
+  deploy:
+    name: Deploy to VPS
+    needs: test
+    runs-on: ubuntu-latest
+    # Add yourself as a required reviewer on this environment
+    # (Settings -> Environments -> production) and every deploy waits for
+    # your click before it touches the VPS.
+    environment: production
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
+      # sshpass -e reads the password from this variable; it is never put on
+      # a command line, so it cannot show up in `ps` or in the log.
+      SSHPASS: ${{ secrets.VPS_PASSWORD }}
+      VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+      DEPLOY_PATH: ${{ vars.VPS_DEPLOY_PATH || '/root/srs-review-ai' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check that the secrets exist
+        run: |
+          missing=0
+          for name in VPS_HOST VPS_USER SSHPASS; do
+            if [ -z "${!name}" ]; then
+              label=$name; [ "$name" = SSHPASS ] && label=VPS_PASSWORD
+              echo "::error::Secret $label is not set"; missing=1
+            fi
+          done
+          exit $missing
+
+      - name: Set up SSH
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+          install -m 700 -d ~/.ssh
+          if [ -n "$VPS_KNOWN_HOSTS" ]; then
+            # Pinned host key: a server that answers with a different key is
+            # refused instead of silently trusted.
+            printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            echo "::warning::VPS_KNOWN_HOSTS is not set - trusting whatever host key the VPS presents right now."
+            ssh-keyscan -p "$VPS_PORT" "$VPS_HOST" > ~/.ssh/known_hosts 2>/dev/null
+          fi
+          chmod 644 ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host vps
+            HostName $VPS_HOST
+            User $VPS_USER
+            Port $VPS_PORT
+            PreferredAuthentications password
+            PubkeyAuthentication no
+            StrictHostKeyChecking yes
+            ServerAliveInterval 30
+          EOF
+          sshpass -e ssh vps 'echo "connected to $(hostname) as $(whoami)"'
+
+      - name: Check the VPS is ready
+        run: |
+          sshpass -e ssh vps "bash -s" <<EOF
+          set -e
+          command -v docker >/dev/null || { echo "::error::Docker is not installed on the VPS (curl -fsSL https://get.docker.com | sh)"; exit 1; }
+          command -v rsync  >/dev/null || { echo "rsync missing - installing"; apt-get update -qq && apt-get install -y -qq rsync; }
+          mkdir -p '$DEPLOY_PATH'
+          if ! grep -qE '^APP_TOKEN=.+' '$DEPLOY_PATH/.env' 2>/dev/null; then
+            echo "::error::$DEPLOY_PATH/.env is missing or has no APP_TOKEN - fill it on the VPS first"
+            exit 1
+          fi
+          EOF
+
+      - name: Copy server/ to the VPS
+        # --delete keeps the VPS copy identical to the repo, but excluded paths
+        # are never deleted on the receiving side: .env (the real secrets)
+        # survives every deploy.
+        run: |
+          rsync -az --delete -e "sshpass -e ssh" \
+            --exclude '.env' \
+            --exclude '.venv/' \
+            --exclude '__pycache__/' \
+            --exclude '.pytest_cache/' \
+            --exclude '.ruff_cache/' \
+            --exclude '.uploads/' \
+            --exclude '.cache/' \
+            --exclude '.shares/' \
+            --exclude '.submissions/' \
+            --exclude '.classes/' \
+            --exclude 'tests/' \
+            server/ "vps:$DEPLOY_PATH/"
+
+      - name: Build and restart
+        run: |
+          sshpass -e ssh vps "cd '$DEPLOY_PATH' && docker compose up -d --build --remove-orphans"
+          sshpass -e ssh vps "docker image prune -f"
+
+      - name: Health check
+        run: |
+          sshpass -e ssh vps "curl -fsS --retry 10 --retry-delay 3 --retry-all-errors http://127.0.0.1:8000/health"
+          echo
+          sshpass -e ssh vps "cd '$DEPLOY_PATH' && docker compose ps"
+
+      - name: Show the last logs if anything failed
+        if: failure()
+        run: sshpass -e ssh vps "cd '$DEPLOY_PATH' && docker compose logs --tail 80 server" || true
