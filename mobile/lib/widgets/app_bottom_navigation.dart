@@ -25,6 +25,10 @@ class AppBottomNavigation extends StatelessWidget {
   ];
 
   static String activePath(String path) {
+    if (path.startsWith('/review-schedule') ||
+        path.startsWith('/group-questions')) {
+      return '/dashboard';
+    }
     if ([
       '/classes',
       '/groups',

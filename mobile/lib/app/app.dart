@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'package:srs_review_ai_mobile/features/dashboard/presentation/views/dashboard_screen.dart';
+import 'package:srs_review_ai_mobile/features/dashboard/presentation/views/follow_up_screens.dart';
 import 'package:srs_review_ai_mobile/screens/navigation_destination_screen.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/views/course_screens.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/views/offering_detail_screen.dart';
@@ -54,6 +55,8 @@ class SrsReviewApp extends ConsumerWidget {
         final parts = Uri.parse(path).pathSegments;
         return switch (parts) {
           [] || ['dashboard'] || ['login'] => const DashboardScreen(),
+          ['review-schedule'] => const ReviewScheduleScreen(),
+          ['group-questions'] => const GroupQuestionsScreen(),
           ['profile'] => const ProfileScreen(),
           ['notifications'] => const NotificationsScreen(),
           ['semesters'] => const SemesterListScreen(),

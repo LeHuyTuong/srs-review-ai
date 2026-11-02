@@ -156,6 +156,53 @@ void main() {
       'active',
     ]);
   });
+  for (final width in [360.0, 390.0, 412.0]) {
+    testWidgets('Chi tiết dự án: năm dropdown mở đúng nội dung ở $width dp', (
+      t,
+    ) async {
+      t.view.devicePixelRatio = 1;
+      t.view.physicalSize = Size(width, 844);
+      addTearDown(t.view.resetPhysicalSize);
+      addTearDown(t.view.resetDevicePixelRatio);
+
+      await mount(
+        t,
+        const ProjectDetailScreen(projectId: 'smart-campus-management'),
+        TestAcademicRepository(academicFixture()),
+      );
+      await t.pumpAndSettle();
+
+      final sections = [
+        ('Tổng quan', 'project-overview', 'project-overview-content'),
+        ('Tài liệu', 'project-documents', 'project-documents-content'),
+        ('Thành viên', 'project-members', 'project-members-content'),
+        (
+          'Lịch sử đánh giá',
+          'project-review-history',
+          'project-review-history-content',
+        ),
+        ('Thông tin', 'project-information', 'project-information-content'),
+      ];
+      final viewport = t.getRect(find.byType(SingleChildScrollView).first);
+
+      for (final (label, sectionKey, contentKey) in sections) {
+        final section = find.byKey(ValueKey(sectionKey));
+        final title = find.descendant(of: section, matching: find.text(label));
+        expect(title, findsOneWidget);
+        await t.ensureVisible(title);
+        await t.pumpAndSettle();
+        final titleBounds = t.getRect(title);
+        expect(titleBounds.top, greaterThanOrEqualTo(viewport.top));
+        expect(titleBounds.bottom, lessThanOrEqualTo(viewport.bottom));
+        expect(find.byKey(ValueKey(contentKey)), findsNothing);
+
+        await t.tap(title);
+        await t.pumpAndSettle();
+        expect(find.byKey(ValueKey(contentKey)), findsOneWidget);
+        expect(t.takeException(), isNull);
+      }
+    });
+  }
   testWidgets(
     'Navigation native từ Dashboard → Group → Project → Review → lịch sử → Back',
     (t) async {

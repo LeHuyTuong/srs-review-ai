@@ -8,8 +8,9 @@ import 'package:srs_review_ai_mobile/widgets/app_icon.dart';
 
 // Phần đầu ứng dụng căn trái theo React và dùng SafeArea để tránh vùng hệ thống.
 class MobileHeader extends StatelessWidget implements PreferredSizeWidget {
-  const MobileHeader({required this.onHome, super.key});
+  const MobileHeader({required this.onHome, this.onBack, super.key});
   final VoidCallback onHome;
+  final VoidCallback? onBack;
   @override
   Size get preferredSize =>
       const Size.fromHeight(AppSpacing.headerHeight + AppMetrics.border);
@@ -28,35 +29,45 @@ class MobileHeader extends StatelessWidget implements PreferredSizeWidget {
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.pagePadding,
               ),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: InkWell(
-                  onTap: onHome,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      minHeight: AppSpacing.tapMin,
+              child: Row(
+                children: [
+                  if (onBack != null)
+                    IconButton(
+                      tooltip: 'Quay lại Tổng quan',
+                      onPressed: onBack,
+                      icon: const Icon(Icons.arrow_back),
+                      color: AppColors.brand,
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const AppIcon(
-                          'files',
-                          size: AppMetrics.iconLarge,
-                          color: AppColors.brand,
+                  Flexible(
+                    child: InkWell(
+                      onTap: onHome,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          minHeight: AppSpacing.tapMin,
                         ),
-                        const SizedBox(width: AppMetrics.gridGap),
-                        Flexible(
-                          child: Text(
-                            'SRS Đánh giá AI',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.header,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const AppIcon(
+                              'files',
+                              size: AppMetrics.iconLarge,
+                              color: AppColors.brand,
+                            ),
+                            const SizedBox(width: AppMetrics.gridGap),
+                            Flexible(
+                              child: Text(
+                                'SRS Đánh giá AI',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.header,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
