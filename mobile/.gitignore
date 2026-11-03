@@ -68,3 +68,4 @@ app.*.map.json
 .flutter-plugins
 .agents/
 skills-lock.json
+android/build/

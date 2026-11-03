@@ -2,6 +2,7 @@ import 'package:srs_review_ai_mobile/theme/app_feature_metrics.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/management_shared.dart';
 import 'package:srs_review_ai_mobile/features/account/presentation/viewmodels/login_view_model.dart';
 import 'package:srs_review_ai_mobile/features/account/presentation/viewmodels/notification_view_model.dart';
+import 'package:srs_review_ai_mobile/features/account/presentation/views/crashlytics_test_tile.dart';
 
 // Hiển thị hồ sơ từ dữ liệu mẫu và gửi thao tác đăng xuất tới ViewModel quản lý phiên.
 class ProfileScreen extends ConsumerWidget {
@@ -112,6 +113,24 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                 ),
             ],
+          ),
+        ),
+        // Khu vực demo Lab 3: kiểm thử Crashlytics.
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: AppSpacing.s,
+          children: [
+            Text('KHU VỰC DEMO LAB 3', style: AppTypography.strong),
+            Text(
+              'Chỉ dùng khi trình diễn Crashlytics',
+              style: AppTypography.muted,
+            ),
+          ],
+        ),
+        const AppCard(
+          child: Material(
+            type: MaterialType.transparency,
+            child: CrashlyticsTestTile(),
           ),
         ),
         AppButton(

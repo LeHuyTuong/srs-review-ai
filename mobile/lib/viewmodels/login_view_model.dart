@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart' show ChangeNotifierProvider;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:srs_review_ai_mobile/core/session/session_view_model.dart';
+import 'package:srs_review_ai_mobile/services/analytics_service.dart';
 import 'package:srs_review_ai_mobile/services/auth_service.dart';
+import 'package:srs_review_ai_mobile/services/crashlytics_service.dart';
 
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
 
@@ -18,25 +20,46 @@ final loginViewModelProvider = ChangeNotifierProvider<LoginViewModel>(
   (ref) => LoginViewModel(
     authService: ref.watch(authServiceProvider),
     session: ref.read(sessionProvider.notifier),
+    analytics: ref.watch(analyticsServiceProvider),
+    crashlytics: ref.watch(crashlyticsServiceProvider),
   ),
 );
 
 class LoginViewModel extends ChangeNotifier {
-  LoginViewModel({required this.authService, required this.session}) {
+  LoginViewModel({
+    required this.authService,
+    required this.session,
+    required this.analytics,
+    required this.crashlytics,
+  }) {
     try {
       _authSubscription = authService.authStateChanges.listen(
         _onAuthStateChanged,
         onError: (Object error, StackTrace stackTrace) {
+          _reportError(
+            error,
+            stackTrace,
+            'auth_state_stream_failed',
+            'auth_state_stream',
+          );
           _setError(error);
         },
       );
-    } catch (error) {
+    } catch (error, stackTrace) {
+      _reportError(
+        error,
+        stackTrace,
+        'auth_listener_init_failed',
+        'auth_listener_init',
+      );
       _setError(error);
     }
   }
 
   final AuthService authService;
   final SessionViewModel session;
+  final AnalyticsService analytics;
+  final CrashlyticsService crashlytics;
   StreamSubscription<User?>? _authSubscription;
 
   AuthStatus _status = AuthStatus.initial;
@@ -53,12 +76,24 @@ class LoginViewModel extends ChangeNotifier {
     try {
       final user = await authService.signInWithGoogle();
       if (user == null) {
+        // Người dùng chủ động hủy: không phải lỗi, không ghi Crashlytics.
         _setStatus(AuthStatus.unauthenticated);
         return LoginResult.cancelled;
       }
       _setAuthenticated(user);
+      // Chỉ ghi `login` khi người dùng thực sự đăng nhập, không ghi khi
+      // khôi phục phiên cũ lúc mở app.
+      await analytics.logLogin();
+      await analytics.setUser(user.uid);
+      await crashlytics.setUser(user.uid);
       return LoginResult.authenticated;
-    } catch (error) {
+    } catch (error, stackTrace) {
+      await crashlytics.logError(
+        error,
+        stackTrace,
+        reason: 'google_sign_in_failed',
+        keys: {'auth_step': 'signInWithCredential'},
+      );
       _setError(error);
       return LoginResult.failed;
     }
@@ -71,8 +106,12 @@ class LoginViewModel extends ChangeNotifier {
 
     try {
       await authService.signOut();
+      await analytics.logLogout();
+      await analytics.setUser(null);
+      await crashlytics.setUser(null);
       _onAuthStateChanged(null);
-    } catch (error) {
+    } catch (error, stackTrace) {
+      _reportError(error, stackTrace, 'sign_out_failed', 'sign_out');
       _setError(error);
     }
   }
@@ -80,6 +119,8 @@ class LoginViewModel extends ChangeNotifier {
   void _onAuthStateChanged(User? user) {
     if (user == null) {
       session.signOut();
+      unawaited(analytics.setUser(null));
+      unawaited(crashlytics.setUser(null));
       _setStatus(AuthStatus.unauthenticated);
       return;
     }
@@ -89,8 +130,29 @@ class LoginViewModel extends ChangeNotifier {
   void _setAuthenticated(User user) {
     if (session.authenticatedUserId != user.uid) {
       session.signInWithFirebase(user.uid);
+      // Chỉ UID, không email/tên (xem Privacy Rules trong analytics-plan.md).
+      unawaited(analytics.setUser(user.uid));
+      unawaited(crashlytics.setUser(user.uid));
     }
     _setStatus(AuthStatus.authenticated);
+  }
+
+  /// Ghi lỗi non-fatal lên Crashlytics; người dùng vẫn thấy thông báo lỗi
+  /// qua `_setError` + SnackBar như trước.
+  void _reportError(
+    Object error,
+    StackTrace stackTrace,
+    String reason,
+    String authStep,
+  ) {
+    unawaited(
+      crashlytics.logError(
+        error,
+        stackTrace,
+        reason: reason,
+        keys: {'auth_step': authStep, 'auth_provider': 'google'},
+      ),
+    );
   }
 
   void _setStatus(AuthStatus status) {
