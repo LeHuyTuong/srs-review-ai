@@ -17,6 +17,15 @@ class ProjectListScreen extends ConsumerWidget {
       final vm = ref.read(managementListProvider('projects').notifier);
       return [
         const AppPageHeading(eyebrow: 'QUẢN LÝ DỰ ÁN', title: 'Dự án'),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            key: const ValueKey('project-list-groups-link'),
+            onPressed: () => AppNavigation.open(context, '/groups'),
+            icon: const AppIcon('users', size: AppMetrics.iconSmall),
+            label: const Text('Xem nhóm sinh viên'),
+          ),
+        ),
         AppButton(
           label: 'Tạo dự án',
           icon: const AppIcon('plus'),
@@ -97,7 +106,7 @@ class ProjectListScreen extends ConsumerWidget {
   );
 }
 
-// Chi tiết dự án với năm tab thật, không tạo bản sao dữ liệu nhóm hoặc tài liệu.
+// Chi tiết dự án dạng xổ xuống, không tạo bản sao nhóm hoặc tài liệu.
 class ProjectDetailScreen extends ConsumerWidget {
   const ProjectDetailScreen({required this.projectId, super.key});
   final String projectId;
@@ -116,9 +125,6 @@ class ProjectDetailScreen extends ConsumerWidget {
       final archived = p.text('state') == 'archived';
       // Dự án lưu trữ hoặc lớp không còn hoạt động chỉ cho xem; lớp phải hoạt động mới được khôi phục dự án.
       final readOnly = AcademicPresentationViewModel(s).projectReadOnly(p, cls);
-      final key = 'project:$projectId';
-      final state = ref.watch(managementListProvider(key));
-      final tabs = ref.read(managementListProvider(key).notifier);
       final vm = ref.read(academicViewModelProvider.notifier);
       final reviews = AcademicPresentationViewModel(s).projectReviews(p.id);
       final events = AcademicPresentationViewModel(s).projectEvents(reviews);
@@ -207,141 +213,246 @@ class ProjectDetailScreen extends ConsumerWidget {
           onPressed: () =>
               AppNavigation.open(context, '/projects/${p.id}/documents'),
         ),
-        AppTabs(
-          labels: const [
-            'Tổng quan',
-            'Tài liệu',
-            'Thành viên',
-            'Lịch sử đánh giá',
-            'Thông tin',
-          ],
-          selected: state.tab,
-          onChanged: tabs.tab,
-          segmented: true,
-        ),
-        if (state.tab == 0) ...[
-          if (s.projectNextStep(p).isNotEmpty)
-            AppNotice(AcademicPresentation.content(s.projectNextStep(p))),
-          Text('Tiến độ tài liệu', style: AppTypography.ruleHeading),
-          AppCard(
-            child: Column(
-              children: [
-                for (final d in docs) ...[
-                  ManagementDocumentCard(
-                    document: d,
-                    snapshot: s,
-                    roadmap: true,
-                  ),
-                  if (d != docs.last)
-                    const Divider(
-                      height: AppMetrics.border,
-                      color: AppColors.line,
-                    ),
-                ],
-              ],
-            ),
-          ),
-          if (AcademicPresentationViewModel(s).hasLockedDraft(docs))
-            const AppNotice(
-              'Có tài liệu đang khóa gửi đánh giá. Cần phê duyệt các tài liệu phụ thuộc trước.',
-            ),
-        ],
-        if (state.tab == 1) ...[
-          Row(
+        AppCard(
+          padding: EdgeInsets.zero,
+          child: Column(
             children: [
-              Expanded(
-                child: Text(
-                  'Tài liệu (${docs.length})',
-                  style: AppTypography.ruleHeading,
+              AppDisclosure(
+                key: const ValueKey('project-overview'),
+                title: 'Tổng quan',
+                verticalArrow: true,
+                headerPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.l,
+                ),
+                child: Padding(
+                  key: const ValueKey('project-overview-content'),
+                  padding: const EdgeInsets.all(AppSpacing.l),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    spacing: AppSpacing.m,
+                    children: [
+                      if (s.projectNextStep(p).isNotEmpty)
+                        AppNotice(
+                          AcademicPresentation.content(s.projectNextStep(p)),
+                        ),
+                      Text(
+                        'Tiến độ tài liệu',
+                        style: AppTypography.ruleHeading,
+                      ),
+                      AppCard(
+                        child: Column(
+                          children: [
+                            for (final d in docs) ...[
+                              ManagementDocumentCard(
+                                document: d,
+                                snapshot: s,
+                                roadmap: true,
+                              ),
+                              if (d != docs.last)
+                                const Divider(
+                                  height: AppMetrics.border,
+                                  color: AppColors.line,
+                                ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      if (AcademicPresentationViewModel(s).hasLockedDraft(docs))
+                        const AppNotice(
+                          'Có tài liệu đang khóa gửi đánh giá. Cần phê duyệt các tài liệu phụ thuộc trước.',
+                        ),
+                    ],
+                  ),
                 ),
               ),
-              TextButton(
-                onPressed: () =>
-                    AppNavigation.open(context, '/projects/${p.id}/documents'),
-                child: const Text('Mở trang tài liệu'),
+              AppDisclosure(
+                key: const ValueKey('project-documents'),
+                title: 'Tài liệu',
+                verticalArrow: true,
+                headerPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.l,
+                ),
+                child: Padding(
+                  key: const ValueKey('project-documents-content'),
+                  padding: const EdgeInsets.all(AppSpacing.l),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    spacing: AppSpacing.m,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Tài liệu (${docs.length})',
+                              style: AppTypography.ruleHeading,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => AppNavigation.open(
+                              context,
+                              '/projects/${p.id}/documents',
+                            ),
+                            child: const Text('Mở trang tài liệu'),
+                          ),
+                        ],
+                      ),
+                      for (final d in docs)
+                        ManagementDocumentCard(document: d, snapshot: s),
+                      if (docs.isEmpty)
+                        const AppEmptyState(title: 'Chưa có tài liệu'),
+                    ],
+                  ),
+                ),
+              ),
+              AppDisclosure(
+                key: const ValueKey('project-members'),
+                title: 'Thành viên',
+                verticalArrow: true,
+                headerPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.l,
+                ),
+                child: Padding(
+                  key: const ValueKey('project-members-content'),
+                  padding: const EdgeInsets.all(AppSpacing.l),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    spacing: AppSpacing.m,
+                    children: [
+                      Text('Thành viên nhóm', style: AppTypography.ruleHeading),
+                      if (p.values('members').isEmpty)
+                        const AppEmptyState(title: 'Chưa có thành viên'),
+                      for (final row in p.values('members'))
+                        _ProjectMember(
+                          member: AcademicRecord(row as AcademicJson),
+                        ),
+                      if (g != null)
+                        AppButton(
+                          label: 'Quản lý thành viên tại nhóm',
+                          variant: AppButtonVariant.secondary,
+                          onPressed: () =>
+                              AppNavigation.open(context, '/groups/${g.id}'),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              AppDisclosure(
+                key: const ValueKey('project-review-history'),
+                title: 'Lịch sử đánh giá',
+                verticalArrow: true,
+                headerPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.l,
+                ),
+                child: Padding(
+                  key: const ValueKey('project-review-history-content'),
+                  padding: const EdgeInsets.all(AppSpacing.l),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    spacing: AppSpacing.m,
+                    children: [
+                      for (final r in reviews)
+                        TextButton(
+                          onPressed: () => AppNavigation.open(
+                            context,
+                            '/reviews/${r.id}/history',
+                          ),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              '${r.text('documentTitle')} ${r.text('version')} →',
+                            ),
+                          ),
+                        ),
+                      ReviewTimeline(events: events),
+                      if (events.isEmpty)
+                        const AppEmptyState(
+                          title: 'Chưa có hoạt động đánh giá',
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              AppDisclosure(
+                key: const ValueKey('project-information'),
+                title: 'Thông tin',
+                verticalArrow: true,
+                headerPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.l,
+                ),
+                child: Padding(
+                  key: const ValueKey('project-information-content'),
+                  padding: const EdgeInsets.all(AppSpacing.l),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    spacing: AppSpacing.m,
+                    children: [
+                      Text(p.text('description')),
+                      AppMetaGrid(
+                        items: [
+                          (
+                            'Học kỳ',
+                            s.semester(cls?.semesterId ?? '')?.name ?? '—',
+                          ),
+                          (
+                            'Môn học',
+                            s.course(cls?.courseId ?? '')?.name ?? '—',
+                          ),
+                          ('Lớp', cls?.code ?? '—'),
+                          ('Nhóm', g?.name ?? '—'),
+                          ('Giảng viên', p.text('lecturer')),
+                          (
+                            'Phương pháp dạy',
+                            p.text(
+                              'teachingMethodOverride',
+                              cls?.methodOverride.isNotEmpty == true
+                                  ? cls!.methodOverride
+                                  : off?.teachingMethod ?? '—',
+                            ),
+                          ),
+                          (
+                            'Ngày bắt đầu',
+                            AcademicPresentation.date(p.text('startDate')),
+                          ),
+                          (
+                            'Hạn nộp',
+                            AcademicPresentation.date(p.text('deadline')),
+                          ),
+                          if (p.text('reviewCutoff').isNotEmpty)
+                            (
+                              'Hạn nhận đánh giá',
+                              AcademicPresentation.date(
+                                p.text('reviewCutoff'),
+                                time: true,
+                              ),
+                            ),
+                        ],
+                      ),
+                      if (cls != null)
+                        TextButton(
+                          onPressed: () => AppNavigation.open(
+                            context,
+                            '/rule-sets#${s.effectiveRule(cls)?.id ?? ''}',
+                          ),
+                          child: Text(
+                            'Bộ quy tắc: ${s.effectiveRule(cls)?.name ?? 'Chưa gán'} →',
+                          ),
+                        ),
+                      if (!readOnly)
+                        AppButton(
+                          label: 'Chỉnh sửa thông tin',
+                          variant: AppButtonVariant.secondary,
+                          onPressed: () => showManagementForm(
+                            context,
+                            AcademicFormSpec('project', data: p.toJson()),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
-          for (final d in docs)
-            ManagementDocumentCard(document: d, snapshot: s),
-          if (docs.isEmpty) const AppEmptyState(title: 'Chưa có tài liệu'),
-        ],
-        if (state.tab == 2) ...[
-          Text('Thành viên nhóm', style: AppTypography.ruleHeading),
-          if (p.values('members').isEmpty)
-            const AppEmptyState(title: 'Chưa có thành viên'),
-          for (final row in p.values('members'))
-            _ProjectMember(member: AcademicRecord(row as AcademicJson)),
-          if (g != null)
-            AppButton(
-              label: 'Quản lý thành viên tại nhóm',
-              variant: AppButtonVariant.secondary,
-              onPressed: () => AppNavigation.open(context, '/groups/${g.id}'),
-            ),
-        ],
-        if (state.tab == 3) ...[
-          for (final r in reviews)
-            TextButton(
-              onPressed: () =>
-                  AppNavigation.open(context, '/reviews/${r.id}/history'),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '${r.text('documentTitle')} ${r.text('version')} →',
-                ),
-              ),
-            ),
-          ReviewTimeline(events: events),
-          if (events.isEmpty)
-            const AppEmptyState(title: 'Chưa có hoạt động đánh giá'),
-        ],
-        if (state.tab == 4) ...[
-          Text(p.text('description')),
-          AppMetaGrid(
-            items: [
-              ('Học kỳ', s.semester(cls?.semesterId ?? '')?.name ?? '—'),
-              ('Môn học', s.course(cls?.courseId ?? '')?.name ?? '—'),
-              ('Lớp', cls?.code ?? '—'),
-              ('Nhóm', g?.name ?? '—'),
-              ('Giảng viên', p.text('lecturer')),
-              (
-                'Phương pháp dạy',
-                p.text(
-                  'teachingMethodOverride',
-                  cls?.methodOverride.isNotEmpty == true
-                      ? cls!.methodOverride
-                      : off?.teachingMethod ?? '—',
-                ),
-              ),
-              ('Ngày bắt đầu', AcademicPresentation.date(p.text('startDate'))),
-              ('Hạn nộp', AcademicPresentation.date(p.text('deadline'))),
-              if (p.text('reviewCutoff').isNotEmpty)
-                (
-                  'Hạn nhận đánh giá',
-                  AcademicPresentation.date(p.text('reviewCutoff'), time: true),
-                ),
-            ],
-          ),
-          if (cls != null)
-            TextButton(
-              onPressed: () => AppNavigation.open(
-                context,
-                '/rule-sets#${s.effectiveRule(cls)?.id ?? ''}',
-              ),
-              child: Text(
-                'Bộ quy tắc: ${s.effectiveRule(cls)?.name ?? 'Chưa gán'} →',
-              ),
-            ),
-          if (!readOnly)
-            AppButton(
-              label: 'Chỉnh sửa thông tin',
-              variant: AppButtonVariant.secondary,
-              onPressed: () => showManagementForm(
-                context,
-                AcademicFormSpec('project', data: p.toJson()),
-              ),
-            ),
-        ],
+        ),
       ];
     },
   );

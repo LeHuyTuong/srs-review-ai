@@ -15,7 +15,9 @@ import 'package:srs_review_ai_mobile/widgets/app_bottom_navigation.dart';
 import 'support/dashboard_fixture.dart';
 import 'support/academic_fixture.dart';
 
+import 'package:srs_review_ai_mobile/screens/management/group_screens.dart';
 import 'package:srs_review_ai_mobile/screens/management/review_screens.dart';
+import 'package:srs_review_ai_mobile/features/dashboard/presentation/views/follow_up_screens.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -113,6 +115,106 @@ void main() {
       expect(repository.calls, 1);
       expect(tester.takeException(), isNull);
     });
+  }
+
+  for (final viewport in [
+    const Size(375, 812),
+    const Size(390, 844),
+    const Size(768, 1024),
+    const Size(1440, 900),
+  ]) {
+    testWidgets(
+      'Lịch và câu hỏi responsive ${viewport.width}x${viewport.height}; năm tab giữ nguyên',
+      (tester) async {
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = viewport;
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetPhysicalSize);
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              initialSessionProvider.overrideWithValue(
+                const AppSession('supervisor'),
+              ),
+              academicRepositoryProvider.overrideWithValue(
+                TestAcademicRepository(academicFixture()),
+              ),
+              dashboardRepositoryProvider.overrideWithValue(
+                TestDashboardRepository(() async => loadFixture()),
+              ),
+            ],
+            child: const SrsReviewApp(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          AppBottomNavigation.destinations.map(
+            (destination) => destination.label,
+          ),
+          ['Tổng quan', 'Dự án', 'Đánh giá', 'Thông báo', 'Tài khoản'],
+        );
+
+        final scheduleLink = find.byKey(
+          const ValueKey('dashboard-follow-up-/review-schedule'),
+        );
+        await tester.ensureVisible(scheduleLink);
+        await tester.tap(scheduleLink);
+        await tester.pumpAndSettle();
+        expect(find.byType(ReviewScheduleScreen), findsOneWidget);
+        expect(
+          find.text(
+            'Dữ liệu minh họa để xem giao diện, không phải lịch thực tế.',
+          ),
+          findsOneWidget,
+        );
+        var navigation = tester.widget<AppBottomNavigation>(
+          find.byType(AppBottomNavigation),
+        );
+        expect(AppBottomNavigation.activePath(navigation.path), '/dashboard');
+        expect(tester.takeException(), isNull);
+
+        await tester.tap(find.byTooltip('Quay lại Tổng quan'));
+        await tester.pumpAndSettle();
+        expect(find.text('Xin chào, Nguyễn Văn An'), findsOneWidget);
+
+        final questionsLink = find.byKey(
+          const ValueKey('dashboard-follow-up-/group-questions'),
+        );
+        await tester.ensureVisible(questionsLink);
+        await tester.tap(questionsLink);
+        await tester.pumpAndSettle();
+        expect(find.byType(GroupQuestionsScreen), findsOneWidget);
+        expect(
+          find.text(
+            'Dữ liệu minh họa, không phải câu hỏi thực tế. Danh sách chỉ để xem, chưa có thao tác trả lời.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Trả lời'), findsNothing);
+        navigation = tester.widget<AppBottomNavigation>(
+          find.byType(AppBottomNavigation),
+        );
+        expect(AppBottomNavigation.activePath(navigation.path), '/dashboard');
+        expect(tester.takeException(), isNull);
+
+        await tester.tap(find.byTooltip('Quay lại Tổng quan'));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.descendant(
+            of: find.byType(AppBottomNavigation),
+            matching: find.text('Dự án'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('project-list-groups-link')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(GroupListScreen), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
   }
 
   testWidgets('Lỗi hiển thị nút Thử lại và không lộ exception', (tester) async {

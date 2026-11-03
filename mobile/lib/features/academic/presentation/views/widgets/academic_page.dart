@@ -18,16 +18,21 @@ class AcademicPage extends ConsumerWidget {
     required this.builder,
     this.footerBuilder,
     this.spacing = AppSpacing.l,
+    this.showBackButton = false,
     super.key,
   });
   final String path;
   final List<Widget> Function(AcademicSnapshot) builder;
   final Widget Function(AcademicSnapshot)? footerBuilder;
   final double spacing;
+  final bool showBackButton;
   @override
   Widget build(BuildContext context, WidgetRef ref) => Scaffold(
     appBar: MobileHeader(
       onHome: () => AppNavigation.open(context, '/dashboard'),
+      onBack: showBackButton
+          ? () => AppNavigation.open(context, '/dashboard')
+          : null,
     ),
     bottomNavigationBar: Column(
       mainAxisSize: MainAxisSize.min,
