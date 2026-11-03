@@ -15,6 +15,9 @@ import 'package:flutter/foundation.dart'
 /// );
 /// ```
 class DefaultFirebaseOptions {
+  static const String googleSignInServerClientId =
+      '141641534624-emooqhqjbh9lnpjfr95m1o6ihsovjrbr.apps.googleusercontent.com';
+
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
       return web;
@@ -57,7 +60,6 @@ class DefaultFirebaseOptions {
     projectId: 'srs-review-ai-ff68b',
     storageBucket: 'srs-review-ai-ff68b.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDsH12ozW0-XGVZnmvPDJ1_fgqhhaz26T4',
     appId: '1:141641534624:ios:89840e0947eb56c471cdc5',
@@ -66,7 +68,6 @@ class DefaultFirebaseOptions {
     storageBucket: 'srs-review-ai-ff68b.firebasestorage.app',
     iosBundleId: 'com.example.srsReviewAiMobile',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyDsH12ozW0-XGVZnmvPDJ1_fgqhhaz26T4',
     appId: '1:141641534624:ios:89840e0947eb56c471cdc5',

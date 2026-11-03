@@ -23,6 +23,8 @@ final sessionScopeProvider = Provider<SessionScope>((ref) {
 class SessionViewModel extends Notifier<AppSession?> {
   SessionScope scope = SessionScope(null);
   int _generation = 0;
+  String? get authenticatedUserId => state?.userId;
+
   @override
   AppSession? build() {
     final initial = ref.read(initialSessionProvider);
@@ -49,6 +51,17 @@ class SessionViewModel extends Notifier<AppSession?> {
       userId: 'mock:${email.trim().toLowerCase()}',
       generation: ++_generation,
     );
+  }
+
+  void signInWithFirebase(String userId) {
+    if (userId.trim().isEmpty) {
+      throw const FormatException(
+        'Firebase trả về mã người dùng không hợp lệ.',
+      );
+    }
+    scope.close();
+    scope = SessionScope(userId);
+    state = AppSession('supervisor', userId: userId, generation: ++_generation);
   }
 
   void signOut() {

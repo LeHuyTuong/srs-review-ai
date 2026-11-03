@@ -1,6 +1,6 @@
 import 'package:srs_review_ai_mobile/theme/app_feature_metrics.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/management_shared.dart';
-import 'package:srs_review_ai_mobile/core/session/session_view_model.dart';
+import 'package:srs_review_ai_mobile/features/account/presentation/viewmodels/login_view_model.dart';
 import 'package:srs_review_ai_mobile/features/account/presentation/viewmodels/notification_view_model.dart';
 
 // Hiển thị hồ sơ từ dữ liệu mẫu và gửi thao tác đăng xuất tới ViewModel quản lý phiên.
@@ -118,7 +118,24 @@ class ProfileScreen extends ConsumerWidget {
           label: 'Đăng xuất',
           variant: AppButtonVariant.danger,
           icon: const AppIcon('log-out'),
-          onPressed: () => ref.read(sessionProvider.notifier).signOut(),
+          onPressed: () async {
+            final viewModel = ref.read(loginViewModelProvider);
+            await viewModel.logout();
+            if (!context.mounted ||
+                viewModel.status != AuthStatus.error ||
+                viewModel.errorMessage == null) {
+              return;
+            }
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Không thể đăng xuất: ${viewModel.errorMessage}',
+                  ),
+                ),
+              );
+          },
         ),
       ];
     },
