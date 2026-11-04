@@ -1,0 +1,36 @@
+// Kích thước đo từ CSS React; tập trung tại cấu hình giao diện để tránh số rời trong màn hình.
+abstract final class AppMetrics {
+  static const border = 1.0;
+  static const navGap = 2.0;
+  static const greetingGap = 2.0;
+  static const badgePadding = 5.0;
+  static const badgeRadius = 5.0;
+  static const statGap = 6.0;
+  static const gridGap = 10.0;
+  static const iconSmall = 18.0;
+  static const icon = 20.0;
+  static const iconLarge = 24.0;
+  static const emptyIconBox = 34.0;
+  static const emptyPadding = 36.0;
+  static const contentMaxWidth = 480.0;
+  static const tabletBreakpoint = 640.0;
+  static const desktopContentWidth = 880.0;
+  static const semesterWidth = 140.0;
+  static const disabledOpacity = 0.5;
+  static const modalHeightFactor = 0.92;
+  static const qrSize = 184.0;
+  static const progressTrack = 6.0;
+  static const avatarRadius = 18.0;
+  static const formIcon = 16.0;
+  static const headingAsideWidth = 90.0;
+  static const labCodeWidth = 42.0;
+  static const compactBadgePadding = 2.0;
+  static const compactActionWidth = 97.0;
+  static const groupNameWidth = 72.0;
+  static const documentPageMinHeight = 360.0;
+  static const documentReadingWidth = 640.0;
+  static const groupHealthWidth = 80.0;
+  static const decisionBarHeight = 72.0;
+  static const timelineDot = 15.0;
+  static const timelineDotBorder = 3.0;
+}

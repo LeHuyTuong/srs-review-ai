@@ -1,0 +1,35 @@
+{
+    "name": "SRS Review AI - Admin Web",
+    "short_name": "SRS Admin",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#FAFBFA",
+    "theme_color": "#146B55",
+    "description": "SRS Review AI — bảng quản trị dành cho giảng viên/quản trị viên.",
+    "orientation": "landscape-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
