@@ -19,24 +19,35 @@ class DefaultFirebaseOptions {
       '141641534624-emooqhqjbh9lnpjfr95m1o6ihsovjrbr.apps.googleusercontent.com';
 
   static FirebaseOptions get currentPlatform {
-    if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
+    final options = kIsWeb
+        ? web
+        : switch (defaultTargetPlatform) {
+            TargetPlatform.android => android,
+            _ => throw UnsupportedError(
+              'DefaultFirebaseOptions are not supported for this platform.',
+            ),
+          };
+    if (options.apiKey.isEmpty) {
+      throw StateError(
+        'Missing Firebase client configuration. From the repository root run: '
+        'python tools/flutter_env.py mobile run -d chrome '
+        '(or select an Android device).',
       );
     }
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return android;
-      default:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions are not supported for this platform.',
-        );
-    }
+    return options;
   }
 
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: String.fromEnvironment('MOBILE_FIREBASE_WEB_API_KEY'),
+    appId: '1:1025053844292:web:d0989789698826cf872d11',
+    messagingSenderId: '1025053844292',
+    projectId: 'srs-ai-prm',
+    authDomain: 'srs-ai-prm.firebaseapp.com',
+    storageBucket: 'srs-ai-prm.firebasestorage.app',
+  );
+
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAJl19qkpc_q5tCqdrXwGqy6je8mMUNkIk',
+    apiKey: String.fromEnvironment('MOBILE_FIREBASE_ANDROID_API_KEY'),
     appId: '1:1025053844292:android:f7c83cdf07e155d9872d11',
     messagingSenderId: '1025053844292',
     projectId: 'srs-ai-prm',

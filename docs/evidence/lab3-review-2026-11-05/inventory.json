@@ -1,0 +1,135 @@
+{
+  "kind": "static inventory, NOT test pass",
+  "pdfs": {
+    "preparation": {
+      "path": "F:\\study\\PRM\\LAB3\\PRM393_Lab3_Preparation_Guide_v5_ToiUu.pdf",
+      "pages": 25,
+      "sha256": "9e019002d34c888e650f3e5991892cbce1a0ea5b3d741692fdc83aa1cfb6cb1e"
+    },
+    "assignment": {
+      "path": "F:\\study\\PRM\\LAB3\\PRM393 - Lab 3 From Design to Working App with Flutter and Firebase.pdf",
+      "pages": 17,
+      "sha256": "563eb49ef0eca4d860b4edd67c4c818d08728fa657c3c07231ee7229a197589c"
+    }
+  },
+  "symbols": {
+    "uploadSrs": [
+      {
+        "file": "mobile/lib/services/srs_service.dart",
+        "line": 29,
+        "text": "Future<UploadedSrsReport> uploadSrs({"
+      },
+      {
+        "file": "mobile/lib/services/srs_service.dart",
+        "line": 50,
+        "text": "Future<UploadedSrsReport> uploadSrs({"
+      },
+      {
+        "file": "mobile/lib/services/srs_service.dart",
+        "line": 109,
+        "text": "Future<UploadedSrsReport> uploadSrs({"
+      }
+    ],
+    "srsServiceProvider": [
+      {
+        "file": "mobile/lib/services/srs_service.dart",
+        "line": 120,
+        "text": "final srsServiceProvider = Provider<SrsService>((ref) {"
+      }
+    ],
+    "logViewSrsDetail": [
+      {
+        "file": "mobile/lib/services/analytics_service.dart",
+        "line": 18,
+        "text": "Future<void> logViewSrsDetail({"
+      },
+      {
+        "file": "mobile/lib/services/analytics_service.dart",
+        "line": 60,
+        "text": "Future<void> logViewSrsDetail({"
+      },
+      {
+        "file": "mobile/lib/services/analytics_service.dart",
+        "line": 116,
+        "text": "Future<void> logViewSrsDetail({"
+      }
+    ],
+    "logUploadSrsStart": [
+      {
+        "file": "mobile/lib/services/analytics_service.dart",
+        "line": 24,
+        "text": "Future<void> logUploadSrsStart({"
+      },
+      {
+        "file": "mobile/lib/services/analytics_service.dart",
+        "line": 69,
+        "text": "Future<void> logUploadSrsStart({"
+      },
+      {
+        "file": "mobile/lib/services/analytics_service.dart",
+        "line": 122,
+        "text": "Future<void> logUploadSrsStart({"
+      }
+    ],
+    "logUploadSrsSuccess": [
+      {
+        "file": "mobile/lib/services/analytics_service.dart",
+        "line": 30,
+        "text": "Future<void> logUploadSrsSuccess({required String documentId});"
+      },
+      {
+        "file": "mobile/lib/services/analytics_service.dart",
+        "line": 78,
+        "text": "Future<void> logUploadSrsSuccess({required String documentId}) =>"
+      },
+      {
+        "file": "mobile/lib/services/analytics_service.dart",
+        "line": 128,
+        "text": "Future<void> logUploadSrsSuccess({required String documentId}) async {}"
+      }
+    ],
+    "logExportReport": [
+      {
+        "file": "mobile/lib/services/analytics_service.dart",
+        "line": 33,
+        "text": "Future<void> logExportReport({"
+      },
+      {
+        "file": "mobile/lib/services/analytics_service.dart",
+        "line": 82,
+        "text": "Future<void> logExportReport({"
+      },
+      {
+        "file": "mobile/lib/services/analytics_service.dart",
+        "line": 131,
+        "text": "Future<void> logExportReport({"
+      }
+    ],
+    "FirebaseRemoteConfig": [],
+    "fetchAndActivate": [],
+    "requestPermission": [],
+    "getInitialMessage": [],
+    "onMessageOpenedApp": []
+  },
+  "head": "2102ad32925d0c937a46aa23b8efd7293600a649",
+  "counts": {
+    "mobile_lib_dart": 204,
+    "mobile_unit_widget_test_files": 16,
+    "mobile_integration_test_files": 5
+  },
+  "required_doc_paths": {
+    "handoff-gaps.md": [],
+    "design-change-log.md": [],
+    "fidelity-check.md": [],
+    "analytics-plan.md": [],
+    "implementation-ai-log.md": [],
+    "test-report.md": [],
+    "code-review.md": []
+  },
+  "mob_scripts": [],
+  "rules_and_config": [
+    "mobile/firebase.json",
+    "mobile/firestore.rules",
+    "mobile/storage.rules"
+  ]
+}

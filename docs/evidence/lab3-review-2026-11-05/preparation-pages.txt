@@ -1,0 +1,464 @@
+
+=== PDF PAGE 1 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+THỰC HÀNH
+TỔNG QUAN
+Từ thiết kế Lab 2 đến ứng dụng Flutter kết nối đám mây
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+1 / 25
+Hiện thực các màn hình và 3 luồng người 
+dùng từ Lab 2, gồm cả xử lý lỗi.
+Tích hợp 6 dịch vụ Firebase và hiển thị thông 
+báo khi có sự cố.
+Tuân thủ MVVM + Provider/Riverpod; giao 
+diện không gọi trực tiếp Firebase SDK.
+Thu thập ảnh chụp Firebase Console, nhật 
+ký kiểm thử và bằng chứng có thể xác minh.
+
+
+=== PDF PAGE 2 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+THỰC HÀNH
+MÔI TRƯỜNG
+Chuẩn bị trước khi thực hành
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+2 / 25
+Flutter bản ổn định; máy ảo Android hoặc 
+thiết bị Android thật.
+Dự án Firebase; FlutterFire CLI; cấu hình 
+đăng nhập Google.
+Kho mã GitHub và tài liệu Lab 2: Figma, 
+DESIGN.md, flutter-handoff.md.
+Python 3.12+, uv, ADB và khóa API mô hình 
+đa phương thức cho ARTEMIS.
+Chuẩn bị tài khoản kiểm thử riêng; không đưa khóa bí mật lên GitHub.
+
+
+=== PDF PAGE 3 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+THỰC HÀNH
+KHỞI TẠO
+Thiết lập dự án Firebase
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+3 / 25
+Tạo dự án Firebase và đăng ký mã định danh ứng dụng Android.
+Cài firebase_core và các gói FlutterFire cần dùng.
+Chạy flutterfire configure và khởi tạo Firebase trong main().
+Bật các dịch vụ trong Firebase Console; cấu hình quyền trên Android.
+Kiểm tra kết nối trên thiết bị trước khi phát triển tính năng.
+
+
+=== PDF PAGE 4 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+THỰC HÀNH
+KIẾN TRÚC
+Ranh giới tích hợp theo MVVM
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+4 / 25
+Giao diện
+View
+→
+Trạng thái
+ViewModel
+→
+Nghiệp vụ
+Service
+→
+Dịch vụ
+Firebase SDK
+Đưa xác thực, lưu trữ, thông báo và đo lường vào các lớp dịch vụ.
+Khai báo rõ trạng thái: đang tải / có dữ liệu / rỗng / lỗi.
+Dùng dịch vụ giả lập để kiểm thử; ghi phụ thuộc vào architecture.md.
+
+
+=== PDF PAGE 5 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+FIREBASE  01
+KHÁI NIỆM
+Firebase Authentication
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+5 / 25
+ĐỊNH NGHĨA
+Dịch vụ xác thực và quản lý danh tính người dùng trên Firebase.
+VAI TRÒ
+Cho phép đăng nhập Google 
+và duy trì trạng thái phiên 
+đăng nhập.
+CÁCH HOẠT ĐỘNG
+Luồng: Google Sign-In → 
+thông tin xác thực Firebase 
+→ trạng thái đăng nhập → 
+Trang chủ.
+YÊU CẦU LAB 3
+Lab 3: xử lý hủy đăng nhập, 
+đăng xuất và bảo vệ màn 
+hình.
+
+
+=== PDF PAGE 6 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+FIREBASE  01
+TÍCH HỢP
+Firebase Authentication
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+6 / 25
+Bật phương thức Google trong Firebase 
+Authentication.
+Cấu hình dấu vân tay SHA cho Android và 
+tích hợp Google Sign-In.
+Theo dõi authStateChanges để chuyển 
+giữa Đăng nhập và Trang chủ.
+Khi đăng xuất, xóa trạng thái cục bộ gắn 
+với người dùng.
+
+
+=== PDF PAGE 7 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+FIREBASE  01
+KIỂM CHỨNG
+Firebase Authentication
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+7 / 25
+Trình diễn đăng nhập Google, hủy đăng 
+nhập, đăng xuất và chặn truy cập trái phép.
+Chụp màn hình trước và sau khi đăng nhập.
+Mở Firebase Console → Authentication → 
+Users để xác minh.
+Khi hủy đăng nhập hoặc mất mạng, ứng 
+dụng phải thông báo rõ ràng.
+
+
+=== PDF PAGE 8 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+FIREBASE  02
+KHÁI NIỆM
+Firebase Cloud Storage
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+8 / 25
+ĐỊNH NGHĨA
+Dịch vụ lưu trữ tệp trên đám mây gắn với dự án Firebase.
+VAI TRÒ
+Dùng để lưu báo cáo hoặc 
+tệp do ứng dụng Flutter tạo 
+ra.
+CÁCH HOẠT ĐỘNG
+Luồng: tạo tệp → tải lên 
+reports/{uid}/… → nhận 
+đường dẫn tải xuống.
+YÊU CẦU LAB 3
+Lab 3: hiển thị tiến độ và giới 
+hạn quyền truy cập theo chủ 
+sở hữu.
+
+
+=== PDF PAGE 9 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+FIREBASE  02
+TÍCH HỢP
+Firebase Cloud Storage
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+9 / 25
+Tạo ít nhất một tệp, chẳng hạn báo cáo 
+PDF.
+Tải lên reports/{uid}/… và hiển thị tiến độ.
+Hiển thị URL tải xuống và kết quả thành 
+công/thất bại.
+Viết storage.rules để chỉ chủ sở hữu UID 
+được đọc/ghi tệp.
+
+
+=== PDF PAGE 10 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+FIREBASE  02
+KIỂM CHỨNG
+Firebase Cloud Storage
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+10 / 25
+Hiển thị tiến độ, URL cuối cùng và tệp trong 
+Storage Console.
+Đưa firebase/storage.rules vào kho mã 
+GitHub.
+Thử truy cập không có quyền và tình huống 
+mất kết nối.
+Không dùng quy tắc mở công khai: allow 
+read, write: if true.
+
+
+=== PDF PAGE 11 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+FIREBASE  03
+KHÁI NIỆM
+Firebase Cloud Messaging
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+11 / 25
+ĐỊNH NGHĨA
+Dịch vụ gửi thông báo đẩy đến thiết bị hoặc ứng dụng.
+VAI TRÒ
+Giúp thông báo sự kiện và 
+dẫn người dùng đến màn 
+hình liên quan.
+CÁCH HOẠT ĐỘNG
+Ba trạng thái cần xét: đang 
+mở, chạy nền và đã đóng 
+ứng dụng.
+YÊU CẦU LAB 3
+Lab 3: xin quyền Android 
+13+, lưu lịch sử và điều 
+hướng khi chạm thông báo.
+
+
+=== PDF PAGE 12 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+FIREBASE  03
+TÍCH HỢP
+Firebase Cloud Messaging
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+12 / 25
+Yêu cầu quyền nhận thông báo trên 
+Android 13 trở lên.
+Xử lý thông báo khi ứng dụng đang mở, 
+chạy nền hoặc đã đóng.
+Lưu thông báo nhận được vào trung tâm 
+thông báo trong ứng dụng.
+Ánh xạ thao tác chạm thông báo đến màn 
+hình phù hợp.
+
+
+=== PDF PAGE 13 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+FIREBASE  03
+KIỂM CHỨNG
+Firebase Cloud Messaging
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+13 / 25
+Gửi thông báo thử nghiệm từ Firebase 
+Console.
+Ghi nhận thông báo trong cả ba trạng thái 
+ứng dụng.
+Kiểm tra điều hướng khi chạm và trường 
+hợp từ chối cấp quyền.
+Ghi lại thiết bị kiểm thử, token và cách xử lý 
+quyền.
+
+
+=== PDF PAGE 14 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+FIREBASE  04
+KHÁI NIỆM
+Google Analytics for Firebase
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+14 / 25
+ĐỊNH NGHĨA
+Dịch vụ ghi nhận sự kiện tương tác để phân tích hành vi sử dụng.
+VAI TRÒ
+Đo lường các bước trong 
+luồng người dùng và mục 
+tiêu sản phẩm.
+CÁCH HOẠT ĐỘNG
+Cấu trúc: tên sự kiện + tham 
+số → Analytics DebugView.
+YÊU CẦU LAB 3
+Lab 3: ít nhất 7 sự kiện; 
+không ghi thông tin cá nhân 
+trong tham số.
+
+
+=== PDF PAGE 15 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+FIREBASE  04
+TÍCH HỢP
+Firebase Analytics
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+15 / 25
+Viết docs/analytics-plan.md trước khi lập 
+trình theo dõi.
+Định nghĩa ít nhất 7 sự kiện: đăng 
+nhập/xuất, thao tác chính, xem chi tiết, 
+xuất tệp.
+Ưu tiên tên sự kiện được khuyến nghị; tên 
+tùy chỉnh dùng snake_case.
+Thiết lập user ID sau đăng nhập; không 
+đưa email/tên vào tham số.
+
+
+=== PDF PAGE 16 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+FIREBASE  04
+KIỂM CHỨNG
+Firebase Analytics
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+16 / 25
+Với mỗi sự kiện, nêu thời điểm kích hoạt, 
+kiểu tham số và câu hỏi sản phẩm.
+Dùng Analytics DebugView để kiểm tra dữ 
+liệu sự kiện.
+Chụp bằng chứng DebugView cho từng sự 
+kiện trong kế hoạch.
+Liên kết sự kiện với từng bước của luồng 
+Lab 2 và tiêu chí thành công.
+
+
+=== PDF PAGE 17 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+FIREBASE  05
+KHÁI NIỆM
+Firebase Crashlytics
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+17 / 25
+ĐỊNH NGHĨA
+Dịch vụ theo dõi sự cố và lỗi ứng dụng trong quá trình vận hành.
+VAI TRÒ
+Ghi nhận crash, lỗi không 
+gây dừng ứng dụng và ngữ 
+cảnh lỗi.
+CÁCH HOẠT ĐỘNG
+Luồng: phát sinh lỗi → SDK 
+ghi nhận → bảng điều khiển 
+Crashlytics.
+YÊU CẦU LAB 3
+Lab 3: một lỗi đã xử lý, một 
+crash thử nghiệm, user ID và 
+khóa tùy chỉnh.
+
+
+=== PDF PAGE 18 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+FIREBASE  05
+TÍCH HỢP
+Firebase Crashlytics
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+18 / 25
+Khởi tạo Crashlytics và bộ xử lý lỗi của 
+Flutter.
+Gửi một lỗi không gây dừng ứng dụng từ 
+luồng lỗi thực tế.
+Gắn user ID và ít nhất một khóa chẩn đoán 
+tùy chỉnh.
+Tạo thao tác gây crash có chủ đích trong 
+khu vực trình diễn.
+
+
+=== PDF PAGE 19 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+FIREBASE  05
+KIỂM CHỨNG
+Firebase Crashlytics
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+19 / 25
+Hiển thị cả lỗi không gây dừng ứng dụng và 
+crash thử nghiệm trên Console.
+Chụp bằng chứng về khóa tùy chỉnh và 
+user ID.
+Đảm bảo luồng lỗi thực tế vẫn hiển thị 
+thông báo cho người dùng.
+Không kích hoạt crash thử nghiệm trong 
+quá trình sử dụng thông thường.
+
+
+=== PDF PAGE 20 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+FIREBASE  06
+KHÁI NIỆM
+Firebase Remote Config
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+20 / 25
+ĐỊNH NGHĨA
+Dịch vụ cung cấp các tham số cấu hình từ xa cho ứng dụng.
+VAI TRÒ
+Thay đổi tính năng hoặc 
+hành vi mà không phát hành 
+bản cài đặt mới.
+CÁCH HOẠT ĐỘNG
+Luồng: giá trị mặc định → tải 
+và kích hoạt cấu hình → cập 
+nhật giao diện.
+YÊU CẦU LAB 3
+Lab 3: tối thiểu 2 tham số tạo 
+thay đổi có thể quan sát 
+được.
+
+
+=== PDF PAGE 21 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+FIREBASE  06
+TÍCH HỢP
+Firebase Remote Config
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+21 / 25
+Định nghĩa ít nhất 2 tham số và giá trị mặc 
+định trong ứng dụng.
+Tải và kích hoạt giá trị thông qua một lớp 
+dịch vụ riêng.
+Liên kết tham số với hành vi nhìn thấy 
+được: bật/tắt tính năng, số kết quả tối đa.
+Trình diễn thay đổi trên Console mà không 
+cần build lại ứng dụng.
+
+
+=== PDF PAGE 22 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+FIREBASE  06
+KIỂM CHỨNG
+Firebase Remote Config
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+22 / 25
+Chụp màn hình trước/sau và giá trị tham số 
+trên Console.
+Chứng minh hành vi thực sự thay đổi, 
+không chỉ in ra giá trị.
+Kiểm tra giá trị mặc định khi mất mạng 
+hoặc tải cấu hình thất bại.
+Giải thích chu kỳ tải và cơ chế lưu đệm khi 
+trình diễn.
+
+
+=== PDF PAGE 23 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+THỰC HÀNH
+ĐẢM BẢO CHẤT LƯỢNG
+ARTEMIS — Chuẩn bị kiểm thử tự động đầu cuối
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+23 / 25
+Viết ít nhất 10 ca kiểm thử: điều kiện đầu, 
+bước thực hiện và kết quả mong đợi.
+Bao phủ các luồng Lab 2, một nhánh lỗi và 
+một tương tác Android gốc.
+Chạy mỗi ca ít nhất 3 lần; báo cáo tỷ lệ đạt 
+và nhật ký thực thi.
+Kiểm tra giá trị quan sát được, không chỉ dựa 
+vào trạng thái SUCCESS.
+Thực hiện một phiên kiểm thử khám phá kéo dài 15–30 phút.
+
+
+=== PDF PAGE 24 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+THỰC HÀNH
+RÀ SOÁT KỸ THUẬT
+AI Code Review — Quyết định dựa trên bằng chứng
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+24 / 25
+Rà soát một pull request bằng Copilot, 
+CodeRabbit hoặc công cụ tương đương.
+Ghi ít nhất 5 phát hiện gắn với dòng mã, 
+thuộc tối thiểu 2 nhóm.
+Chấp nhận, điều chỉnh hoặc bác bỏ từng 
+phát hiện và giải thích lý do kỹ thuật.
+Sửa ít nhất 3 phát hiện được chấp nhận, có 
+commit để truy vết.
+
+
+=== PDF PAGE 25 ===
+PRM393  /  HƯỚNG DẪN CHUẨN BỊ LAB 3
+THỰC HÀNH
+SẴN SÀNG CHO LAB 3
+Danh sách kiểm tra và sản phẩm nộp
+PRM393  •  LAB 3  •  FLUTTER & FIREBASE
+25 / 25
+Tích hợp đủ 6 dịch vụ Firebase; mỗi dịch vụ 
+có ca kiểm thử lỗi.
+Hoàn thành tài liệu truy vết thiết kế, kiến trúc 
+và kế hoạch Analytics.
+Lưu nhật ký ARTEMIS, ảnh Firebase 
+Console và quyết định rà soát mã.
+Nộp GitHub, báo cáo PDF 8–12 trang, slide 
+PDF 12–15 trang và video 5–10 phút.

@@ -12,7 +12,8 @@
         "lib/firebase_options.dart": {
           "projectId": "srs-ai-prm",
           "configurations": {
-            "android": "1:1025053844292:android:f7c83cdf07e155d9872d11"
+            "android": "1:1025053844292:android:f7c83cdf07e155d9872d11",
+            "web": "1:1025053844292:web:d0989789698826cf872d11"
           }
         }
       }

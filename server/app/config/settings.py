@@ -2,7 +2,7 @@
 
 Guardrail: tools/check_guardrails.py fails the build if an API-key-shaped literal
 appears anywhere in the tree, so the only legal home for GEMINI_API_KEY is
-server/.env (git-ignored) or a CI/deployment secret.
+the repository root .env (git-ignored) or a CI/deployment secret.
 """
 
 from __future__ import annotations
@@ -20,7 +20,8 @@ REPO_ROOT = SERVER_ROOT.parent
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=SERVER_ROOT / ".env",
+        # Root .env wins; keep server/.env as a fallback for older local setups.
+        env_file=(SERVER_ROOT / ".env", REPO_ROOT / ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
         populate_by_name=True,

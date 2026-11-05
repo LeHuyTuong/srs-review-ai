@@ -1,5 +1,9 @@
 # SRS Review AI Mobile
 
+Để chạy bản có Firebase, điền `.env` ở root repo rồi từ root chạy
+`python tools/flutter_env.py mobile run -d chrome` hoặc chọn thiết bị Android.
+Xem [cấu hình local](../docs/local-environment.md). Không đưa `.env` vào Flutter assets.
+
 Phase 4 (25/10/2026): Supervisor Profile/Notifications/Semesters/Student directory and mock session guards added. Final static analysis is clean; 185/185 tests pass. Full Student workflows remain implementation blockers. Current results, native evidence and limitations: [Phase 4 report](docs/evidence/phase4/README.md). The historical Phase 1–2 notes below describe their original baseline.
 
 Lab 3 — phases 1–2 tại `D:/SRS-Review-AI-Mobile`, cập nhật 25/10/2026.

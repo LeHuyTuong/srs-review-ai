@@ -1,0 +1,79 @@
+Formatted no files in 0.01 seconds.
+dart.exe : Could not format because the source could not be parsed:
+At line:2 char:38
++ ... ICS='true'; & 'F:\Coding\Language\flutter\flutterSDK\flutter\flutter\ ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Could not forma... not be parsed::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+line 15, column 3 of lib\main.dart: Functions must have an explicit list of parameters.
+   ╷
+15 │   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+   │   ^^^^^^^^^^^^
+   ╵
+line 15, column 15 of lib\main.dart: A function body must be provided.
+   ╷
+15 │   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+   │               ^
+   ╵
+line 15, column 15 of lib\main.dart: Expected a method, getter, setter or operator declaration.
+   ╷
+15 │   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+   │               ^
+   ╵
+line 15, column 16 of lib\main.dart: Variables must be declared using the keywords 'const', 'final', 'var' or a type 
+name.
+   ╷
+15 │   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+   │                ^^^^^^^
+   ╵
+line 18, column 3 of lib\main.dart: Functions must have an explicit list of parameters.
+   ╷
+18 │   PlatformDispatcher.instance.onError = (error, stack) {
+   │   ^^^^^^^^^^^^^^^^^^
+   ╵
+line 18, column 21 of lib\main.dart: A function body must be provided.
+   ╷
+18 │   PlatformDispatcher.instance.onError = (error, stack) {
+   │                     ^
+   ╵
+line 18, column 21 of lib\main.dart: Expected a method, getter, setter or operator declaration.
+   ╷
+18 │   PlatformDispatcher.instance.onError = (error, stack) {
+   │                     ^
+   ╵
+line 18, column 22 of lib\main.dart: Functions must have an explicit list of parameters.
+   ╷
+18 │   PlatformDispatcher.instance.onError = (error, stack) {
+   │                      ^^^^^^^^
+   ╵
+line 18, column 30 of lib\main.dart: A function body must be provided.
+   ╷
+18 │   PlatformDispatcher.instance.onError = (error, stack) {
+   │                              ^
+   ╵
+line 18, column 30 of lib\main.dart: Expected a method, getter, setter or operator declaration.
+   ╷
+18 │   PlatformDispatcher.instance.onError = (error, stack) {
+   │                              ^
+   ╵
+(12 more errors...)
+FileSystemException: Failed to set file modification time, path = 
+'C:\Users\anhvi\AppData\Roaming\.dart-tool\dart-flutter-telemetry-session.json' (OS Error: Access is denied, errno = 5)
+#0      _File.setLastModifiedSync (dart:io/file_impl.dart:553)
+#1      ForwardingFile.setLastModifiedSync (package:file/src/forwarding/forwarding_file.dart:65)
+#2      UserProperty.getSessionId (package:unified_analytics/src/user_property.dart:74)
+#3      UserProperty._toMap (package:unified_analytics/src/user_property.dart:153)
+#4      UserProperty.preparePayload (package:unified_analytics/src/user_property.dart:90)
+#5      generateRequestBody (package:unified_analytics/src/utils.dart:108)
+#6      AnalyticsImpl.send (package:unified_analytics/src/analytics.dart:633)
+#7      DartdevRunner.runCommand (package:dartdev/dartdev.dart:332)
+<asynchronous suspension>
+#8      runDartdev (package:dartdev/dartdev.dart:54)
+<asynchronous suspension>
+#9      main (file:///C:/b/s/w/ir/x/w/sdk/pkg/dartdev/bin/dartdev.dart:13)
+<asynchronous suspension>
+
+
+EXIT_CODE=1

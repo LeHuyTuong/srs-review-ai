@@ -6,6 +6,8 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:srs_review_ai_mobile/core/services/crashlytics_support.dart';
+
 /// Hợp đồng để ViewModel phụ thuộc vào, dễ thay bằng bản giả lập khi test.
 abstract class CrashlyticsService {
   /// Gắn UID Firebase (không phải email/tên) sau khi đăng nhập; null khi đăng xuất.
@@ -30,10 +32,8 @@ abstract class CrashlyticsService {
 }
 
 class FirebaseCrashlyticsService implements CrashlyticsService {
-  FirebaseCrashlyticsService({
-    FirebaseCrashlytics? crashlytics,
-    this.firestore,
-  }) : _crashlytics = crashlytics ?? FirebaseCrashlytics.instance;
+  FirebaseCrashlyticsService({FirebaseCrashlytics? crashlytics, this.firestore})
+    : _crashlytics = crashlytics ?? FirebaseCrashlytics.instance;
 
   final FirebaseCrashlytics _crashlytics;
   final FirebaseFirestore? firestore;
@@ -137,8 +137,7 @@ class FirebaseCrashlyticsService implements CrashlyticsService {
   }
 }
 
-/// No-op khi Firebase chưa khởi tạo (unit test, hoặc code gọi trước
-/// `Firebase.initializeApp`): giám sát không bao giờ được làm hỏng app.
+/// No-op khi nền tảng không hỗ trợ hoặc Firebase chưa khởi tạo.
 class _NoopCrashlyticsService implements CrashlyticsService {
   @override
   Future<void> setUser(String? uid) async {}
@@ -162,6 +161,8 @@ class _NoopCrashlyticsService implements CrashlyticsService {
 }
 
 final crashlyticsServiceProvider = Provider<CrashlyticsService>((ref) {
-  if (Firebase.apps.isEmpty) return _NoopCrashlyticsService();
+  if (!supportsCrashlytics || Firebase.apps.isEmpty) {
+    return _NoopCrashlyticsService();
+  }
   return FirebaseCrashlyticsService();
 });

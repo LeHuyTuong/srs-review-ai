@@ -102,8 +102,9 @@ SECRET_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 ]
 
 # `NAME=value` where value is non-empty: fine in .env.example only if empty.
+# A regex anchor such as ^NAME=... describes a match, not an assignment.
 ASSIGNED_SECRET = re.compile(
-    r"\b(GEMINI_API_KEY|OPENAI_API_KEY|GROQ_API_KEY|APP_TOKEN|SYNCFUSION_LICENSE_KEY)\s*=\s*(\S+)"
+    r"(?<!\^)\b(GEMINI_API_KEY|OPENAI_API_KEY|GROQ_API_KEY|APP_TOKEN|SYNCFUSION_LICENSE_KEY)\s*=\s*(\S+)"
 )
 ENV_EXAMPLE_ALLOWED = {"server/.env.example"}
 
@@ -116,7 +117,7 @@ def check_secrets(files: list[Path]) -> list[Violation]:
             for name, pattern in SECRET_PATTERNS:
                 if pattern.search(line):
                     violations.append(
-                        Violation("secrets", rel, number, f"looks like a {name} — move it to server/.env")
+                        Violation("secrets", rel, number, f"looks like a {name} — move it to the root .env")
                     )
             match = ASSIGNED_SECRET.search(line)
             if match and not line.lstrip().startswith("#"):
@@ -886,8 +887,24 @@ def read_lines(path: Path) -> list[tuple[int, str]]:
 
 
 def collect_files() -> list[Path]:
+    # Scan commit candidates, including untracked source, but not ignored local
+    # config generated from .env. Tracked files remain visible even if ignored.
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(REPO), "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+            capture_output=True,
+            check=True,
+        )
+        if result.stdout and not result.stdout.endswith(b"\0"):
+            raise InputUnavailable("git file list is truncated")
+        names = result.stdout.decode("utf-8").split("\0")
+    except (subprocess.CalledProcessError, FileNotFoundError, UnicodeDecodeError) as exc:
+        raise InputUnavailable(f"git could not enumerate source files: {exc}") from exc
     files: list[Path] = []
-    for path in REPO.rglob("*"):
+    for name in names:
+        if not name:
+            continue
+        path = REPO / name
         if not path.is_file():
             continue
         if any(part in SKIP_DIRS for part in path.parts):
@@ -912,7 +929,11 @@ def git_tracked_files() -> list[str]:
 
 
 def main() -> int:
-    files = collect_files()
+    try:
+        files = collect_files()
+    except InputUnavailable as exc:
+        print(f"[FAIL] cannot read guardrail inputs ({exc}) -- refusing to report a pass")
+        return 1
     if not files:
         print(f"no text files found under {REPO} -- refusing to report a pass "
               f"that verified nothing.")

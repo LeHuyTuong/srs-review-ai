@@ -6,6 +6,11 @@
 *.key
 service-account*.json
 
+# Generated from root .env by tools/flutter_env.py; keep only .example templates.
+/mobile/android/app/google-services.json
+/desktop/android/app/google-services.json
+/app/macos/Flutter/ephemeral/
+
 # ---------- Flutter / Dart ----------
 desktop/.dart_tool/
 desktop/.flutter-plugins

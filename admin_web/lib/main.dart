@@ -9,7 +9,7 @@ import 'package:srs_review_ai_admin_web/firebase_options.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.web);
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Crashlytics không hỗ trợ web nên không đăng ký crash handler ở đây.
   runApp(const ProviderScope(child: SrsReviewAiWebApp()));

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:srs_review_ai_mobile/core/services/crashlytics_support.dart';
 import 'package:srs_review_ai_mobile/features/account/presentation/viewmodels/settings_view_model.dart';
 
 /// Khu vực demo Lab 3. Đặt widget này vào màn hình Settings/Account.
@@ -34,6 +35,7 @@ class CrashlyticsTestTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (!supportsCrashlytics) return const SizedBox.shrink();
     return ListTile(
       leading: const Icon(Icons.bug_report_outlined),
       title: const Text('Kiểm thử Crashlytics'),

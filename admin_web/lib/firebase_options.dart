@@ -12,10 +12,18 @@ class DefaultFirebaseOptions {
   static const String googleSignInServerClientId =
       '141641534624-emooqhqjbh9lnpjfr95m1o6ihsovjrbr.apps.googleusercontent.com';
 
-  static FirebaseOptions get currentPlatform => web;
+  static FirebaseOptions get currentPlatform {
+    if (web.apiKey.isEmpty) {
+      throw StateError(
+        'Missing Firebase client configuration. From the repository root run: '
+        'python tools/flutter_env.py admin_web run -d chrome',
+      );
+    }
+    return web;
+  }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBk3qtZOB01JL7F3_mf6rE94wKKmquF4v8',
+    apiKey: String.fromEnvironment('ADMIN_WEB_FIREBASE_WEB_API_KEY'),
     appId: '1:141641534624:web:5867d17dfcf8f9cc71cdc5',
     messagingSenderId: '141641534624',
     projectId: 'srs-review-ai-ff68b',

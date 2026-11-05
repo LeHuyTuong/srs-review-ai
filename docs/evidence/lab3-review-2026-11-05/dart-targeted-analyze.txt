@@ -1,0 +1,65 @@
+Analyzing main.dart, srs_service.dart...
+
+  error - lib\main.dart:15:3 - Functions must have an explicit list of parameters. Try adding a parameter list. - missing_function_parameters
+  error - lib\main.dart:15:15 - A function body must be provided. Try adding a function body. - missing_function_body
+  error - lib\main.dart:15:15 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib\main.dart:15:16 - Variables must be declared using the keywords 'const', 'final', 'var' or a type name. Try adding the name of the type of the variable or the keyword 'var'. - missing_const_final_var_or_type
+  error - lib\main.dart:15:26 - Undefined name 'FirebaseCrashlytics'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\main.dart:18:3 - Functions must have an explicit list of parameters. Try adding a parameter list. - missing_function_parameters
+  error - lib\main.dart:18:21 - A function body must be provided. Try adding a function body. - missing_function_body
+  error - lib\main.dart:18:21 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib\main.dart:18:22 - Functions must have an explicit list of parameters. Try adding a parameter list. - missing_function_parameters
+  error - lib\main.dart:18:30 - A function body must be provided. Try adding a function body. - missing_function_body
+  error - lib\main.dart:18:30 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib\main.dart:18:31 - The name 'onError' is already defined. Try renaming one of the declarations. - duplicate_definition
+           - The first definition of this name at lib\main.dart:15:16.
+  error - lib\main.dart:18:31 - Variables must be declared using the keywords 'const', 'final', 'var' or a type name. Try adding the name of the type of the variable or the keyword 'var'. - missing_const_final_var_or_type
+  error - lib\main.dart:19:5 - Undefined name 'FirebaseCrashlytics'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\main.dart:24:3 - Functions must have an explicit list of parameters. Try adding a parameter list. - missing_function_parameters
+  error - lib\main.dart:24:10 - A function body must be provided. Try adding a function body. - missing_function_body
+  error - lib\main.dart:24:10 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib\main.dart:24:11 - Functions must have an explicit list of parameters. Try adding a parameter list. - missing_function_parameters
+  error - lib\main.dart:24:18 - A function body must be provided. Try adding a function body. - missing_function_body
+  error - lib\main.dart:24:18 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib\main.dart:25:20 - Expected an identifier. - missing_identifier
+  error - lib\main.dart:25:35 - Expected to find ')'. - expected_token
+  error - lib\main.dart:32:7 - Expected to find ')'. - expected_token
+  error - lib\main.dart:33:4 - A function body must be provided. Try adding a function body. - missing_function_body
+  error - lib\main.dart:34:1 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib\services\srs_service.dart:6:8 - Target of URI doesn't exist: 'package:firebase_storage/firebase_storage.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist. - uri_does_not_exist
+  error - lib\services\srs_service.dart:41:9 - Undefined class 'FirebaseStorage'. Try changing the name to the name of an existing class, or creating a class with the name 'FirebaseStorage'. - undefined_class
+  error - lib\services\srs_service.dart:45:3 - Undefined class 'FirebaseStorage'. Try changing the name to the name of an existing class, or creating a class with the name 'FirebaseStorage'. - undefined_class
+  error - lib\services\srs_service.dart:45:45 - Undefined name 'FirebaseStorage'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\services\srs_service.dart:65:7 - The method 'SettableMetadata' isn't defined for the type 'FirebaseSrsService'. Try correcting the name to the name of an existing method, or defining a method named 'SettableMetadata'. - undefined_method
+   info - lib\main.dart:15:3 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib\main.dart:15:3 - The variable name 'FlutterError' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - non_constant_identifier_names
+   info - lib\main.dart:18:3 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib\main.dart:18:3 - The variable name 'PlatformDispatcher' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - non_constant_identifier_names
+   info - lib\main.dart:18:22 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib\main.dart:24:3 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib\main.dart:24:3 - The variable name 'Isolate' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - non_constant_identifier_names
+   info - lib\main.dart:24:11 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib\main.dart:24:19 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib\main.dart:25:5 - The variable name 'RawReceivePort' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - non_constant_identifier_names
+   info - lib\main.dart:25:5 - Use the generic function type syntax to declare the parameter 'RawReceivePort'. Try using the generic function type syntax. - use_function_type_syntax_for_parameters
+   info - lib\main.dart:25:20 - Use the generic function type syntax to declare the parameter ''. Try using the generic function type syntax. - use_function_type_syntax_for_parameters
+   info - lib\services\srs_service.dart:6:8 - The imported package 'firebase_storage' isn't a dependency of the importing package. Try adding a dependency for 'firebase_storage' in the 'pubspec.yaml' file. - depend_on_referenced_packages
+
+43 issues found.
+FileSystemException: Failed to set file modification time, path = 'C:\Users\anhvi\AppData\Roaming\.dart-tool\dart-flutter-telemetry-session.json' (OS Error: Access is denied, errno = 5)
+#0      _File.setLastModifiedSync (dart:io/file_impl.dart:553)
+#1      ForwardingFile.setLastModifiedSync (package:file/src/forwarding/forwarding_file.dart:65)
+#2      UserProperty.getSessionId (package:unified_analytics/src/user_property.dart:74)
+#3      UserProperty._toMap (package:unified_analytics/src/user_property.dart:153)
+#4      UserProperty.preparePayload (package:unified_analytics/src/user_property.dart:90)
+#5      generateRequestBody (package:unified_analytics/src/utils.dart:108)
+#6      AnalyticsImpl.send (package:unified_analytics/src/analytics.dart:633)
+#7      DartdevRunner.runCommand (package:dartdev/dartdev.dart:332)
+<asynchronous suspension>
+#8      runDartdev (package:dartdev/dartdev.dart:54)
+<asynchronous suspension>
+#9      main (file:///C:/b/s/w/ir/x/w/sdk/pkg/dartdev/bin/dartdev.dart:13)
+<asynchronous suspension>
+
+
+EXIT_CODE=1

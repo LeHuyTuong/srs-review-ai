@@ -2,6 +2,14 @@
 
 SRS Review AI - Admin Web (Flutter Web)
 
+Điền `.env` ở root repo, rồi từ root chạy:
+
+```sh
+python tools/flutter_env.py admin_web run -d chrome
+```
+
+Xem [cấu hình local](../docs/local-environment.md) để build hoặc chạy qua IDE.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.
