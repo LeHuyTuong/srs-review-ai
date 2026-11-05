@@ -1,4 +1,4 @@
-package com.example.srs_review_ai_mobile
+package com.srsAIPrm
 
 import io.flutter.embedding.android.FlutterActivity
 

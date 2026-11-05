@@ -17,22 +17,14 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      return web;
+      throw UnsupportedError(
+        'DefaultFirebaseOptions have not been configured for web - '
+        'you can reconfigure this by running the FlutterFire CLI again.',
+      );
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
-      case TargetPlatform.iOS:
-        return ios;
-      case TargetPlatform.macOS:
-        return macos;
-      case TargetPlatform.windows:
-        return windows;
-      case TargetPlatform.linux:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for linux - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
       default:
         throw UnsupportedError(
           'DefaultFirebaseOptions are not supported for this platform.',
@@ -40,49 +32,11 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBk3qtZOB01JL7F3_mf6rE94wKKmquF4v8',
-    appId: '1:141641534624:web:5867d17dfcf8f9cc71cdc5',
-    messagingSenderId: '141641534624',
-    projectId: 'srs-review-ai-ff68b',
-    authDomain: 'srs-review-ai-ff68b.firebaseapp.com',
-    storageBucket: 'srs-review-ai-ff68b.firebasestorage.app',
-    measurementId: 'G-S3C8P4FSF8',
-  );
-
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBD-uawNSgrGBnJLlbGQQlkqKvH7xhgdcw',
-    appId: '1:141641534624:android:e3d9871e3b5b6a8d71cdc5',
-    messagingSenderId: '141641534624',
-    projectId: 'srs-review-ai-ff68b',
-    storageBucket: 'srs-review-ai-ff68b.firebasestorage.app',
-  );
-
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDsH12ozW0-XGVZnmvPDJ1_fgqhhaz26T4',
-    appId: '1:141641534624:ios:89840e0947eb56c471cdc5',
-    messagingSenderId: '141641534624',
-    projectId: 'srs-review-ai-ff68b',
-    storageBucket: 'srs-review-ai-ff68b.firebasestorage.app',
-    iosBundleId: 'com.example.srsReviewAiMobile',
-  );
-
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDsH12ozW0-XGVZnmvPDJ1_fgqhhaz26T4',
-    appId: '1:141641534624:ios:89840e0947eb56c471cdc5',
-    messagingSenderId: '141641534624',
-    projectId: 'srs-review-ai-ff68b',
-    storageBucket: 'srs-review-ai-ff68b.firebasestorage.app',
-    iosBundleId: 'com.example.srsReviewAiMobile',
-  );
-
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyBk3qtZOB01JL7F3_mf6rE94wKKmquF4v8',
-    appId: '1:141641534624:web:5b552a04e8cc518b71cdc5',
-    messagingSenderId: '141641534624',
-    projectId: 'srs-review-ai-ff68b',
-    authDomain: 'srs-review-ai-ff68b.firebaseapp.com',
-    storageBucket: 'srs-review-ai-ff68b.firebasestorage.app',
-    measurementId: 'G-RENX8NWLN0',
+    apiKey: 'AIzaSyAJl19qkpc_q5tCqdrXwGqy6je8mMUNkIk',
+    appId: '1:1025053844292:android:f7c83cdf07e155d9872d11',
+    messagingSenderId: '1025053844292',
+    projectId: 'srs-ai-prm',
+    storageBucket: 'srs-ai-prm.firebasestorage.app',
   );
 }

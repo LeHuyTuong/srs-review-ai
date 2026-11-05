@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Android 13+: bắt buộc xin quyền lúc chạy trước khi hiện thông báo. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="srs_review_ai_mobile"
         android:name="${applicationName}"

@@ -1,26 +1,44 @@
 {
   "project_info": {
-    "project_number": "141641534624",
-    "project_id": "srs-review-ai-ff68b",
-    "storage_bucket": "srs-review-ai-ff68b.firebasestorage.app"
+    "project_number": "1025053844292",
+    "project_id": "srs-ai-prm",
+    "storage_bucket": "srs-ai-prm.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:141641534624:android:e3d9871e3b5b6a8d71cdc5",
+        "mobilesdk_app_id": "1:1025053844292:android:f7c83cdf07e155d9872d11",
         "android_client_info": {
-          "package_name": "com.example.srs_review_ai_mobile"
+          "package_name": "com.srsAIPrm"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1025053844292-rpvqq8pgfkrnl9r9d87gcfgp8r7rvqta.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.srsAIPrm",
+            "certificate_hash": "5264b5e7c2cb0fdfcaf8c0835ccc9073f8f6e494"
+          }
+        },
+        {
+          "client_id": "1025053844292-v91aivur8kr6ijlela89gm82629rjobf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyBD-uawNSgrGBnJLlbGQQlkqKvH7xhgdcw"
+          "current_key": "AIzaSyAJl19qkpc_q5tCqdrXwGqy6je8mMUNkIk"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1025053844292-v91aivur8kr6ijlela89gm82629rjobf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
