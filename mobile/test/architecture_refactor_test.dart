@@ -17,6 +17,7 @@ import 'package:srs_review_ai_mobile/features/dashboard/presentation/viewmodels/
 
 import 'support/academic_fixture.dart';
 import 'support/dashboard_fixture.dart';
+import 'support/fake_auth_service.dart';
 
 void main() {
   test(
@@ -118,17 +119,19 @@ void main() {
   });
 
   test(
-    'Validation đăng nhập giữ nguyên thông báo và chặn đầu vào không hợp lệ',
-    () {
-      final container = ProviderContainer();
+    'Login ViewModel xử lý hủy Google Sign-In và trạng thái phiên',
+    () async {
+      final authService = FakeAuthService();
+      final container = ProviderContainer(
+        overrides: [authServiceProvider.overrideWithValue(authService)],
+      );
       addTearDown(container.dispose);
+      addTearDown(authService.dispose);
       final vm = container.read(loginViewModelProvider);
-      expect(vm.validateEmail(' sai '), 'Nhập email hợp lệ.');
-      expect(vm.validateEmail(' test@example.edu.vn '), isNull);
-      expect(vm.validatePassword(''), 'Vui lòng nhập mật khẩu.');
-      expect(vm.validatePassword(' '), isNull);
-      vm.signIn('test@example.edu.vn', 'password');
-      expect(container.read(sessionProvider)!.isSupervisor, isTrue);
+      expect(vm.status, AuthStatus.initial);
+      expect(await vm.loginWithGoogle(), LoginResult.cancelled);
+      expect(vm.status, AuthStatus.unauthenticated);
+      expect(container.read(sessionProvider), isNull);
     },
   );
 

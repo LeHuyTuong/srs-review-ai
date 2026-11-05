@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,9 +22,11 @@ import 'package:srs_review_ai_mobile/viewmodels/academic/directory_view_model.da
 import 'package:srs_review_ai_mobile/viewmodels/academic/management_actions.dart';
 import 'package:srs_review_ai_mobile/viewmodels/academic/management_form_view_model.dart';
 import 'package:srs_review_ai_mobile/viewmodels/dashboard/dashboard_view_model.dart';
+import 'package:srs_review_ai_mobile/viewmodels/login_view_model.dart';
 import 'package:srs_review_ai_mobile/widgets/app_bottom_navigation.dart';
 
 import 'support/academic_fixture.dart';
+import 'support/fake_auth_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -251,10 +254,20 @@ void main() {
   Future<ProviderContainer> launch(
     WidgetTester t, {
     AppSession? session,
+    FakeAuthService? authService,
   }) async {
+    final service =
+        authService ??
+        FakeAuthService(
+          initialUser: session?.isSupervisor == true
+              ? FakeFirebaseUser(session!.userId)
+              : null,
+        );
+    addTearDown(service.dispose);
     await t.pumpWidget(
       ProviderScope(
         overrides: [
+          authServiceProvider.overrideWithValue(service),
           academicRepositoryProvider.overrideWithValue(
             TestAcademicRepository(academicFixture()),
           ),
@@ -277,7 +290,7 @@ void main() {
   }
 
   testWidgets(
-    'Login validation, protected routes, logout and Android Back cannot revive session',
+    'Google login cancellation/error, protected routes, logout and Android Back',
     (t) async {
       final c = await launch(t);
       expect(find.byType(LoginScreen), findsOneWidget);
@@ -285,23 +298,32 @@ void main() {
       expect(find.text('Sinh viên'), findsNothing);
       expect(find.text('Bạn đăng nhập với vai trò'), findsNothing);
       expect(find.byType(DropdownButtonFormField<String>), findsNothing);
-      await t.enterText(find.byType(TextFormField).first, 'invalid');
-      await t.tap(find.text('Đăng nhập').last);
+      expect(find.text('Đăng nhập bằng Google'), findsOneWidget);
+      expect(find.byType(TextFormField), findsNothing);
+      await t.tap(find.text('Đăng nhập bằng Google'));
       await t.pumpAndSettle();
-      expect(find.text('Nhập email hợp lệ.'), findsOneWidget);
-      await t.enterText(find.byType(TextFormField).last, '');
-      await t.tap(find.text('Đăng nhập').last);
-      await t.pumpAndSettle();
-      expect(find.text('Vui lòng nhập mật khẩu.'), findsOneWidget);
+      expect(find.text('Bạn đã hủy đăng nhập Google.'), findsOneWidget);
       expect(c.read(sessionProvider), isNull);
-      await t.enterText(find.byType(TextFormField).last, 'password');
-      await t.enterText(
-        find.byType(TextFormField).first,
-        'an.nguyen@university.edu.vn',
+
+      final authService = c.read(authServiceProvider) as FakeAuthService;
+      authService.failure = FirebaseAuthException(
+        code: 'network-request-failed',
+        message: 'Không có kết nối mạng.',
       );
-      await t.tap(find.text('Đăng nhập').last);
+      await t.tap(find.text('Đăng nhập bằng Google'));
+      await t.pumpAndSettle();
+      expect(
+        find.text('Không thể đăng nhập: Không có kết nối mạng.'),
+        findsOneWidget,
+      );
+      expect(c.read(sessionProvider), isNull);
+
+      authService.failure = null;
+      authService.nextUser = FakeFirebaseUser('firebase-user-1');
+      await t.tap(find.text('Đăng nhập bằng Google'));
       await t.pumpAndSettle();
       expect(find.text('Xin chào, Nguyễn Văn An'), findsOneWidget);
+      expect(c.read(sessionProvider)?.userId, 'firebase-user-1');
       final nav = Navigator.of(t.element(find.text('Xin chào, Nguyễn Văn An')));
       unawaited(nav.pushNamed('/profile'));
       await t.pumpAndSettle();

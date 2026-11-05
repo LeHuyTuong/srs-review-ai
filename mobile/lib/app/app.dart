@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:srs_review_ai_mobile/features/account/presentation/views/login_screen.dart';
 import 'package:srs_review_ai_mobile/features/account/presentation/views/account_screens.dart';
+import 'package:srs_review_ai_mobile/app/auth_wrapper.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/views/directory_screens.dart';
 
 // Điểm vào ứng dụng Supervisor; điều hướng Flutter nối Tổng quan với các màn học vụ.
@@ -35,7 +36,7 @@ class SrsReviewApp extends ConsumerWidget {
     locale: const Locale('vi'),
     supportedLocales: const [Locale('vi')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
-    home: const DashboardScreen(),
+    home: const AuthWrapper(),
     builder: (context, child) {
       final session = ref.watch(sessionProvider);
       // Chưa có phiên Supervisor thì chỉ dựng màn đăng nhập, kể cả khi mở đường dẫn trực tiếp.
