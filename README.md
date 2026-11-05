@@ -1,5 +1,10 @@
 # SRS Review AI
 
+Tiếp quản phiên mới: đọc [hướng dẫn nạp context](docs/README.md) và
+[hiện trạng dự án](docs/project-status.md) sau `AGENTS.md`.
+README bên dưới mô tả sản phẩm chấm SRS ban đầu; các mốc lịch sử không đại diện
+cho toàn bộ Mobile/Firebase/Admin hiện tại.
+
 An AI reviewer for the **Software Requirements Specification** — the document
 that FPTU's SEP490 capstone calls *Report 3*. Upload your SRS, get scored
 feedback where **every issue quotes your own document verbatim**, plus
@@ -201,7 +206,7 @@ srs-review-ai/
 
 Quality scoring uses four ISO/IEC/IEEE 29148 criteria — clear (30%), testable
 (30%), complete (25%), consistent (15%) — configured in
-[`server/app/rubric.json`](server/app/rubric.json) together with the syllabus
+[`server/app/config/rubric.json`](server/app/config/rubric.json) together with the syllabus
 thresholds (20–25 use cases, 3–7 transactions, pass 5.0, minimum 2.0 per part).
 
 Two of those numbers are **superseded by `review-rules/RULEBOOK.md` and not yet

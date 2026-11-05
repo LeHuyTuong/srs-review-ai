@@ -1,20 +1,104 @@
 rules_version = '2';
 
+// Security Rules cho Lab 3 — nguồn sự thật về quyền, không phải UI.
+// Mọi bản ghi thuộc về request.auth.uid; Admin đọc được nhưng không ghi thay người khác.
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Deny by default: every path is closed unless a rule below opens it.
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    // Admin được xác định bằng document admins/{uid} tạo từ Console.
+    // Không dùng users.role: người dùng tự tạo được profile nên không tin được.
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isServerTime(value) {
+      return value == request.time;
+    }
+
+    function projectKeys() {
+      return ['name', 'description', 'status', 'ownerUid', 'schemaVersion', 'createdAt', 'updatedAt'];
+    }
+
+    function validProjectBody(userId) {
+      return request.resource.data.keys().hasOnly(projectKeys())
+        && request.resource.data.ownerUid == userId
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 1000
+        && request.resource.data.status in ['active', 'archived']
+        && request.resource.data.schemaVersion == 1;
+    }
+
+    // Chỉ Console/Admin SDK ghi được; client chỉ đọc document của chính mình.
+    match /admins/{adminUid} {
+      allow read: if signedIn() && request.auth.uid == adminUid;
+      allow write: if false;
+    }
+
+    match /users/{userId} {
+      allow get: if isSelf(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isSelf(userId)
+        && request.resource.data.keys().hasOnly([
+          'uid', 'email', 'displayName', 'photoUrl', 'role',
+          'lastSignInAt', 'createdAt', 'fcmTokens'
+        ])
+        && request.resource.data.uid == userId;
+      allow update: if isSelf(userId) && request.resource.data.uid == userId;
+      allow delete: if false;
+
+      // Entity chính của Lab 3: dự án của chính người dùng đang đăng nhập.
+      match /projects/{projectId} {
+        allow read: if isSelf(userId) || isAdmin();
+        allow create: if isSelf(userId)
+          && validProjectBody(userId)
+          && isServerTime(request.resource.data.createdAt)
+          && isServerTime(request.resource.data.updatedAt);
+        allow update: if isSelf(userId)
+          && validProjectBody(userId)
+          && request.resource.data.createdAt == resource.data.createdAt
+          && isServerTime(request.resource.data.updatedAt);
+        allow delete: if isSelf(userId);
+      }
+    }
+
+    // Bản mirror để Admin Web đọc; Crashlytics không có API đọc cho client.
+    match /crash_logs/{logId} {
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'ownerUid', 'logId', 'userId', 'type', 'message',
+          'timestamp', 'stackTrace', 'deviceInfo', 'reason', 'appVersion'
+        ])
+        && request.resource.data.timestamp == request.time;
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // Metadata báo cáo PDF sau khi upload Cloudinary (không lưu bytes trong Firestore).
+    match /reports/{reportId} {
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid;
+      allow read: if signedIn()
+        && (resource.data.ownerUid == request.auth.uid || isAdmin());
+      allow update, delete: if signedIn()
+        && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Đóng mọi đường chưa khai báo ở trên.
     match /{document=**} {
       allow read, write: if false;
-    }
-
-    // A user may only read and write their own profile.
-    match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
-    }
-
-    // Signed-in users may read and write top-level documents.
-    match /documents/{documentId} {
-      allow read, write: if request.auth != null;
     }
   }
 }

@@ -115,6 +115,28 @@ class ProfileScreen extends ConsumerWidget {
             ],
           ),
         ),
+        // Lối vào mô-đun đã nối Firestore thật; các màn học vụ khác còn dùng dữ liệu mẫu.
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: AppSpacing.s,
+          children: [
+            Text('KẾT NỐI BACKEND', style: AppTypography.strong),
+            Text('Dữ liệu thật trên Firebase', style: AppTypography.muted),
+          ],
+        ),
+        AppCard(
+          child: Material(
+            type: MaterialType.transparency,
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const AppIcon('folder', color: AppColors.brand),
+              title: const Text('Dự án trên Firestore'),
+              subtitle: const Text('CRUD + realtime · users/{uid}/projects'),
+              trailing: const AppIcon('chevron-right'),
+              onTap: () => AppNavigation.open(context, '/firestore-projects'),
+            ),
+          ),
+        ),
         // Khu vực demo Lab 3: kiểm thử Crashlytics.
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,

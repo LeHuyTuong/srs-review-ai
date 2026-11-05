@@ -1,0 +1,70 @@
+DOC CHECK: 6 files UTF-8/LF, 71 local link targets; errors=2
+docs/roadmap.md: contains CR
+promt.txt: contains CR
+
+COMMAND: C:\Users\anhvi\AppData\Local\Programs\Python\Python312\python.exe tools/project_context.py
+EXIT: 0
+Workspace: F:\study\PRM\srs-review-ai
+HEAD: f3de9fe06fca298d6822ea9b22e55d03a6540c9c
+Branch: feat/firebase-setup
+Working tree:
+ M AGENTS.md
+ M README.md
+ M docs/architecture.md
+ M docs/plans/12-handoff-prompt.md
+ M docs/roadmap.md
+ M mobile/firebase.json
+ M mobile/firestore.rules
+ M mobile/lib/app/app.dart
+ M mobile/lib/features/account/presentation/views/account_screens.dart
+ M mobile/lib/services/crashlytics_service.dart
+?? docs/README.md
+?? docs/evidence/firebase-integration-docs-2026-11-05.md
+?? docs/firebase-backend-integration-roadmap.md
+?? docs/firebase-connection-setup.md
+?? docs/project-status.md
+?? mobile/firestore.indexes.json
+?? mobile/lib/core/di/projects_providers.dart
+?? mobile/lib/features/projects_firestore/
+?? mobile/lib/models/project.dart
+?? mobile/lib/repositories/projects_repository.dart
+?? mobile/lib/services/projects_firestore_service.dart
+?? mobile/test/project_model_test.dart
+?? mobile/test/projects_repository_test.dart
+?? promt.txt
+?? tools/project_context.py
+
+Start files:
+OK AGENTS.md
+OK docs/README.md
+OK docs/project-status.md
+OK docs/adr/README.md
+OK docs/adr/0013-component-boundaries-flutter-server.md
+OK docs/adr/0016-class-roster-and-teacher-decisions.md
+OK docs/adr/0017-class-crud-and-write-key.md
+OK docs/adr/0019-firebase-identity-and-data-ownership.md
+OK mobile/docs/mobile-grading-compliance.md
+OK mobile/docs/firebase-data-model.md
+OK docs/local-environment.md
+OK promt.txt
+
+Read docs/README.md in order. This output is not a test or cloud verification.
+
+
+COMMAND: F:\study\PRM\srs-review-ai\server\.venv\Scripts\ruff.exe check server
+EXIT: 0
+All checks passed!
+
+
+COMMAND: F:\study\PRM\srs-review-ai\server\.venv\Scripts\ruff.exe format --check server
+EXIT: 0
+84 files already formatted
+
+
+COMMAND: C:\Program Files\Git\cmd\git.EXE diff --check
+EXIT: 0
+
+warning: in the working copy of 'mobile/firestore.rules', LF will be replaced by CRLF the next time Git touches it
+
+FINAL DOC CHECK: 6 files UTF-8/LF, 71 local link targets, PASS
+FINAL git diff --check: exit 0

@@ -1,0 +1,213 @@
+# Prompt tiếp quản srs-review-ai
+
+Bạn tiếp quản repo ở workspace hiện tại và có thể không có hội thoại trước.
+Đọc context trước khi đưa ra kết luận kiến trúc hoặc sửa code.
+
+## Nhiệm vụ của phiên này
+
+Nếu người dùng chưa giao nhiệm vụ cụ thể: chỉ khảo sát và báo cáo hiện trạng,
+không triển khai hoặc deploy. Nếu đã có nhiệm vụ cụ thể, nạp context rồi tiếp tục
+trong phạm vi được giao. Không tự chạy toàn bộ backlog.
+
+## Thứ tự bắt đầu
+
+1. Đọc hết AGENTS.md và các hướng dẫn con áp dụng cho file sắp làm.
+2. Từ root chạy: python tools/project_context.py
+3. Đọc docs/README.md rồi docs/project-status.md.
+4. Đọc các tài liệu bắt buộc và nhánh nhiệm vụ theo docs/README.md.
+5. Đối chiếu một flow liên quan với source hiện tại và diff chưa commit.
+
+## Context phải giữ
+
+- desktop/ là client nhập/chấm tài liệu; server/ là FastAPI có nghiệp vụ AI,
+  lớp, bài nộp, vòng sửa, quyết định và cấu hình. Không tự coi Firebase thay toàn backend.
+- mobile/ là Flutter Supervisor Android; admin_web/ là Flutter Web dành cho Admin.
+- Người dùng đang muốn xem xét kết hợp backend hiện có, Firestore và Cloudinary.
+  ADR-0019 hiện vẫn tách mobile Lab 3 khỏi Python; đừng ghi hướng kết hợp là đã triển khai.
+- Firestore lưu dữ liệu nghiệp vụ; Cloudinary lưu PDF/ảnh; SQLite hiện dùng cache/config.
+- Module /firestore-projects riêng không chứng minh các màn học vụ đã bỏ fake repository.
+- Các luật chấm phải đi từ review-rules/ và app-port-map, không sửa trực tiếp prompt trước.
+
+## Yêu cầu Lab 3
+
+Đọc docs/lab3-completion-checklist-2026-11-05.md và hai PDF được dẫn trong đó.
+Nếu thiếu PDF trên máy mới, báo cáo review có bản text theo trang để tra lại.
+Lời giảng viên: cho phép Cloudinary/S3; chấm trên device thật; có nút crash thật;
+Dev xem Firebase, Admin xem kết quả trên web của team; web chỉ cần phục vụ Admin;
+slide phải giải thích được nguyên lý và chỉ đúng source, gồm luồng token/gửi/nhận FCM.
+Không tự thay MobAI bằng ARTEMIS hoặc ngược lại khi hai PDF chưa thống nhất.
+
+## Annotations của người dùng cần giữ khi tiếp quản
+
+- Báo cáo phải giải thích bài toán, quan hệ các thành phần và một flow cụ thể.
+  Không chỉ liệt kê file hoặc chép lại hiện trạng để thể hiện đã nắm context.
+- Người dùng cần hiểu cách nối Firebase với FastAPI, dùng DB nghiệp vụ chung,
+  khả năng hợp nhất hệ thống và thứ tự thực hiện. Đọc
+  docs/firebase-backend-integration-roadmap.md; đây là phương án đề xuất, chưa được
+  chốt thành ADR mới hoặc cho phép triển khai toàn bộ.
+- Sơ đồ và kế hoạch Lab 3 phải có Authentication, Firestore, Cloudinary, FastAPI/AI,
+  FCM, Google Analytics for Firebase, Crashlytics, Firebase Remote Config và ARTEMIS.
+  Đánh dấu rõ đường đã có code, đường đã có evidence và đường chỉ mới đề xuất.
+- ARTEMIS là công cụ kiểm thử qua thiết bị, không phải dịch vụ runtime hoặc DB.
+  Annotation nhắc ARTEMIS chưa phải xác nhận thầy cho bỏ MobAI ở PDF còn lại.
+- DB chung là nguồn dữ liệu nghiệp vụ thống nhất. Không đưa mọi dữ liệu Analytics,
+  Crashlytics và Remote Config vào Firestore; không coi chung project là đã thống
+  nhất schema, ID, version, ownership hoặc quyền ghi.
+- FCM cần luồng quyền/token/lưu/refresh, sender, nhận ba trạng thái, inbox và tap
+  đúng entity/version. Phân biệt Firebase ID token, Google ID token và FCM token.
+- Crash mirror ghi trước crash không chứng minh Crashlytics nhận sự cố. Phải xác
+  định nguồn báo cáo đã nhận và đường đưa tới Admin web, kèm quyền và độ trễ.
+- Backend dùng server SDK không chịu Firestore Rules như client; API phải kiểm UID
+  và quyền nghiệp vụ. Mỗi thao tác ghi có một bên chịu trách nhiệm, không double-write
+  JSON/cloud. Danh tính desktop cũng phải có phương án khi dùng dữ liệu chung.
+
+## Báo cáo sau khi nạp context
+
+Trả lời bằng tiếng Việt dễ hiểu, có dẫn file/source/evidence:
+1. HEAD/nhánh và thay đổi có sẵn liên quan.
+2. Nghiệp vụ và vai trò backend/desktop/mobile/admin; flow của nhiệm vụ hiện tại.
+3. Đã có code gì, đã kiểm chứng gì, còn chưa xác minh gì.
+4. Điểm docs/code hoặc mô hình hai bên chưa thống nhất.
+5. Bước tiếp theo cụ thể và cách nghiệm thu.
+
+Không gọi “đã chạy thật” chỉ vì có SDK, config, mock UI hoặc test cũ pass.
+Không đọc/in secret. Không ghi đè công việc có sẵn, gọi LLM tốn quota hoặc deploy
+chỉ để nạp context. Áp dụng quyền đã được người dùng giao cho nhiệm vụ thực tế.
+
+Khi kết thúc việc có thay đổi, cập nhật docs/project-status.md cùng bằng chứng,
+phần chưa làm và bước tiếp theo để phiên sau không cần đoán từ hội thoại cũ.
+
+
+
+## Ghi chú bàn giao lịch sử
+
+Phần dưới là ghi nhận của lượt cập nhật docs trước đó. Các con số kiểm tra ở đây
+không phải kết quả của phiên đang tiếp quản; tra evidence và chạy lại khi cần.
+
+File	Mục đích
+[docs/README.md](F:/study/PRM/srs-review-ai/docs/README.md)	Thứ tự đọc bắt buộc, rồi chia nhánh theo nhiệm vụ
+[docs/project-status.md](F:/study/PRM/srs-review-ai/docs/project-status.md)	Hiện trạng, bằng chứng, phần chưa xác minh và lộ trình tiếp theo
+[promt.txt](F:/study/PRM/srs-review-ai/promt.txt)	Prompt tiếp quản mới, dùng thay prompt cũ
+[tools/project_context.py](F:/study/PRM/srs-review-ai/tools/project_context.py)	In HEAD, nhánh, thay đổi chưa commit và kiểm tài liệu đầu vào
+
+
+Mình cũng cập nhật AGENTS.md, README gốc và thêm chú thích phạm vi cho tài liệu kiến trúc/prompt Plan 12 cũ. Các ADR được giữ nguyên.
+
+Quy trình mỗi phiên mới sẽ là:
+1. Đọc hết AGENTS.md.
+2. Chạy python tools/project_context.py.
+3. Đọc docs/README.md → docs/project-status.md.
+4. Đọc ADR nghiệp vụ, ba flow mobile và tài liệu theo nhiệm vụ.
+5. Lần một flow qua source và diff hiện tại.
+6. Báo lại phần đã có code, đã kiểm chứng, chưa xác minh và bước tiếp theo.
+7. Khi kết thúc công việc, cập nhật hiện trạng cùng bằng chứng để phiên sau tiếp tục.
+Bản hiện trạng đã ghi rõ những điểm dễ hiểu sai:
+- Backend có nghiệp vụ cần giữ; hướng đang bàn là kết hợp FastAPI–Firestore–Cloudinary.
+- ADR-0019 vẫn mô tả mobile tách khỏi Python; kiến trúc kết hợp chưa được chốt.
+- Module project Firestore mới là luồng riêng, chưa thay toàn bộ kho học vụ.
+- Báo cáo setup cloud và test lịch sử không đồng nghĩa đã nghiệm thu trên device.
+Lộ trình sản phẩm được ghi theo thứ tự: chốt model/quyền khi kết hợp → nối một flow hoàn chỉnh → mở rộng học vụ → hoàn thiện dịch vụ/Admin → nghiệm thu Lab 3.
+
+Đã kiểm tra 64 link nội bộ, 3 heading anchors, script chạy bình thường và trả lỗi khi thiếu đầu vào; Ruff và git diff --check đạt. Chưa chạy lại app/cloud/device và chưa commit.
+
+# Kế hoạch implement 13
+
+Phần này bổ sung tiếp nối, giữ nguyên nội dung phía trên. Các lựa chọn mới nhất
+cho Plan 13 được ghi dưới đây; những câu trong phần lịch sử về phương án còn
+đang bàn không thay thế các lựa chọn đã chốt. Kế hoạch chưa phải code đã triển
+khai, chưa thay ADR-0019 và chưa chứng minh cloud/device đã nghiệm thu.
+
+## Tài liệu để agent đọc tiếp
+
+Sau AGENTS.md, context script, docs/README.md và docs/project-status.md, đọc:
+
+1. [Plan 13 đầy đủ](docs/plans/13-firebase-fastapi-cloudinary-integration.md).
+2. [Tiến độ từng WP](docs/plans/13-progress.md).
+3. [Prompt giao triển khai](docs/plans/13-handoff-prompt.md).
+4. Evidence của WP gần nhất nếu đã có.
+
+Plan có WP0 đến WP15. Khi được giao implement, tìm WP đầu tiên chưa VERIFIED
+trong phạm vi nhiệm vụ. Nếu tất cả còn TODO thì bắt đầu WP0 kiểm kê/backup.
+Không nhảy vào deploy Firebase hoặc dùng Plan 12 làm backlog của hướng tích hợp.
+Nếu chỉ được yêu cầu đọc, review, lưu plan hoặc sửa prompt thì chỉ làm việc đó.
+
+## Những lựa chọn người dùng đã chốt
+
+- Hợp nhất hệ thống và hoàn thiện Lab 3; giữ FastAPI xử lý quyền, nghiệp vụ và AI.
+- Firestore là nguồn dữ liệu nghiệp vụ chung; Cloudinary lưu bytes tài liệu/báo
+  cáo. Không double-write JSON/cloud như hai nguồn ngang nhau.
+- Mobile Android cho Supervisor, Admin dùng web; Student dùng desktop Windows
+  và bản web hiện có của desktop, không tự tạo thêm Student Web mới.
+- Một Supervisor sở hữu mỗi lớp. Student đúng nhóm/project được nộp bài; Admin
+  không duyệt thay Supervisor.
+- Windows đăng nhập bằng browser Google rồi quay lại app theo plan, tránh đưa
+  Firebase C++ trở lại làm hỏng build native.
+- Giữ project cá nhân users/{uid}/projects riêng với project học vụ; không tự gán
+  lớp/nhóm và không coi module riêng này là migration toàn bộ học vụ.
+- Chuyển toàn bộ dữ liệu thật: inventory, backup, mapping UID/quan hệ, dry-run,
+  kiểm hash và đối chiếu từng bản ghi. Không đoán chủ sở hữu từ tên nhóm/email.
+- FastAPI nghiệm thu local/LAN trước; không tự deploy public hoặc đổi hosting.
+- Theo xác nhận trực tiếp của người dùng, thầy cho FastAPI và cần cả ARTEMIS
+  lẫn MobAI. Làm cả hai; không tự bỏ một công cụ hoặc thay bằng Flutter tests.
+- Dừng trước mọi phí mới: billing, nâng gói Cloudinary, công cụ E2E hoặc dịch vụ
+  khác. OTES 28,7 MB có thể vượt hạn mức Cloudinary; kiểm tài khoản thực tế,
+  không tự giảm trần app, thay bytes file hoặc nâng gói để đi tiếp.
+- Người dùng sẵn sàng tự cấu hình Firebase/Cloudinary Console khi agent chỉ rõ
+  project/app, màn hình, field, giá trị, thao tác và cách kiểm kết quả.
+
+Không hỏi lại các lựa chọn đã chốt nếu không có ràng buộc mới. Việc thầy cho
+FastAPI và cần cả hai công cụ là xác nhận do người dùng cung cấp, không phải
+văn bản giảng viên đã được agent kiểm độc lập.
+
+## Cách làm từng chặng
+
+1. Kiểm HEAD, nhánh, diff và dependency của WP trước khi sửa; giữ công việc có sẵn.
+2. Thực hiện đúng thứ tự và contract của Plan 13, không tự chạy backlog khác.
+3. Sau mỗi phần thay đổi, chạy kiểm thử tương ứng. Lỗi code/test thì tự sửa và
+   chạy lại; không chuyển chặng khi còn lỗi hoặc thiếu evidence bắt buộc.
+4. Không skip test, giảm assertion, record lại golden hoặc fallback fake để làm
+   xanh. HTTP 200 có failed[] phải báo cả failed[], không coi 0 findings là đã chấm.
+5. Trạng thái dùng TODO → IMPLEMENTING → LOCAL_PASS → VERIFIED. Thiếu đầu vào
+   bên ngoài chuyển WAITING_USER; LOCAL_PASS không thay nghiệm thu cloud/device.
+6. Dùng venv server cho pytest/Ruff theo AGENTS; kiểm exit code từng lệnh.
+   Native plugins phải có probe/fake. Số test ở phần lịch sử phải đo lại, không
+   chép thành kết quả của phiên mới.
+7. Hoàn tất phần local kiểm được trước khi nhờ người dùng. Tra source/config/
+   evidence sẵn có trước; chỉ hỏi phần không thể tự tìm hoặc tự thực hiện.
+8. Sau mỗi WP cập nhật docs/plans/13-progress.md, docs/project-status.md và
+   evidence: việc đổi, commands/exit codes, điều đã kiểm, phần chưa kiểm,
+   blocker chính xác và bước tiếp theo.
+
+## Khi cần người dùng thao tác
+
+Nếu cần Console, IAM, credentials, thiết bị, file gốc, mapping dữ liệu hoặc chi
+phí, dừng phần phụ thuộc và yêu cầu chính xác theo mẫu:
+
+```text
+Đang ở WP:
+Đã hoàn tất và kiểm thử:
+Điểm đang chặn:
+
+Bạn cần làm:
+1. Mở ...
+2. Chọn project/app ...
+3. Đặt field ... thành ...
+4. Lưu hoặc publish ...
+
+Cần bạn trả lại:
+- Giá trị không bí mật, đường dẫn local hoặc xác nhận thao tác ...
+- Evidence nếu agent không có quyền truy cập ...
+
+Không gửi mật khẩu, private key hoặc API secret qua chat.
+
+Sau đó agent kiểm bằng ...; nếu đạt sẽ tiếp tục bước ...
+```
+
+Chờ người dùng cung cấp đầu vào; im lặng hoặc thời gian chờ không phải đồng ý.
+Không hỏi chung chung "setup Firebase giúp mình". Credential đặt local/secret
+store, SDK dùng credential và agent kiểm qua probe an toàn; không đọc/in secret.
+Không gọi LLM thật, ghi dữ liệu thật, deploy hoặc publish ngoài quyền đã được giao.
+
+Review giữ cùng ID qua v1/v2; version, decision và official feedback phải giữ lịch
+sử. AI không tự approve. Backend vẫn kiểm UID/quyền dù dùng Admin SDK.
+Mirror ghi trước crash không phải bằng chứng Crashlytics đã nhận báo cáo.

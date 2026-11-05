@@ -1,5 +1,12 @@
 # Prompt giao việc — chạy plan 12
 
+> Phạm vi: WP của Plan 12 tháng 9, không phải prompt nạp context mặc định cho
+> Mobile/Firebase/Admin hiện tại. Phiên mới bắt đầu tại [docs/README](../README.md),
+> [hiện trạng](../project-status.md) và [prompt root](../../promt.txt).
+> Trong các khối lịch sử bên dưới, `app/`, chỉ dẫn Ruff, line endings và số test
+> có thể đã cũ. Dùng lệnh và quy tắc hiện tại từ `AGENTS.md`; không chạy cả plan
+> chỉ vì tiếp quản một phiên.
+
 Đây là **prompt sẵn sàng copy-paste** để gửi kèm repo cho một model khác. Chọn **đúng
 một** khối bên dưới, dán nguyên văn — đừng tự viết lại: các khối đã gói sẵn điều
 kiện dừng, luật cấm, và định dạng báo cáo.

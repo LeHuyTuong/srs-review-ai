@@ -21,6 +21,7 @@ import 'package:srs_review_ai_mobile/features/account/presentation/views/login_s
 import 'package:srs_review_ai_mobile/features/account/presentation/views/account_screens.dart';
 import 'package:srs_review_ai_mobile/app/auth_wrapper.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/views/directory_screens.dart';
+import 'package:srs_review_ai_mobile/features/projects_firestore/presentation/views/firestore_projects_screen.dart';
 
 // Điểm vào ứng dụng Supervisor; điều hướng Flutter nối Tổng quan với các màn học vụ.
 class SrsReviewApp extends ConsumerWidget {
@@ -87,6 +88,7 @@ class SrsReviewApp extends ConsumerWidget {
           ),
           ['reviews', final id, 'history'] => ReviewHistoryScreen(reviewId: id),
           ['review-history'] => const ReviewHistoryIndexScreen(),
+          ['firestore-projects'] => const FirestoreProjectsScreen(),
           _ => NavigationDestinationScreen(path: path),
         };
       },

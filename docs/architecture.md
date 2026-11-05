@@ -1,5 +1,10 @@
 # Kiến trúc SRS Review AI
 
+> Bản mô tả kiến trúc ban đầu. Các đoạn về server stateless, cache RAM,
+> shared_preferences, route và run cap không phản ánh toàn bộ source hiện tại.
+> Bắt đầu ở [hướng dẫn context](README.md) và [hiện trạng](project-status.md),
+> rồi đọc [kiến trúc sau refactor](architecture-refactored.md) và ADR theo phạm vi.
+
 > Nguồn: `README.md`, `docs/adr/0001-architecture.md`, `docs/adr/0004-model-selection.md`, `pubspec.yaml`, source `desktop/lib` + `server/app`.
 > Kiểu kiến trúc: **MVVM 2 lớp (UI + Data), không tầng domain** (ADR-0001 D3) — client parse tài liệu, server là proxy mỏng giữ API key.
 

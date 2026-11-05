@@ -80,15 +80,18 @@ class FirebaseCrashlyticsService implements CrashlyticsService {
     StackTrace? stackTrace, {
     String? reason,
   }) async {
-    if (Firebase.apps.isEmpty) return;
+    final uid = _userId;
+    // Rules yêu cầu ownerUid == uid; chưa đăng nhập thì bỏ qua thay vì ghi lỗi.
+    if (Firebase.apps.isEmpty || uid == null || uid.isEmpty) return;
     try {
       final firestore = this.firestore ?? FirebaseFirestore.instance;
       final ref = firestore.collection('crash_logs').doc();
       await ref.set({
         'logId': ref.id,
+        'ownerUid': uid,
         'type': 'non-fatal',
         'message': error.toString(),
-        'userId': _userId ?? '',
+        'userId': uid,
         'timestamp': FieldValue.serverTimestamp(),
         'stackTrace': (stackTrace ?? StackTrace.current).toString(),
         'deviceInfo': defaultTargetPlatform.name,
@@ -110,13 +113,15 @@ class FirebaseCrashlyticsService implements CrashlyticsService {
   }
 
   Future<void> _mirrorFatalTestLog() async {
-    if (Firebase.apps.isEmpty) return;
+    final uid = _userId;
+    if (Firebase.apps.isEmpty || uid == null || uid.isEmpty) return;
     try {
       final firestore = this.firestore ?? FirebaseFirestore.instance;
       await firestore.collection('crash_logs').add({
+        'ownerUid': uid,
         'type': 'fatal',
         'message': 'Fatal Crash Test',
-        'userId': _userId ?? '',
+        'userId': uid,
         'timestamp': FieldValue.serverTimestamp(),
         'stackTrace': 'Được kích hoạt thủ công từ Settings (fatal test)',
         'deviceInfo': defaultTargetPlatform.name,

@@ -1,5 +1,16 @@
 # Roadmap build SRS Review AI — học gì, làm gì, chứng minh bằng gì
 
+## Phạm vi hiện tại, bổ sung 05/11/2026
+
+Lộ trình FastAPI + Firebase + Cloudinary và đầy đủ dịch vụ Lab 3 nằm tại
+[roadmap tích hợp](firebase-backend-integration-roadmap.md). Tài liệu đó ghi phương án
+đề xuất, phân công dữ liệu, FCM, Analytics, Crashlytics, Remote Config, ARTEMIS và
+các mốc nghiệm thu. Chưa chốt kiến trúc hoặc triển khai các kết nối này.
+Đọc [hiện trạng checkout](project-status.md) trước khi chọn việc tiếp theo.
+
+Phần tháng 9 bên dưới giữ làm lịch sử engine/desktop; số test và trạng thái triển
+khai ở đó chỉ có giá trị tại thời điểm được ghi, không phải kết quả checkout hôm nay.
+
 Cập nhật: 2026-09-10. **Planning only: chưa triển khai các mốc bên dưới.**
 
 ## Trạng thái thực tế (cập nhật 2026-09-24, thay thế dòng "Planning only" phía trên)

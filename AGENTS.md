@@ -1,17 +1,26 @@
 # AGENTS.md — srs-review-ai
 
+## Nạp context ở đầu phiên
+
+Đọc hết luật trong file này, sau đó bắt đầu tại **`docs/README.md`** và
+**`docs/project-status.md`**. Chạy `python tools/project_context.py` để lấy HEAD,
+nhánh và working tree hiện tại. Hai trang này dẫn đường đọc nghiệp vụ, kiến trúc,
+bằng chứng và việc còn thiếu; không coi một báo cáo cũ là trạng thái checkout mới.
+Prompt tiếp quản ở `promt.txt`. Không mặc định thực thi Plan 12 hoặc deploy chỉ để nạp context.
+
 Công cụ chấm chất lượng tài liệu SRS bằng LLM: app Flutter đọc file SRS, tách từng requirement, gửi lên server FastAPI, server gọi Gemini chấm theo rubric. Tài liệu mẫu dùng để thử là OTES SRS.
 
-Repo 11 commit, hai ngôn ngữ trong một cây và **không dùng chung build**.
+Repo chứa Python và Dart trong một cây; các app và server **không dùng chung build**.
 
 ## Bố cục
 
 ```
 desktop/    Flutter desktop (dart sdk ^3.12.2, package `srs_review_ai`) — UI + tách requirement
 mobile/     Flutter mobile (package `srs_review_ai_mobile`) — UI giảng viên
+admin_web/  Flutter Web — UI Admin, build riêng
 server/     FastAPI + Gemini — chấm điểm, cache, rate limit
 contracts/  review.schema.json + fixtures — hợp đồng giữa hai bên
-docs/       adr/ (0001–0008, chỉ mục ở adr/README.md), evidence/, plans/, roadmap.md, tech-lead-brief.md
+docs/       README.md + project-status.md để bắt đầu; adr/, evidence/, plans/ và tài liệu lịch sử
 tools/      check_guardrails.py, report_line_endings.py, audit_stashes.py, install-hooks.sh
 review-rules/  bộ luật chấm SRS/SDS model-agnostic (RULEBOOK.md là nguồn sự thật) — xem README trong đó
 skills/     Claude skill srs-reviewer / sds-reviewer — LOCAL, đã ignore, không theo dõi trong repo; vẫn là adapter mỏng trỏ về review-rules/
@@ -70,7 +79,7 @@ cd mobile && flutter analyze && flutter test
 - **Lịch sử đánh giá "biến mất" mỗi lần `flutter run -d chrome` — dữ liệu KHÔNG mất, chỉ nằm ở profile Chrome khác** (2026-09-25). `flutter run -d chrome` không dùng `desktop/.dart_tool/chrome-device`; nó tạo profile tạm mới mỗi lần ở `%TEMP%\flutter_tools.<hash>\flutter_tools_chrome_device.<hash>\`, **kèm port ngẫu nhiên**. Trên web lịch sử nằm trong IndexedDB, mà IndexedDB gắn với **origin (host:port) của profile đó** ⇒ lần chạy mới = origin mới = DB rỗng, dù profile cũ vẫn nằm nguyên trên đĩa (đo được: profile cũ 235,8 KB có chuỗi `OTES`, profile mới 4,1 KB). Cách phục hồi đã dùng: giữ **cùng origin** (`localhost:54613`) và copy `Default/IndexedDB` sang profile cố định `%LOCALAPPDATA%\srs-review-ai\chrome-profile`. Cách phòng tái diễn: chạy `powershell -ExecutionPolicy Bypass -File app\tool\dev_web.ps1` (port cố định + profile cố định, `flutter run` vẫn ở foreground nên còn hot reload). **Đừng** dùng `flutter run -d chrome` khi đang có phiên đánh giá thật trên web; nếu buộc phải dùng thì copy profile sang vị trí cố định trước, và nhớ IndexedDB không di chuyển được sang origin khác.
 - **Route đọc của `/submissions` là whitelist — thêm field vào store thì người đọc vẫn không thấy (đã vá 2026-09-27, plan 11 tầng 1).** `read_submission` tự liệt kê từng key được trả về (để HTML twin khỏi lạc vào list view), nên khi `SubmissionStore` bắt đầu ghi `createdAt`/`updatedAt`/`history`, route đọc vẫn trả đúng bộ key cũ — **im lặng, không lỗi, không test đỏ**, vì test cũ chỉ assert những field nó vẫn thấy. Thêm đầu vào mới vào store là phải thêm vào mọi view đọc, và phải có test đọc-qua-route (`test_read_route_exposes_the_time_the_writer_recorded`). Cùng đợt: `thread.extend({...})` thay vì `append` — Python `list.extend(dict)` nhét **các key của dict** thành chuỗi, nên history vòng 2 hoá ra `["revision","at","status","event"]`; test đếm độ dài history sẽ xanh, test assertion hình dạng từng mẩu tin mới đỏ (`TypeError: string indices must be integers`). **Test lịch sử phải so hình dạng mẩu tin, đừng đếm số mẩu.**
 
-- **Muốn giao tiếp việc cho model khác thì dùng plan 12, đừng tự chế kế hoạch.** `docs/plans/12-run-everything-remaining-2026-09-27.md` là bản giao việc tự chứa (boot sequence, chín cái bẫy, WP0→WP8, điều kiện dừng, định dạng báo cáo) và `docs/plans/12-handoff-prompt.md` là prompt sẵn copy-paste cho model mới — có ba chế độ. Cả hai ghi sẵn các bẫy ở trên; plan này **không thay `AGENTS.md`**, nó chỉ là thứ tự việc.
+- **Giao việc đúng phạm vi.** Phiên mới đọc `docs/README.md`, `docs/project-status.md` và prompt `promt.txt`. Nếu nhiệm vụ thuộc WP0→WP8 của engine/app giáo viên tháng 9, dùng `docs/plans/12-run-everything-remaining-2026-09-27.md` và `docs/plans/12-handoff-prompt.md`; không tự chế lại thứ tự WP. Plan 12 không phải backlog mặc định của Mobile/Firebase/Admin tháng 11 và không thay `AGENTS.md`. Kiểm lại các lệnh, đường dẫn và trạng thái của plan trước khi dùng.
 
 - **Script Python chạy ở console này mà in tiếng Việt thì chết — và trông y hệt "script im lặng".** `stdout` trên máy là cp1258, nên `print("Số tiếp theo")` ném `UnicodeEncodeError` **giữa chừng lúc chạy**: mọi `print` trước đó đã mất, phần sửa file phía sau chưa chạy, và nếu lỗi bị nuốt thì bạn kết luận sai là sai đường dẫn. Đã mất hai vòng debug vì nó. Cứu: `sys.stdout.reconfigure(encoding="utf-8", errors="replace")` **trước mọi print**, hoặc set `PYTHONIOENCODING=utf-8`; và làm script dừng **trước khi ghi file** nếu một site không khớp đúng một lần.
 - **Phép đo tự hỏng thường không vì công cụ, mà vì harness tự sửa điều kiện đang đo.** Lượt rà 2026-09-30 đo 5 probe thật bằng stub localhost 8765 (không tốn quota, không đụng port 8000 đang bận): harness của tôi gọi `sys.stdout.reconfigure(utf-8)` ở đầu file nên probe **thừa hưởng** stdout UTF-8 trong cùng process, và bản BEFORE của `hw_vision_probe` vượt qua đúng cái `print` U+2192 mà nó phải chết ở đó (chết muộn hơn, bằng `FileNotFoundError`) — suýt thì ghi "không tái lập được". Bỏ dòng reconfigure khỏi harness thì BEFORE chết đúng chỗ. Ba thước đo khác của cùng lượt cũng tự hỏng: `$?` sau dấu `|` đọc exit code của `tail`; hỏi "ký tự này có crash không" bằng script đã gọi `reconfigure(errors='replace')`; và scan theo dòng báo 9 site `write_text` thiếu `encoding=` trong khi `encoding=` nằm ở dòng **đóng** của call nhiều dòng (AST mới đúng: 0 site). **Harness phải tái lập điều kiện, không được cải thiện nó.** Hệ quả cho repo: mọi script đo trong `docs/evidence/scripts/` giờ có guard `stdout.reconfigure(utf-8)` trước mọi print, vì console cp1258 giết `✓` U+2713, `≥` U+2265, `→` U+2192 và mọi chữ Việt có dấu (đo: `print(chr(0x2713))` → exit=1; U+00B7 `·` thì sống) — chết ở `otes_probe`/`otes_full_probe`/`hw_fk_probe` là mất **cả file JSON** vì vòng in marker nằm trước `write_text`, tức mất một lượt LLM đã trả tiền. Số đo đầy đủ + 5 phép đo tự-hỏng của chính lượt rà: [docs/evidence/measurement-audit-2026-09-30.md](docs/evidence/measurement-audit-2026-09-30.md).
