@@ -23,11 +23,15 @@ class AppConfig {
     if (override.isNotEmpty) return override;
     // kIsWeb must be tested first: in Chrome, defaultTargetPlatform reports
     // the *host* OS, so a browser on Android would otherwise pick 10.0.2.2.
-    if (kIsWeb) return 'http://localhost:8000';
+    //
+    // 127.0.0.1, not localhost: on Windows with Docker Desktop, localhost
+    // resolves to ::1 first and [::1]:8000 is held by a relay that resets the
+    // connection, while the proxy answers on IPv4 only (measured 2026-11-06).
+    if (kIsWeb) return 'http://127.0.0.1:8000';
     if (defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:8000';
     }
-    return 'http://localhost:8000';
+    return 'http://127.0.0.1:8000';
   }
 
   /// Demo safety net: skip the network entirely and serve bundled fixtures.

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AiReviewResult {
@@ -89,15 +90,27 @@ class AiReviewException implements Exception {
   String toString() => message;
 }
 
-final aiReviewServiceProvider = Provider<AiReviewService>((ref) {
+/// FastAPI `/review` URL. Override with
+/// `--dart-define=AI_REVIEW_ENDPOINT=http://<host>:8000/review`
+/// (máy thật: IP LAN của máy chạy server, hoặc URL VPS).
+///
+/// Mặc định dùng 127.0.0.1 chứ không phải localhost: trên Windows có Docker
+/// Desktop, localhost thử ::1 trước và [::1]:8000 bị một relay giữ rồi reset
+/// kết nối, trong khi server chỉ trả lời trên IPv4 (đo 2026-11-06). Android
+/// emulator thì 127.0.0.1 là chính emulator, nên dùng alias 10.0.2.2 của host.
+String defaultAiReviewEndpoint() {
   const configured = String.fromEnvironment('AI_REVIEW_ENDPOINT');
-  if (configured.isEmpty) {
-    throw StateError(
-      'Thiếu --dart-define=AI_REVIEW_ENDPOINT=<FastAPI /review URL>.',
-    );
+  if (configured.isNotEmpty) return configured;
+  // kIsWeb trước: trên Chrome, defaultTargetPlatform báo OS của máy host.
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    return 'http://10.0.2.2:8000/review';
   }
+  return 'http://127.0.0.1:8000/review';
+}
+
+final aiReviewServiceProvider = Provider<AiReviewService>((ref) {
   final service = AiReviewService(
-    endpoint: Uri.parse(configured),
+    endpoint: Uri.parse(defaultAiReviewEndpoint()),
   );
   ref.onDispose(() => service._client.close());
   return service;
