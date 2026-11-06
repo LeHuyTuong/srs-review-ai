@@ -1,0 +1,432 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/LeHuyTuong/srs-review-ai/blob/main/contracts/firestore/collections.json",
+  "title": "Firestore — danh mục collection",
+  "description": "Danh mục MỌI collection Firestore của dự án: cái đang chạy trong code và cái là đích của Plan 13 §2.4. Mỗi mục ghi path, trạng thái, bên ghi, bên đọc, phiên bản hợp đồng và file schema. `status: implemented` = đã có writer/reader thật trong code; `planned` = mục tiêu chưa có code. `schemaVersion` là phiên bản HỢP ĐỒNG của collection, KHÔNG phải field `schemaVersion` trong document (field đó chỉ có ở users/{uid}/projects và Plan 13 §2.4 yêu cầu mọi doc mới có). Test: tools/tests/test_firestore_contract.py.",
+  "x-contract-version": "1.0.0",
+  "x-adr": "docs/adr/0020-firestore-schema-contract.md",
+  "x-vocabulary": {
+    "writers": {
+      "mobile": "Client Flutter mobile (Firebase Web SDK, chịu Firestore Rules).",
+      "admin-web": "Client Flutter Web cho Admin (Firebase Web SDK, chịu Firestore Rules).",
+      "server-fastapi": "Server FastAPI qua Firebase Admin SDK — BỎ QUA Rules, nên API phải tự kiểm quyền nghiệp vụ.",
+      "console": "Tạo tay từ Firebase Console.",
+      "none": "Không ai ghi."
+    },
+    "readers": {
+      "mobile": "Client Flutter mobile.",
+      "admin-web": "Client Flutter Web cho Admin.",
+      "server-fastapi": "Server FastAPI qua Firebase Admin SDK.",
+      "rules:isAdmin": "Chỉ Firestore Rules đọc (qua hàm isAdmin()).",
+      "none": "Không ai đọc."
+    }
+  },
+  "collections": [
+    {
+      "path": "admins/{adminUid}",
+      "status": "implemented",
+      "writers": [
+        "console"
+      ],
+      "readers": [
+        "rules:isAdmin"
+      ],
+      "schemaVersion": 1,
+      "schema": "admins.schema.json",
+      "notes": "Bước tạm: rules chỉ kiểm exists() để cấp quyền Admin. Plan 13 §2.2 thay bằng accessGrants/{uid}. admin-web hiện KHÔNG đọc collection này (auth còn mock)."
+    },
+    {
+      "path": "users/{uid}",
+      "status": "implemented",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile",
+        "admin-web"
+      ],
+      "schemaVersion": 1,
+      "schema": "users.schema.json",
+      "notes": "Profile client tự tạo (mobile/lib/services/auth_service.dart). role='teacher' là alias, KHÔNG phải nguồn cấp quyền (ADR-0019). Rules cho phép createdAt và fcmTokens nhưng chưa writer nào ghi."
+    },
+    {
+      "path": "users/{uid}/projects/{projectId}",
+      "status": "implemented",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile",
+        "admin-web"
+      ],
+      "schemaVersion": 1,
+      "schema": "users.projects.schema.json",
+      "notes": "Project cá nhân (mobile/lib/services/projects_firestore_service.dart). Path giữ nguyên trong Plan 13 §2.4 và KHÁC collection `projects` học vụ."
+    },
+    {
+      "path": "crash_logs/{logId}",
+      "status": "implemented",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "admin-web"
+      ],
+      "schemaVersion": 1,
+      "schema": "crash_logs.schema.json",
+      "notes": "Mirror non-fatal/fatal của Crashlytics để Admin Web đọc. KHÔNG phải nguồn sự thật của Crashlytics; sự cố thật nằm trong Crashlytics."
+    },
+    {
+      "path": "accessGrants/{uid}",
+      "status": "planned",
+      "writers": [
+        "console",
+        "server-fastapi"
+      ],
+      "readers": [
+        "server-fastapi",
+        "rules:isAdmin"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Nguồn quyền chuẩn (Plan 13 §2.2): role supervisor|student|admin, active, revision, updatedAt, updatedBy. Client không tạo/sửa grant; thiếu grant không tự thành Supervisor."
+    },
+    {
+      "path": "assets/{assetId}",
+      "status": "implemented",
+      "writers": [
+        "server-fastapi"
+      ],
+      "readers": [
+        "admin-web"
+      ],
+      "schemaVersion": 1,
+      "schema": "assets.schema.json",
+      "notes": "Metadata tệp SRS do server FastAPI ghi (Admin SDK, bỏ qua Rules); Admin Web đọc. Tên collection đổi từ `srs_reports` sang `assets` theo Plan 13 §2.4 (ADR-0020 §2.5) — CHƯA từng có document nào được ghi vào `srs_reports`, nên không có dữ liệu cần migrate."
+    },
+    {
+      "path": "reports/{reportId}",
+      "status": "planned",
+      "writers": [
+        "mobile",
+        "server-fastapi"
+      ],
+      "readers": [
+        "mobile",
+        "admin-web"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Rules đã có match /reports nhưng CHƯA có writer/reader nào trong code. Plan 13 §2.4: writer/reader/Rules cùng path; mobile data model §2 lại ghi owner tự tạo — cần chốt ai ghi."
+    },
+    {
+      "path": "semesters/{semesterId}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Học vụ owner-only (mobile/docs/firebase-data-model.md §2). Plan 13 §2.4 nhóm 'Học vụ'."
+    },
+    {
+      "path": "courses/{courseId}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Học vụ owner-only. Plan 13 §2.4 nhóm 'Học vụ'."
+    },
+    {
+      "path": "offerings/{offeringId}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Học vụ owner-only. Plan 13 §2.4 nhóm 'Học vụ'."
+    },
+    {
+      "path": "classes/{classId}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Học vụ owner-only. Plan 13 §2.4 nhóm 'Học vụ'."
+    },
+    {
+      "path": "students/{studentId}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Sinh viên học vụ, KHÁC Firebase UID (Plan 13 §2.4)."
+    },
+    {
+      "path": "enrollments/{classId_studentId}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Sinh viên học vụ, KHÁC Firebase UID (Plan 13 §2.4)."
+    },
+    {
+      "path": "groups/{groupId}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Nhóm học vụ. Plan 13 §2.4 nhóm 'Nhóm/project'."
+    },
+    {
+      "path": "projects/{projectId}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Project HỌC VỤ (có classId/groupId), KHÁC `users/{uid}/projects` cá nhân. Plan 13 §2.4 nhóm 'Nhóm/project'."
+    },
+    {
+      "path": "ruleSets/{ruleSetId}/versions/{versionId}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Bộ quy tắc có version bất biến. Plan 13 §2.4 nhóm 'Bộ quy tắc'."
+    },
+    {
+      "path": "documents/{documentId}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Tài liệu, danh tính độc lập filename. Plan 13 §2.4 nhóm 'Tài liệu'."
+    },
+    {
+      "path": "reviewRequests/{reviewId}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Review giữ ID qua v1/v2. Plan 13 §2.4 nhóm 'Review'."
+    },
+    {
+      "path": "reviewRequests/{reviewId}/versions/{versionId}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Phiên bản bất biến. Plan 13 §2.4 nhóm 'Phiên bản'."
+    },
+    {
+      "path": "reviewRequests/{reviewId}/feedback/{feedbackId}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Draft sửa được; official bất biến. Plan 13 §2.4 nhóm 'Feedback'."
+    },
+    {
+      "path": "reviewRequests/{reviewId}/evaluations/{evaluationId}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Mỗi lượt AI một ID. Plan 13 §2.4 nhóm 'AI'."
+    },
+    {
+      "path": "reviewRequests/{reviewId}/decisions/{commandId}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Append-only. Plan 13 §2.4 nhóm 'Decision'."
+    },
+    {
+      "path": "reviewRequests/{reviewId}/audit/{auditId}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Append-only; Student không đọc draft history. Plan 13 §2.4 nhóm 'Audit'."
+    },
+    {
+      "path": "users/{uid}/devices/{installationId}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "FCM token không nằm trong profile công khai. Plan 13 §2.4 nhóm 'Thiết bị' (WP11)."
+    },
+    {
+      "path": "users/{uid}/inbox/{eventId}",
+      "status": "planned",
+      "writers": [
+        "mobile",
+        "server-fastapi"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Inbox theo user, read receipt riêng. Plan 13 §2.4 nhóm 'Inbox' (WP11)."
+    },
+    {
+      "path": "users/{uid}/savedSessions/{sessionId}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Payload lớn nằm trong asset riêng. Plan 13 §2.4 nhóm 'Phiên local đồng bộ'."
+    },
+    {
+      "path": "uploadIntents/{intentId}",
+      "status": "planned",
+      "writers": [
+        "server-fastapi"
+      ],
+      "readers": [],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Upload intent nội bộ, client không được ghi (Plan 13 §2.4 ghi 'upload intents nội bộ'). Tên collection CHƯA chốt."
+    },
+    {
+      "path": "migrationManifests/{migrationId}",
+      "status": "planned",
+      "writers": [
+        "server-fastapi"
+      ],
+      "readers": [],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Manifest/mapping nội bộ, client không được ghi (Plan 13 §2.4 nhóm 'Migration'). Tên collection CHƯA chốt; phải chốt ở WP10."
+    },
+    {
+      "path": "courseCodes/{normalizedCode}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Doc dự trữ duy nhất của mã môn. Có trong mobile/docs/firebase-data-model.md §2 nhưng KHÔNG có trong bảng §2.4 của Plan 13 — cần chốt."
+    },
+    {
+      "path": "classCodes/{normalizedCode}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Doc dự trữ duy nhất của mã lớp. Có trong mobile/docs/firebase-data-model.md §2 nhưng KHÔNG có trong bảng §2.4 của Plan 13 — cần chốt."
+    },
+    {
+      "path": "groupNames/{classId_normalizedName}",
+      "status": "planned",
+      "writers": [
+        "mobile"
+      ],
+      "readers": [
+        "mobile"
+      ],
+      "schemaVersion": null,
+      "schema": null,
+      "notes": "Doc dự trữ duy nhất của tên nhóm trong lớp. Có trong mobile/docs/firebase-data-model.md §2 nhưng KHÔNG có trong bảng §2.4 của Plan 13 — cần chốt."
+    }
+  ]
+}

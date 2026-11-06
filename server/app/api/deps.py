@@ -68,6 +68,18 @@ def upload_store():
     return _upload_store
 
 
+def asset_host():
+    from ..main import _asset_host
+
+    return _asset_host
+
+
+def report_index():
+    from ..main import _report_index
+
+    return _report_index
+
+
 def share_store():
     from ..main import _share_store
 
@@ -121,6 +133,7 @@ def caller_id(request: Request, x_user_id: str | None = Header(default=None)) ->
 
 __all__ = [
     "UploadStore",
+    "asset_host",
     "build_provider",
     "caller_id",
     "class_store",
@@ -128,6 +141,7 @@ __all__ = [
     "diagram_cache",
     "ensure_bounded",
     "limiter",
+    "report_index",
     "require_app_token",
     "review_cache",
     "rubric",

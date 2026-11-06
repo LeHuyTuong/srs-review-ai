@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/LeHuyTuong/srs-review-ai/blob/main/contracts/firestore/users.schema.json",
+  "title": "Firestore — users/{uid}",
+  "description": "Hồ sơ người dùng do client tự tạo (mobile/lib/services/auth_service.dart::_syncUserProfile). Rules chỉ cho chính chủ ghi, Admin đọc được. `role` là nhãn hiển thị, KHÔNG phải nguồn cấp quyền (ADR-0019; nguồn quyền của Plan 13 §2.2 là accessGrants/{uid}). Timestamp trong fixture biểu diễn bằng chuỗi ISO-8601 UTC.",
+  "x-contract-version": "1.0.0",
+  "x-collection-path": "users/{uid}",
+  "x-schema-version": 1,
+  "x-writers": [
+    "mobile"
+  ],
+  "x-readers": [
+    "mobile",
+    "admin-web"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "uid"
+  ],
+  "properties": {
+    "uid": {
+      "$ref": "#/$defs/Uid",
+      "description": "Firebase Auth UID; bằng document id và bất biến khi update (rules chặn đổi uid)."
+    },
+    "email": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Email tài khoản Google; null khi tài khoản không có email."
+    },
+    "displayName": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Tên hiển thị lấy từ Google."
+    },
+    "photoUrl": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Ảnh đại diện lấy từ Google."
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "teacher"
+      ],
+      "description": "Nhãn vai trò client tự ghi khi profile chưa có role. 'teacher' là alias của 'supervisor' và chỉ đổi trong migration có ghi nhận (Plan 13 §2.2). Rules chỉ cho giữ nguyên hoặc gán 'teacher' lúc profile chưa có role. Không dùng để cấp quyền."
+    },
+    "lastSignInAt": {
+      "$ref": "#/$defs/Timestamp",
+      "description": "serverTimestamp() ở lần đăng nhập gần nhất."
+    },
+    "createdAt": {
+      "$ref": "#/$defs/Timestamp",
+      "description": "serverTimestamp() lúc tạo profile. Rules cho phép field này nhưng writer hiện KHÔNG ghi — xem ADR-0020."
+    },
+    "fcmTokens": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Rules cho phép nhưng chưa có writer trong code (FCM thuộc WP11)."
+    }
+  },
+  "$defs": {
+    "Uid": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Firebase Auth UID."
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Firestore Timestamp. Trong fixture biểu diễn bằng chuỗi ISO-8601 UTC; giá trị thật ghi bằng serverTimestamp() (rules yêu cầu == request.time)."
+    }
+  }
+}

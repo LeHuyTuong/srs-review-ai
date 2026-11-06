@@ -52,6 +52,9 @@ ProviderContainer _container(
     // fake; without this override the provider would try to build a real base
     // URL from preferences that a bare container does not have.
     documentMapServiceProvider.overrideWithValue(documentMapService),
+    // Archive upload (Cloudinary + Firestore) stays off in unit tests: it
+    // would build a real HTTP client from preferences the test does not have.
+    documentArchiveServiceProvider.overrideWithValue(null),
     if (documentRepository != null)
       documentRepositoryProvider.overrideWithValue(documentRepository),
     if (reviewRepository != null)

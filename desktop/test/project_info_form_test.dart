@@ -23,6 +23,9 @@ ProviderContainer _container(InMemorySessionStore store) => ProviderContainer(
     // without this override the provider reads preferences a test does not
     // have (see workspace_view_model_test.dart for the same override).
     documentMapServiceProvider.overrideWithValue(null),
+    // Archive upload (Cloudinary + Firestore) stays off in unit tests: it
+    // would build a real HTTP client from preferences the test does not have.
+    documentArchiveServiceProvider.overrideWithValue(null),
   ],
 );
 

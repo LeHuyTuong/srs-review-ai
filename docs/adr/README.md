@@ -24,7 +24,8 @@ Mỗi quyết định kỹ thuật có một file, đánh số tăng dần, khô
 | [0017](0017-class-crud-and-write-key.md) | Lớp học là **full CRUD**; ghi khác app token (mỗi lớp có `write_key` riêng, so bằng `compare_digest`); `class_id` nằm trên **submission** chứ không có list trong file lớp; `DELETE` lớp **không xoá bài nhóm** | Accepted |
 | [0018](0018-contradiction-pass-scope-row-shaped-documents.md) | `crossArtifactName` (chain 1) chỉ bắn trên tài liệu hình dòng (SDS/dictionary); SRS văn xuôi trả 0 là kết quả được thiết kế — số đo cơ chế kèm theo; không thêm "N/A" và không nới extractor khi chưa có gold set | Accepted |
 | [0019](0019-firebase-identity-and-data-ownership.md) | App mobile: danh tính = Firebase Auth UID, mọi doc mang `ownerUid`, `write_key`/capability thay bằng Security Rules; quyết định vẫn append-only; phần chỉ server làm được (LLM, quote, quota) không mang sang | Accepted |
+| [0020](0020-firestore-schema-contract.md) | Firestore schema contract: một danh mục collection (`contracts/firestore/collections.json`), một hình dạng doc + fixture cho collection đang chạy, một bên ghi; supersede **một phần** ADR-0019 (file cũ giữ nguyên) | Proposed |
 
-**Số tiếp theo: 0020.**
+**Số tiếp theo: 0021.**
 
 Luật chấm SRS/SDS **không** ghi ở đây — chúng nằm ở `review-rules/RULEBOOK.md` với hệ version riêng (§10). ADR chỉ dành cho quyết định về *code* của repo này.

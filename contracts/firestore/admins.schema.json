@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/LeHuyTuong/srs-review-ai/blob/main/contracts/firestore/admins.schema.json",
+  "title": "Firestore — admins/{adminUid}",
+  "description": "Doc đánh dấu quyền Admin, tạo tay từ Firebase Console (rules: allow write if false). Trong code KHÔNG có writer hay reader nào đọc field của doc này; rules chỉ kiểm exists(). Vì vậy hợp đồng này không khai báo field nào: mọi field phải được khai trước khi dùng, và collection này sẽ bị accessGrants/{uid} của Plan 13 §2.2 thay thế.",
+  "x-contract-version": "1.0.0",
+  "x-collection-path": "admins/{adminUid}",
+  "x-schema-version": 1,
+  "x-writers": [
+    "console"
+  ],
+  "x-readers": [
+    "rules:isAdmin"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [],
+  "properties": {},
+  "$defs": {
+    "Uid": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Firebase Auth UID."
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Firestore Timestamp. Trong fixture biểu diễn bằng chuỗi ISO-8601 UTC; giá trị thật ghi bằng serverTimestamp() (rules yêu cầu == request.time)."
+    }
+  }
+}

@@ -29,15 +29,17 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import ask, classes, diagram, health, review, submissions, uploads
+from .api import ask, assets, classes, diagram, health, review, submissions, uploads
 from .config.criteria import CriteriaStore
 from .config.rubric_store import RubricStore
 from .config.settings import get_settings
 from .contracts.schemas import CONTRACT_VERSION, ReviewResult
 from .infrastructure.classes import ClassStore
+from .infrastructure.cloudinary_assets import CloudinaryClient
 from .infrastructure.diagram import DiagramResponse
 from .infrastructure.llm.router import build_provider
 from .infrastructure.ratelimit import RateLimiter
+from .infrastructure.report_index import FirestoreReportIndex
 from .infrastructure.share import ShareStore
 from .infrastructure.store import SqliteCache
 from .infrastructure.submissions import SubmissionStore
@@ -81,6 +83,15 @@ _diagram_cache: SqliteCache[DiagramResponse] = SqliteCache(
 )
 _limiter = RateLimiter()
 
+# Cloudinary holds the file bytes, Firestore `assets` the row (Plan 13
+# section 2.7). Both are inert until configured: no credential is touched at import.
+_asset_host = CloudinaryClient(
+    cloud_name=_settings.cloudinary_cloud_name,
+    api_key=_settings.cloudinary_api_key,
+    api_secret=_settings.cloudinary_api_secret,
+)
+_report_index = FirestoreReportIndex(_settings.firebase_project_id)
+
 _upload_store = UploadStore(
     _settings.upload_dir,
     _settings.max_upload_bytes,
@@ -117,6 +128,7 @@ app.include_router(diagram.router)
 app.include_router(diagram.documents_router)
 app.include_router(uploads.router)
 app.include_router(uploads.share_router)
+app.include_router(assets.router)
 app.include_router(submissions.router)
 app.include_router(classes.router)
 

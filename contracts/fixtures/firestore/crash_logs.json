@@ -1,0 +1,11 @@
+{
+  "logId": "c_log_01",
+  "ownerUid": "u_supervisor_01",
+  "type": "non-fatal",
+  "message": "Bad state: Không thể đăng nhập",
+  "userId": "u_supervisor_01",
+  "timestamp": "2026-11-05T02:12:00Z",
+  "stackTrace": "#0      main (file:///app/main.dart:10:9)",
+  "deviceInfo": "android",
+  "reason": "google_sign_in_failed"
+}

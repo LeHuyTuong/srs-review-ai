@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/LeHuyTuong/srs-review-ai/blob/main/contracts/firestore/users.projects.schema.json",
+  "title": "Firestore — users/{uid}/projects/{projectId}",
+  "description": "Project cá nhân của người đang đăng nhập (mobile/lib/services/projects_firestore_service.dart + mobile/lib/models/project.dart). Rules chỉ cho chính chủ ghi, Admin đọc được. Path này giữ nguyên trong Plan 13 §2.4 (Project cá nhân) và KHÁC với collection `projects` học vụ.",
+  "x-contract-version": "1.0.0",
+  "x-collection-path": "users/{uid}/projects/{projectId}",
+  "x-schema-version": 1,
+  "x-writers": [
+    "mobile"
+  ],
+  "x-readers": [
+    "mobile",
+    "admin-web"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "description",
+    "status",
+    "ownerUid",
+    "schemaVersion",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "description": "Tên dự án. Rules chặn rỗng và chặn dài quá 120 ký tự."
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Mô tả. Rules chặn dài quá 1000 ký tự."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "archived"
+      ],
+      "description": "Trạng thái. Giá trị lạ bị Project.fromMap ném FormatException, không rơi về 'active'."
+    },
+    "ownerUid": {
+      "$ref": "#/$defs/Uid",
+      "description": "Firebase Auth UID. Rules bắt buộc khớp userId trong path; update không được đổi."
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Phiên bản shape của doc. Rules yêu cầu == 1; model dùng hằng Project.schemaVersion."
+    },
+    "createdAt": {
+      "$ref": "#/$defs/Timestamp",
+      "description": "serverTimestamp() lúc tạo. Rules yêu cầu == request.time và bất biến khi update."
+    },
+    "updatedAt": {
+      "$ref": "#/$defs/Timestamp",
+      "description": "serverTimestamp() mỗi lần ghi. Rules yêu cầu == request.time."
+    }
+  },
+  "$defs": {
+    "Uid": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Firebase Auth UID."
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Firestore Timestamp. Trong fixture biểu diễn bằng chuỗi ISO-8601 UTC; giá trị thật ghi bằng serverTimestamp() (rules yêu cầu == request.time)."
+    }
+  }
+}

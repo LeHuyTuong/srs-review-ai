@@ -4,11 +4,14 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import 'package:srs_review_ai_mobile/core/firestore/firestore_collections.dart';
 import 'package:srs_review_ai_mobile/firebase_options.dart';
 
 /// Hàm khởi tạo Google Sign-In, seam để test không cần SDK thật.
-typedef GoogleSignInInitializer =
-    Future<void> Function({String? clientId, String? serverClientId});
+typedef GoogleSignInInitializer = Future<void> Function({
+  String? clientId,
+  String? serverClientId,
+});
 
 /// Tham số khởi tạo Google Sign-In cho một nền tảng.
 class GoogleSignInInit {
@@ -49,7 +52,8 @@ class AuthService {
   }) : _firebaseAuth = auth,
        _googleSignIn = googleSignIn ?? GoogleSignIn.instance,
        _googleInitializer =
-           googleInitializer ?? (googleSignIn ?? GoogleSignIn.instance).initialize;
+           googleInitializer ??
+           (googleSignIn ?? GoogleSignIn.instance).initialize;
 
   final FirebaseAuth? _firebaseAuth;
   final GoogleSignIn _googleSignIn;
@@ -138,7 +142,9 @@ class AuthService {
     if (Firebase.apps.isEmpty) return;
     try {
       final firestore = this.firestore ?? FirebaseFirestore.instance;
-      final ref = firestore.collection('users').doc(user.uid);
+      final ref = firestore
+          .collection(FirestoreCollections.users)
+          .doc(user.uid);
       final existing = await ref.get();
       final existingRole = existing.data()?['role'];
       final hasRole = existingRole is String && existingRole.trim().isNotEmpty;

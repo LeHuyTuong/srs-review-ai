@@ -11,6 +11,7 @@ import '../deterministic_checks/checks/rubric_config.dart';
 import '../deterministic_checks/models/ai_criterion.dart';
 import '../diagram_audit/services/page_image_renderer.dart';
 import '../document_import/repositories/document_repository.dart';
+import '../document_import/services/document_archive_service.dart';
 import '../document_import/services/document_map_service.dart';
 import '../features/teacher/data/teacher_repository.dart';
 import '../features/teacher/data/teacher_store.dart';
@@ -403,6 +404,17 @@ final reviewRepositoryProvider = Provider<ReviewRepository>(
 final documentMapServiceProvider = Provider<DocumentMapService?>((ref) {
   if (ref.watch(mockModeProvider)) return null;
   return DocumentMapService(
+    baseUrl: ref.watch(proxyUrlProvider),
+    appToken: ref.watch(appTokenProvider),
+  );
+});
+
+/// Archive client: imported file to Cloudinary, row to Firestore `assets`
+/// (through the server's `/assets` routes). Null in mock mode, like the
+/// anatomy client — there is no server to sign the upload.
+final documentArchiveServiceProvider = Provider<DocumentArchiveService?>((ref) {
+  if (ref.watch(mockModeProvider)) return null;
+  return DocumentArchiveService(
     baseUrl: ref.watch(proxyUrlProvider),
     appToken: ref.watch(appTokenProvider),
   );

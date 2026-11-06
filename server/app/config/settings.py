@@ -156,6 +156,26 @@ class Settings(BaseSettings):
     """Hard ceiling on a single PUT body (40 MiB default). Enforced mid-stream
     so a runaway upload never fills the volume — the partial file is deleted."""
 
+    # --- Cloudinary assets + Firestore index (2026-11-06) ---
+    # Files go to Cloudinary (signed direct upload from the client); the
+    # metadata row goes to Firestore `assets`, written ONLY by this server
+    # through the Admin SDK. Empty cloud name/key/secret => the /assets routes
+    # answer 503 instead of pretending to work.
+    cloudinary_cloud_name: str = ""
+    cloudinary_api_key: str = ""
+    cloudinary_api_secret: str = ""
+    """Signs upload intents and the intent token; never leaves the server."""
+
+    cloudinary_folder: str = "srs_reports"
+    cloudinary_max_bytes: int = Field(default=10 * 1024 * 1024)
+    """Cloudinary Free caps raw files at 10 MB; raise only on a paid plan."""
+
+    cloudinary_intent_ttl_s: int = 15 * 60
+
+    firebase_project_id: str = "srs-ai-prm"
+    """Credentials come from ADC (GOOGLE_APPLICATION_CREDENTIALS pointing at a
+    service-account JSON kept OUTSIDE the repo, or gcloud ADC)."""
+
     # --- Durable cache (2026-09-22) ---
     # The proxy used to keep every review result in memory, so a restart threw
     # away a whole paid-for run (238 units on 2026-09-22) and re-running the

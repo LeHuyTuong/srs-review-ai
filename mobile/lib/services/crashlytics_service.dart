@@ -6,6 +6,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:srs_review_ai_mobile/core/firestore/firestore_collections.dart';
 import 'package:srs_review_ai_mobile/core/services/crashlytics_support.dart';
 
 /// Hợp đồng để ViewModel phụ thuộc vào, dễ thay bằng bản giả lập khi test.
@@ -85,7 +86,7 @@ class FirebaseCrashlyticsService implements CrashlyticsService {
     if (Firebase.apps.isEmpty || uid == null || uid.isEmpty) return;
     try {
       final firestore = this.firestore ?? FirebaseFirestore.instance;
-      final ref = firestore.collection('crash_logs').doc();
+      final ref = firestore.collection(FirestoreCollections.crashLogs).doc();
       await ref.set({
         'logId': ref.id,
         'ownerUid': uid,
@@ -117,7 +118,7 @@ class FirebaseCrashlyticsService implements CrashlyticsService {
     if (Firebase.apps.isEmpty || uid == null || uid.isEmpty) return;
     try {
       final firestore = this.firestore ?? FirebaseFirestore.instance;
-      await firestore.collection('crash_logs').add({
+      await firestore.collection(FirestoreCollections.crashLogs).add({
         'ownerUid': uid,
         'type': 'fatal',
         'message': 'Fatal Crash Test',

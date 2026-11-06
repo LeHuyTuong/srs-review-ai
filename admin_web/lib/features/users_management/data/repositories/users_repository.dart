@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:srs_review_ai_admin_web/core/firestore/firestore_collections.dart';
 import 'package:srs_review_ai_admin_web/features/users_management/domain/models/app_user.dart';
 
 /// Repository cho Users — đọc collection `users` do Mobile App ghi sau khi đăng nhập.
@@ -17,7 +18,7 @@ class FirebaseUsersRepository implements UsersRepository {
 
   @override
   Stream<List<AppUser>> watchUsers() => _db
-      .collection('users')
+      .collection(FirestoreCollections.users)
       .snapshots()
       .map(
         (snapshot) => snapshot.docs.map(_toUser).toList()

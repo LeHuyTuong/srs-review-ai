@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/LeHuyTuong/srs-review-ai/blob/main/contracts/firestore/crash_logs.schema.json",
+  "title": "Firestore — crash_logs/{logId}",
+  "description": "Bản mirror non-fatal/fatal của Crashlytics để Admin Web đọc (mobile/lib/services/crashlytics_service.dart::_mirrorLog và _mirrorFatalTestLog). KHÔNG phải nguồn sự thật của Crashlytics; sự cố thật nằm trong Crashlytics. Admin đọc bằng orderBy('timestamp'). Rules chặn update/delete.",
+  "x-contract-version": "1.0.0",
+  "x-collection-path": "crash_logs/{logId}",
+  "x-schema-version": 1,
+  "x-writers": [
+    "mobile"
+  ],
+  "x-readers": [
+    "admin-web"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ownerUid",
+    "type",
+    "message",
+    "userId",
+    "timestamp",
+    "stackTrace",
+    "deviceInfo"
+  ],
+  "properties": {
+    "logId": {
+      "type": "string",
+      "description": "ID document. Writer non-fatal ghi kèm; writer fatal dùng add() nên KHÔNG ghi, do đó field này có thể vắng."
+    },
+    "ownerUid": {
+      "$ref": "#/$defs/Uid",
+      "description": "Chủ sở hữu. Rules bắt buộc khớp request.auth.uid."
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "non-fatal",
+        "fatal"
+      ],
+      "description": "Loại sự cố mirror."
+    },
+    "message": {
+      "type": "string",
+      "description": "error.toString() cho non-fatal; nhãn cố định cho test fatal."
+    },
+    "userId": {
+      "type": "string",
+      "description": "UID người đang đăng nhập lúc ghi log."
+    },
+    "timestamp": {
+      "$ref": "#/$defs/Timestamp",
+      "description": "serverTimestamp(). Rules yêu cầu == request.time."
+    },
+    "stackTrace": {
+      "type": "string",
+      "description": "Stack trace dạng chuỗi."
+    },
+    "deviceInfo": {
+      "type": "string",
+      "description": "defaultTargetPlatform.name."
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "reason tuỳ chọn; writer bỏ hẳn field khi null."
+    },
+    "appVersion": {
+      "type": "string",
+      "description": "Rules cho phép nhưng chưa writer nào ghi — xem ADR-0020."
+    }
+  },
+  "$defs": {
+    "Uid": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Firebase Auth UID."
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Firestore Timestamp. Trong fixture biểu diễn bằng chuỗi ISO-8601 UTC; giá trị thật ghi bằng serverTimestamp() (rules yêu cầu == request.time)."
+    }
+  }
+}

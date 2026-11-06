@@ -3,9 +3,11 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:srs_review_ai_admin_web/core/firestore/firestore_collections.dart';
 import 'package:srs_review_ai_admin_web/features/srs_reports/domain/models/srs_report.dart';
 
-/// Repository cho SRS Reports — đọc collection `srs_reports` do Mobile App ghi.
+/// Repository cho SRS Reports — đọc collection `assets` do server FastAPI ghi
+/// (Admin SDK, bỏ qua Rules).
 abstract class SrsReportsRepository {
   Stream<List<SrsReport>> watchReports();
   Future<String> resolveDownloadUrl(SrsReport report);
@@ -24,7 +26,7 @@ class FirebaseSrsReportsRepository implements SrsReportsRepository {
 
   @override
   Stream<List<SrsReport>> watchReports() => _db
-      .collection('srs_reports')
+      .collection(FirestoreCollections.assets)
       .orderBy('uploadedAt', descending: true)
       .limit(200)
       .snapshots()
@@ -54,7 +56,12 @@ class FirebaseSrsReportsRepository implements SrsReportsRepository {
       id: document.id,
       fileName: (data['fileName'] as String?) ?? '(không tên)',
       fileSize: (data['fileSize'] as num?)?.toInt() ?? 0,
-      uploadedBy: (data['uploadedByEmail'] as String?) ?? '',
+      // Desktop uploads carry no email (no Firebase login there yet): fall
+      // back to the uploader label the server recorded.
+      uploadedBy:
+          (data['uploadedByEmail'] as String?) ??
+          (data['uploadedBy'] as String?) ??
+          '',
       uploadDate: _timestamp(data['uploadedAt']) ?? DateTime.now(),
       status: (data['status'] as String?) ?? 'pending',
       storagePath: (data['storagePath'] as String?) ?? '',

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:srs_review_ai_admin_web/core/firestore/firestore_collections.dart';
 import 'package:srs_review_ai_admin_web/features/crashlytics_monitor/domain/models/crash_log.dart';
 
 /// Repository cho Crashlytics — đọc bản mirror `crash_logs` do Mobile App ghi.
@@ -17,7 +18,7 @@ class FirebaseCrashlyticsRepository implements CrashlyticsRepository {
 
   @override
   Stream<List<CrashLog>> watchCrashLogs() => _db
-      .collection('crash_logs')
+      .collection(FirestoreCollections.crashLogs)
       .orderBy('timestamp', descending: true)
       .limit(200)
       .snapshots()

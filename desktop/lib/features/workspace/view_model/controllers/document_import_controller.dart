@@ -135,6 +135,10 @@ final class DocumentImportController extends WorkspaceController {
         bytes: loaded.pdfBytes,
         fileName: loaded.document.fileName,
       );
+      await _archiveDocument(
+        bytes: loaded.pdfBytes,
+        fileName: loaded.document.fileName,
+      );
     } on ParseException catch (error) {
       state = state.copyWith(error: error.message, clearImportStatus: true);
     } on Object catch (error) {
@@ -190,6 +194,33 @@ final class DocumentImportController extends WorkspaceController {
     } on Object {
       // Heuristic fallback stays. The import already succeeded; a failed
       // anatomy pass must not turn a good import into an error.
+    }
+  }
+
+  /// Archive the imported PDF: bytes to Cloudinary, metadata row to Firestore
+  /// `assets` (what Admin Web lists), both through the server's `/assets`
+  /// routes. Best-effort like the anatomy pass above: a refusal (e.g. a file
+  /// over the Cloudinary Free 10 MB cap) is logged, never turned into an
+  /// import error. DOCX/demo keep no source bytes, so nothing is archived yet.
+  Future<void> _archiveDocument({
+    required Uint8List? bytes,
+    required String fileName,
+  }) async {
+    if (bytes == null) return;
+    try {
+      // Read INSIDE the try, same reason as _analyzeDocumentOnServer.
+      final service = ref.read(documentArchiveServiceProvider);
+      if (service == null) return; // mock mode
+      final archived = await service.archive(
+        fileName: fileName,
+        bytes: bytes,
+        uploadedBy: ref.read(userIdProvider),
+      );
+      _log(
+        'Lưu trữ: đã upload ${archived.fileName} lên Cloudinary, ghi assets/${archived.id}',
+      );
+    } on Object catch (error) {
+      _log('Lưu trữ: chưa upload được lên Cloudinary — $error');
     }
   }
 

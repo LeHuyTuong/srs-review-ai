@@ -622,3 +622,363 @@ thì nút GSI mới chạy được.
 Ghi chú vận hành: port web cố định nghĩa là không chạy được hai `flutter run` cùng
 lúc — lượt thứ hai báo `Failed to bind web development server ... port 54614`. Dùng
 `--web-port=54616` để chạy tạm song song (cờ dòng lệnh ghi đè file cấu hình).
+
+## 19. Rules Firebase khớp writer/reader `srs_reports` và khoá `users.role`, 06/11/2026
+
+HEAD: `8f2d695`, nhánh `feat/firebase-setup`. Working tree sạch lúc bắt đầu.
+Không commit, không deploy, không đọc secret.
+
+Lý do (đo trên source trước khi sửa):
+
+- `srs_reports` bị DENY cả ghi lẫn đọc: `SrsService.uploadSrs` ghi và Admin Web
+  `SrsReportsRepository` đọc collection này, nhưng `mobile/firestore.rules` chỉ mở
+  `reports` rồi deny-all.
+- `users/{uid}` cho phép client tự đổi `role` tuỳ ý (update chỉ kiểm `uid`).
+- `mobile/firebase.json` thiếu khối `storage` nên `firebase deploy` không deploy
+  `storage.rules`; `storage.rules` chỉ mở `reports/`, trong khi upload ghi vào
+  `srs_reports/{uid}/...`.
+- `uploadSrs` lùi về uid `'anonymous'` khi chưa đăng nhập và không ghi `ownerUid`.
+
+Thay đổi:
+
+| File | Nội dung |
+|---|---|
+| `mobile/firestore.rules` | `userKeys()`, `roleKeptOrDefaulted()`; `users` create chỉ nhận role vắng hoặc `teacher`, update cấm đổi `uid`/`createdAt` và chỉ cho gán role `teacher` khi profile chưa có role. Thêm `srs_reports`: create kiểm 7 key, `ownerUid`, `fileName` 1..255, `fileSize` int 1..30 MB, email khớp token, `storagePath` khớp `srs_reports/<uid>/<file>`, `uploadedAt` là server time; read cho chủ hoặc admin; update/delete cấm. Ghi chú `reports` chưa có writer/reader (đích Plan 13, giữ tới WP2) |
+| `mobile/storage.rules` | `srs_reports/{userId}/{fileName}`: read cho chủ hoặc admin (`firestore.exists` trên `admins/{uid}`); create cho chủ, 0 < size <= 30 MB; update/delete cấm |
+| `mobile/firebase.json` | thêm `"storage": {"rules": "storage.rules"}` |
+| `mobile/lib/services/srs_service.dart` | chưa đăng nhập → `StateError('Cần đăng nhập trước khi upload SRS.')`; ghi thêm `ownerUid` |
+
+| Phép kiểm | Kết quả | Exit code |
+|---|---|---|
+| `flutter analyze --no-pub` (trong `mobile/`) | No issues found | 0 |
+| `python tools/check_guardrails.py` | 61 vi phạm có sẵn ở `desktop/` (layering, tokens, full-screen), không tăng; secrets/native plugins/line endings ok | 1 |
+| `git diff --check` | đạt | 0 |
+| `python -c "json.load(...)"` trên `mobile/firebase.json` | JSON hợp lệ | 0 |
+
+Không có test nào cho `srs_service` trong `mobile/test`, nên không chạy test riêng.
+
+Chưa xác minh:
+
+- Rules **chưa được test bằng emulator**: máy không có Java nên Firestore/Storage
+  emulator không chạy được. Cú pháp rules chưa được Firebase CLI biên dịch.
+- Chưa deploy. Lần deploy storage đầu sẽ hỏi cấp quyền cross-service
+  (Storage đọc Firestore cho `firestore.exists`).
+- Chưa chạy trên device. `uploadSrs` hiện **chưa có màn nào gọi**.
+- Admin Web vẫn dùng `MockAdminAuthService` nên chưa đọc được dữ liệu thật
+  (`isAdmin()` cần đăng nhập Firebase thật và document `admins/{uid}`).
+- Firebase Storage có thể cần gói Blaze, trong khi Plan 13 hướng Cloudinary.
+- Biên: profile có `role` là chuỗi rỗng — writer coi như chưa có role và ghi
+  `teacher`, nhưng rules từ chối (vì `role` đã có trong document); lỗi sync chỉ
+  được log, đăng nhập không hỏng.
+
+Bước tiếp theo: được người dùng đồng ý thì chạy emulator (cần Java) hoặc
+`firebase deploy --only firestore:rules,storage` trên project `srs-ai-prm`;
+nối một màn gọi `uploadSrs`; chuyển Admin Web sang auth Firebase thật rồi kiểm
+luồng upload → Admin đọc trên device.
+
+## 20. Upload SRS qua Cloudinary, metadata vào Firestore do server ghi, 06/11/2026
+
+HEAD: `8f2d695`, nhánh `feat/firebase-setup`. Không commit, không deploy, chưa
+có key Cloudinary hay service account trên máy (không đọc secret).
+
+Quyết định của người dùng: **file lên Cloudinary (gói Free), DB là Firestore**,
+và server ghi metadata. Mục 19 cho client tự tạo `srs_reports` và upload lên
+Firebase Storage — phần đó **đã bị thay**: đã hoàn tác `storage.rules` và khối
+`storage` trong `firebase.json`; Rules `srs_reports` giờ cấm client ghi. Phần
+`users.role` của mục 19 giữ nguyên.
+
+Lý do đổi hướng: tài liệu SRS do sinh viên upload ở **desktop**, nhưng desktop
+không dùng Firebase (firebase_core tắt vì hỏng build Windows) mà upload qua
+FastAPI xuống đĩa server; còn `uploadSrs` của mobile không màn nào gọi. Admin Web
+đọc `srs_reports` nên trước đây không có ai ghi collection đó.
+
+Luồng mới (Plan 13 §2.7, bản tối thiểu):
+
+1. `POST /assets/upload-intents` (app token): server kiểm `.pdf/.docx`, size
+   <= `CLOUDINARY_MAX_BYTES` (mặc định 10 MB = trần raw của gói Free), chọn
+   public_id `srs_reports/<assetId>/<tên>`, ký form upload Cloudinary và trả
+   intent token (HMAC bằng API secret, hết hạn 15 phút).
+2. Client POST file **thẳng lên Cloudinary** (không qua proxy 4,5 MB; không gửi
+   app token sang Cloudinary).
+3. `POST /assets/{assetId}/finalize`: server hỏi Cloudinary Admin API tệp có
+   thật không, size khớp không, rồi mới ghi `srs_reports/{assetId}` bằng
+   Firebase Admin SDK (ADC). Gọi lại an toàn: ghi đè cùng document.
+
+| File | Nội dung |
+|---|---|
+| `server/app/infrastructure/cloudinary_assets.py` | ký tham số Cloudinary, intent token, đọc Admin API |
+| `server/app/infrastructure/report_index.py` | writer Firestore `srs_reports` (import `firebase_admin` lười) |
+| `server/app/api/assets.py`, `main.py`, `api/deps.py`, `config/settings.py` | 2 route mới, singleton, cấu hình |
+| `server/requirements.txt` | `firebase-admin~=7.7.0` (đã cài vào `server/.venv`) |
+| `server/.env.example` | tên biến `CLOUDINARY_*`, ghi chú ADC (không có giá trị) |
+| `server/tests/test_assets.py` | 15 test, không mạng/credential |
+| `desktop/lib/document_import/services/document_archive_service.dart` | client intent → Cloudinary → finalize |
+| `desktop/lib/core/providers.dart`, `.../document_import_controller.dart` | sau import PDF thì lưu trữ, lỗi chỉ ghi log, không làm hỏng import |
+| `desktop/test/document_archive_service_test.dart`; 2 harness test override provider mới về null | |
+| `mobile/lib/services/srs_service.dart` | bỏ Firebase Storage/ghi Firestore trực tiếp; đi cùng luồng server; cần `--dart-define=MOBILE_API_BASE_URL` (tuỳ chọn `MOBILE_APP_TOKEN`) |
+| `mobile/test/srs_service_test.dart` | 4 test với `MockClient` |
+| `mobile/firestore.rules` | `srs_reports`: read chủ (`ownerUid`) hoặc admin; create/update/delete cấm |
+| `admin_web/.../srs_reports_repository.dart` | `uploadedBy` lùi về field `uploadedBy` khi không có email (upload từ desktop) |
+
+| Phép kiểm | Kết quả | Exit code |
+|---|---|---|
+| `server/.venv/Scripts/python.exe -m pytest tests/test_assets.py` | 15 passed | 0 |
+| `server/.venv/Scripts/python.exe -m pytest tests/` (`--basetemp` trong scratchpad vì `%TEMP%\pytest-of-anhvi` bị Access denied) | 373 passed, 1 skipped, 1 failed: `test_store.py::test_reading_refreshes_recency...` — **fail y hệt trên HEAD sạch** (`git archive HEAD`), không do lượt này | 1 |
+| `ruff check .` / `ruff format --check .` (server) | All checks passed / 88 files formatted | 0 / 0 |
+| `dart analyze` file mobile đã sửa + test | No issues found | 0 |
+| `dart analyze lib test` (desktop), `dart analyze lib` (admin_web) | No issues found | 0 |
+| `python tools/check_guardrails.py` | 61 vi phạm có sẵn ở `desktop/`, không tăng; secrets/dependency pins/line endings ok | 1 |
+| `git diff --check` | đạt | 0 |
+
+**Chưa chạy được:** `flutter test` cho `desktop/` và `mobile/`, và `flutter analyze`
+toàn package — lệnh `flutter` treo không in gì vì có tiến trình `flutter` khác giữ
+khoá SDK (một `flutter run` của phiên khác và hai `flutter analyze` mồ côi từ lượt
+này; không được phép dừng tiến trình). Các test Dart mới **đã viết nhưng chưa
+chạy**.
+
+Chưa xác minh:
+
+- Chưa gọi Cloudinary thật: chữ ký kiểm theo ví dụ trong docs Cloudinary
+  (`bfd09f95…`), chưa thử với tài khoản thật. Chưa ghi Firestore thật.
+- Gói Free: raw file tối đa 10 MB → OTES 28,7 MB sẽ bị server từ chối 413 (log
+  ở desktop). Không nén/chia file.
+- File dùng delivery type `upload` (URL công khai, khó đoán) — Plan 13 muốn đọc
+  có kiểm soát (URL ký có hạn); chưa làm.
+- DOCX ở desktop chưa được lưu trữ (desktop chỉ giữ bytes của PDF).
+- `ownerUid`/`uploadedBy` là client tự khai; server chưa kiểm Firebase ID token
+  (Plan 13 WP3). Desktop không có uid Firebase.
+- Mobile vẫn chưa có màn gọi `uploadSrs`; Admin Web vẫn `MockAdminAuthService`
+  nên `isAdmin()` chưa đúng → chưa đọc được `srs_reports`.
+- Rules chưa test bằng emulator (không có Java), chưa deploy.
+- `firebase_storage` còn trong `mobile/pubspec.yaml` (không còn import) — chưa gỡ.
+
+Bước tiếp theo: điền `CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET` vào
+`server/.env`, tạo service account Firestore (để ngoài repo) và đặt
+`GOOGLE_APPLICATION_CREDENTIALS`, restart proxy; chạy `flutter test` desktop +
+mobile khi SDK rảnh; import một PDF < 10 MB ở desktop và kiểm row trên Console;
+deploy `firestore:rules` khi người dùng đồng ý.
+
+Smoke Cloudinary thật (cùng ngày, sau khi người dùng điền key vào `.env` gốc):
+intent 201; upload thẳng lên Cloudinary bị **401 `Invalid api_key Root`** và
+Admin API cũng 401, nên finalize trả 503. `CLOUDINARY_API_KEY` hiện dài 4 ký
+tự: nhiều khả năng đó là **tên** key ("Root") trong Console, không phải API key
+dạng số. Luồng ký/intent/finalize đã chạy đúng tới chỗ Cloudinary xác thực.
+Chưa có credential Firestore (không có `GOOGLE_APPLICATION_CREDENTIALS` hay
+gcloud ADC). `flutter test` vẫn treo vì `flutter run` và hai `flutter analyze`
+cũ vẫn còn chạy.
+
+Smoke lần 2 sau khi người dùng sửa key (key giờ 15 chữ số): intent 201 → upload
+thẳng Cloudinary **200** (`srs_reports/87c1559e7a88d795643e1d6f/smoke-test.pdf`,
+193 bytes, raw) → finalize đọc Admin API, size khớp. Ghi Firestore thật **502
+`DefaultCredentialsError`** (đúng dự kiến: chưa có service account/ADC); với
+index in-memory finalize 200. **Mở `downloadUrl` trả 401**: Cloudinary chặn
+giao file PDF ở tài khoản mới (Settings → Security → "Allow delivery of PDF and
+ZIP files"), nên Admin Web sẽ không mở được link công khai. File smoke 193 bytes
+còn nằm trên Cloudinary của người dùng (không tự xoá).
+
+## 21. WP2 phần A — khoá hợp đồng schema Firestore, 06/11/2026
+
+HEAD khi rà: `8f2d695` ("feat: fix admin web and authen in flutter") — người dùng đã commit
+lượt trước giữa chừng phiên. Working tree lúc rà có thêm công việc **chưa commit**
+của người dùng: `server/app/api/assets.py`, `server/app/infrastructure/cloudinary_assets.py`,
+`server/app/infrastructure/report_index.py`, `server/tests/test_assets.py`, `e2e/`,
+`desktop/lib/document_import/services/document_archive_service.dart`,
+`mobile/test/srs_service_test.dart`, và sửa `mobile/firestore.rules`,
+`mobile/lib/services/srs_service.dart`,
+`admin_web/.../srs_reports_repository.dart`. Hợp đồng dưới đây đối chiếu với **đúng**
+working tree đó.
+
+Bước này **chỉ** ghi tài liệu, contract và test. Không sửa code trong `mobile/`,
+`admin_web/`, `desktop/`, `server/`.
+
+Đã tạo:
+
+| File | Nội dung |
+|---|---|
+| `docs/adr/0020-firestore-schema-contract.md` | ADR-0020, Status **Proposed**. Supersede **một phần** ADR-0019 (file cũ giữ nguyên); bộ vai trò và nơi cấp quyền; quy ước field chung; bên ghi; quyết định `srs_reports` → `assets`; 7 mục OPEN |
+| `contracts/firestore/collections.json` | 32 mục: 5 `implemented` + 27 `planned`. Mỗi mục có `path`, `status`, `writers`, `readers`, `schemaVersion`, `schema`, `notes` |
+| `contracts/firestore/users.schema.json` | `users/{uid}` |
+| `contracts/firestore/users.projects.schema.json` | `users/{uid}/projects/{projectId}` |
+| `contracts/firestore/crash_logs.schema.json` | `crash_logs/{logId}` |
+| `contracts/firestore/admins.schema.json` | `admins/{adminUid}` |
+| `contracts/firestore/assets.schema.json` | `assets/{assetId}`, dùng chung với `srs_reports` |
+| `contracts/fixtures/firestore/*.json` | 5 fixture hợp lệ theo schema tương ứng |
+| `tools/tests/test_firestore_contract.py` | 7 test, stdlib `unittest`, không thêm dependency |
+
+Field trong schema lấy từ writer thật, không bịa: `users` từ
+`AuthService._syncUserProfile`, `users.projects` từ `Project.toCreateMap()` +
+`projectKeys()` trong rules, `crash_logs` từ `FirebaseCrashlyticsService._mirrorLog`,
+`assets/srs_reports` từ `server/app/api/assets.py` (row) +
+`server/app/infrastructure/report_index.py` (uploadedAt).
+
+Evidence đo trong lượt này:
+
+| Phép kiểm | Kết quả | Exit code |
+|---|---|---|
+| `python -m unittest discover -s tools/tests -v` | Ran 38 tests, OK (31 trước + 7 mới) | 0 |
+| `python tools/check_guardrails.py` | 61 vi phạm có sẵn, không tăng; `secrets` ok | 1 |
+| `git diff --check` | đạt | 0 |
+| `git status --short` | xem bên dưới | 0 |
+
+Lệch giữa code và Plan 13 đã phát hiện (ghi ở ADR-0020 và trong `notes` của danh mục):
+
+1. `srs_reports` là tên cũ; đích Plan 13 §2.4 là `assets`. Chưa đổi code, schema dùng chung.
+2. `reports`: rules đã có match nhưng không writer/reader nào trong code; mobile data model §2 nói owner tự tạo, Plan 13 §2.4 nói "writer/reader/Rules cùng path" → ba nguồn chưa thống nhất.
+3. `admins/{uid}` không có hợp đồng field: rules chỉ kiểm `exists()`, không writer/reader nào đọc field → schema để trống `properties`.
+4. Field đọc nhưng không writer nào ghi: `srs_reports.status` (admin fallback 'pending'), `users.createdAt`; và field rules cho phép nhưng không writer ghi: `users.fcmTokens`, `crash_logs.appVersion`.
+5. `schemaVersion`: code dùng 1 (`users.projects`), Plan 13 §2.4 yêu cầu 2; `users`, `crash_logs`, `srs_reports` không có field này.
+6. Doc dự trữ `courseCodes`/`classCodes`/`groupNames` có trong mobile data model §2 nhưng **không** có trong bảng §2.4 của Plan 13.
+7. Nhiều literal collection trong `mobile/lib` (`'projects'`, `'classes'`, `'courses'`…) **không phải** Firestore mà là key của fake repository; test (b) chỉ soi `.collection(`/`COLLECTION =` để không bắt nhầm.
+8. Mobile đã phụ thuộc FastAPI (`srs_service.dart` gọi `/assets/upload-intents` và `/assets/{id}/finalize`, base URL lấy từ `MOBILE_API_BASE_URL`) trong khi ADR-0019 nói custom backend out of scope → mục OPEN 1 của ADR-0020.
+
+Những gì CHƯA chắc (ghi rõ thay vì đoán):
+
+- Field nào đúng cho `admins/{uid}`: không có writer/reader trong code, nên schema cố ý không khai field. Nếu đã tạo doc admin ở Console có field, doc đó **không** khớp schema này.
+- Tên `uploadIntents`/`migrationManifests` là tạm; Plan 13 chỉ ghi "nội bộ".
+- Test (b) chỉ bắt **tên** collection, không bắt field của doc ghi thật: writer lệch schema vẫn lọt. Cần kiểm payload thật trên emulator (WP5).
+- Chưa kiểm rules trên Console/emulator; không biết rules đang sửa trong working tree đã deploy lên project chưa.
+- Chưa biết collection nào trong 27 mục `planned` sẽ được dùng thật; danh mục ghi cả mục tiêu để không quên, không phải khẳng định sẽ có.
+
+Lượt này không commit, không deploy, không đọc/in `.env` hay secret.
+
+### 21.1. Lượt sửa sau review (06/11/2026)
+
+Review của người dùng đã chạy lại bốn lệnh kiểm chứng và xác nhận phần lớn đạt
+(7/7 test mới pass, tools/tests 38 OK, guardrails 61, `git diff --check` sạch, không
+đụng code app). Bốn điểm đã sửa:
+
+1. **`docs/adr/README.md`**: thêm dòng `0020` (Status **Proposed**) đúng format các
+   dòng trước, và đổi "Số tiếp theo: 0020." thành **0021**.
+2. **`contracts/firestore/assets.schema.json`** siết lại đúng bằng writer thật
+   (`server/app/api/assets.py`): `source` có `enum: ["desktop", "mobile"]` (server
+   khai `Literal["desktop", "mobile"]`), `fileSize` có `minimum: 1` (intent chỉ nhận
+   `size_bytes > 0` và finalize so khớp byte Cloudinary), `uploadedBy` là `string`
+   (không null — cả ba claims `by/email/owner` đều mặc định `""` nên giá trị có
+   thể là chuỗi rỗng), `ownerUid` là `string` và chỉ có khi client gửi owner
+   (server bỏ hẳn field khi rỗng, không ghi null). Fixture không cần sửa.
+3. **Đóng lỗ hổng "test chỉ bắt tên, writer lệch field vẫn lọt"** cho writer
+   server: thêm 3 test vào `server/tests/test_assets.py` (chỉ sửa file test, **không**
+   sửa code server). Các test chạy finalize thật với `InMemoryReportIndex`, đọc
+   `contracts/firestore/assets.schema.json` rồi khẳng định mọi key của row nằm
+   trong `properties`, mọi `required` có mặt, `source` thuộc enum, `provider` đúng
+   `const`, và `fileSize` không nhỏ hơn trần. Không thêm dependency (không dùng
+   `jsonschema`). Ba ca: có email+owner; không có email/owner (server bỏ field thay
+   vì ghi null); và cả ba claims rỗng (`uploadedBy` là `""`).
+4. Mục 21 ở trên được giữ nguyên, thêm số đo lượt này.
+
+Số đo thật của lượt sửa:
+
+| Phép kiểm | Kết quả | Exit code |
+|---|---|---|
+| `cd server && .venv/Scripts/python.exe -m pytest tests/test_assets.py -p no:cacheprovider --basetemp=C:\Users\anhvi\.pytest-srs-tmp -q` | 18 passed (15 cũ + 3 mới) | 0 |
+| `server/.venv/Scripts/ruff.exe check server` | All checks passed! | 0 |
+| `server/.venv/Scripts/ruff.exe format --check server` | 88 files already formatted | 0 |
+| `python -m unittest discover -s tools/tests` | Ran 38 tests, OK | 0 |
+| `python tools/check_guardrails.py` | 61 vi phạm có sẵn, không tăng; `secrets` ok | 1 |
+| `git diff --check` | đạt | 0 |
+
+Ghi chú: `ruff format --check server` báo đỏ lần đầu vì ba test mới viết chưa đúng
+format; đã chạy `ruff format` trên `server/tests/test_assets.py` (chỉ gộp dòng của
+phần vừa thêm) rồi chạy lại toàn bộ bốn lệnh trên — xanh hết. `--basetemp` trỏ
+ra ngoài repo vì `%TEMP%\pytest-of-anhvi` bị Access denied.
+
+Lượt sửa này vẫn không commit, không deploy, không đọc/in `.env` hay secret.
+
+## 22. WP2 phần B — hằng số tên collection và đổi `srs_reports` → `assets`, 06/11/2026
+
+HEAD khi rà: `8f2d695` (`feat: fix admin web and authen in flutter`). Working tree vẫn có
+công việc **chưa commit** của người dùng (server assets/Cloudinary, `e2e/`, desktop
+document archive, `mobile/firestore.rules`, `mobile/lib/services/srs_service.dart`, và
+các file test tương ứng). Lượt này sửa trên đúng working tree đó.
+
+Nguyên tắc: **chỉ đổi tên, không đổi hành vi**. Đổi tên collection Firestore thì
+được; đổi `cloudinary_folder` (đường dẫn file trên Cloudinary) thì **không** — nên
+giữ nguyên `cloudinary_folder = "srs_reports"` và tên feature/folder `srs_reports`
+của admin_web.
+
+Đã làm:
+
+| File | Nội dung |
+|---|---|
+| `mobile/lib/core/firestore/firestore_collections.dart` (mới) | class `FirestoreCollections`: `users`, `usersProjects`, `crashLogs`, `assets` |
+| `admin_web/lib/core/firestore/firestore_collections.dart` (mới) | class `FirestoreCollections`: `users`, `crashLogs`, `assets` |
+| `mobile/lib/services/auth_service.dart`, `crashlytics_service.dart`, `projects_firestore_service.dart` | literal `.collection('...')` → hằng số |
+| `admin_web/lib/features/*/data/repositories/*.dart` (3 file) | literal → hằng số; repository `srs_reports` đọc `assets` |
+| `server/app/infrastructure/report_index.py` | `COLLECTION = "assets"` |
+| `mobile/firestore.rules` | `match /srs_reports/{reportId}` → `match /assets/{assetId}`, cùng logic (chủ sở hữu hoặc admin đọc; create/update/delete false) |
+| `server/app/api/assets.py`, `server/app/main.py`, `server/app/config/settings.py`, `mobile/lib/services/srs_service.dart`, `desktop/lib/core/providers.dart`, `desktop/lib/document_import/services/document_archive_service.dart`, `desktop/.../document_import_controller.dart` | comment/docstring còn nhắc `srs_reports` → `assets` (giá trị `cloudinary_folder` giữ nguyên) |
+| `contracts/firestore/collections.json` | bỏ mục `srs_reports`; `assets` → `implemented` |
+| `contracts/firestore/assets.schema.json` | tiêu đề/mô tả bỏ "đường dẫn hiện tại: srs_reports" |
+| `docs/adr/0020-firestore-schema-contract.md` | §2.5 ghi đã thực hiện + **không có dữ liệu để migrate** |
+| `tools/check_guardrails.py` | **luật 10**: cấm literal `.collection('...')` trong `mobile/lib`, `admin_web/lib` (ngoài file hằng số) và trong `server/app` (ngoài `infrastructure/report_index.py`) |
+| `tools/tests/test_firestore_contract.py` | (b) đọc giá trị trong hai file hằng số + quét literal ở chỗ khác; thêm test "hằng số có trong danh mục" |
+| `AGENTS.md` | "9 nhóm luật" → "10 nhóm luật" + mô tả luật 10 |
+
+### 22.1. Bằng chứng
+
+| Phép kiểm | Kết quả | Exit code |
+|---|---|---|
+| `cd server && .venv/Scripts/python.exe -m pytest tests/ -p no:cacheprovider --basetemp=<thư mục tạm ngoài repo> -q` | 378 test: **377 pass + 1 skip, 0 fail** | 0 |
+| `server/.venv/Scripts/ruff.exe check server` | All checks passed! | 0 |
+| `server/.venv/Scripts/ruff.exe format --check server` | 88 files already formatted | 0 |
+| `dart format --output=none --set-exit-if-changed .` (desktop) | 419 files, 0 changed | 0 |
+| `dart analyze lib test` (mobile) | No issues found! | 0 |
+| `dart analyze lib` (admin_web) | No issues found! | 0 |
+| `python -m unittest discover -s tools/tests` | Ran 39 tests, OK | 0 |
+| `python tools/check_guardrails.py` | **61 vi phạm** (không tăng), luật mới `[ ok] firestore collection names (constants only)` | 1 |
+| `git diff --check` | đạt | 0 |
+
+Một lượt pytest **trước đó** có 1 fail: `tests/test_store.py::test_reading_refreshes_recency_so_a_hit_is_not_the_next_victim` — test có sẵn từ trước, không do lượt này, và **pass lại** ở lượt ngay sau (nên nó là test phụ thuộc thứ tự recency, đáng ghi lại là flaky).
+
+### 22.2. Probe chứng minh luật 10 sống
+
+Chèn tạm một file Dart có literal ở dạng `dart format` sẽ xếp (nhiều dòng):
+
+```dart
+await firestore
+    .collection(
+      'users',
+    )
+    .snapshots();
+```
+
+Chạy `python tools/check_guardrails.py`:
+
+```
+[FAIL] firestore collection names (constants only)
+
+62 guardrail violation(s):
+
+  [firestore-collection-names] mobile/lib/zz_probe_guardrail_tmp.dart:7
+      .collection('users') - name a collection only in FirestoreCollections (mobile/admin_web) or COLLECTION (server); the catalogue is contracts/firestore/collections.json
+```
+
+Gỡ probe → `[ ok] firestore collection names (constants only)` và **61 vi phạm** như baseline.
+
+### 22.3. Bẫy đã dính: message tiếng Việt làm script guardrail chết
+
+Bản đầu của luật 10 dùng message tiếng Việt. Console Windows ở đây là cp1258, nên
+`print(violation)` ném `UnicodeEncodeError` (`'charmap' codec can't encode character
+'\u1ec9'`) **giữa lúc in danh sách vi phạm** — script chết sau khi đã in "62
+guardrail violation(s)", khiến phần còn lại của danh sách **không in ra** và trông
+y hệt "rule không bắt được gì". Các luật cũ đều dùng message tiếng Anh, nên đã sửa
+luật 10 theo đúng convention đó.
+
+### 22.4. Điều KHÔNG kiểm được
+
+- **Chưa deploy rules lên project**: `match /assets/{assetId}` mới chỉ nằm trong
+  source. Firestore thật vẫn còn collection `srs_reports` cũ (rỗng) và chưa có
+  `assets`. Lượt này không deploy, không đọc/ghi Firestore thật.
+- **Chưa chạy app**: không chạy `flutter run`/`flutter test` (lệnh `flutter` đang
+  treo vì khoá SDK — dùng `dart analyze` thay thế như bạn chỉ định). Nên chưa xác
+  minh runtime: Admin Web đọc được `assets`, mobile ghi được `users`/`crash_logs`.
+- **Chưa kiểm collection trên emulator**: không có Firebase Emulator chạy; test (b)
+  của hợp đồng vẫn là kiểm tên + shape file + fixture, chưa kiểm payload thật của
+  client với schema (writer server thì đã có test trong `server/tests/test_assets.py`).
+- **Không chắc** có collection nào đã từng được ghi vào `srs_reports`: người dùng
+  nói chưa (mọi lần ghi Firestore thật đều lỗi DefaultCredentialsError). Tôi ghi
+  đúng nghĩa vậy vào ADR-0020 §2.5, chưa tự kiểm collection trên cloud.
+- **Danh mục 32 → 31 mục** sau khi bỏ `srs_reports` và gộp `assets` thành
+  `implemented`.
+
+Lượt này không commit, không deploy rules, không đọc/in `.env` hay secret.

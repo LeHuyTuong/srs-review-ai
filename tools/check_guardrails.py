@@ -928,6 +928,65 @@ def git_tracked_files() -> list[str]:
     return output.stdout.splitlines()
 
 
+# --------------------------------------------------------------------------
+# 10. FIRESTORE COLLECTION NAMES — one constant, one catalogue
+# --------------------------------------------------------------------------
+# A collection name typed inline in a client is a name nobody has to declare:
+# it drifts from contracts/firestore/collections.json and from the Rules, and
+# two apps can quietly end up reading different databases. The names now live
+# in FirestoreCollections (mobile, admin_web) and in COLLECTION (server).
+#
+# The pattern spans lines on purpose: "dart format" wraps a long call into
+#     .collection(
+#       'users',
+#     )
+# and a rule that reads one line at a time would let exactly that through.
+COLLECTION_LITERAL = re.compile(
+    r"\.collection\(\s*['\"]([A-Za-z0-9_]+)['\"]",
+    re.DOTALL,
+)
+
+# The files that are ALLOWED to name a collection.
+COLLECTION_CONSTANT_FILES = {
+    "mobile/lib/core/firestore/firestore_collections.dart",
+    "admin_web/lib/core/firestore/firestore_collections.dart",
+}
+SERVER_COLLECTION_FILES = {"server/app/infrastructure/report_index.py"}
+
+
+def check_firestore_collection_names(files: list[Path]) -> list[Violation]:
+    violations: list[Violation] = []
+    for path in files:
+        rel = path.relative_to(REPO).as_posix()
+        if rel in COLLECTION_CONSTANT_FILES or rel in SERVER_COLLECTION_FILES:
+            continue
+        if path.suffix == ".dart":
+            if not rel.startswith(("mobile/lib/", "admin_web/lib/")):
+                continue
+        elif path.suffix == ".py":
+            if not rel.startswith("server/app/"):
+                continue
+        else:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError as exc:
+            raise InputUnavailable(f"cannot read {path}: {exc}") from exc
+        for match in COLLECTION_LITERAL.finditer(text):
+            number = text.count("\n", 0, match.start()) + 1
+            violations.append(
+                Violation(
+                    "firestore-collection-names",
+                    rel,
+                    number,
+                    f".collection('{match.group(1)}') — name a collection only in "
+                    "FirestoreCollections (mobile/admin_web) or COLLECTION (server); "
+                    "the catalogue is contracts/firestore/collections.json",
+                )
+            )
+    return violations
+
+
 def main() -> int:
     try:
         files = collect_files()
@@ -948,6 +1007,7 @@ def main() -> int:
         "native plugins behind a probe or fake": lambda: check_native_plugins(files),
         "full-screen modal surfaces (no bottom sheets)": lambda: check_full_screen_surfaces(files),
         "line endings (no CR in a stored text blob)": check_line_endings,
+        "firestore collection names (constants only)": lambda: check_firestore_collection_names(files),
     }
 
     total: list[Violation] = []

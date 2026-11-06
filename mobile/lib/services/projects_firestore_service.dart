@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:srs_review_ai_mobile/core/firestore/firestore_collections.dart';
 import 'package:srs_review_ai_mobile/models/project.dart';
 
 /// Hợp đồng của lớp dịch vụ: đây là nơi DUY NHẤT trong app nói chuyện với Firestore SDK.
@@ -27,8 +28,10 @@ class FirestoreProjectsService implements ProjectsService {
 
   FirebaseFirestore get _db => _firestore ?? FirebaseFirestore.instance;
 
-  CollectionReference<Map<String, dynamic>> _projects(String ownerUid) =>
-      _db.collection('users').doc(ownerUid).collection('projects');
+  CollectionReference<Map<String, dynamic>> _projects(String ownerUid) => _db
+      .collection(FirestoreCollections.users)
+      .doc(ownerUid)
+      .collection(FirestoreCollections.usersProjects);
 
   @override
   Stream<List<Project>> watchProjects(String ownerUid) => _projects(ownerUid)

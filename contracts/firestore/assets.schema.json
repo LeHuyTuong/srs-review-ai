@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/LeHuyTuong/srs-review-ai/blob/main/contracts/firestore/assets.schema.json",
+  "title": "Firestore — assets/{assetId}",
+  "description": "Metadata tệp SRS sau khi server FastAPI đã hỏi Cloudinary xác nhận bytes. Writer DUY NHẤT: server/app/infrastructure/report_index.py (Firebase Admin SDK, bỏ qua Rules). Reader: admin_web .../srs_reports_repository.dart (orderBy uploadedAt desc). Tên collection là `assets` (Plan 13 §2.4); trước đây là `srs_reports`, đã đổi đồng bộ ở ADR-0020 §2.5 và chưa từng có document nào được ghi vào tên cũ nên không có dữ liệu cần migrate. Admin Web còn đọc `status` (fallback 'pending') nhưng KHÔNG writer nào ghi field đó, nên nó không có trong schema; thêm writer thì phải khai field trước.",
+  "x-contract-version": "1.0.0",
+  "x-collection-path": "assets/{assetId}",
+  "x-schema-version": 1,
+  "x-writers": [
+    "server-fastapi"
+  ],
+  "x-readers": [
+    "admin-web"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "fileName",
+    "fileSize",
+    "source",
+    "uploadedBy",
+    "provider",
+    "storagePath",
+    "downloadUrl",
+    "uploadedAt"
+  ],
+  "properties": {
+    "fileName": {
+      "type": "string",
+      "description": "Tên file khai trong upload intent."
+    },
+    "fileSize": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Số byte Cloudinary xác nhận. Intent chỉ nhận size_bytes > 0 (Field(gt=0)) và finalize so khớp với byte Cloudinary, lệch thì 422."
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "desktop",
+        "mobile"
+      ],
+      "description": "Nguồn upload. Server khai Literal['desktop', 'mobile'] nên giá trị khác bị 422 lúc xin intent."
+    },
+    "uploadedBy": {
+      "type": "string",
+      "description": "by → email → owner, tuỳ thứ có trước trong claims. Cả ba mặc định là chuỗi rỗng nên đôi khi giá trị này là \"\" — không bao giờ null."
+    },
+    "uploadedByEmail": {
+      "type": "string",
+      "description": "Email người upload; chỉ có khi upload intent có email (server bỏ hẳn field khi rỗng, không ghi null)."
+    },
+    "provider": {
+      "type": "string",
+      "const": "cloudinary",
+      "description": "Nơi chứa bytes; Firestore chỉ giữ metadata."
+    },
+    "storagePath": {
+      "type": "string",
+      "description": "public_id của Cloudinary; Admin Web mở file bằng path này."
+    },
+    "downloadUrl": {
+      "type": "string",
+      "description": "secure_url của Cloudinary."
+    },
+    "ownerUid": {
+      "type": "string",
+      "description": "Firebase UID người upload; chỉ có khi upload intent có owner (server bỏ hẳn field khi rỗng, không ghi null). Rules dùng field này để chủ sở hữu được đọc."
+    },
+    "uploadedAt": {
+      "$ref": "#/$defs/Timestamp",
+      "description": "SERVER_TIMESTAMP do server ghi; reader sắp xếp theo field này."
+    }
+  },
+  "$defs": {
+    "Uid": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Firebase Auth UID."
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Firestore Timestamp. Trong fixture biểu diễn bằng chuỗi ISO-8601 UTC; giá trị thật ghi bằng serverTimestamp() (rules yêu cầu == request.time)."
+    }
+  }
+}
