@@ -1,14 +1,20 @@
 # Tiến độ Plan 13
 
-Cập nhật: 05/11/2026, Asia/Saigon. HEAD lúc lưu:
+Cập nhật: 05/11/2026, Asia/Saigon. Mốc khảo sát gốc khi lập plan:
 `f3de9fe06fca298d6822ea9b22e55d03a6540c9c`, nhánh `feat/firebase-setup`.
+
+HEAD khi rà lại tài liệu: `473bf720d90a43498229901611e70042062324a8`, commit đã
+đưa bộ Plan 13 vào repo. Đây là mốc checkout mới, chưa có phép đo WP0 trên mốc
+này. Khi bắt đầu WP0, chạy lại `python tools/project_context.py`, inventory và
+các phép đo baseline trên HEAD thực tế, kèm working tree; không dùng lại kết quả
+ở `f3de9fe`. Nếu HEAD đổi tiếp thì ghi mốc mới, không pin cứng `473bf72`.
 
 [Plan đầy đủ](13-firebase-fastapi-cloudinary-integration.md) ·
 [Prompt agent](13-handoff-prompt.md) · [Hiện trạng](../project-status.md).
 
-Lượt này chỉ lưu plan/notes. **Tất cả WP còn TODO**. Chưa đổi application code,
-ADR, Rules, cloud, dữ liệu thật hoặc trạng thái nghiệm thu. Lựa chọn người dùng
-đã ghi ở mục 1.1 của plan, không cần hỏi lại khi tiếp quản.
+Bắt đầu triển khai ngày 05/11: **WP0 đạt LOCAL_PASS ở phần local**; phần
+Firestore và nguồn dữ liệu thật đang WAITING_USER. WP1–WP15 còn TODO. Chưa đổi
+application code, ADR, Rules, cloud hoặc dữ liệu thật trong WP0.
 
 ## 1. Trạng thái chặng
 
@@ -18,7 +24,7 @@ Không dùng VERIFIED khi chỉ compile/unit tests mà còn thiếu device/cloud
 
 | WP | Công việc | Trạng thái | Điều kiện nghiệm thu chính | Evidence triển khai |
 |---|---|---|---|---|
-| WP0 | Baseline/inventory/backup | TODO | Đọc đủ nguồn, manifest/hash, đầu vào thiếu ghi rõ | NOT_RUN |
+| WP0 | Baseline/inventory/backup | LOCAL_PASS | Đọc đủ nguồn, manifest/hash, đầu vào thiếu ghi rõ | [wp0-baseline-2026-11-05.md](../evidence/wp0-baseline-2026-11-05.md) |
 | WP1 | Guardrails/toolchain/CI/baseline tests | TODO | Sửa lỗi/đo lại, không che thiếu golden | NOT_RUN |
 | WP2 | ADR/contract/schema/quyền | TODO | Path/owner/status/version/writer và fixture tests đủ | NOT_RUN |
 | WP3 | Auth API/mobile/Admin | TODO | Login thật/UID đúng/allowed-denied/session isolation | NOT_RUN |
@@ -35,8 +41,9 @@ Không dùng VERIFIED khi chỉ compile/unit tests mà còn thiếu device/cloud
 | WP14 | E2E/ARTEMIS/MobAI/review | TODO | Cả hai tools, healing/bug fail-fix-pass, findings/fixes | NOT_RUN |
 | WP15 | Cutover/hồ sơ | TODO | Đối chiếu mọi data, một nguồn, artifact Lab 3 đủ | NOT_RUN |
 
-WP tiếp theo khi được giao implement: **WP0**. Không tự bắt đầu từ WP3 hoặc
-deploy cấu hình chỉ vì đã có Firebase SDK.
+WP tiếp theo: **WP1** (guardrails/toolchain) cho phần local. WP0 chỉ đạt
+LOCAL_PASS; phần Firestore/nguồn dữ liệu thật đang WAITING_USER và không chặn
+WP1. Không tự bắt đầu từ WP3 hoặc deploy cấu hình chỉ vì đã có Firebase SDK.
 
 ## 2. Đầu vào ngoài repo
 
@@ -45,7 +52,7 @@ Kích hoạt điểm dừng khi đến đúng WP và đã kiểm đầu vào s�
 
 | Đầu vào | WP liên quan | Hiện trạng |
 |---|---|---|
-| Nguồn dữ liệu thật/local profiles/exports | WP0, WP10 | Chưa kiểm kê theo plan |
+| Nguồn dữ liệu thật/local profiles/exports | WP0, WP10 | Đã kiểm kê local 05/11: chỉ có fixture 26/09; không có `.classes`/`.submissions`/Sembast; Firestore chưa đo |
 | Visual baseline hoặc Figma làm reference | WP1 | Kiểm lại artifact; không tự record |
 | Firebase Google/SHA/domain/access grants | WP3 | Kiểm trước, không hỏi lại project đã có |
 | ADC/IAM/token signing | WP3–WP4 | Chưa probe theo plan |
@@ -64,10 +71,29 @@ Không tự nâng Cloudinary, bật billing, mua gói công cụ hoặc đổi p
 
 ## 3. Nhật ký WP
 
-Chưa có nhật ký triển khai. Mỗi lượt bổ sung WP, HEAD/diff, việc làm,
-commands/exit codes, artifact, phần chưa kiểm, blocker/input chính xác và bước
-tiếp theo. Ghi cả kiểm thử thất bại; không ghi đè lịch sử bằng kết quả mới.
+Mỗi lượt bổ sung WP, HEAD/diff, việc làm, commands/exit codes, artifact, phần
+chưa kiểm, blocker/input chính xác và bước tiếp theo. Ghi cả kiểm thử thất bại;
+không ghi đè lịch sử bằng kết quả mới.
 
-Kiểm tài liệu lúc lưu plan ở
-[evidence lưu Plan 13](../evidence/plan13-documentation-2026-11-05.md), không tính
-là nghiệm thu bất kỳ WP nào.
+Kiểm tài liệu lúc lưu plan chưa có artifact độc lập trong repo để đối chiếu.
+Không ghi nhận một đường dẫn chưa tồn tại là evidence. Các lần kiểm mới phải
+ghi đúng HEAD, lệnh và kết quả thực tế; kiểm tài liệu không nghiệm thu bất kỳ WP nào.
+
+### WP0 — 05/11/2026, HEAD `473bf72`
+
+- Trạng thái: **LOCAL_PASS** (phần local); Firestore + nguồn dữ liệu thật ở
+  WAITING_USER.
+- Việc làm: thêm `tools/wp0_baseline.py` (inventory/backup/verify, fail-closed,
+  redact đường dẫn, SQLite read-only) và 16 test; đo 9 nguồn; backup 8 file ra
+  ngoài repo.
+- Kết quả đo: 4 present, 4 absent, 1 not_measured, 0 unreadable;
+  `cache_entries=63`; uploads 6 file / 4.629.878 B (2 key cùng một PDF);
+  shares 31 file / 991 B toàn placeholder test.
+- Lệnh: `project_context` 0; `unittest discover -s tools/tests` 0 (27 test);
+  `inventory --out` 0; `backup` 0; `verify` 0 (drift 0).
+- Chưa kiểm: Firestore (thiếu ADC), dữ liệu thật (không có trên máy), Chrome
+  profile/Sembast cũ, cloud/device.
+- Evidence: [wp0-baseline-2026-11-05.md](../evidence/wp0-baseline-2026-11-05.md),
+  manifest [wp0-inventory-2026-11-05.json](../evidence/wp0-inventory-2026-11-05.json).
+- Bước tiếp: WP1; chờ người dùng cung cấp vị trí dữ liệu thật + credential theo
+  mục 8 của evidence.

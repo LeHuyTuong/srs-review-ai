@@ -14,3 +14,8 @@ lượt trước. Ghi append-only, kiểm toàn bộ prefix bằng bytes ngay sa
   mẫu yêu cầu thao tác cụ thể và quy tắc dừng trước phí mới.
 
 Không triển khai code, chạy cloud/device hoặc đổi trạng thái nghiệm thu WP.
+
+Kiểm sau khi sửa: Python xác nhận hash prefix không đổi, một heading ở dòng 113,
+ba link mới tồn tại, phần nối UTF-8 và không trailing whitespace; exit 0.
+Ruff check và format --check server đạt; git diff --check đạt. Không chạy lại app
+tests vì chỉ nối tài liệu, không đổi runtime.

@@ -61,6 +61,7 @@ class LoginViewModel extends ChangeNotifier {
   final AnalyticsService analytics;
   final CrashlyticsService crashlytics;
   StreamSubscription<User?>? _authSubscription;
+  StreamSubscription<GoogleSignInAccount>? _webSignInSubscription;
 
   AuthStatus _status = AuthStatus.initial;
   String? _errorMessage;
@@ -96,6 +97,62 @@ class LoginViewModel extends ChangeNotifier {
       );
       _setError(error);
       return LoginResult.failed;
+    }
+  }
+
+  /// Web: chuẩn bị nút GSI và nghe sự kiện đăng nhập của plugin.
+  ///
+  /// `google_sign_in_web` không hỗ trợ `authenticate()`, nên trên web người dùng
+  /// bấm nút GSI do plugin dựng; kết quả đến qua stream sự kiện.
+  Future<void> prepareWebSignIn() async {
+    if (_webSignInSubscription != null) {
+      return;
+    }
+    try {
+      await authService.ensureGoogleInitialized();
+      _webSignInSubscription = authService.webSignInEvents.listen(
+        (account) => unawaited(_completeWebSignIn(account)),
+        onError: (Object error, StackTrace stackTrace) {
+          _reportError(
+            error,
+            stackTrace,
+            'google_sign_in_failed',
+            'web_sign_in_event',
+          );
+          _setError(error);
+        },
+      );
+    } catch (error, stackTrace) {
+      _reportError(
+        error,
+        stackTrace,
+        'google_sign_in_failed',
+        'web_initialize',
+      );
+      _setError(error);
+    }
+  }
+
+  Future<void> _completeWebSignIn(GoogleSignInAccount account) async {
+    _setStatus(AuthStatus.loading);
+    try {
+      final user = await authService.completeWebSignIn(account);
+      if (user == null) {
+        _setStatus(AuthStatus.unauthenticated);
+        return;
+      }
+      _setAuthenticated(user);
+      await analytics.logLogin();
+      await analytics.setUser(user.uid);
+      await crashlytics.setUser(user.uid);
+    } catch (error, stackTrace) {
+      await crashlytics.logError(
+        error,
+        stackTrace,
+        reason: 'google_sign_in_failed',
+        keys: {'auth_step': 'signInWithCredential'},
+      );
+      _setError(error);
     }
   }
 
@@ -175,6 +232,7 @@ class LoginViewModel extends ChangeNotifier {
   @override
   void dispose() {
     unawaited(_authSubscription?.cancel());
+    unawaited(_webSignInSubscription?.cancel());
     super.dispose();
   }
 }

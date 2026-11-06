@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:srs_review_ai_mobile/theme/app_metrics.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:srs_review_ai_mobile/core/services/google_sign_in_button.dart';
 import 'package:srs_review_ai_mobile/features/account/presentation/viewmodels/login_view_model.dart';
 import 'package:srs_review_ai_mobile/theme/app_spacing.dart';
 import 'package:srs_review_ai_mobile/theme/app_typography.dart';
@@ -19,6 +23,15 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginState extends ConsumerState<LoginScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Web dùng nút GSI của plugin nên phải khởi tạo trước khi dựng nút.
+    if (kIsWeb) {
+      unawaited(ref.read(loginViewModelProvider).prepareWebSignIn());
+    }
+  }
+
   Future<void> _loginWithGoogle() async {
     final viewModel = ref.read(loginViewModelProvider);
     final result = await viewModel.loginWithGoogle();
@@ -71,14 +84,22 @@ class _LoginState extends ConsumerState<LoginScreen> {
                       auth.errorMessage!,
                       style: const TextStyle(color: AppColors.danger),
                     ),
-                  AppButton(
-                    label: auth.status == AuthStatus.loading
-                        ? 'Đang đăng nhập...'
-                        : 'Đăng nhập bằng Google',
-                    loading: auth.status == AuthStatus.loading,
-                    icon: const Icon(Icons.g_mobiledata, size: 24),
-                    onPressed: _loginWithGoogle,
-                  ),
+                  if (kIsWeb)
+                    // Plugin web không hỗ trợ authenticate(), nên phải dùng nút
+                    // GSI thật do Google Identity Services dựng.
+                    Align(
+                      alignment: Alignment.center,
+                      child: buildGoogleSignInButton(),
+                    )
+                  else
+                    AppButton(
+                      label: auth.status == AuthStatus.loading
+                          ? 'Đang đăng nhập...'
+                          : 'Đăng nhập bằng Google',
+                      loading: auth.status == AuthStatus.loading,
+                      icon: const Icon(Icons.g_mobiledata, size: 24),
+                      onPressed: _loginWithGoogle,
+                    ),
                 ],
               ),
             ),

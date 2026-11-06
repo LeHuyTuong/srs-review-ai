@@ -57,6 +57,9 @@ app.*.map.json
 .env.development.local
 .env.production.local
 
+# Firebase web client key sinh cục bộ bởi tools/flutter_env.py mobile prepare
+/web/firebase-config.js
+
 # IDE local settings
 .vscode/
 

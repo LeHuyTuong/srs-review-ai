@@ -23,6 +23,37 @@ NATIVE_CONFIGS = {
     "desktop": ("android/app/google-services.json",),
     "admin_web": (),
 }
+# Client key web được đọc lúc chạy từ file JS cục bộ (Git ignore), để
+# "flutter run" trần vẫn khởi động được mà key không nằm trong source.
+WEB_CONFIGS = {
+    "mobile": (
+        (
+            "web/firebase-config.js",
+            "MOBILE_FIREBASE_WEB_API_KEY",
+            "MOBILE_GOOGLE_SIGN_IN_WEB_CLIENT_ID",
+        ),
+    ),
+    "admin_web": (("web/firebase-config.js", "ADMIN_WEB_FIREBASE_WEB_API_KEY"),),
+}
+# Biến tuỳ chọn: không bắt buộc có, dùng để ghi đè giá trị suy ra từ template.
+OPTIONAL_CLIENT_KEYS = {
+    "mobile": ("MOBILE_GOOGLE_SIGN_IN_WEB_CLIENT_ID",),
+}
+WEB_CONFIG_HEADER = """// Sinh bởi tools/flutter_env.py — file cục bộ, Git ignore.
+// Chỉ chứa cấu hình client cho web; client key không phải secret.
+"""
+
+
+def render_web_config(api_key: str, client_id: str) -> str:
+    """Sinh file JS cấu hình web, chỉ chứa client key và client id công khai."""
+
+    lines = [WEB_CONFIG_HEADER.rstrip("\n")]
+    lines.append(f"window.firebaseApiKey = {json.dumps(api_key)};")
+    if client_id:
+        lines.append(f"window.googleSignInClientId = {json.dumps(client_id)};")
+    return "\n".join(lines) + "\n"
+
+
 PLACEHOLDER = re.compile(r"\$\{([A-Z][A-Z0-9_]*)\}")
 
 
@@ -76,6 +107,25 @@ def render_native(template: str, client_values: dict[str, str]) -> str:
     return rendered
 
 
+def web_oauth_client_id(app_root: Path) -> str:
+    """Lấy OAuth client id loại Web (client_type 3) từ template native.
+
+    google_sign_in_web cần một OAuth client loại Web; client đó đã nằm trong
+    template google-services.json nên không cần thêm biến môi trường.
+    """
+
+    template = app_root / "android/app/google-services.json.example"
+    try:
+        data = json.loads(template.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return ""
+    for client in data.get("client", []):
+        for oauth in client.get("oauth_client", []):
+            if oauth.get("client_type") == 3:
+                return str(oauth.get("client_id", ""))
+    return ""
+
+
 def prepare(app: str, root: Path = REPO_ROOT) -> Path:
     env_path = root / ".env"
     values = read_env(env_path) if env_path.exists() else {}
@@ -83,6 +133,10 @@ def prepare(app: str, root: Path = REPO_ROOT) -> Path:
     # stay out of the Flutter defines file, even when they share this .env.
     client_values = {
         name: os.environ.get(name, values.get(name, "")) for name in CLIENT_KEYS[app]
+    }
+    optional_values = {
+        name: os.environ.get(name, values.get(name, ""))
+        for name in OPTIONAL_CLIENT_KEYS.get(app, ())
     }
     missing = [name for name, value in client_values.items() if not value]
     if missing:
@@ -98,6 +152,19 @@ def prepare(app: str, root: Path = REPO_ROOT) -> Path:
         except (OSError, UnicodeError) as exc:
             raise ConfigError(f"Cannot read Firebase template for {app}.") from exc
         writes.append((output, render_native(contents, client_values)))
+
+    for entry in WEB_CONFIGS.get(app, ()):
+        relative, key_name = entry[0], entry[1]
+        client_id_key = entry[2] if len(entry) > 2 else ""
+        client_id = optional_values.get(client_id_key, "") if client_id_key else ""
+        if not client_id:
+            client_id = web_oauth_client_id(app_root)
+        writes.append(
+            (
+                app_root / relative,
+                render_web_config(client_values[key_name], client_id),
+            )
+        )
 
     defines = app_root / ".dart_tool" / "firebase-defines.json"
     writes.append((defines, json.dumps(client_values, indent=2) + "\n"))

@@ -50,6 +50,46 @@ class FlutterEnvironmentTests(unittest.TestCase):
         )
         self.assertNotIn("server-only-sentinel", defines.read_text(encoding="utf-8"))
 
+    def test_mobile_prepare_writes_local_web_client_config(self):
+        flutter_env.prepare("mobile", self.root)
+        web = self.root / "mobile/web/firebase-config.js"
+        self.assertTrue(web.exists())
+        contents = web.read_text(encoding="utf-8")
+        self.assertIn('window.firebaseApiKey = "web-client-value";', contents)
+        self.assertNotIn("server-only-sentinel", contents)
+        self.assertNotIn("android-client-value", contents)
+
+    def test_mobile_prepare_writes_web_oauth_client_id(self):
+        template = self.root / "mobile/android/app/google-services.json.example"
+        template.write_text(
+            '{"client":[{"oauth_client":[{"client_id":"web-oauth-client",'
+            '"client_type":3}]}],"api_key":"${MOBILE_FIREBASE_ANDROID_API_KEY}"}',
+            encoding="utf-8",
+        )
+        flutter_env.prepare("mobile", self.root)
+        contents = (self.root / "mobile/web/firebase-config.js").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('window.firebaseApiKey = "web-client-value";', contents)
+        self.assertIn('window.googleSignInClientId = "web-oauth-client";', contents)
+
+    def test_optional_env_overrides_web_oauth_client_id(self):
+        os.environ["MOBILE_GOOGLE_SIGN_IN_WEB_CLIENT_ID"] = "override-client"
+        flutter_env.prepare("mobile", self.root)
+        contents = (self.root / "mobile/web/firebase-config.js").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('window.googleSignInClientId = "override-client";', contents)
+
+    def test_admin_web_prepare_writes_local_web_client_config(self):
+        flutter_env.prepare("admin_web", self.root)
+        contents = (self.root / "admin_web/web/firebase-config.js").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('window.firebaseApiKey = "other-app-value";', contents)
+        self.assertNotIn("server-only-sentinel", contents)
+        self.assertNotIn("googleSignInClientId", contents)
+
     def test_prepare_is_idempotent_and_environment_overrides_dotenv(self):
         os.environ["MOBILE_FIREBASE_WEB_API_KEY"] = "ci-client-value"
         path = flutter_env.prepare("mobile", self.root)

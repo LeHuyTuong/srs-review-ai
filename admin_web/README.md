@@ -2,11 +2,15 @@
 
 SRS Review AI - Admin Web (Flutter Web)
 
-Điền `.env` ở root repo, rồi từ root chạy:
+Chuẩn bị cấu hình Firebase **một lần** từ root repo, rồi trong `admin_web/` chạy
+`flutter run` như bình thường, không cần cờ nào:
 
 ```sh
-python tools/flutter_env.py admin_web run -d chrome
+python tools/flutter_env.py admin_web prepare
 ```
+
+Port web đã cố định ở `web_dev_config.yaml` (`http://localhost:54615`) nên origin
+không đổi mỗi lần chạy.
 
 Xem [cấu hình local](../docs/local-environment.md) để build hoặc chạy qua IDE.
 

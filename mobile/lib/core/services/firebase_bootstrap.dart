@@ -7,9 +7,11 @@ import 'package:srs_review_ai_mobile/core/services/crashlytics_support.dart';
 import 'package:srs_review_ai_mobile/firebase_options.dart';
 
 // Chạy trong isolate riêng khi app ở nền hoặc đã tắt, nên phải khởi tạo Firebase lại tại đây.
+// Handler này chỉ chạy trên native, nên cấu hình lấy từ google-services.json do
+// Gradle plugin sinh ra; không phụ thuộc dart-define.
 @pragma('vm:entry-point')
 Future<void> firebaseBackgroundMessageHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp();
 }
 
 // Điểm khởi tạo duy nhất của Firebase để main() không phải biết từng SDK.
@@ -22,10 +24,16 @@ Future<void> bootstrapFirebase({
   // Các seam cho test không gọi SDK native hoặc Firebase thật.
   if (initializeFirebase != null) {
     await initializeFirebase();
-  } else {
+  } else if (kIsWeb) {
+    // Web không có cấu hình native: client key đến từ define hoặc từ
+    // web/firebase-config.js lúc chạy.
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+  } else {
+    // Native lấy cấu hình từ google-services.json (Gradle plugin), nên app khởi
+    // động được bằng "flutter run" trần mà không cần dart-define.
+    await Firebase.initializeApp();
   }
 
   if (supportsCrashlytics) {

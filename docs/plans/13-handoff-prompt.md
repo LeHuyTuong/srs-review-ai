@@ -32,6 +32,11 @@ triển khai thì bắt đầu WP0, không nhảy vào Auth/deploy. Kiểm lại
 đầu vào WAITING_USER trước khi sửa. Nếu user chỉ giao một WP, giữ đúng phạm vi
 đó và kiểm các dependency đã VERIFIED trước khi làm.
 
+Mốc f3de9fe trong plan là khảo sát lịch sử. Bộ Plan 13 đã được đưa vào commit
+473bf72; WP0 chưa được đo lại trên mốc đó. Lúc bắt đầu WP0 chạy lại context,
+inventory và baseline trên HEAD thực tế, ghi đầy đủ commit/working tree. Không
+đổi nhãn kết quả cũ thành kết quả mới, không pin cứng một HEAD khi checkout đã đổi.
+
 Thực hiện contract đã chốt. Sau mỗi phần thay đổi chạy test tương ứng; lỗi thì
 tự sửa và chạy lại. Không chuyển chặng khi còn lỗi/thiếu evidence bắt buộc.
 Không skip test, record lại golden, giảm assertion hay fallback fake để làm xanh.

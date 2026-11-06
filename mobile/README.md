@@ -22,9 +22,13 @@ Lab 3 — phases 1–2 tại `D:/SRS-Review-AI-Mobile`, cập nhật 25/10/2026.
 
 ## Chạy và kiểm tra
 
+Chuẩn bị cấu hình Firebase **một lần** từ root repo, rồi trong `mobile/` chạy
+`flutter run` như bình thường, không cần cờ nào:
+
 ```powershell
 $env:ANDROID_HOME = 'D:\Android\Sdk'
 $env:ANDROID_AVD_HOME = 'D:\Android\avd'
+python tools/flutter_env.py mobile prepare
 flutter pub get
 flutter analyze
 flutter test
@@ -34,6 +38,12 @@ flutter emulators --launch Pixel_4a_API_34
 flutter devices
 flutter run -d emulator-5554
 ```
+
+Web chạy cùng cách: `flutter run` rồi chọn Chrome. Port web đã cố định ở
+`web_dev_config.yaml` (`http://localhost:54614`) nên origin không đổi mỗi lần
+chạy, quan trọng với Google Sign-In. Lý do phải có bước `prepare`, cách key
+được đọc lúc chạy và bước đăng ký origin nằm ở
+[cấu hình local](../docs/local-environment.md).
 
 Đọc từng license và xác nhận khi đồng ý; không tự động trả lời tất cả license. Mã thiết bị emulator có thể đổi ở lần chạy khác.
 

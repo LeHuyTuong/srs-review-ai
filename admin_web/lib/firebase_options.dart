@@ -2,6 +2,9 @@
 // ignore_for_file: type=lint
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 
+import 'web_runtime_config_stub.dart'
+    if (dart.library.js_interop) 'web_runtime_config_web.dart';
+
 /// [FirebaseOptions] dành riêng cho Admin Web.
 ///
 /// Admin Web là dự án Flutter Web độc lập nên chỉ giữ cấu hình web;
@@ -9,26 +12,42 @@ import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 class DefaultFirebaseOptions {
   const DefaultFirebaseOptions._();
 
+  /// OAuth client loại Web (client_type 3) của project `srs-ai-prm`, dùng
+  /// chung với `mobile/` để cả hai app đọc và ghi cùng một Firestore.
   static const String googleSignInServerClientId =
-      '141641534624-emooqhqjbh9lnpjfr95m1o6ihsovjrbr.apps.googleusercontent.com';
+      '1025053844292-v91aivur8kr6ijlela89gm82629rjobf.apps.googleusercontent.com';
 
   static FirebaseOptions get currentPlatform {
     if (web.apiKey.isEmpty) {
       throw StateError(
-        'Missing Firebase client configuration. From the repository root run: '
-        'python tools/flutter_env.py admin_web run -d chrome',
+        'Missing Firebase client configuration. From the repository root run '
+        '"python tools/flutter_env.py admin_web prepare" once (it writes '
+        'web/firebase-config.js), then run "flutter run" again.',
       );
     }
     return web;
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: String.fromEnvironment('ADMIN_WEB_FIREBASE_WEB_API_KEY'),
-    appId: '1:141641534624:web:5867d17dfcf8f9cc71cdc5',
-    messagingSenderId: '141641534624',
-    projectId: 'srs-review-ai-ff68b',
-    authDomain: 'srs-review-ai-ff68b.firebaseapp.com',
-    storageBucket: 'srs-review-ai-ff68b.firebasestorage.app',
-    measurementId: 'G-S3C8P4FSF8',
+  /// Client key web: lấy từ `--dart-define` khi build có define; nếu không
+  /// thì đọc `web/firebase-config.js` lúc chạy, để `flutter run` trần vẫn
+  /// khởi động được mà key không nằm trong source theo dõi.
+  static String get _webApiKey {
+    const fromDefine = String.fromEnvironment('ADMIN_WEB_FIREBASE_WEB_API_KEY');
+    if (fromDefine.isNotEmpty) {
+      return fromDefine;
+    }
+    return readWebFirebaseApiKey() ?? '';
+  }
+
+  /// Dùng chung Web app với `mobile/` (project `srs-ai-prm`) để Admin đọc
+  /// được dữ liệu mà Mobile ghi. Không có `measurementId`: Web app này chưa
+  /// bật Analytics, và measurement id của project cũ không dùng được ở đây.
+  static final FirebaseOptions web = FirebaseOptions(
+    apiKey: _webApiKey,
+    appId: '1:1025053844292:web:d0989789698826cf872d11',
+    messagingSenderId: '1025053844292',
+    projectId: 'srs-ai-prm',
+    authDomain: 'srs-ai-prm.firebaseapp.com',
+    storageBucket: 'srs-ai-prm.firebasestorage.app',
   );
 }

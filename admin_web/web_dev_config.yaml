@@ -1,0 +1,16 @@
+# Cấu hình web dev server của Flutter cho app Admin Web.
+#
+# Xem mobile/web_dev_config.yaml để biết vì sao cần file này: origin của web
+# = scheme + host + port, nên port cố định giữ nguyên origin giữa các lần chạy.
+#
+# Lịch port của repo (mỗi app một port):
+#   54613 desktop  — sinh viên
+#   54614 mobile   — supervisor
+#   54615 admin_web — admin
+#
+# Cờ `--web-port` và `--web-hostname` của dòng lệnh vẫn ghi đè được file này.
+#
+# Origin tương ứng: http://localhost:54615
+server:
+  host: localhost
+  port: 54615

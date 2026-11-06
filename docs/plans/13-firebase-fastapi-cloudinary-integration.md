@@ -3,6 +3,12 @@
 Ngày: 05/11/2026, Asia/Saigon. Baseline khảo sát:
 `f3de9fe06fca298d6822ea9b22e55d03a6540c9c`, nhánh `feat/firebase-setup`.
 
+Mốc trên là baseline khảo sát lịch sử. HEAD khi rà lại tài liệu ngày 05/11 là
+`473bf720d90a43498229901611e70042062324a8`, commit đã đưa bộ Plan 13 vào repo.
+Không chuyển kết quả đo ở `f3de9fe` thành kết quả của `473bf72`. WP0 phải chạy
+lại context, inventory và các phép đo baseline trên HEAD thực tế lúc bắt đầu,
+ghi đầy đủ commit và working tree; nếu HEAD đổi thì dùng mốc mới đó.
+
 Trạng thái: đã lưu kế hoạch và các lựa chọn người dùng xác nhận trong hội thoại.
 **Chưa triển khai WP0–WP15, chưa thay ADR-0019, chưa migrate hoặc deploy.**
 Yêu cầu của lượt lưu tài liệu chỉ là ghi plan và notes vào repo. Không tự xem đây

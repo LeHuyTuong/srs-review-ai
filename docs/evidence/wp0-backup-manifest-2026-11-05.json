@@ -1,0 +1,87 @@
+{
+  "manifestVersion": 1,
+  "createdAt": "2026-11-05T16:13:22Z",
+  "head": "473bf720d90a43498229901611e70042062324a8\n",
+  "branch": "feat/firebase-setup\n",
+  "status": [
+    "M docs/evidence/prompt13-append-2026-11-05.md",
+    "M docs/plans/13-firebase-fastapi-cloudinary-integration.md",
+    "M docs/plans/13-handoff-prompt.md",
+    "M docs/plans/13-progress.md",
+    "M docs/project-status.md",
+    "?? docs/evidence/wp0-inventory-2026-11-05.json",
+    "?? tools/tests/test_wp0_baseline.py",
+    "?? tools/wp0_baseline.py"
+  ],
+  "diff": {
+    "path": "working-tree.diff",
+    "bytes": 8185,
+    "sha256": "f6b41671b999a011951a68cae0d2894019a34b61e9d852d9d3fb447754a24df8"
+  },
+  "files": [
+    {
+      "path": "docs/evidence/prompt13-append-2026-11-05.md",
+      "status": "M",
+      "sourceSha256": "ed20ef9a39f85cda13ce1a2313b23faefe8533f989f346948fbce626bf5c60f3",
+      "copySha256": "ed20ef9a39f85cda13ce1a2313b23faefe8533f989f346948fbce626bf5c60f3",
+      "bytes": 1297,
+      "note": ""
+    },
+    {
+      "path": "docs/plans/13-firebase-fastapi-cloudinary-integration.md",
+      "status": "M",
+      "sourceSha256": "2df422d95100b6f4b80abb744523e78629dc04f6f996dbcf9d99fcbe4de979b6",
+      "copySha256": "2df422d95100b6f4b80abb744523e78629dc04f6f996dbcf9d99fcbe4de979b6",
+      "bytes": 50098,
+      "note": ""
+    },
+    {
+      "path": "docs/plans/13-handoff-prompt.md",
+      "status": "M",
+      "sourceSha256": "f40b56bd9ee5f49ee909a79a16cd026c90ed530b802c7fedeb7fab9adf1d0a45",
+      "copySha256": "f40b56bd9ee5f49ee909a79a16cd026c90ed530b802c7fedeb7fab9adf1d0a45",
+      "bytes": 4396,
+      "note": ""
+    },
+    {
+      "path": "docs/plans/13-progress.md",
+      "status": "M",
+      "sourceSha256": "d170b0141529d6fd5bcdf95614077d4c7f98a9467a12eb8f26e9e202d7619552",
+      "copySha256": "d170b0141529d6fd5bcdf95614077d4c7f98a9467a12eb8f26e9e202d7619552",
+      "bytes": 5633,
+      "note": ""
+    },
+    {
+      "path": "docs/project-status.md",
+      "status": "M",
+      "sourceSha256": "01017231264792699516a461b03af759990a3b12120e51556b0127b2f019ee0a",
+      "copySha256": "01017231264792699516a461b03af759990a3b12120e51556b0127b2f019ee0a",
+      "bytes": 22564,
+      "note": ""
+    },
+    {
+      "path": "docs/evidence/wp0-inventory-2026-11-05.json",
+      "status": "??",
+      "sourceSha256": "2424aa7836cec864b5e82e8dc56962725f8d5407d787ff0ebc3ef40360a90d88",
+      "copySha256": "2424aa7836cec864b5e82e8dc56962725f8d5407d787ff0ebc3ef40360a90d88",
+      "bytes": 14304,
+      "note": ""
+    },
+    {
+      "path": "tools/tests/test_wp0_baseline.py",
+      "status": "??",
+      "sourceSha256": "f9a6c3acea5d50534449c61fdbe8ee7de6f1c3cbc8547e0d50c017dd1133e596",
+      "copySha256": "f9a6c3acea5d50534449c61fdbe8ee7de6f1c3cbc8547e0d50c017dd1133e596",
+      "bytes": 9674,
+      "note": ""
+    },
+    {
+      "path": "tools/wp0_baseline.py",
+      "status": "??",
+      "sourceSha256": "f4bae5f7be462c7986fadc4eca7bf6504e494a525cbbfeb1818d1894f8738113",
+      "copySha256": "f4bae5f7be462c7986fadc4eca7bf6504e494a525cbbfeb1818d1894f8738113",
+      "bytes": 21811,
+      "note": ""
+    }
+  ]
+}

@@ -31,6 +31,14 @@
 
   <title>srs_review_ai_mobile</title>
   <link rel="manifest" href="manifest.json">
+
+  <!--
+    Firebase client key cho web. File này do
+    "python tools/flutter_env.py mobile prepare" sinh ra, bị Git ignore, và chỉ
+    chứa client key (không phải secret). Nằm trong <head> và không dùng async
+    nên nó chạy trước flutter_bootstrap.js, đảm bảo app đọc được key.
+  -->
+  <script src="firebase-config.js"></script>
 </head>
 <body>
   <!--

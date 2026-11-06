@@ -1,0 +1,408 @@
+{
+  "manifestVersion": 1,
+  "generatedAt": "2026-11-05T16:13:16Z",
+  "git": {
+    "head": "473bf720d90a43498229901611e70042062324a8\n",
+    "branch": "feat/firebase-setup\n",
+    "status": [
+      "M docs/evidence/prompt13-append-2026-11-05.md",
+      "M docs/plans/13-firebase-fastapi-cloudinary-integration.md",
+      "M docs/plans/13-handoff-prompt.md",
+      "M docs/plans/13-progress.md",
+      "M docs/project-status.md",
+      "?? tools/tests/test_wp0_baseline.py",
+      "?? tools/wp0_baseline.py"
+    ]
+  },
+  "sources": [
+    {
+      "key": "server-uploads",
+      "label": "Document bytes uploaded to the proxy",
+      "kind": "dir",
+      "required": true,
+      "location": "<repo>\\server\\.uploads",
+      "note": "presigned-upload store; bytes + meta sidecars",
+      "status": "present",
+      "fileCount": 6,
+      "bytes": 4629878,
+      "files": [
+        {
+          "rel": "1fab89201dd740de8270864f8f2b021e-Chương 1 - Tổng quan về nghiên cứu khoa học.pdf",
+          "bytes": 2291188,
+          "sha256": "2548d964950a99f28fabd0fe99c9a7c211fa72dab82ddf8264c2e5593ed23051"
+        },
+        {
+          "rel": "1fab89201dd740de8270864f8f2b021e-Chương 1 - Tổng quan về nghiên cứu khoa học.pdf.docmap.json",
+          "bytes": 23486,
+          "sha256": "b22aca29d873ed1057f0524e08bad5849813c336c2df9aab8229f3dd3b7c3f4f"
+        },
+        {
+          "rel": "1fab89201dd740de8270864f8f2b021e-Chương 1 - Tổng quan về nghiên cứu khoa học.pdf.meta.json",
+          "bytes": 265,
+          "sha256": "9a34d7a06a82419a0dc1a87aaa0dd70605c6f144ec9e4016bd6d4c94777ba48a"
+        },
+        {
+          "rel": "a455761a0250446fa6b39e81e96b5b3c-Chương 1 - Tổng quan về nghiên cứu khoa học.pdf",
+          "bytes": 2291188,
+          "sha256": "2548d964950a99f28fabd0fe99c9a7c211fa72dab82ddf8264c2e5593ed23051"
+        },
+        {
+          "rel": "a455761a0250446fa6b39e81e96b5b3c-Chương 1 - Tổng quan về nghiên cứu khoa học.pdf.docmap.json",
+          "bytes": 23486,
+          "sha256": "b22aca29d873ed1057f0524e08bad5849813c336c2df9aab8229f3dd3b7c3f4f"
+        },
+        {
+          "rel": "a455761a0250446fa6b39e81e96b5b3c-Chương 1 - Tổng quan về nghiên cứu khoa học.pdf.meta.json",
+          "bytes": 265,
+          "sha256": "822ba5d11db305a869f309e2bca9b92012456d2d323993988fc57170f366e39c"
+        }
+      ],
+      "error": ""
+    },
+    {
+      "key": "server-cache",
+      "label": "Engine cache and config (SQLite)",
+      "kind": "dir",
+      "required": true,
+      "location": "<repo>\\server\\.cache",
+      "note": "paid-for review results; row counts only, no payload",
+      "status": "present",
+      "fileCount": 3,
+      "bytes": 1021576,
+      "files": [
+        {
+          "rel": "cache.sqlite3",
+          "bytes": 4096,
+          "sha256": "42f67cde08aaa4db17432058fdd3521a7199a1dfd4afe740ca486d6b49226302"
+        },
+        {
+          "rel": "cache.sqlite3-shm",
+          "bytes": 32768,
+          "sha256": "aa529523552c007d82328331d3aec74966094141d7282a8d1565a8a4e4817dcd"
+        },
+        {
+          "rel": "cache.sqlite3-wal",
+          "bytes": 984712,
+          "sha256": "2e4eea1e878e0e3847bb772ed97badd859c65b7774d180f2803435ff806b884d"
+        }
+      ],
+      "error": "",
+      "rowCounts": {
+        "cache.sqlite3": {
+          "cache_entries": 63,
+          "cache_meta": 1
+        }
+      }
+    },
+    {
+      "key": "server-shares",
+      "label": "Shared HTML reports",
+      "kind": "dir",
+      "required": true,
+      "location": "<repo>\\server\\.shares",
+      "note": "share-by-link reports",
+      "status": "present",
+      "fileCount": 31,
+      "bytes": 991,
+      "files": [
+        {
+          "rel": "-GzgQhLihRl7y9Isya8qfg.html",
+          "bytes": 7,
+          "sha256": "8397912ada2760dca34d1adb644cf54fc5c8d05d0ad56b4a6f99096b03ac8431"
+        },
+        {
+          "rel": "-uFU9SR_XovmftZu5atEcw.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "7XXRpwW7xnRcEKwlsQA3mQ.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "88W_60mjOTuuAm_15bb9xw.html",
+          "bytes": 7,
+          "sha256": "8397912ada2760dca34d1adb644cf54fc5c8d05d0ad56b4a6f99096b03ac8431"
+        },
+        {
+          "rel": "HHmRRxbs4ZNVWBomnDZ-hg.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "HUpvTUrd8QbuKNFhfcyzJQ.html",
+          "bytes": 81,
+          "sha256": "1db3abcbed650902f390df6dd9e9631e06e1a858f11af695ef9d17cca1bd5a9f"
+        },
+        {
+          "rel": "Iv3U0d01CxSCTUlH1XTpGA.html",
+          "bytes": 7,
+          "sha256": "8397912ada2760dca34d1adb644cf54fc5c8d05d0ad56b4a6f99096b03ac8431"
+        },
+        {
+          "rel": "KMMt3MQsBTXRv5i3YsprPA.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "KwYBykW_n3lhcf3D2yW2yQ.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "L4uYEjAZwqIGri2Yg1RL3Q.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "LEYq3Qj9FBx5H2HToahpKQ.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "R_5hckh6OgywEvA8ApCT1g.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "VQfBFvcxfOQ_6Pey6NZcjg.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "VckDP-tmmmfO_ppa16XxQg.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "YsvypTjIBP9FUngq5Je2cw.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "a39JUVa26skouUVChXxS5A.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "ao2Ff_3_aTJ_a7xlhPTgcw.html",
+          "bytes": 7,
+          "sha256": "8397912ada2760dca34d1adb644cf54fc5c8d05d0ad56b4a6f99096b03ac8431"
+        },
+        {
+          "rel": "dVxEFaV0d4W-lxcFKVcMQw.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "kEZAxxWi7W8URcafEuAKBA.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "lU80V_fI8HfbCUTLjSb5Vw.html",
+          "bytes": 7,
+          "sha256": "8397912ada2760dca34d1adb644cf54fc5c8d05d0ad56b4a6f99096b03ac8431"
+        },
+        {
+          "rel": "nkZxafLFCiW1MKjk9VyjkQ.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "qHnFWeziNcur8aCx2QnVUw.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "rQ0xHlVFCJh5x0_EDNh90Q.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "tMdd5We9IE-v8DoVACFezw.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "top3wuKpLszbXG8B05keDg.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "u29VHEDghHLXUeeRcm9hQA.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "vMfubIaZ2pspaPSXSh0RYw.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "wa21FcedhcgYFWPzLojGiQ.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "wwT7n1sUsYsf0rhGAxlEIg.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "xIpwRMYWFL9H2SBkZUjsLw.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        },
+        {
+          "rel": "y6-T_6WSHQ-t0xtHBBZaaA.html",
+          "bytes": 35,
+          "sha256": "2cc81988bad380097a62293e54e9bcecbfd63bffe710b6189a9ae5c7d934414b"
+        }
+      ],
+      "error": ""
+    },
+    {
+      "key": "server-classes",
+      "label": "Class records (JSON store)",
+      "kind": "dir",
+      "required": false,
+      "location": "<repo>\\server\\.classes",
+      "note": "one JSON file per class",
+      "status": "absent",
+      "fileCount": 0,
+      "bytes": 0,
+      "files": [],
+      "error": ""
+    },
+    {
+      "key": "server-submissions",
+      "label": "Submission records (JSON store)",
+      "kind": "dir",
+      "required": false,
+      "location": "<repo>\\server\\.submissions",
+      "note": "one JSON file per submission",
+      "status": "absent",
+      "fileCount": 0,
+      "bytes": 0,
+      "files": [],
+      "error": ""
+    },
+    {
+      "key": "desktop-sembast",
+      "label": "Desktop local history (Sembast)",
+      "kind": "file",
+      "required": false,
+      "location": "<APPDATA>\\co.resonancetech\\srs_review_ai\\srs_review_ai.db",
+      "note": "path_provider app-support dir on Windows",
+      "status": "absent",
+      "fileCount": 0,
+      "bytes": 0,
+      "files": [],
+      "error": ""
+    },
+    {
+      "key": "web-fixed-profile",
+      "label": "Fixed Chrome profile (web history)",
+      "kind": "dir",
+      "required": false,
+      "location": "<LOCALAPPDATA>\\srs-review-ai\\chrome-profile",
+      "note": "dev_web.ps1 origin; IndexedDB history lives here",
+      "status": "absent",
+      "fileCount": 0,
+      "bytes": 0,
+      "files": [],
+      "error": ""
+    },
+    {
+      "key": "web-temp-profile",
+      "label": "Throwaway flutter run profile (web)",
+      "kind": "chrome-pattern",
+      "required": false,
+      "location": "<TEMP>\\flutter_tools.3427e008",
+      "note": "temp profile found on this machine; origin http://localhost:56119",
+      "status": "present",
+      "fileCount": 11,
+      "bytes": 5447,
+      "files": [
+        {
+          "rel": "flutter_tools_chrome_device.2242baed/Default/IndexedDB/http_localhost_56119.indexeddb.leveldb/000004.log",
+          "bytes": 2727,
+          "sha256": "05b58cdd27099caad5a5b068835551fc42fc2e1dfed9e074737a302b3c7e580f"
+        },
+        {
+          "rel": "flutter_tools_chrome_device.2242baed/Default/IndexedDB/http_localhost_56119.indexeddb.leveldb/000005.ldb",
+          "bytes": 1286,
+          "sha256": "ed0b5e0912a3407df760539ed3bfae79539869b1dda0e5faab5e2cfde73ce50f"
+        },
+        {
+          "rel": "flutter_tools_chrome_device.2242baed/Default/IndexedDB/http_localhost_56119.indexeddb.leveldb/CURRENT",
+          "bytes": 16,
+          "sha256": "0f1bad70c7bd1e0a69562853ec529355462fcd0423263a3d39d6d0d70b780443"
+        },
+        {
+          "rel": "flutter_tools_chrome_device.2242baed/Default/IndexedDB/http_localhost_56119.indexeddb.leveldb/LOCK",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "rel": "flutter_tools_chrome_device.2242baed/Default/IndexedDB/http_localhost_56119.indexeddb.leveldb/LOG",
+          "bytes": 753,
+          "sha256": "7879b03ddb68fb4446d573c37f8fcde21227e722bbb0f583a5b44f9df262bba4"
+        },
+        {
+          "rel": "flutter_tools_chrome_device.2242baed/Default/IndexedDB/http_localhost_56119.indexeddb.leveldb/MANIFEST-000001",
+          "bytes": 71,
+          "sha256": "e877090438245e35a1f4c4bfe9e9d7fb3fd066ccd6deff3e0780f606b5493ce3"
+        },
+        {
+          "rel": "flutter_tools_chrome_device.2242baed/Default/Local Storage/leveldb/000003.log",
+          "bytes": 164,
+          "sha256": "5bf4398e0fb02be93a92c299d6358c86e686f8e050c07d13d36a094abfea655d"
+        },
+        {
+          "rel": "flutter_tools_chrome_device.2242baed/Default/Local Storage/leveldb/CURRENT",
+          "bytes": 16,
+          "sha256": "0f1bad70c7bd1e0a69562853ec529355462fcd0423263a3d39d6d0d70b780443"
+        },
+        {
+          "rel": "flutter_tools_chrome_device.2242baed/Default/Local Storage/leveldb/LOCK",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "rel": "flutter_tools_chrome_device.2242baed/Default/Local Storage/leveldb/LOG",
+          "bytes": 373,
+          "sha256": "534ca345d5a3fc96d3fd0c4908cd49d24f8fce21a9ba458b0a95fdd88fedbf12"
+        },
+        {
+          "rel": "flutter_tools_chrome_device.2242baed/Default/Local Storage/leveldb/MANIFEST-000001",
+          "bytes": 41,
+          "sha256": "f9d31b278e215eb0d0e9cd709edfa037e828f36214ab7906f612160fead4b2b4"
+        }
+      ],
+      "error": ""
+    },
+    {
+      "key": "firestore",
+      "label": "Firestore: grants, personal projects, reports, crash mirror",
+      "kind": "cloud",
+      "required": false,
+      "location": "",
+      "note": "needs Admin credential + project; see WP0 evidence for the exact ask",
+      "status": "not_measured",
+      "fileCount": 0,
+      "bytes": 0,
+      "files": [],
+      "error": ""
+    }
+  ],
+  "totals": {
+    "present": 4,
+    "absent": 4,
+    "unreadable": 0,
+    "not_measured": 1
+  },
+  "failedSources": []
+}

@@ -4,6 +4,9 @@ import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
+import 'core/services/web_runtime_config_stub.dart'
+    if (dart.library.js_interop) 'core/services/web_runtime_config_web.dart';
+
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
 /// Example:
@@ -15,8 +18,13 @@ import 'package:flutter/foundation.dart'
 /// );
 /// ```
 class DefaultFirebaseOptions {
+  /// OAuth client loại Web (client_type 3) của project `srs-ai-prm`.
+  ///
+  /// Đây là "other platform oauth client" của app Android nên đã đăng ký SHA-1;
+  /// dùng làm `serverClientId` để ID token trả về được Firebase Auth của
+  /// `srs-ai-prm` chấp nhận.
   static const String googleSignInServerClientId =
-      '141641534624-emooqhqjbh9lnpjfr95m1o6ihsovjrbr.apps.googleusercontent.com';
+      '1025053844292-v91aivur8kr6ijlela89gm82629rjobf.apps.googleusercontent.com';
 
   static FirebaseOptions get currentPlatform {
     final options = kIsWeb
@@ -29,22 +37,49 @@ class DefaultFirebaseOptions {
           };
     if (options.apiKey.isEmpty) {
       throw StateError(
-        'Missing Firebase client configuration. From the repository root run: '
-        'python tools/flutter_env.py mobile run -d chrome '
-        '(or select an Android device).',
+        'Missing Firebase client configuration. From the repository root run '
+        '"python tools/flutter_env.py mobile prepare" once (it writes '
+        'web/firebase-config.js), then run "flutter run" again.',
       );
     }
     return options;
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: String.fromEnvironment('MOBILE_FIREBASE_WEB_API_KEY'),
+  /// Client key web: lấy từ `--dart-define` khi build có define; nếu không
+  /// thì đọc `web/firebase-config.js` lúc chạy, để `flutter run` trần vẫn
+  /// khởi động được mà key không nằm trong source theo dõi.
+  static String get _webApiKey {
+    const fromDefine = String.fromEnvironment('MOBILE_FIREBASE_WEB_API_KEY');
+    if (fromDefine.isNotEmpty) {
+      return fromDefine;
+    }
+    return readWebFirebaseApiKey() ?? '';
+  }
+
+  static final FirebaseOptions web = FirebaseOptions(
+    apiKey: _webApiKey,
     appId: '1:1025053844292:web:d0989789698826cf872d11',
     messagingSenderId: '1025053844292',
     projectId: 'srs-ai-prm',
     authDomain: 'srs-ai-prm.firebaseapp.com',
     storageBucket: 'srs-ai-prm.firebasestorage.app',
   );
+
+  /// OAuth client id loại Web (client_type 3) cho Google Sign-In trên web.
+  ///
+  /// google_sign_in_web chỉ nhận `clientId`, không nhận `serverClientId`, nên
+  /// web cần giá trị này còn native thì không. Đọc lúc chạy từ
+  /// `web/firebase-config.js` để không đưa client id vào source theo dõi.
+  static String? get googleSignInWebClientId {
+    if (!kIsWeb) {
+      return null;
+    }
+    final clientId = readWebGoogleClientId();
+    if (clientId == null || clientId.isEmpty) {
+      return null;
+    }
+    return clientId;
+  }
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: String.fromEnvironment('MOBILE_FIREBASE_ANDROID_API_KEY'),

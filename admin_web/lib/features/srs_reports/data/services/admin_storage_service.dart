@@ -35,7 +35,7 @@ class MockAdminStorageService implements AdminStorageService {
   @override
   Future<String> getDownloadUrl(String storagePath) async {
     await Future.delayed(const Duration(milliseconds: 300));
-    return 'https://firebasestorage.googleapis.com/v0/b/srs-review-ai-ff68b.appspot.com/o/${Uri.encodeComponent(storagePath)}?alt=media';
+    return 'https://firebasestorage.googleapis.com/v0/b/srs-ai-prm.firebasestorage.app/o/${Uri.encodeComponent(storagePath)}?alt=media';
   }
 
   @override

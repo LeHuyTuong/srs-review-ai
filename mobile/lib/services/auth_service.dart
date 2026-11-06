@@ -6,18 +6,65 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:srs_review_ai_mobile/firebase_options.dart';
 
+/// Hàm khởi tạo Google Sign-In, seam để test không cần SDK thật.
+typedef GoogleSignInInitializer =
+    Future<void> Function({String? clientId, String? serverClientId});
+
+/// Tham số khởi tạo Google Sign-In cho một nền tảng.
+class GoogleSignInInit {
+  const GoogleSignInInit({this.clientId, this.serverClientId});
+
+  final String? clientId;
+  final String? serverClientId;
+}
+
+/// Chọn tham số khởi tạo theo nền tảng.
+///
+/// google_sign_in_web chỉ nhận `clientId` và assert `serverClientId` phải null;
+/// native thì ngược lại, cần `serverClientId`.
+GoogleSignInInit resolveGoogleSignInInit({
+  required bool isWeb,
+  String? webClientId,
+}) {
+  if (isWeb) {
+    if (webClientId == null || webClientId.isEmpty) {
+      throw StateError(
+        'Thiếu OAuth client id cho Google Sign-In trên web. Chạy '
+        '"python tools/flutter_env.py mobile prepare" để sinh lại cấu hình.',
+      );
+    }
+    return GoogleSignInInit(clientId: webClientId);
+  }
+  return GoogleSignInInit(
+    serverClientId: DefaultFirebaseOptions.googleSignInServerClientId,
+  );
+}
+
 class AuthService {
   AuthService({
     FirebaseAuth? auth,
     GoogleSignIn? googleSignIn,
     this.firestore,
+    GoogleSignInInitializer? googleInitializer,
   }) : _firebaseAuth = auth,
-       _googleSignIn = googleSignIn ?? GoogleSignIn.instance;
+       _googleSignIn = googleSignIn ?? GoogleSignIn.instance,
+       _googleInitializer =
+           googleInitializer ?? (googleSignIn ?? GoogleSignIn.instance).initialize;
 
   final FirebaseAuth? _firebaseAuth;
   final GoogleSignIn _googleSignIn;
+  final GoogleSignInInitializer _googleInitializer;
   final FirebaseFirestore? firestore;
-  Future<void>? _googleInitialization;
+
+  /// GoogleSignIn.instance là singleton và google_sign_in_web chỉ cho gọi
+  /// init() một lần trong một lần tải trang, nên future này ở mức static.
+  static Future<void>? _googleInitialization;
+
+  /// Xoá cache khởi tạo. Chỉ dùng trong test.
+  @visibleForTesting
+  static void resetGoogleInitialization() {
+    _googleInitialization = null;
+  }
 
   FirebaseAuth get _auth => _firebaseAuth ?? FirebaseAuth.instance;
 
@@ -25,35 +72,55 @@ class AuthService {
 
   User? get currentUser => _auth.currentUser;
 
+  /// Đăng nhập Google trên native.
+  ///
+  /// `google_sign_in_web` không hỗ trợ `authenticate()`, nên web đi đường khác:
+  /// xem [webSignInEvents] và [completeWebSignIn].
   Future<User?> signInWithGoogle() async {
     await _ensureGoogleInitialized();
 
     try {
       final googleUser = await _googleSignIn.authenticate();
-      final idToken = googleUser.authentication.idToken;
-      if (idToken == null) {
-        throw FirebaseAuthException(
-          code: 'missing-google-id-token',
-          message: 'Google Sign-In không trả về ID token.',
-        );
-      }
-
-      final credential = GoogleAuthProvider.credential(idToken: idToken);
-      final user = (await _auth.signInWithCredential(credential)).user;
-      if (user == null) {
-        throw FirebaseAuthException(
-          code: 'missing-firebase-user',
-          message: 'Firebase Authentication không trả về người dùng.',
-        );
-      }
-      await _syncUserProfile(user);
-      return user;
+      return await _signInToFirebase(googleUser.authentication.idToken);
     } on GoogleSignInException catch (error) {
       if (error.code == GoogleSignInExceptionCode.canceled) {
         return null;
       }
       rethrow;
     }
+  }
+
+  /// Web: sự kiện đăng nhập do nút GSI của plugin phát ra.
+  Stream<GoogleSignInAccount> get webSignInEvents => _googleSignIn
+      .authenticationEvents
+      .where((event) => event is GoogleSignInAuthenticationEventSignIn)
+      .map((event) => (event as GoogleSignInAuthenticationEventSignIn).user);
+
+  /// Web: đổi tài khoản Google do nút GSI trả về thành phiên Firebase.
+  Future<User?> completeWebSignIn(GoogleSignInAccount account) async {
+    await _ensureGoogleInitialized();
+    return _signInToFirebase(account.authentication.idToken);
+  }
+
+  /// Đổi ID token của Google thành phiên Firebase Auth.
+  Future<User?> _signInToFirebase(String? idToken) async {
+    if (idToken == null) {
+      throw FirebaseAuthException(
+        code: 'missing-google-id-token',
+        message: 'Google Sign-In không trả về ID token.',
+      );
+    }
+
+    final credential = GoogleAuthProvider.credential(idToken: idToken);
+    final user = (await _auth.signInWithCredential(credential)).user;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'missing-firebase-user',
+        message: 'Firebase Authentication không trả về người dùng.',
+      );
+    }
+    await _syncUserProfile(user);
+    return user;
   }
 
   Future<void> signOut() async {
@@ -89,17 +156,27 @@ class AuthService {
     }
   }
 
+  /// Khởi tạo Google Sign-In đúng một lần cho cả vòng đời app.
+  ///
+  /// Future đã lỗi vẫn được giữ lại: plugin web đánh dấu "đã init" trước khi
+  /// ném lỗi, nên gọi init() lần nữa sẽ ném "init() has already been called"
+  /// và che mất lỗi gốc.
+  /// Khởi tạo Google Sign-In nếu chưa khởi tạo.
+  Future<void> ensureGoogleInitialized() => _ensureGoogleInitialized();
+
   Future<void> _ensureGoogleInitialized() async {
-    final initialization = _googleInitialization ??= _googleSignIn.initialize(
-      serverClientId: DefaultFirebaseOptions.googleSignInServerClientId,
+    final initialization = _googleInitialization ??= _initializeGoogle();
+    await initialization;
+  }
+
+  Future<void> _initializeGoogle() {
+    final init = resolveGoogleSignInInit(
+      isWeb: kIsWeb,
+      webClientId: DefaultFirebaseOptions.googleSignInWebClientId,
     );
-    try {
-      await initialization;
-    } catch (_) {
-      if (identical(_googleInitialization, initialization)) {
-        _googleInitialization = null;
-      }
-      rethrow;
-    }
+    return _googleInitializer(
+      clientId: init.clientId,
+      serverClientId: init.serverClientId,
+    );
   }
 }

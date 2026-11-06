@@ -1,0 +1,13 @@
+# Cấu hình web dev server của Flutter cho app mobile.
+#
+# Không có file này, `flutter run` chọn một port trống ngẫu nhiên mỗi lần.
+# Với Google Sign-In trên web, origin = scheme + host + port, nên mỗi lần chạy
+# là một origin khác và Google từ chối. Cố định port ở đây để cả nhóm chỉ phải
+# đăng ký một origin trong Google Cloud Console.
+#
+# Cờ `--web-port` và `--web-hostname` của dòng lệnh vẫn ghi đè được file này.
+#
+# Origin tương ứng: http://localhost:54614
+server:
+  host: localhost
+  port: 54614
