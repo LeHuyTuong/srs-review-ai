@@ -1,41 +1,81 @@
+# SRS Review AI — the ONE compose file, for the dev machine and the VPS alike.
+#
+# Same layout in both places:
+#   docker-compose.yml   <- this file
+#   server/.env          <- every secret (git-ignored, never in the image)
+#
+# Dev machine (has the source):
+#   docker compose build              # tags anhvietanh1123/srs-review-ai:latest
+#   docker compose push server        # after `docker login`
+#   docker compose up -d --wait
+#
+# VPS (no source needed, only this file + server/.env):
+#   docker compose pull && docker compose up -d --wait --remove-orphans
+#
+# Hot reload while coding: run the server with the venv instead
+#   (cd server && .venv/Scripts/python -m uvicorn app.main:app --reload)
 services:
   db:
-    image: postgres:15-alpine
-    container_name: srs_postgres
-    restart: always
-    environment:
-      POSTGRES_USER: srs_user
-      POSTGRES_PASSWORD: srs_password
-      POSTGRES_DB: srs_review_db
+    image: postgres:18-alpine
+    restart: unless-stopped
+    # POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB from server/.env.
+    env_file:
+      - ./server/.env
     ports:
-      - "5432:5432"
+      # DBeaver -> <host IP>:5433 (5432 is left to other Postgres instances).
+      # On the VPS this is open to the internet: strong password, or change to
+      # "127.0.0.1:5433:5432" and use DBeaver's SSH tunnel.
+      - "5433:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # postgres:18 keeps its data under /var/lib/postgresql/18/docker; mount the parent.
+      - postgres_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U srs_user -d srs_review_db"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  backend:
+  server:
+    # `build` is used on the dev machine; the VPS has no ./server source and just
+    # pulls this image, so both places run the exact same thing.
+    image: anhvietanh1123/srs-review-ai:latest
     build:
       context: ./server
       dockerfile: Dockerfile
+    restart: unless-stopped
     env_file:
       - ./server/.env
-    container_name: srs_fastapi
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      # server/.env's DATABASE_URL says 127.0.0.1:5433 (venv runs on the dev
+      # machine); inside this network the DB is the service `db` on 5432.
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      # Every writable store on one volume, so recreating the container keeps the
+      # SQLite review cache, criteria, rubric, uploads, shares, submissions, classes.
+      SRS_CACHE_DIR: /data/.cache
+      SRS_UPLOAD_DIR: /data/.uploads
+      SRS_SHARE_DIR: /data/.shares
+      SRS_SUBMISSION_DIR: /data/.submissions
+      SRS_CLASS_DIR: /data/.classes
+      # Behind a reverse proxy, trust X-Forwarded-For for the per-client quota.
+      FORWARDED_ALLOW_IPS: "*"
     ports:
       - "8000:8000"
-    environment:
-      DATABASE_URL: postgresql+psycopg://srs_user:srs_password@db:5432/srs_review_db
-      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-srs-review-ai-ff68b}
-      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-/app/firebase-admin.json}
+    volumes:
+      - srs-review-data:/data
+      # Firebase Admin SDK service-account key (git-ignored, never baked into the
+      # image). Matches GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-admin.json.
+      # create_host_path: false -> a missing key fails loudly instead of Docker
+      # silently creating an empty directory named firebase-admin.json.
+      - type: bind
+        source: ./server/firebase-admin.json
+        target: /app/firebase-admin.json
+        read_only: true
+        bind:
+          create_host_path: false
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - ./server:/app
     healthcheck:
       test:
         - CMD
@@ -46,6 +86,14 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
+  # The PostgreSQL database. Back up with pg_dump.
   postgres_data:
+  # Cache, uploads, shares, submissions, class rosters. Same name the VPS already uses.
+  srs-review-data:

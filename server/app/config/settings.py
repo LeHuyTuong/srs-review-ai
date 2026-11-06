@@ -10,7 +10,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Three levels up: this file lives at server/app/config/settings.py.
@@ -170,6 +170,11 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("REMOTE_CONFIG_ADMIN_UIDS"),
     )
     database_url: str = Field(default="", validation_alias=AliasChoices("DATABASE_URL"))
+    database_host: str = Field(default="", validation_alias=AliasChoices("DATABASE_HOST"))
+    database_port: int | None = Field(default=None, validation_alias=AliasChoices("DATABASE_PORT"))
+    """Override only the host/port of DATABASE_URL. docker-compose sets
+    DATABASE_HOST=db so the same server/.env works for a venv run (127.0.0.1)
+    and inside the container, without writing the password twice."""
 
     # --- App auth (legacy shared token for non-review endpoints) ---
     app_token: str = ""
@@ -301,6 +306,20 @@ class Settings(BaseSettings):
             self.cloudinary_api_secret,
         )
         return any(values) and not all(values)
+
+    @model_validator(mode="after")
+    def _apply_database_host(self) -> Settings:
+        if self.database_url and (self.database_host or self.database_port):
+            from sqlalchemy.engine import make_url
+
+            url = make_url(self.database_url)
+            if self.database_host:
+                url = url.set(host=self.database_host)
+            if self.database_port:
+                url = url.set(port=self.database_port)
+            # str(url) masks the password as ***; render it for real.
+            self.database_url = url.render_as_string(hide_password=False)
+        return self
 
 
 @lru_cache
