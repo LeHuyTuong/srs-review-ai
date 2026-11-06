@@ -31,7 +31,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 
-from .api import ask, classes, diagram, health, review, submissions, uploads
+from .api import ask, classes, diagram, health, remote_config, review, submissions, uploads
 from .core.cloudinary import CloudinaryMediaService
 from .config.criteria import CriteriaStore
 from .config.rubric_store import RubricStore
@@ -141,6 +141,7 @@ _rubric = RubricStore(_settings.cache_dir / "rubric.sqlite3")
 
 app.include_router(health.router)
 app.include_router(health.config_router)
+app.include_router(remote_config.router)
 app.include_router(review.router)
 app.include_router(ask.router)
 app.include_router(diagram.router)

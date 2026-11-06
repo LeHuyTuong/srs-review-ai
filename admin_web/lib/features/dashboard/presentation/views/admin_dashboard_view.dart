@@ -6,6 +6,7 @@ import 'package:srs_review_ai_admin_web/core/theme/app_spacing.dart';
 import 'package:srs_review_ai_admin_web/core/theme/app_typography.dart';
 import 'package:srs_review_ai_admin_web/core/theme/app_radius.dart';
 import 'package:srs_review_ai_admin_web/core/widgets/app_icon.dart';
+import 'package:srs_review_ai_admin_web/features/auth/presentation/viewmodels/current_user_view_model.dart';
 import 'package:srs_review_ai_admin_web/features/dashboard/presentation/viewmodels/admin_dashboard_view_model.dart';
 import 'package:srs_review_ai_admin_web/features/srs_reports/presentation/views/srs_reports_tab.dart';
 import 'package:srs_review_ai_admin_web/features/crashlytics_monitor/presentation/views/crashlytics_tab.dart';
@@ -45,7 +46,7 @@ class AdminDashboardView extends ConsumerWidget {
             child: Column(
               children: [
                 // Header
-                _buildHeader(context, dashboardState),
+                _buildHeader(context, ref, dashboardState),
                 const Divider(height: 1, thickness: 1, color: AppColors.line),
                 // Tab Content
                 Expanded(child: _buildContent(dashboardState.selectedTab)),
@@ -208,7 +209,12 @@ class AdminDashboardView extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, AdminDashboardState state) {
+  Widget _buildHeader(
+    BuildContext context,
+    WidgetRef ref,
+    AdminDashboardState state,
+  ) {
+    final user = ref.watch(currentUserProvider).asData?.value;
     String title;
     switch (state.selectedTab) {
       case AdminTab.srsReports:
@@ -240,18 +246,51 @@ class AdminDashboardView extends ConsumerWidget {
           const SizedBox(width: AppSpacing.m),
           Row(
             children: [
-              Text(
-                'Admin',
-                style: AppTypography.body.copyWith(color: AppColors.muted),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 220),
+                child: Text(
+                  user?.displayName.isNotEmpty == true
+                      ? user!.displayName
+                      : (user?.email ?? 'Admin'),
+                  style: AppTypography.body.copyWith(color: AppColors.muted),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               const SizedBox(width: AppSpacing.m),
               CircleAvatar(
                 radius: 18,
                 backgroundColor: AppColors.brandSoft,
-                child: Text(
-                  'GV',
-                  style: AppTypography.strong.copyWith(color: AppColors.brand),
-                ),
+                backgroundImage: user?.photoUrl == null
+                    ? null
+                    : NetworkImage(user!.photoUrl!),
+                child: user?.photoUrl != null
+                    ? null
+                    : Text(
+                        (user?.displayName.isNotEmpty == true
+                                ? user!.displayName
+                                : user?.email ?? 'A')
+                            .substring(0, 1)
+                            .toUpperCase(),
+                        style: AppTypography.strong.copyWith(
+                          color: AppColors.brand,
+                        ),
+                      ),
+              ),
+              const SizedBox(width: AppSpacing.s),
+              IconButton(
+                tooltip: 'Đăng xuất',
+                onPressed: () async {
+                  try {
+                    await ref.read(authActionsProvider).signOut();
+                  } catch (error) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Đăng xuất thất bại: $error')),
+                      );
+                    }
+                  }
+                },
+                icon: const Icon(Icons.logout),
               ),
             ],
           ),

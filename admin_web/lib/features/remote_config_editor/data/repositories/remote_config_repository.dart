@@ -1,5 +1,9 @@
+import 'dart:convert';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:srs_review_ai_admin_web/features/remote_config_editor/domain/models/remote_config_param.dart';
 
 /// Repository cho Remote Config
@@ -49,7 +53,126 @@ class MockRemoteConfigRepository implements RemoteConfigRepository {
   }
 }
 
-/// Provider cho Remote Config Repository
+/// API-backed Remote Config repository. The server owns Firebase credentials.
+class ApiRemoteConfigRepository implements RemoteConfigRepository {
+  ApiRemoteConfigRepository({http.Client? client})
+    : _client = client ?? http.Client();
+
+  static const _configuredBaseUrl = String.fromEnvironment(
+    'SRS_API_BASE_URL',
+    defaultValue: 'http://localhost:8000',
+  );
+  static const _defaultFileTypes = 'pdf,docx,md';
+  static const _defaultMaxUploadMb = 30;
+
+  final http.Client _client;
+
+  Uri get _endpoint {
+    final baseUrl = _configuredBaseUrl.replaceFirst(RegExp(r'/+$'), '');
+    return Uri.parse('$baseUrl/admin/remote-config');
+  }
+
+  Future<Map<String, dynamic>> _request({
+    required String method,
+    Map<String, dynamic>? body,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw StateError(
+        'Đăng nhập Google bằng tài khoản admin để quản lý Remote Config.',
+      );
+    }
+    final token = await user.getIdToken();
+    if (token == null || token.isEmpty) {
+      throw StateError('Không lấy được Firebase ID token. Hãy đăng nhập lại.');
+    }
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Accept': 'application/json',
+      if (body != null) 'Content-Type': 'application/json',
+    };
+    final response = switch (method) {
+      'GET' => await _client.get(_endpoint, headers: headers),
+      'PUT' => await _client.put(
+        _endpoint,
+        headers: headers,
+        body: jsonEncode(body),
+      ),
+      _ => throw ArgumentError.value(method, 'method', 'Unsupported HTTP method.'),
+    };
+    final decoded = jsonDecode(response.body);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final detail = decoded is Map<String, dynamic>
+          ? decoded['detail']?.toString() ?? response.body
+          : response.body;
+      throw Exception('API ${response.statusCode}: $detail');
+    }
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException(
+        'API trả về cấu hình Remote Config không hợp lệ.',
+      );
+    }
+    return decoded;
+  }
+
+  @override
+  Future<List<RemoteConfigParam>> getParameters() async {
+    final values = await _request(method: 'GET');
+    final maxUploadMb = values['max_upload_file_size_mb'];
+    final fileTypes = values['allowed_srs_file_types'];
+    return [
+      RemoteConfigParam(
+        key: 'allowed_srs_file_types',
+        description: 'Các định dạng SRS được phép, phân cách bằng dấu phẩy',
+        currentValue: fileTypes is String ? fileTypes : _defaultFileTypes,
+        defaultValue: _defaultFileTypes,
+        type: 'string',
+      ),
+      RemoteConfigParam(
+        key: 'max_upload_file_size_mb',
+        description: 'Dung lượng file upload tối đa (MB)',
+        currentValue: maxUploadMb is num ? maxUploadMb : _defaultMaxUploadMb,
+        defaultValue: _defaultMaxUploadMb,
+        type: 'number',
+        minValue: 1,
+        maxValue: 100,
+      ),
+    ];
+  }
+
+  @override
+  Future<void> publishParameters(List<RemoteConfigParam> parameters) async {
+    final fileTypesParam = parameters.where(
+      (param) => param.key == 'allowed_srs_file_types',
+    );
+    final maxUploadParam = parameters.where(
+      (param) => param.key == 'max_upload_file_size_mb',
+    );
+    if (fileTypesParam.isEmpty || maxUploadParam.isEmpty) {
+      throw const FormatException('Thiếu tham số Remote Config upload.');
+    }
+    final fileTypes = fileTypesParam.first.currentValue;
+    final maxUploadMb = maxUploadParam.first.currentValue;
+    if (fileTypes is! String || maxUploadMb is! num || maxUploadMb % 1 != 0) {
+      throw const FormatException(
+        'Danh sách định dạng hoặc giới hạn dung lượng không hợp lệ.',
+      );
+    }
+    await _request(
+      method: 'PUT',
+      body: {
+        'allowed_srs_file_types': fileTypes,
+        'max_upload_file_size_mb': maxUploadMb.toInt(),
+      },
+    );
+  }
+
+  void dispose() => _client.close();
+}
+
+/// Provider for the Firebase-backed Remote Config API.
 final remoteConfigRepositoryProvider = Provider<RemoteConfigRepository>((ref) {
-  return MockRemoteConfigRepository();
+  final repository = ApiRemoteConfigRepository();
+  ref.onDispose(repository.dispose);
+  return repository;
 });

@@ -15,8 +15,10 @@ class AuthActions {
   AuthActions(this._ref);
   final Ref _ref;
 
-  Future<void> signInWithGoogle() =>
-      _ref.read(authRepositoryProvider).signInWithGoogle();
+  Future<void> signInWithEmailAndPassword(String email, String password) =>
+      _ref
+          .read(authRepositoryProvider)
+          .signInWithEmailAndPassword(email, password);
 
   Future<void> signOut() => _ref.read(authRepositoryProvider).signOut();
 }

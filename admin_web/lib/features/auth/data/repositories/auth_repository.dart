@@ -11,7 +11,7 @@ import 'package:srs_review_ai_admin_web/features/users_management/domain/models/
 /// `users/{uid}` do Mobile App ghi sau lần đăng nhập Google.
 abstract class AuthRepository {
   Stream<AppUser?> watchCurrentUser();
-  Future<void> signInWithGoogle();
+  Future<void> signInWithEmailAndPassword(String email, String password);
   Future<void> signOut();
 }
 
@@ -62,22 +62,11 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> signInWithGoogle() async {
-    final provider = GoogleAuthProvider()
-      ..setCustomParameters({'prompt': 'select_account'});
-    final credential = await _auth.signInWithPopup(provider);
-    final user = credential.user;
-    if (user == null) return;
-    // Đồng bộ hồ sơ giống Mobile; lỗi quyền ghi không chặn đăng nhập.
-    try {
-      await _db.collection('users').doc(user.uid).set({
-        'uid': user.uid,
-        'email': user.email,
-        'displayName': user.displayName,
-        'photoUrl': user.photoURL,
-        'lastSignInAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-    } catch (_) {}
+  Future<void> signInWithEmailAndPassword(String email, String password) async {
+    await _auth.signInWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
+    );
   }
 
   @override
@@ -121,7 +110,7 @@ class _SignedOutAuthRepository implements AuthRepository {
   Stream<AppUser?> watchCurrentUser() => Stream<AppUser?>.value(null);
 
   @override
-  Future<void> signInWithGoogle() async {}
+  Future<void> signInWithEmailAndPassword(String email, String password) async {}
 
   @override
   Future<void> signOut() async {}

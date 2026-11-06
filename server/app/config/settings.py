@@ -165,6 +165,10 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices("FIREBASE_PROJECT_ID", "GOOGLE_CLOUD_PROJECT"),
     )
+    remote_config_admin_uids: str = Field(
+        default="",
+        validation_alias=AliasChoices("REMOTE_CONFIG_ADMIN_UIDS"),
+    )
     database_url: str = Field(default="", validation_alias=AliasChoices("DATABASE_URL"))
 
     # --- App auth (legacy shared token for non-review endpoints) ---

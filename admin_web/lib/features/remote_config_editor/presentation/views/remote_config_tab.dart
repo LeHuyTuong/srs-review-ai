@@ -36,7 +36,8 @@ class RemoteConfigTab extends ConsumerWidget {
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      'Cấu hình giới hạn upload và loại tệp SRS cho Mobile App.',
+                      'Publish giới hạn dung lượng và loại tệp SRS '
+                      'lên Firebase Remote Config.',
                       style: AppTypography.body.copyWith(
                         color: AppColors.muted,
                       ),
@@ -45,7 +46,9 @@ class RemoteConfigTab extends ConsumerWidget {
                 ),
               ),
               AppButton(
-                label: state.isPublishing ? 'Đang lưu...' : 'Lưu cấu hình demo',
+                label: state.isPublishing
+                    ? 'Đang publish...'
+                    : 'Publish lên Firebase',
                 icon: state.isPublishing
                     ? const SizedBox(
                         width: 16,
@@ -64,8 +67,8 @@ class RemoteConfigTab extends ConsumerWidget {
                             SnackBar(
                               content: Text(
                                 success
-                                    ? 'Đã lưu cấu hình demo (chưa cập nhật Firebase).'
-                                    : 'Lỗi khi lưu cấu hình demo',
+                                    ? 'Đã publish cấu hình lên Firebase Remote Config.'
+                                    : 'Lỗi khi publish cấu hình',
                               ),
                               backgroundColor: success
                                   ? AppColors.olive
@@ -91,6 +94,10 @@ class RemoteConfigTab extends ConsumerWidget {
             decoration: BoxDecoration(
               color: AppColors.brandSoft,
               borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'Thay đổi được publish lên Firebase. Server chỉ cho phép các UID admin đã cấu hình.',
+              style: AppTypography.body.copyWith(color: AppColors.ink),
             ),
           ),
           const SizedBox(height: AppSpacing.l),
