@@ -7,6 +7,7 @@ import 'package:srs_review_ai_mobile/core/di/data_providers.dart';
 import 'package:srs_review_ai_mobile/core/domain/academic/academic_models.dart';
 import 'package:srs_review_ai_mobile/features/student/data/services/cloudinary_upload_service.dart';
 import 'package:srs_review_ai_mobile/features/student/data/services/student_file_picker_service.dart';
+import 'package:srs_review_ai_mobile/features/account/presentation/viewmodels/login_view_model.dart';
 import 'package:srs_review_ai_mobile/services/remote_config_service.dart';
 
 final _studentAcademicSnapshotProvider = StreamProvider<AcademicSnapshot>((ref) {
@@ -84,7 +85,33 @@ class _StudentUploadScreenState extends ConsumerState<StudentUploadScreen> {
     final snapshot = ref.watch(_studentAcademicSnapshotProvider);
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Nộp tài liệu SRS')),
+      appBar: AppBar(
+        title: const Text('Nộp tài liệu SRS'),
+        actions: [
+          IconButton(
+            tooltip: 'Đăng xuất',
+            onPressed: _uploading
+                ? null
+                : () async {
+                    final viewModel = ref.read(loginViewModelProvider);
+                    await viewModel.logout();
+                    if (!context.mounted ||
+                        viewModel.status != AuthStatus.error ||
+                        viewModel.errorMessage == null) {
+                      return;
+                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Không thể đăng xuất: ${viewModel.errorMessage}',
+                        ),
+                      ),
+                    );
+                  },
+            icon: const Icon(Icons.logout),
+          ),
+        ],
+      ),
       body: snapshot.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('Không tải được danh sách lớp: $error')),
@@ -103,7 +130,17 @@ class _StudentUploadScreenState extends ConsumerState<StudentUploadScreen> {
               DropdownButtonFormField<String>(
                 initialValue: selectedClass,
                 decoration: const InputDecoration(labelText: 'Lớp', border: OutlineInputBorder()),
-                items: [for (final item in classes) DropdownMenuItem(value: item.id, child: Text(item.name))],
+                items: [
+                  for (final item in classes)
+                    DropdownMenuItem(
+                      value: item.id,
+                      child: Text(
+                        item.name.trim().isEmpty
+                            ? item.code
+                            : '${item.code} · ${item.name}',
+                      ),
+                    ),
+                ],
                 onChanged: _uploading ? null : (value) => setState(() { _classId = value; _projectId = null; }),
               ),
               const SizedBox(height: 14),
