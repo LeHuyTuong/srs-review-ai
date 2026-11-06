@@ -8,12 +8,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:srs_review_ai_mobile/app/app.dart';
 import 'package:srs_review_ai_mobile/firebase_options.dart';
+import 'package:srs_review_ai_mobile/core/services/fcm_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   _registerCrashHandlers();
+  try {
+    await fcmService.initialize();
+  } catch (error) {
+    debugPrint('FCM initialization error: $error');
+  }
 
   runApp(const ProviderScope(child: SrsReviewApp()));
 }

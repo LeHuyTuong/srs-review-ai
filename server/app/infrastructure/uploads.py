@@ -52,18 +52,25 @@ import asyncio
 import hashlib
 import hmac
 import json
+import logging
 import shutil
 import time
 import uuid
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 from fastapi import Request
 
 TOKEN_TTL_SECONDS = 3600
 """Capability-token lifetime (1 hour)."""
+
+log = logging.getLogger(__name__)
+
+
+class CloudinaryFileUploader(Protocol):
+    def upload_file(self, path: Path, public_id: str) -> dict[str, Any]: ...
 
 
 class UploadError(Exception):
@@ -105,10 +112,17 @@ class UploadStore:
         format; keep it secret.
     """
 
-    def __init__(self, upload_dir: Path | str, max_bytes: int, secret: str) -> None:
+    def __init__(
+        self,
+        upload_dir: Path | str,
+        max_bytes: int,
+        secret: str,
+        cloudinary_uploader: CloudinaryFileUploader | None = None,
+    ) -> None:
         self.upload_dir = Path(upload_dir)
         self.max_bytes = max_bytes
         self._secret = secret.encode("utf-8") if secret else b""
+        self._cloudinary_uploader = cloudinary_uploader
         self.upload_dir.mkdir(parents=True, exist_ok=True)
 
     # ------------------------------------------------------------------ #
@@ -236,8 +250,23 @@ class UploadStore:
             # Failure: tmp still holds the partial file and must be cleaned up.
             tmp.unlink(missing_ok=True)
 
-        await asyncio.to_thread(self._write_meta, key, size, sha.hexdigest())
-        return {"key": key, "size": size, "sha256": sha.hexdigest()}
+        cloudinary_asset: dict[str, Any] | None = None
+        if self._cloudinary_uploader is not None:
+            try:
+                cloudinary_asset = await asyncio.to_thread(
+                    self._cloudinary_uploader.upload_file, path, key
+                )
+            except Exception as exc:
+                # Local persistence remains usable if Cloudinary is unavailable.
+                log.warning("Cloudinary backup upload failed (%s)", type(exc).__name__)
+
+        await asyncio.to_thread(
+            self._write_meta, key, size, sha.hexdigest(), cloudinary_asset
+        )
+        result = {"key": key, "size": size, "sha256": sha.hexdigest()}
+        if cloudinary_asset is not None:
+            result["cloudinary_asset_id"] = cloudinary_asset.get("asset_id")
+        return result
 
     @staticmethod
     def _append(path: Path, chunk: bytes) -> None:
@@ -251,12 +280,27 @@ class UploadStore:
     def _meta_path(self, key: str) -> Path:
         return self.upload_dir / self._meta_name(key)
 
-    def _write_meta(self, key: str, size: int, sha256: str) -> None:
+    def _write_meta(
+        self,
+        key: str,
+        size: int,
+        sha256: str,
+        cloudinary_asset: dict[str, Any] | None = None,
+    ) -> None:
         meta = {
             "key": key,
             "size": size,
             "sha256": sha256,
             "uploaded_at": datetime.now(UTC).isoformat(),
+            "cloudinary": (
+                {
+                    "asset_id": cloudinary_asset.get("asset_id"),
+                    "public_id": cloudinary_asset.get("public_id"),
+                    "version": cloudinary_asset.get("version"),
+                }
+                if cloudinary_asset is not None
+                else None
+            ),
         }
         self._meta_path(key).write_text(json.dumps(meta, separators=(",", ":")), encoding="utf-8")
 

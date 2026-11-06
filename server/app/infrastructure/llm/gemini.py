@@ -56,7 +56,10 @@ class GeminiProvider:
     def models(self) -> list[str]:
         """Primary first, then fallback: a 429 on flash-lite retries on flash
         before we would ever consider another provider."""
-        ordered = [self._settings.gemini_model, self._settings.gemini_fallback_model]
+        ordered = [
+            self._settings.llm_model or self._settings.gemini_model,
+            self._settings.gemini_fallback_model,
+        ]
         return [m for i, m in enumerate(ordered) if m and m not in ordered[:i]]
 
     async def generate_json(

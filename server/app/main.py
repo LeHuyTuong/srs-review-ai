@@ -28,8 +28,11 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import make_url
 
 from .api import ask, classes, diagram, health, review, submissions, uploads
+from .core.cloudinary import CloudinaryMediaService
 from .config.criteria import CriteriaStore
 from .config.rubric_store import RubricStore
 from .config.settings import get_settings
@@ -51,6 +54,26 @@ app = FastAPI(
     version=CONTRACT_VERSION,
     description="Reviews one requirement at a time against a configurable rubric.",
 )
+
+
+@app.on_event("startup")
+def _verify_database_connection() -> None:
+    """Fail startup if Compose configured PostgreSQL but it is unreachable."""
+    if not _settings.database_url:
+        return
+    database_url = make_url(_settings.database_url)
+    if database_url.drivername in {"postgres", "postgresql"}:
+        # SQLAlchemy's bare PostgreSQL URL defaults to psycopg2. The backend
+        # installs Psycopg 3, so make that driver choice explicit for local and
+        # externally supplied DATABASE_URL values as well as Compose.
+        database_url = database_url.set(drivername="postgresql+psycopg")
+    engine = create_engine(database_url, pool_pre_ping=True)
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        log.info("PostgreSQL connection established.")
+    finally:
+        engine.dispose()
 
 _settings = get_settings()
 app.add_middleware(
@@ -81,10 +104,17 @@ _diagram_cache: SqliteCache[DiagramResponse] = SqliteCache(
 )
 _limiter = RateLimiter()
 
+_cloudinary_uploader = None
+if _settings.cloudinary_configured:
+    _cloudinary_uploader = CloudinaryMediaService(_settings)
+elif _settings.cloudinary_partially_configured:
+    log.warning("Cloudinary upload is disabled because one or more credentials are missing.")
+
 _upload_store = UploadStore(
     _settings.upload_dir,
     _settings.max_upload_bytes,
     _settings.app_token,
+    cloudinary_uploader=_cloudinary_uploader,
 )
 
 _share_store = ShareStore(_settings.share_dir)

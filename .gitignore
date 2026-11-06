@@ -2,9 +2,11 @@
 .env
 .env.*
 !.env.example
+server/.env
 *.pem
 *.key
 service-account*.json
+server/firebase-admin.json
 
 # ---------- Flutter / Dart ----------
 desktop/.dart_tool/
@@ -144,3 +146,11 @@ server/.classes/
 /diagram-gallery.html
 
 .commandcode/
+# Kotlin compiler session & build cache
+.kotlin/
+.kotlin/sessions/
+android/.kotlin/
+
+# Gradle temporary files
+.gradle/
+android/.gradle/

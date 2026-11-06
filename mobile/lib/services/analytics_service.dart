@@ -8,6 +8,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 abstract class AnalyticsService {
   Future<void> setUser(String? uid);
 
+  Future<void> logSelectCourse(String courseId);
+  Future<void> logViewSrs(String documentId);
+  Future<void> logRunAiReview(String reviewId);
+  Future<void> logApproveProject(String projectId);
+  Future<void> logExportFile(String format);
+
   /// #1 login
   Future<void> logLogin();
 
@@ -44,6 +50,26 @@ class FirebaseAnalyticsService implements AnalyticsService {
     : _analytics = analytics ?? FirebaseAnalytics.instance;
 
   final FirebaseAnalytics _analytics;
+
+  @override
+  Future<void> logSelectCourse(String courseId) =>
+      _event('select_course', {'course_id': courseId});
+
+  @override
+  Future<void> logViewSrs(String documentId) =>
+      _event('view_srs', {'document_id': documentId});
+
+  @override
+  Future<void> logRunAiReview(String reviewId) =>
+      _event('run_ai_review', {'review_id': reviewId});
+
+  @override
+  Future<void> logApproveProject(String projectId) =>
+      _event('approve_project', {'project_id': projectId});
+
+  @override
+  Future<void> logExportFile(String format) =>
+      _event('export_file', {'format': format});
 
   @override
   Future<void> setUser(String? uid) =>
@@ -103,6 +129,20 @@ class FirebaseAnalyticsService implements AnalyticsService {
 /// No-op khi Firebase chưa khởi tạo (unit test, hoặc code gọi trước
 /// `Firebase.initializeApp`): giám sát không bao giờ được làm hỏng app.
 class _NoopAnalyticsService implements AnalyticsService {
+  @override
+  Future<void> logSelectCourse(String courseId) async {}
+
+  @override
+  Future<void> logViewSrs(String documentId) async {}
+
+  @override
+  Future<void> logRunAiReview(String reviewId) async {}
+
+  @override
+  Future<void> logApproveProject(String projectId) async {}
+
+  @override
+  Future<void> logExportFile(String format) async {}
   @override
   Future<void> setUser(String? uid) async {}
 
