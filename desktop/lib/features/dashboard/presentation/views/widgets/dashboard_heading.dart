@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:srs_review_ai/core/domain/dashboard/dashboard_state.dart';
-import 'package:srs_review_ai/theme/app_colors.dart';
-import 'package:srs_review_ai/theme/app_metrics.dart';
-import 'package:srs_review_ai/theme/app_spacing.dart';
-import 'package:srs_review_ai/theme/app_typography.dart';
+import 'package:srs_review_ai/core/theme/app/app_colors.dart';
+import 'package:srs_review_ai/core/theme/app/app_metrics.dart';
+import 'package:srs_review_ai/core/theme/app/app_spacing.dart';
+import 'package:srs_review_ai/core/theme/app/app_typography.dart';
 import 'package:srs_review_ai/widgets/app_icon.dart';
 
 // Lời chào và bộ chọn học kỳ từ dữ liệu ViewModel; chỉ phát sự kiện chọn ID.

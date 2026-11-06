@@ -3,6 +3,8 @@ import 'package:srs_review_ai_mobile/features/academic/presentation/views/manage
 import 'package:srs_review_ai_mobile/features/account/presentation/viewmodels/login_view_model.dart';
 import 'package:srs_review_ai_mobile/features/account/presentation/viewmodels/notification_view_model.dart';
 import 'package:srs_review_ai_mobile/features/account/presentation/views/crashlytics_test_tile.dart';
+import 'package:srs_review_ai_mobile/features/account/presentation/views/push_inbox_section.dart';
+import 'package:srs_review_ai_mobile/features/account/presentation/views/remote_config_tile.dart';
 
 // Hiển thị hồ sơ từ dữ liệu mẫu và gửi thao tác đăng xuất tới ViewModel quản lý phiên.
 class ProfileScreen extends ConsumerWidget {
@@ -133,6 +135,12 @@ class ProfileScreen extends ConsumerWidget {
             child: CrashlyticsTestTile(),
           ),
         ),
+        const AppCard(
+          child: Material(
+            type: MaterialType.transparency,
+            child: RemoteConfigTile(),
+          ),
+        ),
         AppButton(
           label: 'Đăng xuất',
           variant: AppButtonVariant.danger,
@@ -189,6 +197,8 @@ class _NotificationsState extends ConsumerState<NotificationsScreen> {
                 eyebrow: 'CẬP NHẬT',
                 description: '${view.unread} thông báo chưa đọc',
               ),
+              const PushInboxSection(),
+              Text('Cập nhật học vụ', style: AppTypography.sectionHeading),
               AppTabs(
                 labels: const [
                   'Tất cả',

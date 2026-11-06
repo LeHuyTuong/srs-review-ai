@@ -10,6 +10,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:srs_review_ai_mobile/app/app.dart';
 import 'package:srs_review_ai_mobile/firebase_options.dart';
 import 'package:srs_review_ai_mobile/core/services/fcm_service.dart';
+import 'package:srs_review_ai_mobile/core/di/data_providers.dart';
+import 'package:srs_review_ai_mobile/core/di/sync_providers.dart';
+import 'package:srs_review_ai_mobile/core/sync/offline_academic_store.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,7 +31,28 @@ Future<void> main() async {
     debugPrint('FCM initialization error: $error');
   }
 
-  runApp(const ProviderScope(child: SrsReviewApp()));
+  // SQLite chỉ có trên Android/iOS; web giữ kho trong RAM như trước. Mở DB
+  // hỏng thì app vẫn chạy (mất offline), không được chặn màn hình đăng nhập.
+  OfflineAcademicStore? offlineStore;
+  if (!kIsWeb) {
+    try {
+      offlineStore = await OfflineAcademicStore.open();
+    } catch (error) {
+      debugPrint('Offline store unavailable: $error');
+    }
+  }
+  final container = ProviderContainer(
+    overrides: [offlineAcademicStoreProvider.overrideWithValue(offlineStore)],
+  );
+  // Khởi động đồng bộ ngay: outbox còn lại từ lần offline trước được đẩy lên.
+  container.read(academicSyncServiceProvider);
+
+  runApp(
+    UncontrolledProviderScope(
+      container: container,
+      child: const SrsReviewApp(),
+    ),
+  );
 }
 
 /// Đăng ký 3 "lưới bắt lỗi" cho Crashlytics (Crashlytics không hỗ trợ web).

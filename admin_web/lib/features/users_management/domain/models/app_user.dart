@@ -8,6 +8,7 @@ class AppUser {
     required this.registrationDate,
     required this.lastSignIn,
     required this.role,
+    this.deviceCount = 0,
   });
 
   final String uid;
@@ -16,6 +17,8 @@ class AppUser {
   final String? photoUrl;
   final DateTime registrationDate;
   final DateTime lastSignIn;
+  /// Số thiết bị đã đăng ký nhận push (`users/{uid}.fcmTokens`).
+  final int deviceCount;
   final String role; // 'teacher', 'student', 'admin' (hoặc giá trị tiếng Việt cũ)
 
   /// Chuẩn hoá để đọc được cả role canonical lẫn dữ liệu cũ/tiếng Việt.

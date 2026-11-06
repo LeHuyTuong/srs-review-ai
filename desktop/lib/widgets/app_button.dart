@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:srs_review_ai/theme/app_colors.dart';
-import 'package:srs_review_ai/theme/app_metrics.dart';
-import 'package:srs_review_ai/theme/app_spacing.dart';
+import 'package:srs_review_ai/core/theme/app/app_colors.dart';
+import 'package:srs_review_ai/core/theme/app/app_metrics.dart';
+import 'package:srs_review_ai/core/theme/app/app_spacing.dart';
 
 // Các kiểu nút dùng chung chỉ quyết định cách trình bày, không cấp quyền thao tác nghiệp vụ.
 enum AppButtonVariant { primary, secondary, danger }

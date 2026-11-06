@@ -1,10 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:srs_review_ai/theme/app_colors.dart';
-import 'package:srs_review_ai/theme/app_metrics.dart';
-import 'package:srs_review_ai/theme/app_spacing.dart';
-import 'package:srs_review_ai/theme/app_typography.dart';
+import 'package:srs_review_ai/core/theme/app/app_colors.dart';
+import 'package:srs_review_ai/core/theme/app/app_metrics.dart';
+import 'package:srs_review_ai/core/theme/app/app_spacing.dart';
+import 'package:srs_review_ai/core/theme/app/app_typography.dart';
 import 'package:srs_review_ai/widgets/app_icon.dart';
 
 // Khối thu gọn tương đương details/summary; mở hoặc đóng chỉ thay đổi cách hiển thị.

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:srs_review_ai/core/navigation/app_navigation.dart';
+import 'package:srs_review_ai/core/theme/app/app_metrics.dart';
+import 'package:srs_review_ai/core/theme/app/app_spacing.dart';
 import 'package:srs_review_ai/features/dashboard/presentation/viewmodels/dashboard_view_model.dart';
 import 'package:srs_review_ai/features/dashboard/presentation/views/widgets/dashboard_heading.dart';
 import 'package:srs_review_ai/features/dashboard/presentation/views/widgets/dashboard_secondary_sections.dart';
 import 'package:srs_review_ai/features/dashboard/presentation/views/widgets/dashboard_stats.dart';
 import 'package:srs_review_ai/features/dashboard/presentation/views/widgets/dashboard_tasks.dart';
-import 'package:srs_review_ai/theme/app_metrics.dart';
-import 'package:srs_review_ai/theme/app_spacing.dart';
 import 'package:srs_review_ai/widgets/app_bottom_navigation.dart';
 import 'package:srs_review_ai/widgets/app_button.dart';
 import 'package:srs_review_ai/widgets/app_states.dart';

@@ -1,0 +1,10 @@
+# 05 Error and recovery
+steps:
+  - create project with empty name -> save
+  - enter valid name -> save
+  - airplane mode on -> run AI -> see error
+  - airplane mode off -> retry
+expected:
+  - form.error visible
+  - project created
+  - AI eventually completed

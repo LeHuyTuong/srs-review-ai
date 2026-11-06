@@ -31,12 +31,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 
-from .api import ask, classes, diagram, health, remote_config, review, submissions, uploads
-from .core.cloudinary import CloudinaryMediaService
+from .api import (
+    ask,
+    classes,
+    diagram,
+    health,
+    notifications,
+    remote_config,
+    review,
+    submissions,
+    sync,
+    uploads,
+)
 from .config.criteria import CriteriaStore
 from .config.rubric_store import RubricStore
 from .config.settings import get_settings
 from .contracts.schemas import CONTRACT_VERSION, ReviewResult
+from .core.cloudinary import CloudinaryMediaService
 from .infrastructure.classes import ClassStore
 from .infrastructure.diagram import DiagramResponse
 from .infrastructure.llm.router import build_provider
@@ -44,6 +55,7 @@ from .infrastructure.ratelimit import RateLimiter
 from .infrastructure.share import ShareStore
 from .infrastructure.store import SqliteCache
 from .infrastructure.submissions import SubmissionStore
+from .infrastructure.sync_store import SyncStore
 from .infrastructure.uploads import UploadStore
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -74,6 +86,7 @@ def _verify_database_connection() -> None:
         log.info("PostgreSQL connection established.")
     finally:
         engine.dispose()
+
 
 _settings = get_settings()
 app.add_middleware(
@@ -124,6 +137,11 @@ _submission_store = SubmissionStore(_settings.submission_dir, _settings.submissi
 # on the submission rows, so this store owns only the class's own fields.
 _class_store = ClassStore(_settings.class_dir)
 
+# Offline sync log of the mobile app (record-level LWW per Firebase uid). Its
+# own sqlite file: the review cache is LRU-pruned, and a pruned sync row would
+# be a teacher's edit silently lost.
+_sync_store = SyncStore(_settings.cache_dir / "sync.sqlite3")
+
 # Submission records (plan 9, P2). A group uploads through /uploads/presign,
 # then names the blob here so the review that follows is addressable by one
 # capability id — the same posture as /share, and with the same serverless
@@ -142,6 +160,7 @@ _rubric = RubricStore(_settings.cache_dir / "rubric.sqlite3")
 app.include_router(health.router)
 app.include_router(health.config_router)
 app.include_router(remote_config.router)
+app.include_router(notifications.router)
 app.include_router(review.router)
 app.include_router(ask.router)
 app.include_router(diagram.router)
@@ -150,6 +169,7 @@ app.include_router(uploads.router)
 app.include_router(uploads.share_router)
 app.include_router(submissions.router)
 app.include_router(classes.router)
+app.include_router(sync.router)
 
 __all__ = [
     "CONTRACT_VERSION",

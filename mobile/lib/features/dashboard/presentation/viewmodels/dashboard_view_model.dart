@@ -23,6 +23,7 @@ class DashboardViewModel extends AsyncNotifier<DashboardState> {
   @override
   Future<DashboardState> build() async {
     ref.watch(academicChangesProvider);
+    ref.watch(academicRemoteChangesProvider);
     final scope = ref.watch(sessionScopeProvider);
     // Đổi phiên thì bỏ học kỳ đã chọn của phiên trước; làm mới dữ liệu trong cùng phiên vẫn giữ lựa chọn.
     if (!identical(_scope, scope)) {

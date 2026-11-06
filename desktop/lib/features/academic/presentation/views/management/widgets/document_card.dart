@@ -1,3 +1,4 @@
+import 'package:srs_review_ai/core/theme/app/app_corners.dart';
 import 'package:srs_review_ai/features/academic/presentation/views/management/widgets/management_shared.dart';
 import 'package:srs_review_ai/widgets/app_status_tracks.dart';
 
@@ -195,7 +196,7 @@ class ManagementDocumentCard extends StatelessWidget {
             padding: const EdgeInsets.all(AppMetrics.gridGap),
             decoration: BoxDecoration(
               color: AppColors.subtle,
-              borderRadius: BorderRadius.circular(AppSpacing.s),
+              borderRadius: AppCorners.s,
             ),
             child: tracks(),
           ),
@@ -312,7 +313,7 @@ class ReviewTimeline extends StatelessWidget {
                             padding: const EdgeInsets.all(AppMetrics.gridGap),
                             decoration: BoxDecoration(
                               color: AppColors.subtle,
-                              borderRadius: BorderRadius.circular(AppSpacing.s),
+                              borderRadius: AppCorners.s,
                             ),
                             child: Text(e.text('quote')),
                           ),

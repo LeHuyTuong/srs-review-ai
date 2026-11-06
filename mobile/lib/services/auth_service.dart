@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import 'package:srs_review_ai_mobile/core/services/fcm_service.dart';
 import 'package:srs_review_ai_mobile/firebase_options.dart';
 
 class AuthService {
@@ -26,6 +27,22 @@ class AuthService {
   User? get currentUser => _auth.currentUser;
 
   Future<User?> signInWithGoogle() async {
+    // google_sign_in 7 trên web không có authenticate() và assert khi gặp
+    // serverClientId → dùng popup của Firebase Auth (không cần client ID meta).
+    if (kIsWeb) {
+      try {
+        final user = (await _auth.signInWithPopup(GoogleAuthProvider())).user;
+        if (user != null) await _syncUserProfile(user);
+        return user;
+      } on FirebaseAuthException catch (e) {
+        // Người dùng đóng popup = huỷ, giống nhánh canceled của mobile.
+        if (e.code == 'popup-closed-by-user' ||
+            e.code == 'cancelled-popup-request') {
+          return null;
+        }
+        rethrow;
+      }
+    }
     await _ensureGoogleInitialized();
 
     try {
@@ -57,6 +74,8 @@ class AuthService {
   }
 
   Future<void> signOut() async {
+    await fcmService.unregisterCurrentUser();
+    if (kIsWeb) return _auth.signOut();
     try {
       await _ensureGoogleInitialized();
       await _googleSignIn.signOut();

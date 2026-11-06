@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-
-import 'package:srs_review_ai/theme/app_colors.dart';
-import 'package:srs_review_ai/theme/app_metrics.dart';
-import 'package:srs_review_ai/theme/app_radius.dart';
-import 'package:srs_review_ai/theme/app_spacing.dart';
+import 'package:srs_review_ai/core/theme/app/app_colors.dart';
+import 'package:srs_review_ai/core/theme/app/app_corners.dart';
+import 'package:srs_review_ai/core/theme/app/app_metrics.dart';
+import 'package:srs_review_ai/core/theme/app/app_spacing.dart';
 
 // Thẻ phẳng với viền và khoảng đệm tương đương Card.tsx, không tự thêm bóng.
 class AppCard extends StatelessWidget {
@@ -22,7 +21,7 @@ class AppCard extends StatelessWidget {
     decoration: BoxDecoration(
       color: tinted ? AppColors.brandTint : AppColors.white,
       border: Border.all(color: AppColors.line, width: AppMetrics.border),
-      borderRadius: BorderRadius.circular(AppRadius.card),
+      borderRadius: AppCorners.card,
     ),
     child: Padding(
       padding: padding.add(const EdgeInsets.all(AppMetrics.border)),

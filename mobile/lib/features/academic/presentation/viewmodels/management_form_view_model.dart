@@ -5,6 +5,7 @@ import 'package:srs_review_ai_mobile/core/domain/academic/academic_presentation.
 import 'package:srs_review_ai_mobile/features/academic/presentation/viewmodels/academic_form_view_model.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/viewmodels/academic_view_model.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/viewmodels/directory_view_model.dart';
+import 'package:srs_review_ai_mobile/services/analytics_service.dart';
 import 'package:srs_review_ai_mobile/core/session/session_view_model.dart';
 
 // Bản nháp quản trị gắn với lần mở biểu mẫu; tự hủy khi màn hình không còn theo dõi.
@@ -524,6 +525,12 @@ class ManagementFormViewModel extends Notifier<AcademicFormState> {
             severity: draft.text('severity'),
             category: draft.text('category'),
           );
+          await ref
+              .read(analyticsServiceProvider)
+              .logSubmitReviewDecision(
+                reviewId: draft.id,
+                decision: ['approved', 'needsRevision', 'notAccepted'][spec.section],
+              );
         case 'registration':
           await commands.decideRegistration(
             spec.classId,

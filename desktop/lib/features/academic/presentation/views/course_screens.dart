@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:srs_review_ai/core/navigation/app_navigation.dart';
+import 'package:srs_review_ai/core/theme/app/app_colors.dart';
+import 'package:srs_review_ai/core/theme/app/app_corners.dart';
+import 'package:srs_review_ai/core/theme/app/app_spacing.dart';
+import 'package:srs_review_ai/core/theme/app/app_typography.dart';
 import 'package:srs_review_ai/features/academic/presentation/viewmodels/academic_form_view_model.dart';
 import 'package:srs_review_ai/features/academic/presentation/views/widgets/academic_form_sheet.dart';
 import 'package:srs_review_ai/features/academic/presentation/views/widgets/academic_page.dart';
 import 'package:srs_review_ai/features/academic/presentation/views/widgets/rule_set_panel.dart';
-import 'package:srs_review_ai/theme/app_colors.dart';
-import 'package:srs_review_ai/theme/app_spacing.dart';
-import 'package:srs_review_ai/theme/app_typography.dart';
 import 'package:srs_review_ai/widgets/app_academic_layout.dart';
 import 'package:srs_review_ai/widgets/app_badge.dart';
 import 'package:srs_review_ai/widgets/app_button.dart';
@@ -56,7 +57,7 @@ class CourseListScreen extends StatelessWidget {
                           padding: const EdgeInsets.all(AppSpacing.s),
                           decoration: BoxDecoration(
                             color: AppColors.brandSoft,
-                            borderRadius: BorderRadius.circular(AppSpacing.s),
+                            borderRadius: AppCorners.s,
                           ),
                           child: const AppIcon(
                             'book-open',

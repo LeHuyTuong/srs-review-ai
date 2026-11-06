@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:srs_review_ai/app/di/data_providers.dart';
 import 'package:srs_review_ai/core/contracts/academic/course_contract.dart';
-import 'package:srs_review_ai/core/di/data_providers.dart';
 import 'package:srs_review_ai/core/domain/academic/academic_models.dart';
 import 'package:srs_review_ai/core/domain/academic/academic_policy.dart';
 import 'package:srs_review_ai/core/domain/session_scope.dart';

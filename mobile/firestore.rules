@@ -1,97 +1,106 @@
 rules_version = '2';
 
+// Server (FastAPI) dùng Admin SDK nên KHÔNG đi qua rules này; rules chỉ chặn
+// client (mobile + admin web). Mặc định đóng, chỉ mở đúng đường app dùng.
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() {
       return request.auth != null;
     }
 
-    // Set `role` as a Firebase Auth custom claim from a trusted Admin SDK.
-    // A value stored in /users/{uid} is profile data and must not grant access.
-    function role() {
-      return signedIn() ? request.auth.token.get('role', '') : '';
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
     }
 
-    function isTeacher() {
-      return role() in ['teacher', 'supervisor'];
+    // Admin = có doc admins/{uid} (tạo bằng Console/Admin SDK). Không tin
+    // field `role` trong users/{uid} vì chính người dùng ghi được doc đó.
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
-    function isStudent() {
-      return role() == 'student';
+    // Bản ghi giám sát (crash/analytics) mang UID của người ghi, hoặc rỗng
+    // khi chưa đăng nhập (ví dụ đăng nhập Google thất bại).
+    function ownsMonitoringRecord() {
+      return request.resource.data.userId == ''
+        || (signedIn() && request.resource.data.userId == request.auth.uid);
     }
 
-    function canReadAcademicData() {
-      return isTeacher() || isStudent();
-    }
-
-    // Deny by default: every path is closed unless a rule below opens it.
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // A user may only read and write their own profile.
+    match /admins/{uid} {
+      allow read: if isSelf(uid);
+      allow write: if false;
+    }
+
     match /users/{uid} {
-      allow read, write: if signedIn() && request.auth.uid == uid;
+      allow read: if isSelf(uid) || isAdmin();
+      // Hồ sơ mới chỉ được tự gán `teacher`; sau đó không tự đổi role.
+      allow create: if isSelf(uid)
+        && request.resource.data.get('role', 'teacher') == 'teacher';
+      allow update: if isSelf(uid)
+        && (request.resource.data.get('role', '') == resource.data.get('role', '')
+          || (resource.data.get('role', '') == ''
+            && request.resource.data.get('role', '') == 'teacher'));
+      allow delete: if false;
+
+      // Thông báo đẩy đã nhận. Server ghi khi gửi; app chỉ tự ghi bản nhận
+      // từ nơi khác (source = device) và đánh dấu đã đọc.
+      match /inbox/{id} {
+        allow read, delete: if isSelf(uid);
+        allow create: if isSelf(uid)
+          && request.resource.data.source == 'device'
+          && request.resource.data.title is string;
+        allow update: if isSelf(uid)
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['read', 'receivedAt']);
+      }
     }
 
-    // Academic collections are readable by either app role. Students are
-    // read-only; teacher writes power the faculty management workflows.
-    match /courses/{documentId} {
-      allow read: if canReadAcademicData();
-      allow write: if isTeacher();
-    }
-    match /classes/{documentId} {
-      allow read: if canReadAcademicData();
-      allow write: if isTeacher();
-    }
-    match /projects/{documentId} {
-      allow read: if canReadAcademicData();
-      allow write: if isTeacher();
-    }
-    match /semesters/{documentId} {
-      allow read: if canReadAcademicData();
-      allow write: if isTeacher();
-    }
-    match /groups/{documentId} {
-      allow read: if canReadAcademicData();
-      allow write: if isTeacher();
-    }
+    // Dữ liệu học vụ dùng chung: mọi người đã đăng nhập (giảng viên trên
+    // mobile, admin web) đọc/ghi; người lạ không đọc được gì.
+    match /courses/{id} { allow read, write: if signedIn(); }
+    match /classes/{id} { allow read, write: if signedIn(); }
+    match /groups/{id} { allow read, write: if signedIn(); }
+    match /projects/{id} { allow read, write: if signedIn(); }
+    match /registrations/{id} { allow read, write: if signedIn(); }
+    match /semesters/{id} { allow read, write: if signedIn(); }
+    match /offerings/{id} { allow read, write: if signedIn(); }
+    match /ruleSets/{id} { allow read, write: if signedIn(); }
+    match /students/{id} { allow read, write: if signedIn(); }
+    match /_meta/{id} { allow read, write: if signedIn(); }
+    match /documents/{id} { allow read, write: if signedIn(); }
 
-    // Additional collections consumed by FirebaseAcademicService.
-    match /offerings/{documentId} {
-      allow read: if canReadAcademicData();
-      allow write: if isTeacher();
-    }
-    match /ruleSets/{documentId} {
-      allow read: if canReadAcademicData();
-      allow write: if isTeacher();
-    }
-    match /registrations/{documentId} {
-      allow read: if canReadAcademicData();
-      allow write: if isTeacher();
-    }
-    match /students/{documentId} {
-      allow read: if canReadAcademicData();
-      allow write: if isTeacher();
-    }
-    match /_meta/{documentId} {
-      allow read: if canReadAcademicData();
-      allow write: if isTeacher();
-    }
-
-    // Existing document metadata access requires an authenticated session.
-    match /documents/{documentId} {
-      allow read, write: if signedIn();
-    }
-
-    // Students may create and read only their own Cloudinary submission record.
-    match /submissions/{submissionId} {
-      allow create: if isStudent()
+    // Bài nộp: chỉ tạo cho chính mình; không ai sửa/xoá từ client.
+    match /submissions/{id} {
+      allow create: if signedIn()
         && request.resource.data.student_id == request.auth.uid
         && request.resource.data.file_url is string
         && request.resource.data.file_name is string;
-      allow read: if isTeacher()
-        || (isStudent() && resource.data.student_id == request.auth.uid);
+      allow read: if signedIn();
+      allow update, delete: if false;
+    }
+
+    match /srs_reports/{id} {
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.uid == request.auth.uid);
+      allow update, delete: if false;
+    }
+
+    // Bản sao Crashlytics/Analytics: app chỉ được ghi thêm, chỉ admin đọc.
+    match /crash_logs/{id} {
+      allow create: if ownsMonitoringRecord()
+        && request.resource.data.type in ['non-fatal', 'fatal'];
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+    match /analytics_events/{id} {
+      allow create: if ownsMonitoringRecord()
+        && request.resource.data.name is string;
+      allow read: if isAdmin();
       allow update, delete: if false;
     }
   }

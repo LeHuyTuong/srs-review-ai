@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:srs_review_ai/theme/app_colors.dart';
-import 'package:srs_review_ai/theme/app_metrics.dart';
-import 'package:srs_review_ai/theme/app_spacing.dart';
-import 'package:srs_review_ai/theme/app_typography.dart';
+import 'package:srs_review_ai/core/theme/app/app_colors.dart';
+import 'package:srs_review_ai/core/theme/app/app_corners.dart';
+import 'package:srs_review_ai/core/theme/app/app_metrics.dart';
+import 'package:srs_review_ai/core/theme/app/app_spacing.dart';
+import 'package:srs_review_ai/core/theme/app/app_typography.dart';
 import 'package:srs_review_ai/widgets/app_icon.dart';
 
 // Bộ chọn gọn trong thanh lọc, giữ kích thước theo nhãn và vùng chạm 48dp.
@@ -35,7 +36,7 @@ class AppSelectButton extends StatelessWidget {
       decoration: BoxDecoration(
         color: selected ? AppColors.brandSoft : AppColors.white,
         border: Border.all(color: selected ? AppColors.brand : AppColors.line),
-        borderRadius: BorderRadius.circular(AppSpacing.s),
+        borderRadius: AppCorners.s,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -69,14 +70,14 @@ class AppFilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) => InkWell(
     onTap: onRemove,
-    borderRadius: BorderRadius.circular(AppSpacing.huge),
+    borderRadius: AppCorners.pill,
     child: Container(
       constraints: const BoxConstraints(minHeight: AppSpacing.tapMin),
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
       decoration: BoxDecoration(
         color: AppColors.brandSoft,
         border: Border.all(color: AppColors.brand.withValues(alpha: .3)),
-        borderRadius: BorderRadius.circular(AppSpacing.huge),
+        borderRadius: AppCorners.pill,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

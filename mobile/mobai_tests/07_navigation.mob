@@ -1,0 +1,7 @@
+# 07 Navigation
+steps:
+  - open each bottom tab
+  - back to dashboard
+expected:
+  - each tab has correct title
+  - no overflow at 360/390/412 dp

@@ -1,6 +1,7 @@
+import 'package:srs_review_ai/core/theme/app/app_corners.dart';
+import 'package:srs_review_ai/core/theme/app/app_feature_metrics.dart';
 import 'package:srs_review_ai/features/academic/presentation/viewmodels/document_reader_view_model.dart';
 import 'package:srs_review_ai/features/academic/presentation/views/management/widgets/management_shared.dart';
-import 'package:srs_review_ai/theme/app_feature_metrics.dart';
 
 // Đọc nội dung mẫu từ React; chưa đọc dữ liệu PDF hoặc DOCX thật của sinh viên.
 class SampleDocumentReader extends ConsumerWidget {
@@ -25,9 +26,7 @@ class SampleDocumentReader extends ConsumerWidget {
     final controls = IconButton.styleFrom(
       minimumSize: const Size.square(AppSpacing.tapMin),
       padding: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.s),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: AppCorners.s),
       side: const BorderSide(color: AppColors.line),
     );
     return AppCard(
@@ -303,7 +302,7 @@ class DocumentSamplePage extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.white,
             border: Border.all(color: AppColors.line),
-            borderRadius: BorderRadius.circular(AppSpacing.xs),
+            borderRadius: AppCorners.xs,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

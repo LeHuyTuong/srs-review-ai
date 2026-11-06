@@ -24,6 +24,7 @@ import 'package:srs_review_ai_mobile/features/account/presentation/views/account
 import 'package:srs_review_ai_mobile/app/auth_wrapper.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/views/directory_screens.dart';
 import 'package:srs_review_ai_mobile/core/services/fcm_service.dart';
+import 'package:srs_review_ai_mobile/services/analytics_service.dart';
 import 'package:srs_review_ai_mobile/services/remote_config_service.dart';
 
 // Điểm vào ứng dụng Supervisor; điều hướng Flutter nối Tổng quan với các màn học vụ.
@@ -37,6 +38,9 @@ class SrsReviewApp extends ConsumerWidget {
     ref.watch(remoteConfigValuesProvider);
     return MaterialApp(
       navigatorKey: Firebase.apps.isNotEmpty ? appNavigatorKey : null,
+      navigatorObservers: [
+        AnalyticsRouteObserver(ref.read(analyticsServiceProvider)),
+      ],
       // Tạo lại cây điều hướng khi phiên đổi để không giữ màn hình của lần đăng nhập trước.
       key: ValueKey(ref.watch(sessionProvider)),
       title: 'SRS Đánh giá AI',

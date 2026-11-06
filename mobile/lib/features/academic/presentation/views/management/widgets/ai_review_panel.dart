@@ -104,6 +104,27 @@ class AiReviewPanel extends ConsumerWidget {
                 Text(
                   '${panel.passed} đạt · ${panel.improve} cần cải thiện · ${panel.unscored} chưa chấm',
                 ),
+                if (detailed)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: AppButton(
+                      label: 'Xuất báo cáo',
+                      variant: AppButtonVariant.secondary,
+                      compact: true,
+                      icon: const AppIcon('upload'),
+                      onPressed: () async {
+                        final ok = await vm.exportReport(panel);
+                        if (!context.mounted) return;
+                        final error = ref.read(reviewPanelProvider(r.id)).error;
+                        if (!ok && error.isEmpty) return; // người dùng huỷ
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(ok ? 'Đã xuất báo cáo AI.' : error),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 for (final f in panel.previewFindings)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,

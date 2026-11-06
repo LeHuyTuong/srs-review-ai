@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:srs_review_ai/core/navigation/app_navigation.dart';
-import 'package:srs_review_ai/theme/app_spacing.dart';
+import 'package:srs_review_ai/core/theme/app/app_spacing.dart';
 import 'package:srs_review_ai/widgets/app_bottom_navigation.dart';
 import 'package:srs_review_ai/widgets/app_button.dart';
 import 'package:srs_review_ai/widgets/app_states.dart';

@@ -271,15 +271,8 @@ class Settings(BaseSettings):
         whether one key or many are configured.
         """
         configured = [self.gemini_api_key]
-        configured.extend(
-            getattr(self, f"google_api_key_{index}") for index in range(1, 9)
-        )
-        return [
-            key
-            for value in configured
-            for key in value.replace(",", " ").split()
-            if key
-        ]
+        configured.extend(getattr(self, f"google_api_key_{index}") for index in range(1, 9))
+        return [key for value in configured for key in value.replace(",", " ").split() if key]
 
     @property
     def has_llm_credentials(self) -> bool:
@@ -292,11 +285,7 @@ class Settings(BaseSettings):
 
     @property
     def cloudinary_configured(self) -> bool:
-        return bool(
-            self.cloudinary_cloud_name
-            and self.cloudinary_api_key
-            and self.cloudinary_api_secret
-        )
+        return bool(self.cloudinary_cloud_name and self.cloudinary_api_key and self.cloudinary_api_secret)
 
     @property
     def cloudinary_partially_configured(self) -> bool:

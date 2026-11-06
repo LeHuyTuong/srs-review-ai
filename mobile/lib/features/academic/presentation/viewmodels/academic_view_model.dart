@@ -33,7 +33,22 @@ class AcademicViewModel extends AsyncNotifier<AcademicSnapshot> {
     sessionScope = ref.watch(sessionScopeProvider);
     activeEvaluationIds.clear();
     _writing = false;
+    _reloadAfterWrite = false;
+    // Đồng bộ offline vừa áp dữ liệu từ server → hiện bản mới, không dựng lại
+    // ViewModel (dựng lại sẽ xoá dấu các lượt AI đang chạy).
+    ref.listen(academicRemoteChangesProvider, (_, _) => _reloadRemote());
     return ref.watch(academicRepositoryProvider).load();
+  }
+
+  bool _reloadAfterWrite = false;
+  Future<void> _reloadRemote() async {
+    if (_writing) {
+      _reloadAfterWrite = true;
+      return;
+    }
+    final scope = sessionScope;
+    final next = await ref.read(academicRepositoryProvider).load();
+    if (ref.mounted && scope.active && !_writing) state = AsyncData(next);
   }
 
   String nextId(String prefix) =>
@@ -79,6 +94,10 @@ class AcademicViewModel extends AsyncNotifier<AcademicSnapshot> {
       }
     } finally {
       if (operationScope.active) _writing = false;
+      if (_reloadAfterWrite && ref.mounted) {
+        _reloadAfterWrite = false;
+        await _reloadRemote();
+      }
     }
   }
 

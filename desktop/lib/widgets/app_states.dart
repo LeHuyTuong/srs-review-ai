@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-
-import 'package:srs_review_ai/theme/app_colors.dart';
-import 'package:srs_review_ai/theme/app_metrics.dart';
-import 'package:srs_review_ai/theme/app_radius.dart';
-import 'package:srs_review_ai/theme/app_spacing.dart';
-import 'package:srs_review_ai/theme/app_typography.dart';
+import 'package:srs_review_ai/core/theme/app/app_colors.dart';
+import 'package:srs_review_ai/core/theme/app/app_corners.dart';
+import 'package:srs_review_ai/core/theme/app/app_metrics.dart';
+import 'package:srs_review_ai/core/theme/app/app_radius.dart';
+import 'package:srs_review_ai/core/theme/app/app_spacing.dart';
+import 'package:srs_review_ai/core/theme/app/app_typography.dart';
 import 'package:srs_review_ai/widgets/app_button.dart';
 import 'package:srs_review_ai/widgets/app_icon.dart';
 
@@ -36,7 +36,7 @@ class AppEmptyState extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(AppRadius.card),
+        borderRadius: AppCorners.card,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -46,7 +46,7 @@ class AppEmptyState extends StatelessWidget {
             height: AppMetrics.emptyIconBox,
             decoration: BoxDecoration(
               color: iconBackground,
-              borderRadius: BorderRadius.circular(AppRadius.button),
+              borderRadius: AppCorners.button,
             ),
             child: Center(
               child: AppIcon(

@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:srs_review_ai/core/di/notification_providers.dart';
+import 'package:srs_review_ai/app/di/notification_providers.dart';
 import 'package:srs_review_ai/core/domain/academic/academic_models.dart';
 import 'package:srs_review_ai/core/domain/notification_policy.dart';
 import 'package:srs_review_ai/core/session/session_view_model.dart';

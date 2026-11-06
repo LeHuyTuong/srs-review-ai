@@ -6,6 +6,8 @@ enum AdminTab {
   crashlytics, // Tab 2: Monitor Log Crashlytics
   remoteConfig, // Tab 3: Cấu hình Tham số từ xa
   users, // Tab 4: Danh sách Người dùng
+  notifications, // Tab 5: Gửi thông báo đẩy (FCM)
+  analytics, // Tab 6: Thống kê Analytics
 }
 
 /// State cho Admin Dashboard
