@@ -6,6 +6,7 @@ import 'package:srs_review_ai_mobile/core/domain/dashboard/dashboard_snapshot.da
 import 'package:srs_review_ai_mobile/core/domain/dashboard/dashboard_state.dart';
 import 'package:srs_review_ai_mobile/core/session/session_view_model.dart';
 import 'package:srs_review_ai_mobile/core/domain/session_scope.dart';
+import 'package:srs_review_ai_mobile/features/account/data/repositories/current_user_repository.dart';
 import 'package:srs_review_ai_mobile/features/account/presentation/viewmodels/current_user_view_model.dart';
 
 // Cung cấp trạng thái tải, lỗi và dữ liệu Tổng quan dùng chung cho các phần thống kê.
@@ -20,6 +21,22 @@ final dashboardViewModelProvider =
 class DashboardViewModel extends AsyncNotifier<DashboardState> {
   SessionScope? _scope;
   String? _selection;
+  DashboardSnapshot? _raw;
+
+  // Dashboard projection may contain the original fixture identity. The
+  // signed-in Firebase profile is the source of truth for the greeting.
+  DashboardSnapshot _withProfile(
+    DashboardSnapshot snapshot,
+    CurrentUserProfile? profile,
+  ) {
+    if (profile == null || profile.displayName.trim().isEmpty) {
+      return snapshot;
+    }
+    return snapshot.withUser(
+      userName: profile.displayName,
+      role: profile.roleLabel,
+    );
+  }
   @override
   Future<DashboardState> build() async {
     ref.watch(academicChangesProvider);
@@ -30,18 +47,23 @@ class DashboardViewModel extends AsyncNotifier<DashboardState> {
       _scope = scope;
       _selection = null;
     }
-    final profile = ref.watch(currentUserProvider).asData?.value;
-    var snapshot = await ref.watch(dashboardRepositoryProvider).load();
-    // Dashboard projection may contain the original fixture identity. The
-    // signed-in Firebase profile is the source of truth for the greeting.
-    if (profile != null && profile.displayName.trim().isNotEmpty) {
-      snapshot = snapshot.withUser(
-        userName: profile.displayName,
-        role: profile.roleLabel,
+    // Hồ sơ đổi chỉ cập nhật lời chào; không tải lại repository (watch ở đây
+    // từng làm mỗi lần hồ sơ về tới lại gọi load() thêm một lần).
+    ref.listen(currentUserProvider, (_, next) {
+      final raw = _raw, current = state.asData?.value;
+      if (raw == null || current == null) return;
+      state = AsyncData(
+        _present(_withProfile(raw, next.asData?.value), current.semesterId),
       );
-    }
+    });
+    final raw = await ref.watch(dashboardRepositoryProvider).load();
     // Không đưa kết quả tải của phiên đã đăng xuất lên Tổng quan.
     scope.requireActive();
+    _raw = raw;
+    final snapshot = _withProfile(
+      raw,
+      ref.read(currentUserProvider).asData?.value,
+    );
     final selected = _selection;
     _selection =
         selected == '' || snapshot.semesters.any((s) => s.id == selected)
