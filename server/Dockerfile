@@ -10,6 +10,10 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
+# Migrations ship inside the image so a VPS that only `docker pull`s can run
+# `alembic upgrade head` without the source tree.
+COPY alembic.ini ./alembic.ini
+COPY alembic ./alembic
 
 EXPOSE 8000
 
