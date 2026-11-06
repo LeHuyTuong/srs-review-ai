@@ -2,7 +2,9 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 
-typedef StudentFileDialog = Future<PlatformFile?> Function();
+typedef StudentFileDialog = Future<PlatformFile?> Function(
+  List<String> allowedExtensions,
+);
 
 class PickedStudentSrsFile {
   const PickedStudentSrsFile({
@@ -25,22 +27,33 @@ class StudentFilePickerService {
 
   final StudentFileDialog _picker;
 
-  static Future<PlatformFile?> _showPicker() => FilePicker.pickFile(
+  static Future<PlatformFile?> _showPicker(List<String> allowedExtensions) =>
+      FilePicker.pickFile(
     dialogTitle: 'Chọn tài liệu SRS',
     type: FileType.custom,
-    allowedExtensions: const ['pdf', 'docx', 'md'],
+    allowedExtensions: allowedExtensions,
   );
 
   Future<PickedStudentSrsFile?> pickSrsFile({
     required int maxSizeBytes,
+    required List<String> allowedExtensions,
     void Function(String message)? onStatus,
   }) async {
-    final file = await _picker();
+    final allowed = allowedExtensions
+        .map((extension) => extension.trim().toLowerCase().replaceFirst(RegExp(r'^\.'), ''))
+        .where(const {'pdf', 'docx', 'md'}.contains)
+        .toSet();
+    if (allowed.isEmpty) {
+      throw const StudentFileException('Chưa cấu hình định dạng tệp được phép.');
+    }
+    final file = await _picker(allowed.toList(growable: false));
     if (file == null) return null;
 
     final extension = (file.extension ?? '').toLowerCase();
-    if (!const {'pdf', 'docx', 'md'}.contains(extension)) {
-      throw const StudentFileException('Chỉ hỗ trợ tệp PDF, DOCX hoặc MD.');
+    if (!allowed.contains(extension)) {
+      throw StudentFileException(
+        'Chỉ hỗ trợ tệp ${allowed.map((type) => type.toUpperCase()).join(', ')}.',
+      );
     }
 
     final size = file.lengthSync() ?? await file.length();

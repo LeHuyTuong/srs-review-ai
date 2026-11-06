@@ -37,7 +37,10 @@ class _StudentUploadScreenState extends ConsumerState<StudentUploadScreen> {
       final remoteConfig = ref.read(remoteConfigServiceProvider);
       await remoteConfig.initialize();
       final maxBytes = remoteConfig.values.maxUploadFileSizeMb * 1024 * 1024;
-      final file = await _picker.pickSrsFile(maxSizeBytes: maxBytes);
+      final file = await _picker.pickSrsFile(
+        maxSizeBytes: maxBytes,
+        allowedExtensions: remoteConfig.values.allowedSrsFileTypes,
+      );
       if (mounted && file != null) setState(() => _file = file);
     } on Object catch (error) {
       if (mounted) setState(() => _error = error.toString());
@@ -83,6 +86,8 @@ class _StudentUploadScreenState extends ConsumerState<StudentUploadScreen> {
   @override
   Widget build(BuildContext context) {
     final snapshot = ref.watch(_studentAcademicSnapshotProvider);
+    final remoteConfig =
+        ref.watch(remoteConfigValuesProvider).value ?? const RemoteConfigValues();
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
@@ -125,7 +130,10 @@ class _StudentUploadScreenState extends ConsumerState<StudentUploadScreen> {
             children: [
               Text('Gửi tài liệu dự án', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 8),
-              Text('Chọn tệp PDF, DOCX hoặc Markdown để tải lên.', style: theme.textTheme.bodyMedium),
+              Text(
+                'Định dạng được phép: ${remoteConfig.allowedSrsFileTypes.map((type) => type.toUpperCase()).join(', ')} · Tối đa ${remoteConfig.maxUploadFileSizeMb} MB.',
+                style: theme.textTheme.bodyMedium,
+              ),
               const SizedBox(height: 24),
               DropdownButtonFormField<String>(
                 initialValue: selectedClass,

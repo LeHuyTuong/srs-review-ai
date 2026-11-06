@@ -10,9 +10,8 @@ abstract class AdminRemoteConfigService {
 /// Mock implementation for Admin Remote Config Service
 class MockAdminRemoteConfigService implements AdminRemoteConfigService {
   Map<String, dynamic> _currentParams = {
-    'max_srs_file_size_mb': 30,
-    'enable_ai_review': true,
-    'review_timeout_seconds': 120,
+    'allowed_srs_file_types': 'pdf,docx,md',
+    'max_upload_file_size_mb': 30,
   };
 
   @override

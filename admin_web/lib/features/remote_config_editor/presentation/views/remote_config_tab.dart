@@ -31,12 +31,12 @@ class RemoteConfigTab extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Cấu hình động từ Firebase Remote Config',
+                      'Cấu hình upload SRS',
                       style: AppTypography.header.copyWith(fontSize: 20),
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      'Thay đổi giá trị cấu hình giúp Mobile App nhận giá trị mới sau khi fetch',
+                      'Cấu hình giới hạn upload và loại tệp SRS cho Mobile App.',
                       style: AppTypography.body.copyWith(
                         color: AppColors.muted,
                       ),
@@ -45,7 +45,7 @@ class RemoteConfigTab extends ConsumerWidget {
                 ),
               ),
               AppButton(
-                label: state.isPublishing ? 'Đang lưu...' : 'Lưu & Xuất bản',
+                label: state.isPublishing ? 'Đang lưu...' : 'Lưu cấu hình demo',
                 icon: state.isPublishing
                     ? const SizedBox(
                         width: 16,
@@ -64,8 +64,8 @@ class RemoteConfigTab extends ConsumerWidget {
                             SnackBar(
                               content: Text(
                                 success
-                                    ? 'Đã lưu và xuất bản thành công!'
-                                    : 'Lỗi khi lưu cấu hình',
+                                    ? 'Đã lưu cấu hình demo (chưa cập nhật Firebase).'
+                                    : 'Lỗi khi lưu cấu hình demo',
                               ),
                               backgroundColor: success
                                   ? AppColors.olive
@@ -84,6 +84,14 @@ class RemoteConfigTab extends ConsumerWidget {
                 variant: AppButtonVariant.secondary,
               ),
             ],
+          ),
+          const SizedBox(height: AppSpacing.l),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.m),
+            decoration: BoxDecoration(
+              color: AppColors.brandSoft,
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
           const SizedBox(height: AppSpacing.l),
           // Parameters List
@@ -128,19 +136,16 @@ class RemoteConfigTab extends ConsumerWidget {
 
   /// Tên tiếng Việt thân thiện cho từng tham số, che key kỹ thuật khỏi UI.
   String _titleFor(RemoteConfigParam param) => switch (param.key) {
-    'max_srs_file_size_mb' => 'Dung lượng file SRS tối đa (MB)',
-    'enable_ai_review' => 'Chức năng đánh giá tự động bằng AI',
-    'review_timeout_seconds' => 'Thời gian chờ đánh giá AI tối đa (Giây)',
+    'max_upload_file_size_mb' => 'Dung lượng file upload tối đa (MB)',
+    'allowed_srs_file_types' => 'Định dạng tệp SRS được phép',
     _ => param.description,
   };
 
   String _subtitleFor(RemoteConfigParam param) => switch (param.key) {
-    'max_srs_file_size_mb' =>
-      'Giới hạn dung lượng tệp PDF/DOCX khi người dùng upload từ Mobile',
-    'enable_ai_review' =>
-      'Bật/tắt tính năng phân tích và chấm điểm SRS tự động',
-    'review_timeout_seconds' =>
-      'Hạn mức thời gian phản hồi cho một lượt đánh giá SRS',
+    'max_upload_file_size_mb' =>
+      'Mobile từ chối tệp lớn hơn giới hạn này khi sinh viên chọn tệp.',
+    'allowed_srs_file_types' =>
+      'Nhập đuôi file cách nhau bằng dấu phẩy: pdf,docx,md.',
     _ => param.description,
   };
 

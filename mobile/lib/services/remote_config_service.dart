@@ -5,18 +5,19 @@ import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-const defaultEnableAiFastReview = true;
 const defaultMaxUploadFileSizeMb = 30;
+const defaultAllowedSrsFileTypes = <String>['pdf', 'docx', 'md'];
+const _supportedSrsFileTypes = {'pdf', 'docx', 'md'};
 
 @immutable
 class RemoteConfigValues {
   const RemoteConfigValues({
-    this.enableAiFastReview = defaultEnableAiFastReview,
     this.maxUploadFileSizeMb = defaultMaxUploadFileSizeMb,
+    this.allowedSrsFileTypes = defaultAllowedSrsFileTypes,
   });
 
-  final bool enableAiFastReview;
   final int maxUploadFileSizeMb;
+  final List<String> allowedSrsFileTypes;
 }
 
 abstract interface class RemoteConfigService {
@@ -71,8 +72,8 @@ class FirebaseRemoteConfigService implements RemoteConfigService {
   Future<void> _initialize() async {
     try {
       await _remoteConfig.setDefaults({
-        'enable_ai_fast_review': defaultEnableAiFastReview,
         'max_upload_file_size_mb': defaultMaxUploadFileSizeMb,
+        'allowed_srs_file_types': defaultAllowedSrsFileTypes.join(','),
       });
       await _remoteConfig.setConfigSettings(
         RemoteConfigSettings(
@@ -118,9 +119,18 @@ class FirebaseRemoteConfigService implements RemoteConfigService {
 
   void _publish() {
     final size = _remoteConfig.getInt('max_upload_file_size_mb');
+    final configuredTypes = _remoteConfig
+        .getString('allowed_srs_file_types')
+        .split(',')
+        .map((type) => type.trim().toLowerCase().replaceFirst(RegExp(r'^\.'), ''))
+        .where(_supportedSrsFileTypes.contains)
+        .toSet()
+        .toList(growable: false);
     _values = RemoteConfigValues(
-      enableAiFastReview: _remoteConfig.getBool('enable_ai_fast_review'),
       maxUploadFileSizeMb: size > 0 ? size : defaultMaxUploadFileSizeMb,
+      allowedSrsFileTypes: configuredTypes.isEmpty
+          ? defaultAllowedSrsFileTypes
+          : configuredTypes,
     );
     if (!_changes.isClosed) _changes.add(_values);
   }
