@@ -6,6 +6,7 @@ import 'package:srs_review_ai_mobile/core/domain/dashboard/dashboard_snapshot.da
 import 'package:srs_review_ai_mobile/core/domain/dashboard/dashboard_state.dart';
 import 'package:srs_review_ai_mobile/core/session/session_view_model.dart';
 import 'package:srs_review_ai_mobile/core/domain/session_scope.dart';
+import 'package:srs_review_ai_mobile/features/account/presentation/viewmodels/current_user_view_model.dart';
 
 // Cung cấp trạng thái tải, lỗi và dữ liệu Tổng quan dùng chung cho các phần thống kê.
 final dashboardViewModelProvider =
@@ -28,7 +29,16 @@ class DashboardViewModel extends AsyncNotifier<DashboardState> {
       _scope = scope;
       _selection = null;
     }
-    final snapshot = await ref.watch(dashboardRepositoryProvider).load();
+    final profile = ref.watch(currentUserProvider).asData?.value;
+    var snapshot = await ref.watch(dashboardRepositoryProvider).load();
+    // Dashboard projection may contain the original fixture identity. The
+    // signed-in Firebase profile is the source of truth for the greeting.
+    if (profile != null && profile.displayName.trim().isNotEmpty) {
+      snapshot = snapshot.withUser(
+        userName: profile.displayName,
+        role: profile.roleLabel,
+      );
+    }
     // Không đưa kết quả tải của phiên đã đăng xuất lên Tổng quan.
     scope.requireActive();
     final selected = _selection;

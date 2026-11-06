@@ -19,4 +19,9 @@ class TestDashboardRepository implements DashboardRepository {
     calls++;
     return result();
   }
+
+  @override
+  Stream<DashboardSnapshot> watch() async* {
+    yield await load();
+  }
 }

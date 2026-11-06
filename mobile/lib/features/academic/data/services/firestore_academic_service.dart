@@ -99,8 +99,9 @@ class FirebaseAcademicService {
         for (final entry in latest.entries) entry.key: entry.value,
         ...metaSnapshot,
       });
-      _lastSnapshot = snapshot;
-      if (!controller.isClosed) controller.add(snapshot);
+      final personalized = _withCurrentSupervisor(snapshot);
+      _lastSnapshot = personalized;
+      if (!controller.isClosed) controller.add(personalized);
     }
 
     for (final name in [..._recordCollections, ..._metaCollections]) {

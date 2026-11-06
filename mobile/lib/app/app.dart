@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:srs_review_ai_mobile/features/dashboard/presentation/views/dashboard_screen.dart';
 import 'package:srs_review_ai_mobile/features/dashboard/presentation/views/follow_up_screens.dart';
@@ -23,77 +24,88 @@ import 'package:srs_review_ai_mobile/features/account/presentation/views/account
 import 'package:srs_review_ai_mobile/app/auth_wrapper.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/views/directory_screens.dart';
 import 'package:srs_review_ai_mobile/core/services/fcm_service.dart';
+import 'package:srs_review_ai_mobile/services/remote_config_service.dart';
 
 // Điểm vào ứng dụng Supervisor; điều hướng Flutter nối Tổng quan với các màn học vụ.
 class SrsReviewApp extends ConsumerWidget {
   const SrsReviewApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => MaterialApp(
-    navigatorKey: Firebase.apps.isNotEmpty ? appNavigatorKey : null,
-    // Tạo lại cây điều hướng khi phiên đổi để không giữ màn hình của lần đăng nhập trước.
-    key: ValueKey(ref.watch(sessionProvider)),
-    title: 'SRS Đánh giá AI',
-    debugShowCheckedModeBanner: false,
-    theme: AppTheme.light,
-    locale: const Locale('vi'),
-    supportedLocales: const [Locale('vi')],
-    localizationsDelegates: GlobalMaterialLocalizations.delegates,
-    home: const AuthWrapper(),
-    builder: (context, child) {
-      if (Firebase.apps.isNotEmpty) fcmService.attachNavigator();
-      final session = ref.watch(sessionProvider);
-      // Chưa có phiên Supervisor thì chỉ dựng màn đăng nhập, kể cả khi mở đường dẫn trực tiếp.
-      if (session?.isSupervisor != true) {
-        return Navigator(
-          key: const ValueKey('signed-out'),
-          onGenerateRoute: (_) =>
-              MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
-        );
-      }
-      return child!;
-    },
-    onGenerateRoute: (settings) => MaterialPageRoute<void>(
-      settings: settings,
-      builder: (_) {
-        final path = settings.name ?? '/dashboard';
-        final parts = Uri.parse(path).pathSegments;
-        return switch (parts) {
-          [] || ['dashboard'] || ['login'] => const DashboardScreen(),
-          ['review-schedule'] => const ReviewScheduleScreen(),
-          ['group-questions'] => const GroupQuestionsScreen(),
-          ['profile'] => const ProfileScreen(),
-          ['notifications'] => const NotificationsScreen(),
-          ['semesters'] => const SemesterListScreen(),
-          ['students'] => const StudentDirectoryScreen(),
-          ['courses'] => const CourseListScreen(),
-          ['courses', final id] => CourseDetailScreen(courseId: id),
-          ['course-offerings', final id] => OfferingDetailScreen(
-            offeringId: id,
-          ),
-          ['classes'] => const ClassListScreen(),
-          ['classes', final id] => ClassDetailScreen(classId: id),
-          ['rule-sets'] => const RuleSetSelectionScreen(),
-          ['groups'] => const GroupListScreen(),
-          ['groups', final id] => GroupDetailScreen(groupId: id),
-          ['projects'] => const ProjectListScreen(),
-          ['projects', final id] => ProjectDetailScreen(projectId: id),
-          ['projects', final id, 'documents'] => ProjectDocumentsScreen(
-            projectId: id,
-          ),
-          ['project-registrations'] => const ProjectRegistrationsScreen(),
-          ['documents'] => const DocumentListScreen(),
-          ['reviews'] => const ReviewListScreen(),
-          ['reviews', final id] => ReviewWorkspaceScreen(reviewId: id),
-          ['reviews', final id, 'ai-result'] => AiResultScreen(reviewId: id),
-          ['reviews', final id, 'versions'] => VersionHistoryScreen(
-            reviewId: id,
-          ),
-          ['reviews', final id, 'history'] => ReviewHistoryScreen(reviewId: id),
-          ['review-history'] => const ReviewHistoryIndexScreen(),
-          _ => NavigationDestinationScreen(path: path),
-        };
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Starts the fetch/activate lifecycle at app launch. The service publishes
+    // defaults immediately and refreshes this provider when Firebase updates.
+    ref.watch(remoteConfigValuesProvider);
+    return MaterialApp(
+      navigatorKey: Firebase.apps.isNotEmpty ? appNavigatorKey : null,
+      // Tạo lại cây điều hướng khi phiên đổi để không giữ màn hình của lần đăng nhập trước.
+      key: ValueKey(ref.watch(sessionProvider)),
+      title: 'SRS Đánh giá AI',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
+      locale: const Locale('vi'),
+      supportedLocales: const [Locale('vi')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      home: const AuthWrapper(),
+      builder: (context, child) {
+        if (Firebase.apps.isNotEmpty) fcmService.attachNavigator();
+        final session = ref.watch(sessionProvider);
+        // Chưa có phiên Supervisor thì chỉ dựng màn đăng nhập, kể cả khi mở đường dẫn trực tiếp.
+        final firebaseUser = Firebase.apps.isNotEmpty
+            ? FirebaseAuth.instance.currentUser
+            : null;
+        if (session?.isSupervisor != true && firebaseUser == null) {
+          return Navigator(
+            key: const ValueKey('signed-out'),
+            onGenerateRoute: (_) =>
+                MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+          );
+        }
+        return child!;
       },
-    ),
-  );
+      onGenerateRoute: (settings) => MaterialPageRoute<void>(
+        settings: settings,
+        builder: (_) {
+          final path = settings.name ?? '/dashboard';
+          final parts = Uri.parse(path).pathSegments;
+          return switch (parts) {
+            [] || ['dashboard'] || ['login'] => const DashboardScreen(),
+            ['review-schedule'] => const ReviewScheduleScreen(),
+            ['group-questions'] => const GroupQuestionsScreen(),
+            ['profile'] => const ProfileScreen(),
+            ['notifications'] => const NotificationsScreen(),
+            ['semesters'] => const SemesterListScreen(),
+            ['students'] => const StudentDirectoryScreen(),
+            ['courses'] => const CourseListScreen(),
+            ['courses', final id] => CourseDetailScreen(courseId: id),
+            ['course-offerings', final id] => OfferingDetailScreen(
+              offeringId: id,
+            ),
+            ['classes'] => const ClassListScreen(),
+            ['classes', final id] => ClassDetailScreen(classId: id),
+            ['rule-sets'] => const RuleSetSelectionScreen(),
+            ['groups'] => const GroupListScreen(),
+            ['groups', final id] => GroupDetailScreen(groupId: id),
+            ['projects'] => const ProjectListScreen(),
+            ['projects', final id] => ProjectDetailScreen(projectId: id),
+            ['projects', final id, 'documents'] => ProjectDocumentsScreen(
+              projectId: id,
+            ),
+            ['project-registrations'] => const ProjectRegistrationsScreen(),
+            ['documents'] => const DocumentListScreen(),
+            ['reviews'] => const ReviewListScreen(),
+            ['reviews', final id] => ReviewWorkspaceScreen(reviewId: id),
+            ['reviews', final id, 'ai-result'] => AiResultScreen(reviewId: id),
+            ['reviews', final id, 'versions'] => VersionHistoryScreen(
+              reviewId: id,
+            ),
+            ['reviews', final id, 'history'] => ReviewHistoryScreen(
+              reviewId: id,
+            ),
+            ['review-history'] => const ReviewHistoryIndexScreen(),
+            _ => NavigationDestinationScreen(path: path),
+          };
+        },
+      ),
+    );
+  }
 }

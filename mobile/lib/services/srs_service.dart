@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:srs_review_ai_mobile/services/remote_config_service.dart';
 
 /// Kết quả một lượt upload SRS, đủ để UI hiển thị lại ngay mà không cần đọc Firestore.
 class UploadedSrsReport {
@@ -29,6 +30,9 @@ abstract class SrsService {
   Future<UploadedSrsReport> uploadSrs({
     required String fileName,
     required Uint8List bytes,
+    required String userId,
+    required String classId,
+    required String projectId,
     required String uploadedByEmail,
     String contentType = 'application/octet-stream',
     void Function(double progress)? onProgress,
@@ -36,11 +40,17 @@ abstract class SrsService {
 }
 
 class FirebaseSrsService implements SrsService {
-  FirebaseSrsService({this.storage, this.firestore, this.auth});
+  FirebaseSrsService({
+    this.storage,
+    this.firestore,
+    this.auth,
+    RemoteConfigService? remoteConfig,
+  }) : _remoteConfig = remoteConfig ?? const LocalRemoteConfigService();
 
   final FirebaseStorage? storage;
   final FirebaseFirestore? firestore;
   final FirebaseAuth? auth;
+  final RemoteConfigService _remoteConfig;
 
   FirebaseStorage get _bucket => storage ?? FirebaseStorage.instance;
   FirebaseFirestore get _db => firestore ?? FirebaseFirestore.instance;
@@ -50,14 +60,27 @@ class FirebaseSrsService implements SrsService {
   Future<UploadedSrsReport> uploadSrs({
     required String fileName,
     required Uint8List bytes,
+    required String userId,
+    required String classId,
+    required String projectId,
     required String uploadedByEmail,
     String contentType = 'application/octet-stream',
     void Function(double progress)? onProgress,
   }) async {
-    final uid = _authInstance.currentUser?.uid ?? 'anonymous';
+    await _remoteConfig.initialize();
+    final maxBytes = _remoteConfig.values.maxUploadFileSizeMb * 1024 * 1024;
+    if (bytes.length > maxBytes) {
+      throw SrsUploadException(
+        'Tệp vượt quá giới hạn ${_remoteConfig.values.maxUploadFileSizeMb} MB.',
+      );
+    }
+
+    final uid = _authInstance.currentUser?.uid;
+    if (uid == null || uid != userId) {
+      throw const SrsUploadException('Phiên đăng nhập không hợp lệ.');
+    }
     final safeName = _safeFileName(fileName);
-    final storagePath =
-        'srs_reports/$uid/${DateTime.now().toUtc().millisecondsSinceEpoch}_$safeName';
+    final storagePath = 'reports/$uid/$safeName';
 
     final reference = _bucket.ref(storagePath);
     final task = reference.putData(
@@ -76,6 +99,9 @@ class FirebaseSrsService implements SrsService {
     final downloadUrl = await reference.getDownloadURL();
     final document = _db.collection('srs_reports').doc();
     await document.set({
+      'uid': uid,
+      'classId': classId,
+      'projectId': projectId,
       'fileName': fileName,
       'fileSize': bytes.length,
       'uploadedByEmail': uploadedByEmail,
@@ -101,6 +127,15 @@ class FirebaseSrsService implements SrsService {
   }
 }
 
+class SrsUploadException implements Exception {
+  const SrsUploadException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 /// Dùng khi Firebase chưa khởi tạo (unit test, chạy trước main).
 class _UnsupportedSrsService implements SrsService {
   const _UnsupportedSrsService();
@@ -109,15 +144,22 @@ class _UnsupportedSrsService implements SrsService {
   Future<UploadedSrsReport> uploadSrs({
     required String fileName,
     required Uint8List bytes,
+    required String userId,
+    required String classId,
+    required String projectId,
     required String uploadedByEmail,
     String contentType = 'application/octet-stream',
     void Function(double progress)? onProgress,
   }) async {
-    throw UnsupportedError('Firebase chưa được khởi tạo: không thể upload SRS.');
+    throw UnsupportedError(
+      'Firebase chưa được khởi tạo: không thể upload SRS.',
+    );
   }
 }
 
 final srsServiceProvider = Provider<SrsService>((ref) {
   if (Firebase.apps.isEmpty) return const _UnsupportedSrsService();
-  return FirebaseSrsService();
+  return FirebaseSrsService(
+    remoteConfig: ref.watch(remoteConfigServiceProvider),
+  );
 });

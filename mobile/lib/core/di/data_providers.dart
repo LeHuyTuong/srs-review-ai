@@ -1,16 +1,21 @@
 import 'package:srs_review_ai_mobile/features/demo/data/repositories/demo_counter_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:srs_review_ai_mobile/features/dashboard/data/services/fake_dashboard_service.dart';
 import 'package:srs_review_ai_mobile/core/contracts/dashboard/dashboard_repository.dart';
 import 'package:srs_review_ai_mobile/features/dashboard/data/repositories/fake_dashboard_repository.dart';
+import 'package:srs_review_ai_mobile/features/dashboard/data/repositories/firestore_dashboard_repository.dart';
 
 import 'package:srs_review_ai_mobile/core/contracts/counter_repository.dart';
 import 'package:srs_review_ai_mobile/features/demo/data/services/demo_counter_service.dart';
 import 'package:srs_review_ai_mobile/features/academic/data/services/fake_academic_service.dart';
 import 'package:srs_review_ai_mobile/core/contracts/academic/academic_repository.dart';
 import 'package:srs_review_ai_mobile/features/academic/data/repositories/fake_academic_repository.dart';
+import 'package:srs_review_ai_mobile/features/academic/data/repositories/firestore_academic_repository.dart';
+import 'package:srs_review_ai_mobile/features/academic/data/services/firestore_academic_service.dart';
 import 'package:srs_review_ai_mobile/core/contracts/academic/student_device_gateway.dart';
 import 'package:srs_review_ai_mobile/features/academic/data/services/student_import_service.dart';
 import 'package:srs_review_ai_mobile/core/session/session_view_model.dart';
@@ -34,21 +39,44 @@ final dashboardServiceProvider = Provider<FakeDashboardService>((ref) {
 });
 
 final dashboardRepositoryProvider = Provider<DashboardRepository>(
-  (ref) => FakeDashboardRepository(ref.watch(dashboardServiceProvider)),
+  (ref) {
+    if (Firebase.apps.isEmpty) {
+      return FakeDashboardRepository(ref.watch(dashboardServiceProvider));
+    }
+    return FirestoreDashboardRepository(
+      ref.watch(firestoreAcademicServiceProvider),
+    );
+  },
 );
 
 // Kho mô phỏng dùng chung giữ dữ liệu đã lưu khi phiên đăng nhập kết thúc.
 final academicServiceProvider = Provider<FakeAcademicService>(
   (ref) => FakeAcademicService(rootBundle),
 );
+
+/// Shared Firestore service for live academic data and the dashboard projection.
+final firestoreAcademicServiceProvider = Provider<FirebaseAcademicService>(
+  (ref) => FirebaseAcademicService(
+    Firebase.apps.isEmpty ? null : FirebaseFirestore.instance,
+  ),
+);
 // Tách thao tác chọn tệp và sao chép khỏi ViewModel để thay thế được khi kiểm thử.
 final studentImportServiceProvider = Provider<StudentDeviceGateway>(
   (ref) => StudentImportService(),
 );
 // Tạo Repository theo phạm vi phiên hiện tại, còn kho dữ liệu mô phỏng được dùng chung.
-final academicRepositoryProvider = Provider<AcademicRepository>(
-  (ref) => FakeAcademicRepository(
-    ref.watch(academicServiceProvider),
-    scope: ref.watch(sessionScopeProvider),
-  ),
-);
+final academicRepositoryProvider = Provider<AcademicRepository>((ref) {
+  final scope = ref.watch(sessionScopeProvider);
+  // Widget tests and pre-Firebase startup retain the fixture implementation;
+  // a Firebase-initialized app always reads and writes through Firestore.
+  if (Firebase.apps.isEmpty) {
+    return FakeAcademicRepository(
+      ref.watch(academicServiceProvider),
+      scope: scope,
+    );
+  }
+  return FirestoreAcademicRepository(
+    ref.watch(firestoreAcademicServiceProvider),
+    scope: scope,
+  );
+});

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:srs_review_ai_mobile/services/remote_config_service.dart';
 
 class AiReviewResult {
   const AiReviewResult({
@@ -33,12 +34,15 @@ class AiReviewService {
     required this.endpoint,
     FirebaseAuth? auth,
     HttpClient? client,
+    RemoteConfigService? remoteConfig,
   }) : _auth = auth ?? FirebaseAuth.instance,
-       _client = client ?? HttpClient();
+       _client = client ?? HttpClient(),
+       _remoteConfig = remoteConfig ?? const LocalRemoteConfigService();
 
   final Uri endpoint;
   final FirebaseAuth _auth;
   final HttpClient _client;
+  final RemoteConfigService _remoteConfig;
 
   Future<AiReviewResult> review({
     required String requirementId,
@@ -47,6 +51,13 @@ class AiReviewService {
     int? pageIndex,
     String? imageBase64,
   }) async {
+    await _remoteConfig.initialize();
+    if (!_remoteConfig.values.enableAiFastReview) {
+      throw const AiReviewException(
+        'Tính năng đánh giá AI nhanh hiện đang tạm tắt.',
+      );
+    }
+
     final user = _auth.currentUser;
     if (user == null) {
       throw const AiReviewException('Vui lòng đăng nhập để đánh giá AI.');
@@ -96,7 +107,10 @@ final aiReviewServiceProvider = Provider<AiReviewService>((ref) {
       'Thiếu --dart-define=AI_REVIEW_ENDPOINT=<FastAPI /review URL>.',
     );
   }
-  final service = AiReviewService(endpoint: Uri.parse(configured));
+  final service = AiReviewService(
+    endpoint: Uri.parse(configured),
+    remoteConfig: ref.watch(remoteConfigServiceProvider),
+  );
   ref.onDispose(() => service._client.close());
   return service;
 });

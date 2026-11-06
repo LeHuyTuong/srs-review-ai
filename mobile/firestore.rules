@@ -2,6 +2,28 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Set `role` as a Firebase Auth custom claim from a trusted Admin SDK.
+    // A value stored in /users/{uid} is profile data and must not grant access.
+    function role() {
+      return signedIn() ? request.auth.token.get('role', '') : '';
+    }
+
+    function isTeacher() {
+      return role() in ['teacher', 'supervisor'];
+    }
+
+    function isStudent() {
+      return role() == 'student';
+    }
+
+    function canReadAcademicData() {
+      return isTeacher() || isStudent();
+    }
+
     // Deny by default: every path is closed unless a rule below opens it.
     match /{document=**} {
       allow read, write: if false;
@@ -9,12 +31,68 @@ service cloud.firestore {
 
     // A user may only read and write their own profile.
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if signedIn() && request.auth.uid == uid;
     }
 
-    // Signed-in users may read and write top-level documents.
+    // Academic collections are readable by either app role. Students are
+    // read-only; teacher writes power the faculty management workflows.
+    match /courses/{documentId} {
+      allow read: if canReadAcademicData();
+      allow write: if isTeacher();
+    }
+    match /classes/{documentId} {
+      allow read: if canReadAcademicData();
+      allow write: if isTeacher();
+    }
+    match /projects/{documentId} {
+      allow read: if canReadAcademicData();
+      allow write: if isTeacher();
+    }
+    match /semesters/{documentId} {
+      allow read: if canReadAcademicData();
+      allow write: if isTeacher();
+    }
+    match /groups/{documentId} {
+      allow read: if canReadAcademicData();
+      allow write: if isTeacher();
+    }
+
+    // Additional collections consumed by FirebaseAcademicService.
+    match /offerings/{documentId} {
+      allow read: if canReadAcademicData();
+      allow write: if isTeacher();
+    }
+    match /ruleSets/{documentId} {
+      allow read: if canReadAcademicData();
+      allow write: if isTeacher();
+    }
+    match /registrations/{documentId} {
+      allow read: if canReadAcademicData();
+      allow write: if isTeacher();
+    }
+    match /students/{documentId} {
+      allow read: if canReadAcademicData();
+      allow write: if isTeacher();
+    }
+    match /_meta/{documentId} {
+      allow read: if canReadAcademicData();
+      allow write: if isTeacher();
+    }
+
+    // Existing document metadata access requires an authenticated session.
     match /documents/{documentId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if signedIn();
+    }
+
+    // Students may create and read only their own Cloudinary submission record.
+    match /submissions/{submissionId} {
+      allow create: if isStudent()
+        && request.resource.data.student_id == request.auth.uid
+        && request.resource.data.file_url is string
+        && request.resource.data.file_name is string;
+      allow read: if isTeacher()
+        || (isStudent() && resource.data.student_id == request.auth.uid);
+      allow update, delete: if false;
     }
   }
 }

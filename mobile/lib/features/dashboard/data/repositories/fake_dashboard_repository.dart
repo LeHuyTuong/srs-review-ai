@@ -10,4 +10,9 @@ class FakeDashboardRepository implements DashboardRepository {
   @override
   Future<DashboardSnapshot> load() async =>
       DashboardSnapshot.fromJson(await _service.load());
+
+  @override
+  Stream<DashboardSnapshot> watch() async* {
+    yield await load();
+  }
 }

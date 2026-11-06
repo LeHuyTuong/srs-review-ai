@@ -62,6 +62,20 @@ class DashboardSnapshot {
   final List<String> pendingGroupIds;
   final int courseCount;
   final int studentCount;
+  DashboardSnapshot withUser({required String userName, required String role}) =>
+      DashboardSnapshot(
+        userName: userName,
+        role: role,
+        semesters: semesters,
+        classes: classes,
+        projects: projects,
+        requests: requests,
+        attention: attention,
+        groupClasses: groupClasses,
+        pendingGroupIds: pendingGroupIds,
+        courseCount: courseCount,
+        studentCount: studentCount,
+      );
   String projectClassId(DashboardProject project) =>
       resolveProjectClassId(groupClasses[project.groupId], project.classId);
 }

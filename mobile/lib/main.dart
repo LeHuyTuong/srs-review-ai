@@ -5,6 +5,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:srs_review_ai_mobile/app/app.dart';
 import 'package:srs_review_ai_mobile/firebase_options.dart';
@@ -12,6 +13,12 @@ import 'package:srs_review_ai_mobile/core/services/fcm_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    await dotenv.load(fileName: '.env', isOptional: true);
+  } catch (error) {
+    debugPrint('Mobile .env could not be loaded; dart-defines remain available: $error');
+  }
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   _registerCrashHandlers();
