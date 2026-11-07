@@ -78,7 +78,8 @@ class ApiPushNotificationRepository implements PushNotificationRepository {
 
   static const _configuredBaseUrl = String.fromEnvironment(
     'SRS_API_BASE_URL',
-    defaultValue: 'http://localhost:8000',
+    // Backend on the VPS; override with --dart-define=SRS_API_BASE_URL=...
+    defaultValue: 'http://160.30.160.113:8000',
   );
 
   final http.Client _client;

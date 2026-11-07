@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AiReviewResult {
@@ -101,12 +100,12 @@ class AiReviewException implements Exception {
 String defaultAiReviewEndpoint() {
   const configured = String.fromEnvironment('AI_REVIEW_ENDPOINT');
   if (configured.isNotEmpty) return configured;
-  // kIsWeb trước: trên Chrome, defaultTargetPlatform báo OS của máy host.
-  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-    return 'http://10.0.2.2:8000/review';
-  }
-  return 'http://127.0.0.1:8000/review';
+  return '$vpsBaseUrl/review';
 }
+
+/// FastAPI trên VPS. Chạy server local thì override bằng
+/// `--dart-define=AI_REVIEW_ENDPOINT=http://10.0.2.2:8000/review` (emulator).
+const String vpsBaseUrl = 'http://160.30.160.113:8000';
 
 final aiReviewServiceProvider = Provider<AiReviewService>((ref) {
   final service = AiReviewService(

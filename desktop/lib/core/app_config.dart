@@ -7,32 +7,23 @@ library;
 
 // `dart:io` is deliberately not imported: it does not compile for web, and
 // Chrome is the fastest way to eyeball the UI during development.
-// `defaultTargetPlatform` covers every target from one import.
-import 'package:flutter/foundation.dart';
 
 class AppConfig {
   const AppConfig._();
 
   /// Where the FastAPI proxy lives.
   ///
-  /// Android emulators cannot reach the host through `localhost`; 10.0.2.2 is
-  /// the emulator's alias for it. Override explicitly on a physical device:
-  ///   flutter run --dart-define=API_BASE_URL=http://192.168.1.20:8000
+  /// Defaults to the VPS on every platform. For a local proxy, override:
+  ///   flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8000
+  /// (Android emulator: http://10.0.2.2:8000 — 127.0.0.1 is the emulator.)
   static String get apiBaseUrl {
     const override = String.fromEnvironment('API_BASE_URL');
     if (override.isNotEmpty) return override;
-    // kIsWeb must be tested first: in Chrome, defaultTargetPlatform reports
-    // the *host* OS, so a browser on Android would otherwise pick 10.0.2.2.
-    //
-    // 127.0.0.1, not localhost: on Windows with Docker Desktop, localhost
-    // resolves to ::1 first and [::1]:8000 is held by a relay that resets the
-    // connection, while the proxy answers on IPv4 only (measured 2026-11-06).
-    if (kIsWeb) return 'http://127.0.0.1:8000';
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:8000';
-    }
-    return 'http://127.0.0.1:8000';
+    return vpsBaseUrl;
   }
+
+  /// The deployed FastAPI proxy.
+  static const String vpsBaseUrl = 'http://160.30.160.113:8000';
 
   /// Demo safety net: skip the network entirely and serve bundled fixtures.
   static const bool forceMockMode = bool.fromEnvironment('MOCK_MODE');

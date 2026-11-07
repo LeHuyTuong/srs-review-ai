@@ -58,12 +58,11 @@ class ApiRemoteConfigRepository implements RemoteConfigRepository {
   ApiRemoteConfigRepository({http.Client? client})
     : _client = client ?? http.Client();
 
-  // 127.0.0.1, not localhost: on Windows Chrome resolves localhost to ::1
-  // first, and with Docker Desktop that IPv6 port is held by a relay that
-  // resets the connection while the backend only answers on IPv4.
+  // Backend on the VPS. Override for local dev with
+  // --dart-define=SRS_API_BASE_URL=http://127.0.0.1:8000
   static const _configuredBaseUrl = String.fromEnvironment(
     'SRS_API_BASE_URL',
-    defaultValue: 'http://127.0.0.1:8000',
+    defaultValue: 'http://160.30.160.113:8000',
   );
   static const _defaultFileTypes = 'pdf,docx,md';
   static const _defaultMaxUploadMb = 30;

@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:srs_review_ai_mobile/core/di/data_providers.dart';
+import 'package:srs_review_ai_mobile/core/services/ai_review_service.dart'
+    show vpsBaseUrl;
 import 'package:srs_review_ai_mobile/core/state/academic_changes.dart';
 import 'package:srs_review_ai_mobile/core/sync/academic_sync_service.dart';
 
@@ -16,7 +18,8 @@ Uri? syncBaseUri() {
   const explicit = String.fromEnvironment('SYNC_BASE_URL');
   if (explicit.isNotEmpty) return Uri.parse(explicit);
   const review = String.fromEnvironment('AI_REVIEW_ENDPOINT');
-  if (review.isEmpty) return null;
+  // Không truyền gì → dùng server trên VPS.
+  if (review.isEmpty) return Uri.parse(vpsBaseUrl);
   final uri = Uri.parse(review);
   final path = uri.path.replaceFirst(RegExp(r'/review/?$'), '');
   return uri.replace(path: path, query: null);
