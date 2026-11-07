@@ -1,5 +1,6 @@
 import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/management_shared.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/document_card.dart';
+import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/student_submissions_card.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/management_filter_bar.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/viewmodels/management_list_view_model.dart';
 
@@ -19,6 +20,7 @@ class DocumentListScreen extends ConsumerWidget {
           noun: 'tài liệu',
           hint: 'Tìm tài liệu hoặc dự án...',
         ),
+        StudentSubmissionsCard(snapshot: s),
         AppCard(
           child: Column(
             children: [
@@ -130,6 +132,7 @@ class ProjectDocumentsScreen extends ConsumerWidget {
           onChanged: vm.tab,
           segmented: true,
         ),
+        StudentSubmissionsCard(snapshot: s, projectId: projectId),
         if (visible.isEmpty)
           const AppEmptyState(title: 'Không có tài liệu')
         else

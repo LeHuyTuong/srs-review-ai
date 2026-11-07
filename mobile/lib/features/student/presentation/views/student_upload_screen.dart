@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +9,7 @@ import 'package:srs_review_ai_mobile/core/di/data_providers.dart';
 import 'package:srs_review_ai_mobile/core/domain/academic/academic_models.dart';
 import 'package:srs_review_ai_mobile/features/student/data/services/cloudinary_upload_service.dart';
 import 'package:srs_review_ai_mobile/features/student/data/services/student_file_picker_service.dart';
+import 'package:srs_review_ai_mobile/features/student/data/services/submission_notifier.dart';
 import 'package:srs_review_ai_mobile/features/account/presentation/viewmodels/login_view_model.dart';
 import 'package:srs_review_ai_mobile/services/analytics_service.dart';
 import 'package:srs_review_ai_mobile/services/remote_config_service.dart';
@@ -78,11 +81,19 @@ class _StudentUploadScreenState extends ConsumerState<StudentUploadScreen> {
         'file_name': file.fileName,
         'uploaded_at': FieldValue.serverTimestamp(),
         'student_id': user.uid,
+        // Giảng viên không đọc được `users/{uid}` của học viên, nên lưu kèm tên.
+        'student_name': (user.displayName?.trim().isNotEmpty ?? false)
+            ? user.displayName!.trim()
+            : (user.email ?? ''),
         if (_classId != null) 'class_id': _classId,
         if (_projectId != null) 'project_id': _projectId,
         'storage_provider': 'cloudinary',
       });
       await analytics.logUploadSrsSuccess(documentId: submission.id);
+      // Không chờ: bài đã nộp xong, thông báo chỉ là phần phụ.
+      unawaited(
+        ref.read(submissionNotifierProvider).notifyTeachers(submission.id),
+      );
       if (mounted) setState(() => _uploadedUrl = url);
     } on Object catch (error) {
       if (mounted) setState(() => _error = error.toString());

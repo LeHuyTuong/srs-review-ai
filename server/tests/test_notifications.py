@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from app.api.notifications import SendOutcome, notification_gateway
+from app.api.notifications import SendOutcome, notification_gateway, submission_directory
 from app.config.settings import Settings, get_settings
 from app.main import app
 
@@ -111,4 +111,76 @@ def test_unknown_route_type_is_rejected(client):
     _admin()
     app.dependency_overrides[notification_gateway] = lambda: FakeGateway({"u1": ["t1"]})
     response = client.post("/admin/notifications/send", json=_body(data={"type": "evil"}))
+    assert response.status_code == 422
+
+
+class FakeDirectory:
+    def __init__(self, submissions: dict[str, dict], teachers: list[str]):
+        self.submissions = submissions
+        self.teachers = teachers
+        self.claimed: set[str] = set()
+
+    def submission(self, submission_id):
+        return self.submissions.get(submission_id)
+
+    def teacher_uids(self, limit):
+        return self.teachers[:limit]
+
+    def claim_notification(self, submission_id):
+        if submission_id in self.claimed:
+            return False
+        self.claimed.add(submission_id)
+        return True
+
+
+@pytest.fixture
+def student_client(client):
+    yield client
+    app.dependency_overrides.pop(submission_directory, None)
+
+
+def _wire(directory, gateway):
+    app.dependency_overrides[submission_directory] = lambda: directory
+    app.dependency_overrides[notification_gateway] = lambda: gateway
+
+
+def test_submission_pushes_every_teacher_once(student_client):
+    directory = FakeDirectory(
+        {"s1": {"student_id": "test-user", "file_name": "srs.pdf"}}, ["t1", "t2", "test-user"]
+    )
+    gateway = FakeGateway({"t1": ["tok1"], "t2": ["tok2"]})
+    _wire(directory, gateway)
+
+    first = student_client.post("/notifications/submission", json={"submissionId": "s1"})
+    assert first.status_code == 200
+    assert first.json()["notified"] is True
+    # The submitter is never paged about their own upload.
+    assert gateway.inbox[0][0] == ["t1", "t2"]
+    tokens, title, body, data = gateway.sent[0]
+    assert sorted(tokens) == ["tok1", "tok2"]
+    assert "srs.pdf" in body
+    assert data["type"] == "notification" and data["id"] == "s1"
+
+    again = student_client.post("/notifications/submission", json={"submissionId": "s1"})
+    assert again.json() == {"notified": False, "result": None}
+    assert len(gateway.sent) == 1
+
+
+def test_submission_of_someone_else_is_rejected(student_client):
+    gateway = FakeGateway({"t1": ["tok1"]})
+    _wire(FakeDirectory({"s1": {"student_id": "other"}}, ["t1"]), gateway)
+    response = student_client.post("/notifications/submission", json={"submissionId": "s1"})
+    assert response.status_code == 403
+    assert gateway.sent == [] and gateway.inbox == []
+
+
+def test_missing_submission_is_404(student_client):
+    _wire(FakeDirectory({}, ["t1"]), FakeGateway({}))
+    response = student_client.post("/notifications/submission", json={"submissionId": "nope"})
+    assert response.status_code == 404
+
+
+def test_submission_id_must_be_a_document_id(student_client):
+    _wire(FakeDirectory({}, []), FakeGateway({}))
+    response = student_client.post("/notifications/submission", json={"submissionId": "../users/x"})
     assert response.status_code == 422

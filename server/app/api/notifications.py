@@ -64,6 +64,18 @@ class NotificationGateway(Protocol):
     ) -> None: ...
 
 
+class SubmissionDirectory(Protocol):
+    """Firestore lookups behind the student "I submitted" notification."""
+
+    def submission(self, submission_id: str) -> dict[str, Any] | None: ...
+
+    def teacher_uids(self, limit: int) -> list[str]: ...
+
+    def claim_notification(self, submission_id: str) -> bool:
+        """Mark the submission as notified; False if it already was."""
+        ...
+
+
 class FirebaseNotificationGateway:
     """Real gateway: Firestore for tokens, FCM for delivery."""
 
@@ -136,6 +148,30 @@ class FirebaseNotificationGateway:
             )
         batch.commit()
 
+    def submission(self, submission_id: str) -> dict[str, Any] | None:
+        snapshot = self._db().collection("submissions").document(submission_id).get()
+        return snapshot.to_dict() if snapshot.exists else None
+
+    def teacher_uids(self, limit: int) -> list[str]:
+        query = self._db().collection("users").where("role", "==", "teacher").limit(limit)
+        return [snapshot.id for snapshot in query.stream()]
+
+    def claim_notification(self, submission_id: str) -> bool:
+        from firebase_admin import firestore
+
+        db = self._db()
+        ref = db.collection("submissions").document(submission_id)
+
+        @firestore.transactional
+        def claim(transaction: Any) -> bool:
+            snapshot = ref.get(transaction=transaction)
+            if not snapshot.exists or (snapshot.to_dict() or {}).get("teachers_notified_at"):
+                return False
+            transaction.update(ref, {"teachers_notified_at": firestore.SERVER_TIMESTAMP})
+            return True
+
+        return claim(db.transaction())
+
 
 def notification_gateway(settings: Settings = Depends(get_settings)) -> NotificationGateway:
     return FirebaseNotificationGateway(settings)
@@ -165,12 +201,22 @@ async def send_notification(
     if not uids:
         raise HTTPException(status_code=422, detail="uids must contain at least one uid.")
     data = {k: v for k, v in (request.data.model_dump() if request.data else {}).items() if v}
+    result = await _deliver(gateway, uids, request.title, request.body, data)
+    log.info(
+        "admin %s sent notification: %d ok / %d total", admin_uid, result.sent, result.sent + result.failed
+    )
+    return result
+
+
+async def _deliver(
+    gateway: NotificationGateway, uids: list[str], title: str, body: str, data: dict[str, str]
+) -> SendResult:
     # The in-app list is written here, not by the device: a push that arrives
     # while the app is in background or killed never runs app code until the
     # user taps it, and a user with no token yet still sees it after sign-in.
     inbox_id = uuid.uuid4().hex
     try:
-        await asyncio.to_thread(gateway.record_inbox, uids, inbox_id, request.title, request.body, data)
+        await asyncio.to_thread(gateway.record_inbox, uids, inbox_id, title, body, data)
         data["inboxId"] = inbox_id
     except Exception:  # the push itself is still worth sending
         log.warning("could not record notification inbox", exc_info=True)
@@ -181,7 +227,7 @@ async def send_notification(
     if not owner:
         return SendResult(sent=0, failed=0, pruned=0, noToken=no_token)
 
-    outcomes = await asyncio.to_thread(gateway.send, list(owner), request.title, request.body, data)
+    outcomes = await asyncio.to_thread(gateway.send, list(owner), title, body, data)
     stale: dict[str, list[str]] = {}
     for outcome in outcomes:
         if outcome.unregistered:
@@ -193,10 +239,63 @@ async def send_notification(
             log.warning("could not prune %d stale FCM tokens", len(tokens), exc_info=True)
 
     sent = sum(o.ok for o in outcomes)
-    log.info("admin %s sent notification: %d ok / %d total", admin_uid, sent, len(outcomes))
     return SendResult(
         sent=sent,
         failed=len(outcomes) - sent,
         pruned=sum(len(t) for t in stale.values()),
         noToken=no_token,
     )
+
+
+# Students submit straight to Firestore (rules forbid them from writing anyone
+# else's inbox), so the server fans the "new submission" push out to teachers.
+student_router = APIRouter(prefix="/notifications", tags=["notifications"])
+
+# Classes only store the lecturer's display name, and the mobile app makes every
+# teacher the lecturer of every class, so "the class's teacher" is every teacher.
+_MAX_TEACHERS = 100
+
+
+class SubmissionNotifyRequest(BaseModel):
+    submissionId: str = Field(min_length=1, max_length=200, pattern=r"^[A-Za-z0-9_-]+$")
+
+
+class SubmissionNotifyResult(BaseModel):
+    notified: bool
+    result: SendResult | None = None
+
+
+def submission_directory(settings: Settings = Depends(get_settings)) -> SubmissionDirectory:
+    return FirebaseNotificationGateway(settings)
+
+
+@student_router.post("/submission", response_model=SubmissionNotifyResult)
+async def notify_submission(
+    request: SubmissionNotifyRequest,
+    firebase_user: dict[str, Any] = Depends(verify_firebase_token),
+    directory: SubmissionDirectory = Depends(submission_directory),
+    gateway: NotificationGateway = Depends(notification_gateway),
+) -> SubmissionNotifyResult:
+    uid = firebase_user.get("uid")
+    submission = await asyncio.to_thread(directory.submission, request.submissionId)
+    if submission is None:
+        raise HTTPException(status_code=404, detail="Submission not found.")
+    if not isinstance(uid, str) or submission.get("student_id") != uid:
+        raise HTTPException(status_code=403, detail="Only the student who submitted can notify.")
+    # A retry (or a replayed call) must not page every teacher twice.
+    if not await asyncio.to_thread(directory.claim_notification, request.submissionId):
+        return SubmissionNotifyResult(notified=False)
+
+    teachers = [t for t in await asyncio.to_thread(directory.teacher_uids, _MAX_TEACHERS) if t != uid]
+    if not teachers:
+        return SubmissionNotifyResult(notified=False)
+    file_name = str(submission.get("file_name") or "tài liệu")[:200]
+    result = await _deliver(
+        gateway,
+        teachers,
+        "Học viên vừa nộp tài liệu",
+        f"Đã nhận {file_name}. Mở mục Tài liệu để xem bài nộp.",
+        {"type": "notification", "id": request.submissionId},
+    )
+    log.info("submission %s notified %d teachers: %d ok", request.submissionId, len(teachers), result.sent)
+    return SubmissionNotifyResult(notified=True, result=result)
