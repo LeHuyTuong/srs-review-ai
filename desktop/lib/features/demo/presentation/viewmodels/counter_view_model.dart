@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:srs_review_ai/core/di/data_providers.dart';
+import 'package:srs_review_ai/app/di/data_providers.dart';
 import 'package:srs_review_ai/core/domain/counter_state.dart';
 
 // Cung cấp trạng thái bộ đếm ví dụ qua Repository để kiểm chứng luồng Riverpod.

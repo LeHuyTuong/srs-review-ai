@@ -40,6 +40,9 @@ class FirebaseUsersRepository implements UsersRepository {
       registrationDate: _timestamp(data['createdAt']) ?? lastSignIn,
       lastSignIn: lastSignIn,
       role: (data['role'] as String?) ?? 'teacher',
+      deviceCount: data['fcmTokens'] is List
+          ? (data['fcmTokens'] as List).length
+          : 0,
     );
   }
 

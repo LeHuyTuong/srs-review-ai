@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:srs_review_ai/core/domain/academic/academic_models.dart';
 import 'package:srs_review_ai/core/navigation/app_navigation.dart';
-import 'package:srs_review_ai/theme/app_colors.dart';
-import 'package:srs_review_ai/theme/app_metrics.dart';
-import 'package:srs_review_ai/theme/app_spacing.dart';
-import 'package:srs_review_ai/theme/app_typography.dart';
+import 'package:srs_review_ai/core/theme/app/app_colors.dart';
+import 'package:srs_review_ai/core/theme/app/app_corners.dart';
+import 'package:srs_review_ai/core/theme/app/app_metrics.dart';
+import 'package:srs_review_ai/core/theme/app/app_spacing.dart';
+import 'package:srs_review_ai/core/theme/app/app_typography.dart';
 import 'package:srs_review_ai/widgets/app_badge.dart';
 import 'package:srs_review_ai/widgets/app_button.dart';
 import 'package:srs_review_ai/widgets/app_card.dart';
@@ -134,7 +135,7 @@ class ClassReviewPreview extends StatelessWidget {
             padding: const EdgeInsets.all(AppMetrics.gridGap),
             decoration: BoxDecoration(
               color: AppColors.subtle,
-              borderRadius: BorderRadius.circular(AppSpacing.s),
+              borderRadius: AppCorners.s,
             ),
             child: Column(
               spacing: AppSpacing.s,

@@ -1,0 +1,8 @@
+# 06 CRUD project
+steps:
+  - create P-test
+  - rename to P-test-2
+  - delete with confirmation
+expected:
+  - list contains P-test-2 after rename
+  - list does not contain P-test-2 after delete

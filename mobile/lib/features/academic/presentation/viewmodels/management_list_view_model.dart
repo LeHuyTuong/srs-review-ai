@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:srs_review_ai_mobile/core/domain/academic/academic_models.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/viewmodels/academic_view_model.dart';
 import 'package:srs_review_ai_mobile/core/session/session_view_model.dart';
+import 'package:srs_review_ai_mobile/services/analytics_service.dart';
 import 'package:srs_review_ai_mobile/core/domain/academic/academic_projections.dart';
 
 // Bộ lọc, thẻ chọn và sắp xếp riêng từng danh sách; chế độ xem đã lưu chỉ tồn tại trong phiên.
@@ -51,6 +54,7 @@ class ManagementListViewModel extends Notifier<ManagementListState> {
   @override
   ManagementListState build() {
     ref.watch(sessionScopeProvider);
+    ref.onDispose(() => _searchDebounce?.cancel());
     // Bỏ chế độ xem của phiên trước; dự án và yêu cầu đánh giá mặc định giới hạn trong học kỳ hiện tại.
     saved.clear();
     return ManagementListState(
@@ -69,12 +73,31 @@ class ManagementListViewModel extends Notifier<ManagementListState> {
     sort: state.sort,
     tab: v,
   );
-  void query(String q) => state = ManagementListState(
-    q: q,
-    facets: state.facets,
-    sort: state.sort,
-    tab: state.tab,
-  );
+  void query(String q) {
+    state = ManagementListState(
+      q: q,
+      facets: state.facets,
+      sort: state.sort,
+      tab: state.tab,
+    );
+    _logSearchLater(q);
+  }
+
+  // Chỉ danh sách theo chủ đề (không phải danh bạ người) mới ghi từ khoá,
+  // và chờ người dùng ngừng gõ để không ghi từng ký tự.
+  static const _searchableKinds = {'projects', 'documents', 'reviews'};
+  Timer? _searchDebounce;
+  void _logSearchLater(String q) {
+    _searchDebounce?.cancel();
+    final term = q.trim();
+    if (!_searchableKinds.contains(kind) || term.length < 2) return;
+    _searchDebounce = Timer(const Duration(milliseconds: 1200), () {
+      ref.read(analyticsServiceProvider).logSearch(
+        searchTerm: term.length > 50 ? term.substring(0, 50) : term,
+        listKind: kind,
+      );
+    });
+  }
   void sort(String v) => state = ManagementListState(
     q: state.q,
     facets: state.facets,

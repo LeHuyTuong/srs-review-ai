@@ -1,0 +1,10 @@
+# 03 F2 happy path
+precondition: review R1 waiting; ai_review_enabled=true
+steps:
+  - reviews -> R1 -> start review
+  - run AI
+  - wait result
+  - approve
+expected:
+  - review.status == "Đã phê duyệt"
+  - audit history has new decision

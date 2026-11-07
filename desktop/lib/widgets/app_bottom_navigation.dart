@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-
-import 'package:srs_review_ai/theme/app_colors.dart';
-import 'package:srs_review_ai/theme/app_metrics.dart';
-import 'package:srs_review_ai/theme/app_radius.dart';
-import 'package:srs_review_ai/theme/app_spacing.dart';
-import 'package:srs_review_ai/theme/app_typography.dart';
+import 'package:srs_review_ai/core/theme/app/app_colors.dart';
+import 'package:srs_review_ai/core/theme/app/app_corners.dart';
+import 'package:srs_review_ai/core/theme/app/app_metrics.dart';
+import 'package:srs_review_ai/core/theme/app/app_spacing.dart';
+import 'package:srs_review_ai/core/theme/app/app_typography.dart';
 import 'package:srs_review_ai/widgets/app_icon.dart';
 
 // Năm điểm đến theo nguồn React; selected được xác định bằng đường dẫn hiện tại.
@@ -73,9 +72,9 @@ class AppBottomNavigation extends StatelessWidget {
                     color: activePath(path) == item.path
                         ? AppColors.brandSoft
                         : AppColors.white,
-                    borderRadius: BorderRadius.circular(AppRadius.button),
+                    borderRadius: AppCorners.button,
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(AppRadius.button),
+                      borderRadius: AppCorners.button,
                       onTap: () => onNavigate(item.path),
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(

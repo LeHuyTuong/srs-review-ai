@@ -19,6 +19,7 @@ import 'package:srs_review_ai_mobile/features/academic/data/services/firestore_a
 import 'package:srs_review_ai_mobile/core/contracts/academic/student_device_gateway.dart';
 import 'package:srs_review_ai_mobile/features/academic/data/services/student_import_service.dart';
 import 'package:srs_review_ai_mobile/core/session/session_view_model.dart';
+import 'package:srs_review_ai_mobile/core/sync/offline_academic_store.dart';
 
 // Nơi cung cấp các phụ thuộc: giao diện và ViewModel không tự tạo nguồn dữ liệu cụ thể.
 final demoCounterServiceProvider = Provider<DemoCounterService>(
@@ -38,26 +39,34 @@ final dashboardServiceProvider = Provider<FakeDashboardService>((ref) {
   );
 });
 
-final dashboardRepositoryProvider = Provider<DashboardRepository>(
-  (ref) {
-    if (Firebase.apps.isEmpty) {
-      return FakeDashboardRepository(ref.watch(dashboardServiceProvider));
-    }
-    return FirestoreDashboardRepository(
-      ref.watch(firestoreAcademicServiceProvider),
-    );
-  },
+final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
+  if (Firebase.apps.isEmpty) {
+    return FakeDashboardRepository(ref.watch(dashboardServiceProvider));
+  }
+  return FirestoreDashboardRepository(
+    ref.watch(firestoreAcademicServiceProvider),
+  );
+});
+
+// SQLite trên máy. Mặc định `null` (web, flutter test): kho chỉ nằm trong RAM
+// như trước. `main.dart` mở DB trên Android/iOS rồi override provider này.
+final offlineAcademicStoreProvider = Provider<OfflineAcademicStore?>(
+  (ref) => null,
 );
 
-// Kho mô phỏng dùng chung giữ dữ liệu đã lưu khi phiên đăng nhập kết thúc.
+// Kho dùng chung giữ dữ liệu đã lưu khi phiên đăng nhập kết thúc.
 final academicServiceProvider = Provider<FakeAcademicService>(
-  (ref) => FakeAcademicService(rootBundle),
+  (ref) => FakeAcademicService(
+    rootBundle,
+    persistence: ref.watch(offlineAcademicStoreProvider),
+  ),
 );
 
 /// Shared Firestore service for live academic data and the dashboard projection.
 final firestoreAcademicServiceProvider = Provider<FirebaseAcademicService>(
   (ref) => FirebaseAcademicService(
     Firebase.apps.isEmpty ? null : FirebaseFirestore.instance,
+    syncOutbox: ref.watch(offlineAcademicStoreProvider),
   ),
 );
 // Tách thao tác chọn tệp và sao chép khỏi ViewModel để thay thế được khi kiểm thử.

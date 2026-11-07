@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:srs_review_ai/theme/app_colors.dart';
+import 'package:srs_review_ai/core/theme/app/app_colors.dart';
 
 // Độ nổi theo thông số bàn giao; chỉ áp dụng cho thành phần nguồn có bóng.
 abstract final class AppShadows {

@@ -154,3 +154,35 @@ android/.kotlin/
 # Gradle temporary files
 .gradle/
 android/.gradle/
+# ---------- Tài liệu Lab3 cục bộ (giữ trên đĩa, không commit) ----------
+/docs/analytics-plan.md
+/docs/code-review.md
+/docs/design-change-log.md
+/docs/fidelity-check.md
+/docs/handoff-gaps.md
+/docs/implementation-ai-log.md
+/docs/test-report.md
+/docs/video-script.md
+/docs/report-lab3.*
+/docs/video-lab3.mp4
+/docs/slides/
+/docs/uml/
+/docs/video-frames/
+/docs/diagrams/admin-mainflow.*
+/docs/diagrams/analytics-flow.*
+/docs/diagrams/features-flow.*
+
+# ---------- Local / sinh tự động ----------
+/skills/
+/.vercel/
+/.playwright-mcp/
+/tmp/
+/web-ui/dist/
+*.tsbuildinfo
+**/web/firebase-config.js
+
+# video quay E2E (lớn, không commit)
+docs/evidence/video/
+
+# Flutter sinh tự động khi build macOS
+**/Flutter/ephemeral/

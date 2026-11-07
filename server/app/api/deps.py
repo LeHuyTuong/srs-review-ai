@@ -86,6 +86,12 @@ def class_store():
     return _class_store
 
 
+def sync_store():
+    from ..main import _sync_store
+
+    return _sync_store
+
+
 def criteria():
     from ..main import _criteria
 
@@ -133,5 +139,6 @@ __all__ = [
     "rubric",
     "share_store",
     "submission_store",
+    "sync_store",
     "upload_store",
 ]

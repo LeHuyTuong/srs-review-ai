@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart' show ChangeNotifierProvider;
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:srs_review_ai_mobile/core/di/data_providers.dart';
+import 'package:srs_review_ai_mobile/core/di/sync_providers.dart';
 import 'package:srs_review_ai_mobile/core/session/session_view_model.dart';
 import 'package:srs_review_ai_mobile/services/analytics_service.dart';
 import 'package:srs_review_ai_mobile/services/auth_service.dart';
@@ -22,6 +24,20 @@ final loginViewModelProvider = ChangeNotifierProvider<LoginViewModel>(
     session: ref.read(sessionProvider.notifier),
     analytics: ref.watch(analyticsServiceProvider),
     crashlytics: ref.watch(crashlyticsServiceProvider),
+    clearLocalData: () async {
+      final store = ref.read(offlineAcademicStoreProvider);
+      if (store == null) return;
+      // Đẩy nốt thay đổi chưa đồng bộ (nếu có mạng) rồi mới xoá.
+      try {
+        await ref
+            .read(academicSyncServiceProvider)
+            ?.syncNow()
+            .timeout(const Duration(seconds: 5));
+      } catch (_) {
+        // Không đồng bộ được vẫn phải xoá: máy có thể là máy dùng chung.
+      }
+      await store.clearUserData();
+    },
   ),
 );
 
@@ -31,6 +47,7 @@ class LoginViewModel extends ChangeNotifier {
     required this.session,
     required this.analytics,
     required this.crashlytics,
+    this.clearLocalData,
   }) {
     try {
       _authSubscription = authService.authStateChanges.listen(
@@ -60,6 +77,9 @@ class LoginViewModel extends ChangeNotifier {
   final SessionViewModel session;
   final AnalyticsService analytics;
   final CrashlyticsService crashlytics;
+
+  /// Xoá dữ liệu người dùng lưu trên máy (SQLite); null trên web/test.
+  final Future<void> Function()? clearLocalData;
   StreamSubscription<User?>? _authSubscription;
 
   AuthStatus _status = AuthStatus.initial;
@@ -83,8 +103,9 @@ class LoginViewModel extends ChangeNotifier {
       _setAuthenticated(user);
       // Chỉ ghi `login` khi người dùng thực sự đăng nhập, không ghi khi
       // khôi phục phiên cũ lúc mở app.
-      await analytics.logLogin();
+      // Gắn UID trước để chính sự kiện login cũng mang user ID.
       await analytics.setUser(user.uid);
+      await analytics.logLogin();
       await crashlytics.setUser(user.uid);
       return LoginResult.authenticated;
     } catch (error, stackTrace) {
@@ -105,6 +126,12 @@ class LoginViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Trước signOut: đồng bộ nốt cần ID token của người đang đăng xuất.
+      try {
+        await clearLocalData?.call();
+      } catch (error, stackTrace) {
+        _reportError(error, stackTrace, 'clear_local_data_failed', 'sign_out');
+      }
       await authService.signOut();
       await analytics.logLogout();
       await analytics.setUser(null);

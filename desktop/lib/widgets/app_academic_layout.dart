@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:srs_review_ai/theme/app_colors.dart';
-import 'package:srs_review_ai/theme/app_metrics.dart';
-import 'package:srs_review_ai/theme/app_spacing.dart';
-import 'package:srs_review_ai/theme/app_typography.dart';
+import 'package:srs_review_ai/core/theme/app/app_colors.dart';
+import 'package:srs_review_ai/core/theme/app/app_corners.dart';
+import 'package:srs_review_ai/core/theme/app/app_metrics.dart';
+import 'package:srs_review_ai/core/theme/app/app_spacing.dart';
+import 'package:srs_review_ai/core/theme/app/app_typography.dart';
+import 'package:srs_review_ai/core/widgets/full_screen_surface.dart';
 import 'package:srs_review_ai/widgets/app_button.dart';
 import 'package:srs_review_ai/widgets/app_icon.dart';
 
@@ -74,7 +76,7 @@ class AppTabs extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: segmented && selected == i ? AppColors.white : null,
-          borderRadius: segmented ? BorderRadius.circular(AppSpacing.s) : null,
+          borderRadius: segmented ? AppCorners.s : null,
           border: segmented && !reviewStyle
               ? null
               : Border(
@@ -98,7 +100,7 @@ class AppTabs extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.xs),
       decoration: BoxDecoration(
         color: AppColors.subtle,
-        borderRadius: BorderRadius.circular(AppSpacing.s),
+        borderRadius: AppCorners.s,
       ),
       child: Row(
         spacing: AppSpacing.xs,
@@ -116,7 +118,7 @@ class AppTabs extends StatelessWidget {
               padding: const EdgeInsets.all(AppSpacing.xs),
               decoration: BoxDecoration(
                 color: AppColors.subtle,
-                borderRadius: BorderRadius.circular(AppSpacing.s),
+                borderRadius: AppCorners.s,
               ),
               child: Row(
                 spacing: AppSpacing.xs,
@@ -155,7 +157,7 @@ class AppNotice extends StatelessWidget {
     padding: const EdgeInsets.all(AppSpacing.m),
     decoration: BoxDecoration(
       color: error ? AppColors.rustSoft : AppColors.subtle,
-      borderRadius: BorderRadius.circular(AppSpacing.s),
+      borderRadius: AppCorners.s,
     ),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,7 +199,7 @@ class AppMoreMenu extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         border: Border.all(color: AppColors.line),
-        borderRadius: BorderRadius.circular(AppSpacing.s),
+        borderRadius: AppCorners.s,
       ),
       alignment: Alignment.center,
       child: const AppIcon('ellipsis'),
@@ -210,32 +212,17 @@ class AppMoreMenu extends StatelessWidget {
   );
 }
 
-// Bảng nhập liệu Flutter giữ phần đầu/cuối, cuộn nội dung và tránh bàn phím che nút lưu.
+// Bảng nhập liệu mở dạng full-screen surface (ADR 0014): giữ phần đầu/cuối,
+// cuộn nội dung và tránh bàn phím che nút lưu.
 Future<T?> showAppSheet<T>(BuildContext context, Widget child) =>
-    showModalBottomSheet<T>(
+    showFullScreenSurface<T>(
       context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      barrierColor: AppColors.ink.withValues(alpha: .4),
-      backgroundColor: AppColors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppSpacing.m),
-        ),
-      ),
-      builder: (sheet) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(sheet).bottom),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight:
-                (MediaQuery.sizeOf(sheet).height -
-                    View.of(sheet).padding.top /
-                        View.of(sheet).devicePixelRatio -
-                    View.of(sheet).padding.bottom /
-                        View.of(sheet).devicePixelRatio) *
-                AppMetrics.modalHeightFactor,
+      builder: (sheet) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(sheet).bottom,
           ),
-          child: child,
+          child: ColoredBox(color: AppColors.white, child: child),
         ),
       ),
     );

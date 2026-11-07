@@ -253,16 +253,12 @@ class UploadStore:
         cloudinary_asset: dict[str, Any] | None = None
         if self._cloudinary_uploader is not None:
             try:
-                cloudinary_asset = await asyncio.to_thread(
-                    self._cloudinary_uploader.upload_file, path, key
-                )
+                cloudinary_asset = await asyncio.to_thread(self._cloudinary_uploader.upload_file, path, key)
             except Exception as exc:
                 # Local persistence remains usable if Cloudinary is unavailable.
                 log.warning("Cloudinary backup upload failed (%s)", type(exc).__name__)
 
-        await asyncio.to_thread(
-            self._write_meta, key, size, sha.hexdigest(), cloudinary_asset
-        )
+        await asyncio.to_thread(self._write_meta, key, size, sha.hexdigest(), cloudinary_asset)
         result = {"key": key, "size": size, "sha256": sha.hexdigest()}
         if cloudinary_asset is not None:
             result["cloudinary_asset_id"] = cloudinary_asset.get("asset_id")

@@ -32,11 +32,7 @@ class UploadRemoteConfig(BaseModel):
     @classmethod
     def validate_file_types(cls, value: str) -> str:
         file_types = list(
-            dict.fromkeys(
-                item.strip().lower().removeprefix(".")
-                for item in value.split(",")
-                if item.strip()
-            )
+            dict.fromkeys(item.strip().lower().removeprefix(".") for item in value.split(",") if item.strip())
         )
         if not file_types or any(item not in _SUPPORTED_FILE_TYPES for item in file_types):
             raise ValueError("Allowed file types are pdf, docx, and md.")
@@ -47,9 +43,7 @@ def _require_remote_config_admin(
     firebase_user: dict[str, Any] = Depends(verify_firebase_token),
     settings: Settings = Depends(get_settings),
 ) -> str:
-    allowed_uids = {
-        uid.strip() for uid in settings.remote_config_admin_uids.split(",") if uid.strip()
-    }
+    allowed_uids = {uid.strip() for uid in settings.remote_config_admin_uids.split(",") if uid.strip()}
     if not allowed_uids:
         raise HTTPException(
             status_code=503,
@@ -86,8 +80,7 @@ def _template_url(settings: Settings) -> str:
     if not settings.firebase_project_id:
         raise HTTPException(status_code=503, detail="Firebase project ID is not configured.")
     return (
-        "https://firebaseremoteconfig.googleapis.com/v1/projects/"
-        f"{settings.firebase_project_id}/remoteConfig"
+        f"https://firebaseremoteconfig.googleapis.com/v1/projects/{settings.firebase_project_id}/remoteConfig"
     )
 
 
@@ -121,9 +114,7 @@ def _map_remote_config_error(response: httpx.Response) -> None:
 def _read_values(template: dict[str, Any]) -> dict[str, str | int]:
     parameters = template.get("parameters") or {}
     types_value = (
-        parameters.get("allowed_srs_file_types", {})
-        .get("defaultValue", {})
-        .get("value", _DEFAULT_FILE_TYPES)
+        parameters.get("allowed_srs_file_types", {}).get("defaultValue", {}).get("value", _DEFAULT_FILE_TYPES)
     )
     size_value = (
         parameters.get("max_upload_file_size_mb", {})

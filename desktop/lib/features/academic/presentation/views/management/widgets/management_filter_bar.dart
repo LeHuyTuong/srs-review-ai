@@ -1,3 +1,4 @@
+import 'package:srs_review_ai/core/theme/app/app_corners.dart';
 import 'package:srs_review_ai/features/academic/presentation/viewmodels/academic_ui_view_model.dart';
 import 'package:srs_review_ai/features/academic/presentation/viewmodels/management_list_view_model.dart';
 import 'package:srs_review_ai/features/academic/presentation/views/management/widgets/management_shared.dart';
@@ -37,7 +38,7 @@ class ManagementFilterBar extends ConsumerWidget {
                 filled: true,
                 fillColor: AppColors.subtle,
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.s),
+                  borderRadius: AppCorners.s,
                   borderSide: const BorderSide(color: AppColors.borderMuted),
                 ),
                 prefixIconConstraints: const BoxConstraints(

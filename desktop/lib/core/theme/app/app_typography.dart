@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:srs_review_ai/theme/app_colors.dart';
+import 'package:srs_review_ai/core/theme/app/app_colors.dart';
 
 // Kiểu chữ theo CSS đang áp dụng của React, tách biệt thông số bàn giao cũ.
 abstract final class AppTypography {

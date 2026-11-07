@@ -1,0 +1,8 @@
+# 09 PDF export
+precondition: project exists and network available
+steps:
+  - project detail -> export PDF
+expected:
+  - progress shown
+  - cloudinary url visible
+  - metadata exists in Firestore assets

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:srs_review_ai/core/theme/app/app_metrics.dart';
+import 'package:srs_review_ai/core/theme/app/app_spacing.dart';
+import 'package:srs_review_ai/core/theme/app/app_typography.dart';
 import 'package:srs_review_ai/features/academic/presentation/viewmodels/academic_form_view_model.dart';
 import 'package:srs_review_ai/features/academic/presentation/viewmodels/academic_presentation_view_model.dart';
 import 'package:srs_review_ai/features/academic/presentation/viewmodels/management_form_view_model.dart';
 import 'package:srs_review_ai/features/academic/presentation/views/management/widgets/project_form_fields.dart';
 import 'package:srs_review_ai/features/academic/presentation/views/widgets/academic_form_sheet.dart';
-import 'package:srs_review_ai/theme/app_metrics.dart';
-import 'package:srs_review_ai/theme/app_spacing.dart';
-import 'package:srs_review_ai/theme/app_typography.dart';
 import 'package:srs_review_ai/widgets/app_academic_layout.dart';
 import 'package:srs_review_ai/widgets/app_button.dart';
 import 'package:srs_review_ai/widgets/app_card.dart';

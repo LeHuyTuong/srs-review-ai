@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:srs_review_ai/core/domain/academic/academic_models.dart';
-import 'package:srs_review_ai/theme/app_spacing.dart';
-import 'package:srs_review_ai/theme/app_typography.dart';
+import 'package:srs_review_ai/core/theme/app/app_spacing.dart';
+import 'package:srs_review_ai/core/theme/app/app_typography.dart';
 import 'package:srs_review_ai/widgets/app_badge.dart';
 
 // Nhãn trạng thái lấy từ dữ liệu mô tả; giữ nhãn gọn khi cột cha giãn ngang.

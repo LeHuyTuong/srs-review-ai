@@ -134,9 +134,7 @@ class OpenAICompatibleProvider:
         timeout = self._settings.request_timeout_s
         try:
             if self._client is not None:
-                response = await self._client.post(
-                    self._url, json=payload, headers=headers, timeout=timeout
-                )
+                response = await self._client.post(self._url, json=payload, headers=headers, timeout=timeout)
             else:
                 async with httpx.AsyncClient(timeout=timeout) as client:
                     response = await client.post(self._url, json=payload, headers=headers)
@@ -186,8 +184,7 @@ def _to_json_schema(value: dict[str, Any]) -> dict[str, Any]:
             result[key] = value[key]
     if "properties" in value:
         result["properties"] = {
-            name: _to_json_schema(definition)
-            for name, definition in value["properties"].items()
+            name: _to_json_schema(definition) for name, definition in value["properties"].items()
         }
         result["additionalProperties"] = False
     if "items" in value:

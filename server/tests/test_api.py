@@ -347,9 +347,11 @@ def test_app_token_is_enforced_when_configured():
     app.dependency_overrides[get_settings] = lambda: Settings(
         mock_mode=True, gemini_api_key="", app_token="s3cret"
     )
+    # /review now authenticates with a Firebase ID token (239079c); the app
+    # token still guards the config routes.
     with TestClient(app) as c:
-        assert c.post("/review", json=VAGUE).status_code == 401
-        ok = c.post("/review", json=VAGUE, headers={"X-App-Token": "s3cret"})
+        assert c.get("/criteria").status_code == 401
+        ok = c.get("/criteria", headers={"X-App-Token": "s3cret"})
         assert ok.status_code == 200
     app.dependency_overrides.clear()
 

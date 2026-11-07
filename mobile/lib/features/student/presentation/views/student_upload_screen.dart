@@ -8,6 +8,7 @@ import 'package:srs_review_ai_mobile/core/domain/academic/academic_models.dart';
 import 'package:srs_review_ai_mobile/features/student/data/services/cloudinary_upload_service.dart';
 import 'package:srs_review_ai_mobile/features/student/data/services/student_file_picker_service.dart';
 import 'package:srs_review_ai_mobile/features/account/presentation/viewmodels/login_view_model.dart';
+import 'package:srs_review_ai_mobile/services/analytics_service.dart';
 import 'package:srs_review_ai_mobile/services/remote_config_service.dart';
 
 final _studentAcademicSnapshotProvider = StreamProvider<AcademicSnapshot>((ref) {
@@ -59,7 +60,13 @@ class _StudentUploadScreenState extends ConsumerState<StudentUploadScreen> {
       return;
     }
     setState(() { _uploading = true; _error = null; _uploadedUrl = null; });
+    final analytics = ref.read(analyticsServiceProvider);
     try {
+      final dot = file.fileName.lastIndexOf('.');
+      await analytics.logUploadSrsStart(
+        fileType: dot < 0 ? 'unknown' : file.fileName.substring(dot + 1).toLowerCase(),
+        fileSizeBytes: file.bytes.length,
+      );
       final url = await _cloudinary.upload(
         bytes: file.bytes,
         fileName: file.fileName,
@@ -75,6 +82,7 @@ class _StudentUploadScreenState extends ConsumerState<StudentUploadScreen> {
         if (_projectId != null) 'project_id': _projectId,
         'storage_provider': 'cloudinary',
       });
+      await analytics.logUploadSrsSuccess(documentId: submission.id);
       if (mounted) setState(() => _uploadedUrl = url);
     } on Object catch (error) {
       if (mounted) setState(() => _error = error.toString());

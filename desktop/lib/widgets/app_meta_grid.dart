@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:srs_review_ai/theme/app_colors.dart';
-import 'package:srs_review_ai/theme/app_spacing.dart';
-import 'package:srs_review_ai/theme/app_typography.dart';
+import 'package:srs_review_ai/core/theme/app/app_colors.dart';
+import 'package:srs_review_ai/core/theme/app/app_corners.dart';
+import 'package:srs_review_ai/core/theme/app/app_spacing.dart';
+import 'package:srs_review_ai/core/theme/app/app_typography.dart';
 
 // MetaGrid hai cột của React; mục lẻ ở hàng cuối vẫn giữ vị trí cột đầu.
 class AppMetaGrid extends StatelessWidget {
@@ -63,9 +64,7 @@ class AppMetaGrid extends StatelessWidget {
                                 decoration: tinted
                                     ? BoxDecoration(
                                         color: AppColors.subtle,
-                                        borderRadius: BorderRadius.circular(
-                                          AppSpacing.s,
-                                        ),
+                                        borderRadius: AppCorners.s,
                                       )
                                     : null,
                                 child: Column(

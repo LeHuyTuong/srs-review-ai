@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:srs_review_ai/core/domain/dashboard/dashboard_state.dart';
-import 'package:srs_review_ai/theme/app_metrics.dart';
+import 'package:srs_review_ai/core/theme/app/app_metrics.dart';
 import 'package:srs_review_ai/widgets/stat_card.dart';
 
 // Mỗi hàng cao bằng ô dài nhất; số cột đổi theo chiều rộng màn hình và không cố định tỷ lệ thẻ.

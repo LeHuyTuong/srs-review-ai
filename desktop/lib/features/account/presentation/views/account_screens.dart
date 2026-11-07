@@ -1,7 +1,7 @@
 import 'package:srs_review_ai/core/session/session_view_model.dart';
+import 'package:srs_review_ai/core/theme/app/app_feature_metrics.dart';
 import 'package:srs_review_ai/features/academic/presentation/views/management/widgets/management_shared.dart';
 import 'package:srs_review_ai/features/account/presentation/viewmodels/notification_view_model.dart';
-import 'package:srs_review_ai/theme/app_feature_metrics.dart';
 
 // Hiển thị hồ sơ từ dữ liệu mẫu và gửi thao tác đăng xuất tới ViewModel quản lý phiên.
 class ProfileScreen extends ConsumerWidget {

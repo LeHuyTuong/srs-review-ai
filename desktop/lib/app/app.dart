@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:srs_review_ai/core/session/session_view_model.dart';
+import 'package:srs_review_ai/core/theme/app/app_theme.dart';
 import 'package:srs_review_ai/features/academic/presentation/views/class_screens.dart';
 import 'package:srs_review_ai/features/academic/presentation/views/course_screens.dart';
 import 'package:srs_review_ai/features/academic/presentation/views/directory_screens.dart';
@@ -15,7 +16,6 @@ import 'package:srs_review_ai/features/account/presentation/views/account_screen
 import 'package:srs_review_ai/features/account/presentation/views/login_screen.dart';
 import 'package:srs_review_ai/features/dashboard/presentation/views/dashboard_screen.dart';
 import 'package:srs_review_ai/screens/navigation_destination_screen.dart';
-import 'package:srs_review_ai/theme/app_theme.dart';
 
 // Điểm vào ứng dụng Supervisor; điều hướng Flutter nối Tổng quan với các màn học vụ.
 class SrsReviewApp extends ConsumerWidget {

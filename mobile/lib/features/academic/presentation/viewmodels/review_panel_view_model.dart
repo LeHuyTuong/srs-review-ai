@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:srs_review_ai_mobile/core/domain/academic/academic_models.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/viewmodels/academic_view_model.dart';
 import 'package:srs_review_ai_mobile/core/session/session_view_model.dart';
+import 'package:srs_review_ai_mobile/services/analytics_service.dart';
+import 'package:srs_review_ai_mobile/features/academic/data/services/report_sharer.dart';
 
 // Trạng thái tương tác AI theo yêu cầu đánh giá, tách riêng kết quả lưu trong Repository.
 class ReviewPanelState {
@@ -57,6 +59,34 @@ class ReviewPanelViewModel extends Notifier<ReviewPanelState> {
     expanded: values,
     added: state.added,
   );
+  /// Xuất kết quả AI thành tệp Markdown qua hộp chia sẻ của hệ điều hành.
+  /// Trả về false khi người dùng đóng hộp chia sẻ hoặc xuất lỗi.
+  Future<bool> exportReport(AiPanelPresentation panel) async {
+    try {
+      final shared = await ref.read(reportSharerProvider).shareText(
+        fileName: AiReportExporter.fileName(panel),
+        mimeType: 'text/markdown',
+        content: AiReportExporter.markdown(panel),
+      );
+      if (shared) {
+        await ref
+            .read(analyticsServiceProvider)
+            .logExportReport(format: 'md', documentId: id);
+      }
+      return shared;
+    } catch (e) {
+      if (ref.mounted) {
+        state = ReviewPanelState(
+          attentionOnly: state.attentionOnly,
+          expanded: state.expanded,
+          added: state.added,
+          error: 'Không xuất được báo cáo: $e',
+        );
+      }
+      return false;
+    }
+  }
+
   // Xóa lỗi cũ trước khi chạy lại; chỉ cập nhật giao diện nếu phiên khởi chạy còn hiệu lực.
   Future<void> run() async {
     final scope = ref.read(sessionScopeProvider);
@@ -67,6 +97,7 @@ class ReviewPanelViewModel extends Notifier<ReviewPanelState> {
     );
     try {
       await ref.read(academicViewModelProvider.notifier).runEvaluation(id);
+      await ref.read(analyticsServiceProvider).logRunAiReview(id);
       if (ref.mounted && scope.active) {
         state = ReviewPanelState(
           attentionOnly: state.attentionOnly,
@@ -181,4 +212,64 @@ class AiPanelPresentation {
       .where((f) => !results.any((c) => c.name == f.text('category')))
       .toList();
   int get enabledCriteria => rule?.criteria.where((c) => c.enabled).length ?? 0;
+}
+
+/// Dựng báo cáo Markdown từ kết quả AI; hàm thuần để test không cần plugin.
+abstract final class AiReportExporter {
+  static String fileName(AiPanelPresentation panel) {
+    final title = panel.review
+        .text('documentTitle', 'srs')
+        .replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-')
+        .replaceAll(RegExp(r'^-+|-+$'), '');
+    return 'bao-cao-ai-${title.isEmpty ? 'srs' : title.toLowerCase()}.md';
+  }
+
+  static String _n(Object? v) => v is num
+      ? (v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1))
+      : '—';
+
+  static String _cell(String v) =>
+      v.replaceAll('|', '\\|').replaceAll(RegExp(r'\s*\n\s*'), ' ');
+
+  static String markdown(AiPanelPresentation panel) {
+    final r = panel.review;
+    final b = StringBuffer()
+      ..writeln('# Báo cáo đánh giá AI — ${r.text('documentTitle')}')
+      ..writeln()
+      ..writeln('- Dự án: ${r.text('projectName')}')
+      ..writeln('- Lớp / nhóm: ${r.text('classCode')} · ${r.text('groupName')}')
+      ..writeln('- Phiên bản: ${r.text('version')}')
+      ..writeln('- Điểm tham khảo: **${_n(panel.score)} / ${_n(panel.max)}**')
+      ..writeln(
+        '- Tổng hợp: ${panel.passed} đạt · ${panel.improve} cần cải thiện · '
+        '${panel.unscored} chưa chấm',
+      )
+      ..writeln()
+      ..writeln('## Điểm theo tiêu chí')
+      ..writeln()
+      ..writeln('| Mã | Tiêu chí | Điểm | Tối đa |')
+      ..writeln('|---|---|---|---|');
+    for (final c in panel.results) {
+      b.writeln(
+        '| ${_cell(c.text('criterionId'))} | ${_cell(c.name)} | '
+        '${c.data['score'] == null ? 'Chấm thủ công' : _n(c.data['score'])} | '
+        '${_n(c.data['maxScore'])} |',
+      );
+    }
+    b
+      ..writeln()
+      ..writeln('## Phát hiện (${panel.findings.length})');
+    for (final f in panel.findings) {
+      b
+        ..writeln()
+        ..writeln('- **${f.text('category', 'Khác')}** — ${f.text('issue', f.text('message'))}');
+      if (f.text('suggestion').isNotEmpty) {
+        b.writeln('  - Gợi ý: ${f.text('suggestion')}');
+      }
+    }
+    b
+      ..writeln()
+      ..writeln('_Kết quả AI chỉ mang tính tham khảo; giảng viên quyết định cuối cùng._');
+    return b.toString();
+  }
 }

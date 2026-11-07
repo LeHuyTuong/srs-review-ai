@@ -8,10 +8,14 @@ import 'package:srs_review_ai_admin_web/core/theme/app_radius.dart';
 import 'package:srs_review_ai_admin_web/core/widgets/app_icon.dart';
 import 'package:srs_review_ai_admin_web/features/auth/presentation/viewmodels/current_user_view_model.dart';
 import 'package:srs_review_ai_admin_web/features/dashboard/presentation/viewmodels/admin_dashboard_view_model.dart';
+import 'package:srs_review_ai_admin_web/features/dashboard/presentation/views/admin_login_screen.dart';
+import 'package:srs_review_ai_admin_web/features/dashboard/data/services/admin_auth_service.dart';
 import 'package:srs_review_ai_admin_web/features/srs_reports/presentation/views/srs_reports_tab.dart';
 import 'package:srs_review_ai_admin_web/features/crashlytics_monitor/presentation/views/crashlytics_tab.dart';
 import 'package:srs_review_ai_admin_web/features/remote_config_editor/presentation/views/remote_config_tab.dart';
 import 'package:srs_review_ai_admin_web/features/users_management/presentation/views/users_tab.dart';
+import 'package:srs_review_ai_admin_web/features/push_notifications/presentation/views/push_notifications_tab.dart';
+import 'package:srs_review_ai_admin_web/features/analytics_monitor/presentation/views/analytics_tab.dart';
 
 /// Admin Dashboard View - Master-Detail Layout với Sidebar Navigation
 class AdminDashboardView extends ConsumerWidget {
@@ -19,6 +23,36 @@ class AdminDashboardView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(adminAuthStateProvider);
+    final user = authState.asData?.value;
+    if (authState.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (user == null) {
+      return const AdminLoginScreen();
+    }
+    final isAdmin = ref.watch(adminIsAdminProvider);
+    if (isAdmin.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (isAdmin.asData?.value != true) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Tài khoản không có quyền quản trị.'),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () => ref.read(adminAuthServiceProvider).signOut(),
+                child: const Text('Đăng xuất'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final dashboardState = ref.watch(adminDashboardViewModelProvider);
     final dashboardViewModel = ref.read(
       adminDashboardViewModelProvider.notifier,
@@ -113,6 +147,15 @@ class AdminDashboardView extends ConsumerWidget {
                 ),
                 _buildNavItem(
                   context,
+                  icon: 'chart-column',
+                  label: 'Thống kê Analytics',
+                  tab: AdminTab.analytics,
+                  isSelected: state.selectedTab == AdminTab.analytics,
+                  isCollapsed: state.isSidebarCollapsed,
+                  onTap: () => viewModel.selectTab(AdminTab.analytics),
+                ),
+                _buildNavItem(
+                  context,
                   icon: 'settings',
                   label: 'Cấu hình Remote Config',
                   tab: AdminTab.remoteConfig,
@@ -128,6 +171,15 @@ class AdminDashboardView extends ConsumerWidget {
                   isSelected: state.selectedTab == AdminTab.users,
                   isCollapsed: state.isSidebarCollapsed,
                   onTap: () => viewModel.selectTab(AdminTab.users),
+                ),
+                _buildNavItem(
+                  context,
+                  icon: 'bell',
+                  label: 'Gửi Thông báo',
+                  tab: AdminTab.notifications,
+                  isSelected: state.selectedTab == AdminTab.notifications,
+                  isCollapsed: state.isSidebarCollapsed,
+                  onTap: () => viewModel.selectTab(AdminTab.notifications),
                 ),
               ],
             ),
@@ -229,6 +281,12 @@ class AdminDashboardView extends ConsumerWidget {
       case AdminTab.users:
         title = 'Danh sách Người dùng';
         break;
+      case AdminTab.notifications:
+        title = 'Gửi Thông báo đẩy';
+        break;
+      case AdminTab.analytics:
+        title = 'Thống kê Firebase Analytics';
+        break;
     }
 
     return Container(
@@ -309,6 +367,10 @@ class AdminDashboardView extends ConsumerWidget {
         return const RemoteConfigTab();
       case AdminTab.users:
         return const UsersTab();
+      case AdminTab.notifications:
+        return const PushNotificationsTab();
+      case AdminTab.analytics:
+        return const AnalyticsTab();
     }
   }
 }

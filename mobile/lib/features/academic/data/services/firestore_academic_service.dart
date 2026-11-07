@@ -3,9 +3,11 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'package:srs_review_ai_mobile/core/domain/academic/academic_models.dart';
+import 'package:srs_review_ai_mobile/core/contracts/academic/academic_persistence.dart';
 import 'package:srs_review_ai_mobile/core/contracts/academic/course_contract.dart';
 
 /// Firestore-backed academic store.
@@ -19,12 +21,33 @@ import 'package:srs_review_ai_mobile/core/contracts/academic/course_contract.dar
 /// bundled `assets/fixtures/academic.json` seed into Firestore so later runs
 /// read realtime `snapshots()` instead.
 class FirebaseAcademicService {
-  FirebaseAcademicService(FirebaseFirestore? firestore, {AssetBundle? bundle})
-    : _firestore = firestore,
-      _bundle = bundle ?? rootBundle;
+  FirebaseAcademicService(
+    FirebaseFirestore? firestore, {
+    AssetBundle? bundle,
+    this.syncOutbox,
+  }) : _firestore = firestore,
+       _bundle = bundle ?? rootBundle;
 
   final FirebaseFirestore? _firestore;
   final AssetBundle _bundle;
+
+  /// Outbox SQLite đẩy lên FastAPI `/sync/push`. Ghi SAU khi Firestore nhận
+  /// lượt ghi: outbox lỗi không được biến một lượt lưu đã thành công thành
+  /// lỗi trên UI, nên chỉ log.
+  final AcademicPersistence? syncOutbox;
+
+  Future<void> _recordForSync(
+    AcademicSnapshot before,
+    AcademicSnapshot after,
+  ) async {
+    final outbox = syncOutbox;
+    if (outbox == null) return;
+    try {
+      await outbox.committed(before, after);
+    } catch (error) {
+      debugPrint('Sync outbox write failed: $error');
+    }
+  }
 
   static const _recordCollections = <String>[
     'courses',
@@ -106,10 +129,7 @@ class FirebaseAcademicService {
 
     for (final name in [..._recordCollections, ..._metaCollections]) {
       subs.add(
-        _firestore!
-            .collection(name)
-            .snapshots()
-            .listen((snap) {
+        _firestore!.collection(name).snapshots().listen((snap) {
           latest[name] = [
             for (final doc in snap.docs) {...doc.data(), 'id': doc.id},
           ];
@@ -118,17 +138,12 @@ class FirebaseAcademicService {
       );
     }
     subs.add(
-      _firestore!
-          .collection('_meta')
-          .doc('snapshot')
-          .snapshots()
-          .listen(
-            (doc) async {
-              metaSnapshot = await _readMeta();
-              emit();
-            },
-            onError: controller.addError,
-          ),
+      _firestore!.collection('_meta').doc('snapshot').snapshots().listen((
+        doc,
+      ) async {
+        metaSnapshot = await _readMeta();
+        emit();
+      }, onError: controller.addError),
     );
 
     controller.onCancel = () async {
@@ -296,6 +311,7 @@ class FirebaseAcademicService {
       'revision': newRevision,
     });
     _lastSnapshot = committed;
+    await _recordForSync(current, committed);
     return committed;
   }
 
@@ -319,6 +335,7 @@ class FirebaseAcademicService {
       'revision': newRevision,
     });
     _lastSnapshot = committed;
+    await _recordForSync(current, committed);
     return committed;
   }
 
@@ -357,6 +374,7 @@ class FirebaseAcademicService {
     ];
     final updated = AcademicSnapshot({...current.toJson(), collection: rows});
     _lastSnapshot = updated;
+    await _recordForSync(current, updated);
     return updated;
   }
 
