@@ -76,17 +76,12 @@ class ApiPushNotificationRepository implements PushNotificationRepository {
   ApiPushNotificationRepository({http.Client? client})
     : _client = client ?? http.Client();
 
-  static const _configuredBaseUrl = String.fromEnvironment(
-    'SRS_API_BASE_URL',
-    defaultValue: 'http://localhost:8000',
-  );
-
+  static const _baseUrl = String.fromEnvironment('SRS_API_BASE_URL');
   final http.Client _client;
 
-  Uri get _endpoint {
-    final baseUrl = _configuredBaseUrl.replaceFirst(RegExp(r'/+$'), '');
-    return Uri.parse('$baseUrl/admin/notifications/send');
-  }
+  Uri get _endpoint => Uri.parse(
+    '${_baseUrl.replaceFirst(RegExp(r'/+$'), '')}/admin/notifications/send',
+  );
 
   @override
   Future<PushSendResult> send(PushMessage message) async {

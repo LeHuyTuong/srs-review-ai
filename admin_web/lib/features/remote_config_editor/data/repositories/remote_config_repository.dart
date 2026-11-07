@@ -58,19 +58,15 @@ class ApiRemoteConfigRepository implements RemoteConfigRepository {
   ApiRemoteConfigRepository({http.Client? client})
     : _client = client ?? http.Client();
 
-  static const _configuredBaseUrl = String.fromEnvironment(
-    'SRS_API_BASE_URL',
-    defaultValue: 'http://localhost:8000',
-  );
+  static const _baseUrl = String.fromEnvironment('SRS_API_BASE_URL');
   static const _defaultFileTypes = 'pdf,docx,md';
   static const _defaultMaxUploadMb = 30;
 
   final http.Client _client;
 
-  Uri get _endpoint {
-    final baseUrl = _configuredBaseUrl.replaceFirst(RegExp(r'/+$'), '');
-    return Uri.parse('$baseUrl/admin/remote-config');
-  }
+  Uri get _endpoint => Uri.parse(
+    '${_baseUrl.replaceFirst(RegExp(r'/+$'), '')}/admin/remote-config',
+  );
 
   Future<Map<String, dynamic>> _request({
     required String method,
@@ -98,7 +94,11 @@ class ApiRemoteConfigRepository implements RemoteConfigRepository {
         headers: headers,
         body: jsonEncode(body),
       ),
-      _ => throw ArgumentError.value(method, 'method', 'Unsupported HTTP method.'),
+      _ => throw ArgumentError.value(
+        method,
+        'method',
+        'Unsupported HTTP method.',
+      ),
     };
     final decoded = jsonDecode(response.body);
     if (response.statusCode < 200 || response.statusCode >= 300) {
