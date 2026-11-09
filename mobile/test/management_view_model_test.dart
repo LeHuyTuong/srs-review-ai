@@ -531,10 +531,7 @@ void main() {
   );
   test('Filter mặc định, OR/AND, cascade và saved view độc lập giữa route', () {
     final p = c.read(managementListProvider('projects').notifier);
-    expect(c.read(managementListProvider('projects')).facets['status'], [
-      'active',
-    ]);
-    p.clear();
+    expect(c.read(managementListProvider('projects')).facets['status'], isNull);
     p.set('status', ['active', 'archived']);
     expect(p.visible.length, repo.snapshot.records('projects').length);
     p.set('semester', ['fall-2026']);
@@ -544,6 +541,8 @@ void main() {
     p.restore('Học kỳ');
     expect(p.visible, isNotEmpty);
     final review = c.read(managementListProvider('reviews').notifier);
+    expect(review.visible.length, repo.snapshot.reviewRows('requests').length);
+    review.actionable();
     expect(
       review.visible.every((r) => r.text('supervisorStatus') == 'waiting'),
       isTrue,

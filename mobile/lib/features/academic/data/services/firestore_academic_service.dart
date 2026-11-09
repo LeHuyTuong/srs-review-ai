@@ -104,6 +104,10 @@ class FirebaseAcademicService {
       yield snapshot;
       return;
     }
+    final initial = _withCurrentSupervisor(await _readSeed());
+    _lastSnapshot = initial;
+    yield initial;
+
     await ensureSeeded();
     final controllers = <String, StreamController<List<AcademicJson>>>{
       for (final name in [..._recordCollections, ..._metaCollections])
@@ -129,21 +133,29 @@ class FirebaseAcademicService {
 
     for (final name in [..._recordCollections, ..._metaCollections]) {
       subs.add(
-        _firestore!.collection(name).snapshots().listen((snap) {
-          latest[name] = [
-            for (final doc in snap.docs) {...doc.data(), 'id': doc.id},
-          ];
-          emit();
-        }, onError: controller.addError),
+        _firestore!.collection(name).snapshots().listen(
+          (snap) {
+            latest[name] = [
+              for (final doc in snap.docs) {...doc.data(), 'id': doc.id},
+            ];
+            emit();
+          },
+          onError: (Object error) {
+            debugPrint('Firestore watch($name) error: $error');
+          },
+        ),
       );
     }
     subs.add(
-      _firestore!.collection('_meta').doc('snapshot').snapshots().listen((
-        doc,
-      ) async {
-        metaSnapshot = await _readMeta();
-        emit();
-      }, onError: controller.addError),
+      _firestore!.collection('_meta').doc('snapshot').snapshots().listen(
+        (doc) async {
+          metaSnapshot = await _readMeta();
+          emit();
+        },
+        onError: (Object error) {
+          debugPrint('Firestore watch(_meta) error: $error');
+        },
+      ),
     );
 
     controller.onCancel = () async {
@@ -158,7 +170,19 @@ class FirebaseAcademicService {
     yield* controller.stream;
   }
 
-  Future<AcademicSnapshot> load() => watch().first;
+  Future<AcademicSnapshot> load() async {
+    if (_available) {
+      final cached = _lastSnapshot;
+      if (cached != null) {
+        return _withCurrentSupervisor(cached);
+      }
+      final seed = _withCurrentSupervisor(await _readSeed());
+      _lastSnapshot = seed;
+      unawaited(ensureSeeded());
+      return seed;
+    }
+    return watch().first;
+  }
 
   /// Backend kiểm thử trong bộ nhớ: đọc seed/fixture và giữ trạng thái qua các
   /// commit nhưng không gọi Firestore. Chỉ test được sử dụng.
@@ -177,23 +201,37 @@ class FirebaseAcademicService {
     if (!_available) return;
     if (_seeded) return;
     _seeded = true;
-    final repo = FirebaseFirestore.instance;
-    final empty = await repo.collection('courses').limit(1).get();
-    if (empty.docs.isNotEmpty) return;
-    final seed = AcademicSnapshotCodec.decode(
-      jsonDecode(await _bundle.loadString('assets/fixtures/academic.json')),
-    );
-    final seeded = _withCurrentSupervisor(seed);
-    await _writeSnapshot(seeded, revision: seed.revision);
-    _lastSnapshot = seeded;
+    try {
+      final repo = _firestore ?? FirebaseFirestore.instance;
+      final empty = await repo
+          .collection('courses')
+          .limit(1)
+          .get()
+          .timeout(const Duration(seconds: 4));
+      if (empty.docs.isNotEmpty) return;
+      final seed = AcademicSnapshotCodec.decode(
+        jsonDecode(await _bundle.loadString('assets/fixtures/academic.json')),
+      );
+      final seeded = _withCurrentSupervisor(seed);
+      await _writeSnapshot(seeded, revision: seed.revision);
+      _lastSnapshot = seeded;
+    } catch (error) {
+      _seeded = false;
+      debugPrint('Firestore ensureSeeded skipped/deferred: $error');
+    }
   }
 
   /// Dữ liệu mẫu mang giảng viên "Nguyễn Văn An"; khi seed lên Firestore với
   /// người đăng nhập thật, ghi đè giảng viên phụ trách bằng hồ sơ hiện tại để
   /// UI không hiển thị tên mẫu.
   AcademicSnapshot _withCurrentSupervisor(AcademicSnapshot seed) {
-    final auth = FirebaseAuth.instance;
-    final user = auth.currentUser;
+    if (!_available) return seed;
+    User? user;
+    try {
+      user = FirebaseAuth.instance.currentUser;
+    } catch (_) {
+      return seed;
+    }
     if (user == null) return seed;
     final email = user.email?.trim() ?? '';
     final displayName = user.displayName?.trim() ?? '';
@@ -241,8 +279,22 @@ class FirebaseAcademicService {
 
   Future<Map<String, dynamic>> _readMeta() async {
     if (!_available) return const <String, dynamic>{};
-    final doc = await _firestore!.collection('_meta').doc('snapshot').get();
-    return doc.data() ?? <String, dynamic>{};
+    try {
+      final doc = await _firestore!
+          .collection('_meta')
+          .doc('snapshot')
+          .get()
+          .timeout(const Duration(seconds: 4));
+      return doc.data() ?? <String, dynamic>{};
+    } catch (error) {
+      debugPrint('Firestore _readMeta fallback: $error');
+      final cached = _lastSnapshot;
+      if (cached == null) return const <String, dynamic>{};
+      return <String, dynamic>{
+        for (final entry in cached.data.entries)
+          if (!_collectionKeys.contains(entry.key)) entry.key: entry.value,
+      };
+    }
   }
 
   /// Writes a full snapshot as per-record docs (used for seed + commit).
@@ -257,7 +309,11 @@ class FirebaseAcademicService {
     var pending = 0;
     Future<void> flushIfNeeded() async {
       if (pending >= 400) {
-        await batch.commit();
+        try {
+          await batch.commit().timeout(const Duration(seconds: 3));
+        } catch (error) {
+          debugPrint('Firestore batch commit deferred: $error');
+        }
         batch = _firestore.batch();
         pending = 0;
       }
@@ -278,7 +334,11 @@ class FirebaseAcademicService {
     };
     if (revision != null) metaData['revision'] = revision;
     batch.set(meta, metaData, SetOptions(merge: true));
-    await batch.commit();
+    try {
+      await batch.commit().timeout(const Duration(seconds: 3));
+    } catch (error) {
+      debugPrint('Firestore batch commit deferred: $error');
+    }
   }
 
   /// Diffs `next` against the current snapshot and writes changed docs.
@@ -359,10 +419,18 @@ class FirebaseAcademicService {
       _lastSnapshot = updated;
       return updated;
     }
-    await _firestore!.collection(collection).doc(docId).set({
-      ...fields,
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    try {
+      await _firestore!
+          .collection(collection)
+          .doc(docId)
+          .set({
+            ...fields,
+            'updatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true))
+          .timeout(const Duration(seconds: 3));
+    } catch (error) {
+      debugPrint('Firestore updateDocStatus deferred: $error');
+    }
     final current = _lastSnapshot;
     if (current == null) return await load();
     final rows = [

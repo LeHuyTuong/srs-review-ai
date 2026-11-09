@@ -58,21 +58,17 @@ class ApiRemoteConfigRepository implements RemoteConfigRepository {
   ApiRemoteConfigRepository({http.Client? client})
     : _client = client ?? http.Client();
 
-  // Backend on the VPS. Override for local dev with
-  // --dart-define=SRS_API_BASE_URL=http://127.0.0.1:8000
-  static const _configuredBaseUrl = String.fromEnvironment(
-    'SRS_API_BASE_URL',
-    defaultValue: 'http://160.30.160.113:8000',
-  );
+  static const _baseUrl = String.fromEnvironment('SRS_API_BASE_URL');
   static const _defaultFileTypes = 'pdf,docx,md';
   static const _defaultMaxUploadMb = 30;
 
   final http.Client _client;
 
-  Uri get _endpoint {
-    final baseUrl = _configuredBaseUrl.replaceFirst(RegExp(r'/+$'), '');
-    return Uri.parse('$baseUrl/admin/remote-config');
-  }
+  String get _resolvedBase => _baseUrl.trim().isNotEmpty
+      ? _baseUrl.replaceFirst(RegExp(r'/+$'), '')
+      : 'http://160.30.160.113:8000';
+
+  Uri get _endpoint => Uri.parse('$_resolvedBase/admin/remote-config');
 
   Future<Map<String, dynamic>> _request({
     required String method,
@@ -100,9 +96,24 @@ class ApiRemoteConfigRepository implements RemoteConfigRepository {
         headers: headers,
         body: jsonEncode(body),
       ),
-      _ => throw ArgumentError.value(method, 'method', 'Unsupported HTTP method.'),
+      _ => throw ArgumentError.value(
+        method,
+        'method',
+        'Unsupported HTTP method.',
+      ),
     };
-    final decoded = jsonDecode(response.body);
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(response.body);
+    } on FormatException {
+      if (response.body.trim().startsWith('<')) {
+        throw Exception(
+          'Server tại $_resolvedBase trả về HTML (${response.statusCode}) thay vì JSON. '
+          'Hãy đảm bảo server FastAPI backend đang chạy và đã cấu hình đúng SRS_API_BASE_URL.',
+        );
+      }
+      throw Exception('Phản hồi từ server không phải định dạng JSON hợp lệ.');
+    }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final detail = decoded is Map<String, dynamic>
           ? decoded['detail']?.toString() ?? response.body
@@ -119,27 +130,51 @@ class ApiRemoteConfigRepository implements RemoteConfigRepository {
 
   @override
   Future<List<RemoteConfigParam>> getParameters() async {
-    final values = await _request(method: 'GET');
-    final maxUploadMb = values['max_upload_file_size_mb'];
-    final fileTypes = values['allowed_srs_file_types'];
-    return [
-      RemoteConfigParam(
-        key: 'allowed_srs_file_types',
-        description: 'Các định dạng SRS được phép, phân cách bằng dấu phẩy',
-        currentValue: fileTypes is String ? fileTypes : _defaultFileTypes,
-        defaultValue: _defaultFileTypes,
-        type: 'string',
-      ),
-      RemoteConfigParam(
-        key: 'max_upload_file_size_mb',
-        description: 'Dung lượng file upload tối đa (MB)',
-        currentValue: maxUploadMb is num ? maxUploadMb : _defaultMaxUploadMb,
-        defaultValue: _defaultMaxUploadMb,
-        type: 'number',
-        minValue: 1,
-        maxValue: 100,
-      ),
-    ];
+    try {
+      final values = await _request(method: 'GET');
+      final maxUploadMb = values['max_upload_file_size_mb'];
+      final fileTypes = values['allowed_srs_file_types'];
+      return [
+        RemoteConfigParam(
+          key: 'allowed_srs_file_types',
+          description: 'Các định dạng SRS được phép, phân cách bằng dấu phẩy',
+          currentValue: fileTypes is String ? fileTypes : _defaultFileTypes,
+          defaultValue: _defaultFileTypes,
+          type: 'string',
+        ),
+        RemoteConfigParam(
+          key: 'max_upload_file_size_mb',
+          description: 'Dung lượng file upload tối đa (MB)',
+          currentValue: maxUploadMb is num ? maxUploadMb : _defaultMaxUploadMb,
+          defaultValue: _defaultMaxUploadMb,
+          type: 'number',
+          minValue: 1,
+          maxValue: 100,
+        ),
+      ];
+    } catch (e) {
+      debugPrint('ApiRemoteConfigRepository getParameters error: $e');
+      // Trả về bộ tham số dự phòng cục bộ khi server backend chưa phản hồi,
+      // giúp giao diện Admin không bị crash và hiển thị thông tin để quản trị viên thao tác.
+      return [
+        RemoteConfigParam(
+          key: 'allowed_srs_file_types',
+          description: 'Các định dạng SRS được phép, phân cách bằng dấu phẩy',
+          currentValue: _defaultFileTypes,
+          defaultValue: _defaultFileTypes,
+          type: 'string',
+        ),
+        RemoteConfigParam(
+          key: 'max_upload_file_size_mb',
+          description: 'Dung lượng file upload tối đa (MB)',
+          currentValue: _defaultMaxUploadMb,
+          defaultValue: _defaultMaxUploadMb,
+          type: 'number',
+          minValue: 1,
+          maxValue: 100,
+        ),
+      ];
+    }
   }
 
   @override

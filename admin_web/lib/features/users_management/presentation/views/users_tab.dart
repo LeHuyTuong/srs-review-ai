@@ -60,7 +60,10 @@ class UsersTab extends ConsumerWidget {
                 children: [
                   // Table Header
                   Container(
-                    padding: const EdgeInsets.all(AppSpacing.m),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.m,
+                      vertical: AppSpacing.s,
+                    ),
                     decoration: const BoxDecoration(
                       color: AppColors.subtle,
                       border: Border(
@@ -71,44 +74,62 @@ class UsersTab extends ConsumerWidget {
                       children: [
                         Expanded(
                           flex: 2,
-                          child: Text(
-                            'Người dùng',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text(
+                              'Người dùng',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
                         Expanded(
                           flex: 2,
-                          child: Text(
-                            'Email',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text(
+                              'Email',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
                         Expanded(
                           flex: 1,
-                          child: Text(
-                            'UID',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text(
+                              'UID',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
                         Expanded(
                           flex: 1,
-                          child: Text(
-                            'Vai trò',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text(
+                              'Vai trò',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
                         Expanded(
                           flex: 2,
-                          child: Text(
-                            'Ngày đăng ký',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text(
+                              'Ngày đăng ký',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
                         Expanded(
                           flex: 2,
-                          child: Text(
-                            'Đăng nhập cuối',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text(
+                              'Đăng nhập cuối',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
                       ],
@@ -154,7 +175,10 @@ class UsersTab extends ConsumerWidget {
 
   Widget _buildUserRow(BuildContext context, AppUser user) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.m),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.m,
+        vertical: AppSpacing.m,
+      ),
       decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(color: AppColors.line),
@@ -164,68 +188,98 @@ class UsersTab extends ConsumerWidget {
         children: [
           Expanded(
             flex: 2,
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: AppColors.brandSoft,
-                  child: Text(
-                    user.displayName.isNotEmpty
-                        ? user.displayName.substring(0, 1).toUpperCase()
-                        : '?',
-                    style: AppTypography.strong.copyWith(color: AppColors.brand),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: AppColors.brandSoft,
+                    child: Text(
+                      user.displayName.isNotEmpty
+                          ? user.displayName.substring(0, 1).toUpperCase()
+                          : '?',
+                      style: AppTypography.strong.copyWith(color: AppColors.brand),
+                    ),
                   ),
-                ),
-                const SizedBox(width: AppSpacing.s),
-                Expanded(
-                  child: Text(
-                    user.displayName,
-                    style: AppTypography.body,
-                    overflow: TextOverflow.ellipsis,
+                  const SizedBox(width: AppSpacing.s),
+                  Expanded(
+                    child: Tooltip(
+                      message: user.displayName,
+                      child: Text(
+                        user.displayName,
+                        style: AppTypography.body,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           Expanded(
             flex: 2,
-            child: Text(
-              user.email,
-              style: AppTypography.body,
-              overflow: TextOverflow.ellipsis,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              child: Tooltip(
+                message: user.email,
+                child: Text(
+                  user.email,
+                  style: AppTypography.body,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ),
           ),
           Expanded(
             flex: 1,
-            child: Text(
-              user.uid.length > 8 ? '${user.uid.substring(0, 8)}...' : user.uid,
-              style: AppTypography.body.copyWith(fontFamily: 'monospace'),
-              overflow: TextOverflow.ellipsis,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              child: Tooltip(
+                message: user.uid,
+                child: Text(
+                  user.uid.length > 8 ? '${user.uid.substring(0, 8)}...' : user.uid,
+                  style: AppTypography.body.copyWith(fontFamily: 'monospace'),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ),
           ),
           Expanded(
             flex: 1,
-            child: AppBadge(
-              user.roleLabel,
-              tone: user.isAdminRole
-                  ? 'danger'
-                  : user.isTeacherRole
-                      ? 'brand'
-                      : 'olive',
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: AppBadge(
+                  user.roleLabel,
+                  tone: user.isAdminRole
+                      ? 'danger'
+                      : user.isTeacherRole
+                          ? 'brand'
+                          : 'olive',
+                ),
+              ),
             ),
           ),
           Expanded(
             flex: 2,
-            child: Text(
-              '${user.registrationDate.day}/${user.registrationDate.month}/${user.registrationDate.year}',
-              style: AppTypography.body,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              child: Text(
+                '${user.registrationDate.day}/${user.registrationDate.month}/${user.registrationDate.year}',
+                style: AppTypography.body,
+              ),
             ),
           ),
           Expanded(
             flex: 2,
-            child: Text(
-              '${user.lastSignIn.day}/${user.lastSignIn.month}/${user.lastSignIn.year} ${user.lastSignIn.hour}:${user.lastSignIn.minute.toString().padLeft(2, '0')}',
-              style: AppTypography.body,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              child: Text(
+                '${user.lastSignIn.day}/${user.lastSignIn.month}/${user.lastSignIn.year} ${user.lastSignIn.hour}:${user.lastSignIn.minute.toString().padLeft(2, '0')}',
+                style: AppTypography.body,
+              ),
             ),
           ),
         ],

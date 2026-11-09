@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import '/Volumes/SSD/Dev/active/PRM392_FlutterMobile/srs-review-ai/app/lib/data/parsing/requirement_splitter.dart';
+import '../../desktop/lib/document_import/parsing/requirement_splitter.dart';
 
 void main() {
   const source = '/Users/lehuytuong/Downloads/OTES_officially_document.docx.pdf';

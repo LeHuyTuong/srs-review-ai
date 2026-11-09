@@ -131,12 +131,12 @@ class _Heading extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Hành vi sử dụng app mobile',
+            'Hành vi sử dụng ứng dụng di động',
             style: AppTypography.header.copyWith(fontSize: 20),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Sự kiện Analytics cập nhật realtime · chỉ chứa UID, không có email/tên.',
+            'Sự kiện phân tích cập nhật theo thời gian thực',
             style: AppTypography.body.copyWith(color: AppColors.muted),
           ),
         ],
@@ -177,7 +177,10 @@ class _CardTitle extends StatelessWidget {
             Text(title, style: AppTypography.strong.copyWith(fontSize: 16)),
             if (subtitle != null) ...[
               const SizedBox(height: 2),
-              Text(subtitle!, style: AppTypography.muted.copyWith(fontSize: 13)),
+              Text(
+                subtitle!,
+                style: AppTypography.muted.copyWith(fontSize: 13),
+              ),
             ],
           ],
         ),
@@ -200,7 +203,12 @@ class _KpiRow extends StatelessWidget {
       ('Tổng sự kiện', summary.total, 'layout-dashboard', AppColors.brand),
       ('Người dùng hoạt động', summary.activeUsers, 'users', AppColors.olive),
       ('Lượt chấm AI', summary.count('run_ai_review'), 'play', AppColors.amber),
-      ('Báo cáo đã xuất', summary.count('export_report'), 'upload', AppColors.rust),
+      (
+        'Báo cáo đã xuất',
+        summary.count('export_report'),
+        'upload',
+        AppColors.rust,
+      ),
     ];
     final cards = [
       for (final (label, value, icon, color) in items)
@@ -314,7 +322,9 @@ class _DailyChart extends StatelessWidget {
                             if (data.length <= 14 && data[i].value > 0)
                               Text(
                                 '${data[i].value}',
-                                style: AppTypography.muted.copyWith(fontSize: 11),
+                                style: AppTypography.muted.copyWith(
+                                  fontSize: 11,
+                                ),
                               ),
                             const SizedBox(height: 2),
                             AnimatedContainer(
@@ -469,8 +479,9 @@ class _UploadFunnel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _CardTitle(
-            'Tỉ lệ upload SRS thành công',
-            subtitle: 'Sinh viên bắt đầu upload bao nhiêu thì hoàn tất bao nhiêu?',
+            'Tỉ lệ tải lên SRS thành công',
+            subtitle:
+                'Sinh viên bắt đầu tải lên bao nhiêu thì hoàn tất bao nhiêu?',
             trailing: rate == null
                 ? null
                 : AppBadge(
@@ -479,13 +490,13 @@ class _UploadFunnel extends StatelessWidget {
                   ),
           ),
           const SizedBox(height: AppSpacing.l),
-          _FunnelBar(label: 'Bắt đầu upload', value: start, of: start),
+          _FunnelBar(label: 'Bắt đầu tải lên', value: start, of: start),
           const SizedBox(height: AppSpacing.m),
-          _FunnelBar(label: 'Upload thành công', value: done, of: start),
+          _FunnelBar(label: 'Tải lên thành công', value: done, of: start),
           const SizedBox(height: AppSpacing.m),
           Text(
             rate == null
-                ? 'Chưa có lượt upload nào trong khoảng này.'
+                ? 'Chưa có lượt tải lên nào trong khoảng này.'
                 : '${start - done < 0 ? 0 : start - done} lượt bỏ dở hoặc lỗi.',
             style: AppTypography.muted.copyWith(fontSize: 13),
           ),
@@ -496,7 +507,11 @@ class _UploadFunnel extends StatelessWidget {
 }
 
 class _FunnelBar extends StatelessWidget {
-  const _FunnelBar({required this.label, required this.value, required this.of});
+  const _FunnelBar({
+    required this.label,
+    required this.value,
+    required this.of,
+  });
   final String label;
   final int value;
   final int of;
@@ -635,7 +650,7 @@ class _RecentEvents extends StatelessWidget {
                 Expanded(flex: 2, child: Text('Thời gian', style: header)),
                 Expanded(flex: 3, child: Text('Sự kiện', style: header)),
                 Expanded(flex: 5, child: Text('Tham số', style: header)),
-                Expanded(flex: 2, child: Text('User ID', style: header)),
+                Expanded(flex: 2, child: Text('Người dùng (UID)', style: header)),
                 Expanded(flex: 1, child: Text('Nền tảng', style: header)),
               ],
             ),
@@ -672,10 +687,11 @@ class _RecentEvents extends StatelessWidget {
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: AppBadge(
-                        e.name,
+                        analyticsEventLabel(e.name),
                         tone: switch (e.name) {
                           'login' || 'logout' => 'olive',
-                          'run_ai_review' || 'submit_review_decision' => 'amber',
+                          'run_ai_review' ||
+                          'submit_review_decision' => 'amber',
                           'export_report' ||
                           'upload_srs_success' ||
                           'upload_srs_start' => 'rust',

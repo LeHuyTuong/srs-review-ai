@@ -21,6 +21,14 @@ import 'package:srs_review_ai_mobile/features/academic/data/services/student_imp
 import 'package:srs_review_ai_mobile/core/session/session_view_model.dart';
 import 'package:srs_review_ai_mobile/core/sync/offline_academic_store.dart';
 
+final firebaseInitializedProvider = Provider<bool>(
+  (ref) => Firebase.apps.isNotEmpty,
+);
+
+final firestoreProvider = Provider<FirebaseFirestore>(
+  (ref) => FirebaseFirestore.instance,
+);
+
 // Nơi cung cấp các phụ thuộc: giao diện và ViewModel không tự tạo nguồn dữ liệu cụ thể.
 final demoCounterServiceProvider = Provider<DemoCounterService>(
   (ref) => DemoCounterService(),
@@ -40,7 +48,7 @@ final dashboardServiceProvider = Provider<FakeDashboardService>((ref) {
 });
 
 final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
-  if (Firebase.apps.isEmpty) {
+  if (!ref.watch(firebaseInitializedProvider)) {
     return FakeDashboardRepository(ref.watch(dashboardServiceProvider));
   }
   return FirestoreDashboardRepository(
@@ -65,7 +73,9 @@ final academicServiceProvider = Provider<FakeAcademicService>(
 /// Shared Firestore service for live academic data and the dashboard projection.
 final firestoreAcademicServiceProvider = Provider<FirebaseAcademicService>(
   (ref) => FirebaseAcademicService(
-    Firebase.apps.isEmpty ? null : FirebaseFirestore.instance,
+    ref.watch(firebaseInitializedProvider)
+        ? ref.watch(firestoreProvider)
+        : null,
     syncOutbox: ref.watch(offlineAcademicStoreProvider),
   ),
 );
@@ -78,7 +88,7 @@ final academicRepositoryProvider = Provider<AcademicRepository>((ref) {
   final scope = ref.watch(sessionScopeProvider);
   // Widget tests and pre-Firebase startup retain the fixture implementation;
   // a Firebase-initialized app always reads and writes through Firestore.
-  if (Firebase.apps.isEmpty) {
+  if (!ref.watch(firebaseInitializedProvider)) {
     return FakeAcademicRepository(
       ref.watch(academicServiceProvider),
       scope: scope,

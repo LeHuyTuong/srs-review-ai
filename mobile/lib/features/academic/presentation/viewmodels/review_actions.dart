@@ -197,82 +197,93 @@ extension ReviewActions on AcademicViewModel {
     List<String> included = const [],
     String severity = 'Major',
     String? category,
-  }) => mutate((s) {
-    final r = writableReview(s, id);
-    if (!['approved', 'needsRevision', 'notAccepted'].contains(decision)) {
-      throw const AcademicFailure('Quyết định không hợp lệ.');
+  }) async {
+    await mutate((s) {
+      final r = writableReview(s, id);
+      if (!['approved', 'needsRevision', 'notAccepted'].contains(decision)) {
+        throw const AcademicFailure('Quyết định không hợp lệ.');
+      }
+      if (decision != 'approved' && note.trim().isEmpty) {
+        throw const AcademicFailure('Cần lý do/phản hồi cho quyết định này.');
+      }
+      final d = reviewData(s);
+      final selected = included.toSet();
+      final feedback = s.reviewRows('feedback').map((v) => v.toJson()).toList();
+      // Yêu cầu chỉnh sửa tạo thêm phản hồi tổng quan và tự chọn phản hồi đó để công bố trong quyết định.
+      if (decision == 'needsRevision') {
+        final fid = nextId('fb');
+        selected.add(fid);
+        feedback.add({
+          'id': fid,
+          'reviewId': id,
+          'version': r.text('version'),
+          'message': note.trim(),
+          'severity': severity,
+          'category': category ?? s.strings('feedbackCategories')[1],
+          'author': actor(s),
+          'createdAt': timestamp(),
+          'official': false,
+        });
+      }
+      // Chỉ công bố phản hồi được chọn khớp yêu cầu và phiên bản hiện tại; ID ở bản nộp khác bị loại.
+      final validIds = feedback
+          .where(
+            (f) =>
+                f['reviewId'] == id &&
+                f['version'] == r.text('version') &&
+                selected.contains(f['id']),
+          )
+          .map((f) => f['id'] as String)
+          .toList();
+      d['requests'] = [
+        for (final v in s.reviewRows('requests'))
+          if (v.id == id)
+            {
+              ...v.toJson(),
+              'supervisorStatus': decision,
+              'ruleSnapshot':
+                  v.data['ruleSnapshot'] ?? s.reviewRule(r)?.toJson(),
+            }
+          else
+            v.toJson(),
+      ];
+      d['feedback'] = [
+        for (final f in feedback)
+          {...f, if (validIds.contains(f['id'])) 'official': true},
+      ];
+      final label = '${r.text('documentTitle')} ${r.text('version')}';
+      final title = decision == 'approved'
+          ? 'Giảng viên phê duyệt $label.'
+          : decision == 'needsRevision'
+          ? 'Giảng viên yêu cầu chỉnh sửa $label.'
+          : 'Giảng viên đánh dấu $label không đạt.';
+      d['audit'] = [
+        ...s.valuesOfReview('audit'),
+        event(
+          s,
+          id,
+          title,
+          tone: decision == 'approved'
+              ? 'brand'
+              : decision == 'needsRevision'
+              ? 'rust'
+              : 'danger',
+          quote: note.trim().isEmpty ? null : '“${note.trim()}”',
+          version: r.text('version'),
+          selected: validIds,
+        ),
+      ];
+      return withReview(s, d);
+    });
+    if (isMounted) {
+      unawaited(
+        analyticsService.logSubmitReviewDecision(
+          reviewId: id,
+          decision: decision,
+        ),
+      );
     }
-    if (decision != 'approved' && note.trim().isEmpty) {
-      throw const AcademicFailure('Cần lý do/phản hồi cho quyết định này.');
-    }
-    final d = reviewData(s);
-    final selected = included.toSet();
-    final feedback = s.reviewRows('feedback').map((v) => v.toJson()).toList();
-    // Yêu cầu chỉnh sửa tạo thêm phản hồi tổng quan và tự chọn phản hồi đó để công bố trong quyết định.
-    if (decision == 'needsRevision') {
-      final fid = nextId('fb');
-      selected.add(fid);
-      feedback.add({
-        'id': fid,
-        'reviewId': id,
-        'version': r.text('version'),
-        'message': note.trim(),
-        'severity': severity,
-        'category': category ?? s.strings('feedbackCategories')[1],
-        'author': actor(s),
-        'createdAt': timestamp(),
-        'official': false,
-      });
-    }
-    // Chỉ công bố phản hồi được chọn khớp yêu cầu và phiên bản hiện tại; ID ở bản nộp khác bị loại.
-    final validIds = feedback
-        .where(
-          (f) =>
-              f['reviewId'] == id &&
-              f['version'] == r.text('version') &&
-              selected.contains(f['id']),
-        )
-        .map((f) => f['id'] as String)
-        .toList();
-    d['requests'] = [
-      for (final v in s.reviewRows('requests'))
-        if (v.id == id)
-          {
-            ...v.toJson(),
-            'supervisorStatus': decision,
-            'ruleSnapshot': v.data['ruleSnapshot'] ?? s.reviewRule(r)?.toJson(),
-          }
-        else
-          v.toJson(),
-    ];
-    d['feedback'] = [
-      for (final f in feedback)
-        {...f, if (validIds.contains(f['id'])) 'official': true},
-    ];
-    final label = '${r.text('documentTitle')} ${r.text('version')}';
-    final title = decision == 'approved'
-        ? 'Giảng viên phê duyệt $label.'
-        : decision == 'needsRevision'
-        ? 'Giảng viên yêu cầu chỉnh sửa $label.'
-        : 'Giảng viên đánh dấu $label không đạt.';
-    d['audit'] = [
-      ...s.valuesOfReview('audit'),
-      event(
-        s,
-        id,
-        title,
-        tone: decision == 'approved'
-            ? 'brand'
-            : decision == 'needsRevision'
-            ? 'rust'
-            : 'danger',
-        quote: note.trim().isEmpty ? null : '“${note.trim()}”',
-        version: r.text('version'),
-        selected: validIds,
-      ),
-    ];
-    return withReview(s, d);
-  });
+  }
 
   // Lưu hai bước: loading rồi kết quả; token nhận diện lần chạy, phiên bản giới hạn bản nộp được cập nhật.
   Future<void> runEvaluation(String id, {bool simulateError = false}) async {
@@ -283,10 +294,20 @@ extension ReviewActions on AcademicViewModel {
     }
     final token = nextId('eval');
     late String documentTitle;
+    late String reviewSectionText;
     try {
       await mutate((s) {
         final r = writableReview(s, id, ai: true);
         documentTitle = r.text('documentTitle');
+        final sample =
+            (s.data['documentSamples'] as Map? ?? {})[documentTitle] as Map?;
+        final checks = (sample?['checks'] as List? ?? [])
+            .whereType<Map>()
+            .map((c) => '${c['name'] ?? ''}: ${c['text'] ?? ''}')
+            .join('\n');
+        reviewSectionText = checks.isNotEmpty
+            ? checks
+            : '${r.text('projectName', documentTitle)} - $documentTitle (${r.text('version')})';
         final rule = s.reviewRule(r);
         if (rule == null || !rule.active || !rule.flag('aiEnabled')) {
           throw const AcademicFailure(
@@ -346,7 +367,43 @@ extension ReviewActions on AcademicViewModel {
         ];
         return withReview(s, d);
       });
-      await Future<void>.delayed(const Duration(milliseconds: 1200));
+
+      final aiService = aiReviewService;
+      AiReviewResult? liveResult;
+      if (aiService.isConfigured && !simulateError) {
+        try {
+          final safeReqId =
+              'REQ-${id.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '').toUpperCase()}';
+          liveResult = await aiService.review(
+            requirementId: safeReqId,
+            text: reviewSectionText,
+            section: documentTitle,
+          );
+        } on Object catch (error, stackTrace) {
+          unawaited(
+            crashlyticsService.logError(
+              error,
+              stackTrace,
+              reason: 'ai_review_live_api_error',
+              keys: {'review_id': id, 'document_title': documentTitle},
+            ),
+          );
+        }
+      } else {
+        await Future<void>.delayed(const Duration(milliseconds: 1200));
+      }
+
+      if (simulateError && isMounted) {
+        unawaited(
+          crashlyticsService.logError(
+            StateError('AI evaluation error on $id'),
+            StackTrace.current,
+            reason: 'ai_review_evaluation_error',
+            keys: {'review_id': id},
+          ),
+        );
+      }
+
       // Sau thời gian chờ, kiểm tra lại phiên để kết quả trễ không ghi sau khi đăng xuất.
       operationScope.requireActive();
       await mutate((s) {
@@ -363,6 +420,15 @@ extension ReviewActions on AcademicViewModel {
                 'evaluationStatus': 'error',
                 'error': 'Không thể tạo kết quả. Chọn Thử lại để tiếp tục.',
               })
+            : liveResult != null
+            ? ReviewPolicy.fromLiveAiResult(
+                s,
+                run,
+                documentTitle,
+                scoreOutOf10: liveResult.score,
+                issues: liveResult.issues,
+                contextNote: liveResult.contextNote,
+              )
             : ReviewPolicy.illustration(s, run, documentTitle);
         final d = reviewData(s);
         d['evaluations'] = [
@@ -407,6 +473,9 @@ extension ReviewActions on AcademicViewModel {
         ];
         return withReview(s, d);
       });
+      if (!simulateError && isMounted) {
+        unawaited(analyticsService.logRunAiReview(id));
+      }
     } finally {
       if (operationScope.active) activeEvaluationIds.remove(id);
     }

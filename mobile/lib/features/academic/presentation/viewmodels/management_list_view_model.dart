@@ -55,16 +55,9 @@ class ManagementListViewModel extends Notifier<ManagementListState> {
   ManagementListState build() {
     ref.watch(sessionScopeProvider);
     ref.onDispose(() => _searchDebounce?.cancel());
-    // Bỏ chế độ xem của phiên trước; dự án và yêu cầu đánh giá mặc định giới hạn trong học kỳ hiện tại.
+    // Bỏ chế độ xem của phiên trước; không đặt bộ lọc mặc định.
     saved.clear();
-    return ManagementListState(
-      facets: {
-        if (['projects', 'reviews', 'documents'].contains(kind))
-          'semester': [snapshot.currentSemesterId],
-        if (kind == 'projects') 'status': ['active'],
-        if (kind == 'reviews') 'status': ['waiting'],
-      },
-    );
+    return const ManagementListState();
   }
 
   void tab(int v) => state = ManagementListState(

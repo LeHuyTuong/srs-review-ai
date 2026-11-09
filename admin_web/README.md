@@ -1,17 +1,20 @@
-# srs_review_ai_admin_web
+# SRS Review AI — Admin Web
 
-SRS Review AI - Admin Web (Flutter Web)
+Flutter Web dashboard for administrators.
 
-## Getting Started
+## Configure the backend URL
 
-This project is a starting point for a Flutter application.
+Copy `.env.example` to `.env` and set `SRS_API_BASE_URL` to the FastAPI server's
+base address, for example `http://localhost:8000` for local development. Do not
+include endpoint paths such as `/admin/remote-config` in this value.
 
-A few resources to get you started if this is your first Flutter project:
+Run/build from this directory so Flutter can read the environment file:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```powershell
+flutter run -d chrome --dart-define-from-file=.env
+flutter build web --dart-define-from-file=.env
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+The same `SRS_API_BASE_URL` is used by Admin Remote Config and Push Notifications.
+The browser must be able to reach the backend, and the backend `CORS_ORIGINS`
+must include the Admin Web origin.

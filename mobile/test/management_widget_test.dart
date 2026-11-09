@@ -152,9 +152,7 @@ void main() {
     });
     await t.pumpAndSettle();
     expect(find.text('${count + 1} dự án'), findsOneWidget);
-    expect(c.read(managementListProvider('projects')).facets['status'], [
-      'active',
-    ]);
+    expect(c.read(managementListProvider('projects')).facets['status'], isNull);
   });
   for (final width in [360.0, 390.0, 412.0]) {
     testWidgets('Chi tiết dự án: năm dropdown mở đúng nội dung ở $width dp', (

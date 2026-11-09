@@ -71,11 +71,11 @@ class ClassFilterBar extends ConsumerWidget {
               children: [
                 AppSelectButton(
                   label: filter.values('semester').isEmpty
-                      ? 'Học kỳ'
+                      ? 'Tất cả học kỳ'
                       : snapshot
                                 .semester(filter.values('semester').first)
                                 ?.name ??
-                            'Học kỳ',
+                            'Tất cả học kỳ',
                   selected: filter.values('semester').isNotEmpty,
                   options: {
                     '': 'Tất cả học kỳ',
@@ -121,25 +121,25 @@ class ClassFilterBar extends ConsumerWidget {
             ),
           ],
         ),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            spacing: AppSpacing.s,
-            children: [
-              for (final e in filter.facets.entries)
-                for (final value in e.value)
-                  AppFilterChip(
-                    label: '${titles[e.key]}: ${labels[value] ?? value}',
-                    onRemove: () => vm.removeValue(e.key, value),
-                  ),
-              if (vm.hasFilters)
+        if (vm.hasFilters)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              spacing: AppSpacing.s,
+              children: [
+                for (final e in filter.facets.entries)
+                  for (final value in e.value)
+                    AppFilterChip(
+                      label: '${titles[e.key]}: ${labels[value] ?? value}',
+                      onRemove: () => vm.removeValue(e.key, value),
+                    ),
                 TextButton(
                   onPressed: vm.clear,
                   child: const Text('Xóa bộ lọc'),
                 ),
-            ],
+              ],
+            ),
           ),
-        ),
         Text('${vm.visible(snapshot).length} lớp', style: AppTypography.strong),
       ],
     );

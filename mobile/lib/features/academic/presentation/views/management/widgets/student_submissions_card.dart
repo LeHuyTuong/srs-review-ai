@@ -1,14 +1,16 @@
-import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 
+import 'package:srs_review_ai_mobile/features/academic/data/services/submission_file_service.dart';
 import 'package:srs_review_ai_mobile/features/academic/data/student_submissions_repository.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/management_shared.dart';
+import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/submission_pdf_preview.dart';
 
-/// Mở link bài nộp; tách ra để test thay được.
 typedef SubmissionLinkOpener = Future<bool> Function(Uri uri);
 
+Future<bool> _defaultSubmissionLinkOpener(Uri uri) async => false;
+
 final submissionLinkOpenerProvider = Provider<SubmissionLinkOpener>(
-  (ref) =>
-      (uri) => launchUrl(uri, mode: LaunchMode.externalApplication),
+  (ref) => _defaultSubmissionLinkOpener,
 );
 
 /// Bài học viên nộp từ màn "Nộp tài liệu SRS". [projectId] rỗng = mọi dự án.
@@ -82,15 +84,7 @@ class _SubmissionRow extends ConsumerWidget {
     return InkWell(
       onTap: url == null
           ? null
-          : () async {
-              final messenger = ScaffoldMessenger.of(context);
-              final opened = await ref.read(submissionLinkOpenerProvider)(url);
-              if (!opened) {
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Không mở được tệp.')),
-                );
-              }
-            },
+          : () => _openSubmission(context, ref, url, item.fileName),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
         child: Row(
@@ -117,11 +111,72 @@ class _SubmissionRow extends ConsumerWidget {
                 ],
               ),
             ),
-            if (url != null) const AppBadge('Mở tệp'),
+            if (url != null)
+              AppBadge(
+                item.fileName.toLowerCase().endsWith('.pdf')
+                    ? 'Xem PDF'
+                    : 'Chia sẻ / lưu',
+              ),
           ],
         ),
       ),
     );
+  }
+}
+
+Future<void> _openSubmission(
+  BuildContext context,
+  WidgetRef ref,
+  Uri url,
+  String fileName,
+) async {
+  final customOpener = ref.read(submissionLinkOpenerProvider);
+  if (!identical(customOpener, _defaultSubmissionLinkOpener)) {
+    await customOpener(url);
+    return;
+  }
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    messenger.showSnackBar(const SnackBar(content: Text('Đang tải tệp…')));
+    final bytes = await ref.read(submissionBytesFetcherProvider)(url);
+    if (!context.mounted) return;
+    final lowerName = fileName.toLowerCase();
+    if (lowerName.endsWith('.pdf')) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              SubmissionPdfPreview(bytes: bytes, fileName: fileName),
+        ),
+      );
+      return;
+    }
+    if (!lowerName.endsWith('.docx') && !lowerName.endsWith('.md')) {
+      throw const SubmissionFileException(
+        'Định dạng tệp này chưa được hỗ trợ.',
+      );
+    }
+    final result = await SharePlus.instance.share(
+      ShareParams(
+        files: [
+          XFile.fromData(
+            bytes,
+            name: fileName,
+            mimeType: lowerName.endsWith('.docx')
+                ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                : 'text/markdown',
+          ),
+        ],
+        fileNameOverrides: [fileName],
+        subject: fileName,
+      ),
+    );
+    if (result.status == ShareResultStatus.dismissed) return;
+  } on Object catch (error) {
+    if (context.mounted) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Không mở được tệp: $error')),
+      );
+    }
   }
 }
 

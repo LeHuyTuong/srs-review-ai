@@ -139,7 +139,7 @@ class AdminDashboardView extends ConsumerWidget {
                 _buildNavItem(
                   context,
                   icon: 'circle-alert',
-                  label: 'Monitor Crashlytics',
+                  label: 'Theo dõi sự cố',
                   tab: AdminTab.crashlytics,
                   isSelected: state.selectedTab == AdminTab.crashlytics,
                   isCollapsed: state.isSidebarCollapsed,
@@ -148,7 +148,7 @@ class AdminDashboardView extends ConsumerWidget {
                 _buildNavItem(
                   context,
                   icon: 'chart-column',
-                  label: 'Thống kê Analytics',
+                  label: 'Thống kê phân tích',
                   tab: AdminTab.analytics,
                   isSelected: state.selectedTab == AdminTab.analytics,
                   isCollapsed: state.isSidebarCollapsed,
@@ -157,7 +157,7 @@ class AdminDashboardView extends ConsumerWidget {
                 _buildNavItem(
                   context,
                   icon: 'settings',
-                  label: 'Cấu hình Remote Config',
+                  label: 'Cấu hình tham số từ xa',
                   tab: AdminTab.remoteConfig,
                   isSelected: state.selectedTab == AdminTab.remoteConfig,
                   isCollapsed: state.isSidebarCollapsed,
@@ -273,7 +273,7 @@ class AdminDashboardView extends ConsumerWidget {
         title = 'Quản lý Báo cáo SRS';
         break;
       case AdminTab.crashlytics:
-        title = 'Monitor Log Crashlytics';
+        title = 'Theo dõi sự cố hệ thống';
         break;
       case AdminTab.remoteConfig:
         title = 'Cấu hình Tham số từ xa';
@@ -285,7 +285,7 @@ class AdminDashboardView extends ConsumerWidget {
         title = 'Gửi Thông báo đẩy';
         break;
       case AdminTab.analytics:
-        title = 'Thống kê Firebase Analytics';
+        title = 'Thống kê phân tích người dùng';
         break;
     }
 

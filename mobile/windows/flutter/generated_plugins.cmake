@@ -9,6 +9,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   firebase_core
   firebase_remote_config
   firebase_storage
+  pdfx
   share_plus
   url_launcher_windows
 )

@@ -394,6 +394,9 @@ void main() {
   );
   test('Filter học kỳ, trạng thái, tìm kiếm và chế độ xem', () {
     final filter = container.read(classFilterProvider.notifier);
+    expect(filter.visible(repo.snapshot).length, repo.snapshot.classes.length);
+    filter.set('semester', [repo.snapshot.currentSemesterId]);
+    filter.set('status', ['active']);
     expect(
       filter
           .visible(repo.snapshot)

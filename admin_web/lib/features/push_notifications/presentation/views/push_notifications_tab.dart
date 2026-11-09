@@ -311,18 +311,19 @@ class _RecipientRow extends StatelessWidget {
               CircleAvatar(
                 radius: 16,
                 backgroundColor: AppColors.brandSoft,
-                backgroundImage: user.photoUrl == null
-                    ? null
-                    : NetworkImage(user.photoUrl!),
-                child: user.photoUrl == null
-                    ? Text(
-                        initial,
-                        style: AppTypography.strong.copyWith(
-                          color: AppColors.brand,
-                          fontSize: 13,
-                        ),
-                      )
+                backgroundImage: (user.photoUrl != null && user.photoUrl!.isNotEmpty)
+                    ? NetworkImage(user.photoUrl!)
                     : null,
+                onBackgroundImageError: (user.photoUrl != null && user.photoUrl!.isNotEmpty)
+                    ? (error, stackTrace) {}
+                    : null,
+                child: Text(
+                  initial,
+                  style: AppTypography.strong.copyWith(
+                    color: AppColors.brand,
+                    fontSize: 13,
+                  ),
+                ),
               ),
               const SizedBox(width: AppSpacing.m),
               Expanded(

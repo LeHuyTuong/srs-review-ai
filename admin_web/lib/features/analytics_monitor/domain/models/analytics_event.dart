@@ -27,10 +27,10 @@ const analyticsEventLabels = <String, String>{
   'view_srs_detail': 'Xem chi tiết SRS',
   'run_ai_review': 'Chạy chấm AI',
   'submit_review_decision': 'Quyết định đánh giá',
-  'upload_srs_start': 'Bắt đầu upload',
-  'upload_srs_success': 'Upload thành công',
+  'upload_srs_start': 'Bắt đầu tải lên',
+  'upload_srs_success': 'Tải lên thành công',
   'export_report': 'Xuất báo cáo',
-  'trigger_test_crash': 'Test crash',
+  'trigger_test_crash': 'Thử nghiệm lỗi',
 };
 
 String analyticsEventLabel(String name) => analyticsEventLabels[name] ?? name;

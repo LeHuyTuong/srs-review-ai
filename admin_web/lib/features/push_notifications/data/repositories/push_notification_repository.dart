@@ -76,18 +76,14 @@ class ApiPushNotificationRepository implements PushNotificationRepository {
   ApiPushNotificationRepository({http.Client? client})
     : _client = client ?? http.Client();
 
-  static const _configuredBaseUrl = String.fromEnvironment(
-    'SRS_API_BASE_URL',
-    // Backend on the VPS; override with --dart-define=SRS_API_BASE_URL=...
-    defaultValue: 'http://160.30.160.113:8000',
-  );
-
+  static const _baseUrl = String.fromEnvironment('SRS_API_BASE_URL');
   final http.Client _client;
 
-  Uri get _endpoint {
-    final baseUrl = _configuredBaseUrl.replaceFirst(RegExp(r'/+$'), '');
-    return Uri.parse('$baseUrl/admin/notifications/send');
-  }
+  String get _resolvedBase => _baseUrl.trim().isNotEmpty
+      ? _baseUrl.replaceFirst(RegExp(r'/+$'), '')
+      : 'http://160.30.160.113:8000';
+
+  Uri get _endpoint => Uri.parse('$_resolvedBase/admin/notifications/send');
 
   @override
   Future<PushSendResult> send(PushMessage message) async {
@@ -112,6 +108,12 @@ class ApiPushNotificationRepository implements PushNotificationRepository {
     try {
       decoded = jsonDecode(response.body);
     } on FormatException {
+      if (response.body.trim().startsWith('<')) {
+        throw Exception(
+          'Server tại $_resolvedBase trả về HTML (${response.statusCode}) thay vì JSON. '
+          'Hãy đảm bảo server FastAPI backend đang chạy và đã cấu hình đúng SRS_API_BASE_URL.',
+        );
+      }
       throw Exception('Server trả về ${response.statusCode} không đọc được.');
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {

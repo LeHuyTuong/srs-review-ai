@@ -1,10 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:srs_review_ai_mobile/core/domain/academic/academic_models.dart';
-import 'package:srs_review_ai_mobile/features/academic/presentation/viewmodels/academic_view_model.dart';
 import 'package:srs_review_ai_mobile/core/session/session_view_model.dart';
-import 'package:srs_review_ai_mobile/services/analytics_service.dart';
 import 'package:srs_review_ai_mobile/features/academic/data/services/report_sharer.dart';
+import 'package:srs_review_ai_mobile/features/academic/presentation/viewmodels/academic_view_model.dart';
+import 'package:srs_review_ai_mobile/services/analytics_service.dart';
+import 'package:srs_review_ai_mobile/services/crashlytics_service.dart';
 
 // Trạng thái tương tác AI theo yêu cầu đánh giá, tách riêng kết quả lưu trong Repository.
 class ReviewPanelState {
@@ -74,7 +77,15 @@ class ReviewPanelViewModel extends Notifier<ReviewPanelState> {
             .logExportReport(format: 'md', documentId: id);
       }
       return shared;
-    } catch (e) {
+    } catch (e, st) {
+      unawaited(
+        ref.read(crashlyticsServiceProvider).logError(
+          e,
+          st,
+          reason: 'export_ai_report_error',
+          keys: {'review_id': id},
+        ),
+      );
       if (ref.mounted) {
         state = ReviewPanelState(
           attentionOnly: state.attentionOnly,
@@ -97,7 +108,6 @@ class ReviewPanelViewModel extends Notifier<ReviewPanelState> {
     );
     try {
       await ref.read(academicViewModelProvider.notifier).runEvaluation(id);
-      await ref.read(analyticsServiceProvider).logRunAiReview(id);
       if (ref.mounted && scope.active) {
         state = ReviewPanelState(
           attentionOnly: state.attentionOnly,
@@ -105,7 +115,15 @@ class ReviewPanelViewModel extends Notifier<ReviewPanelState> {
           added: state.added,
         );
       }
-    } catch (e) {
+    } catch (e, st) {
+      unawaited(
+        ref.read(crashlyticsServiceProvider).logError(
+          e,
+          st,
+          reason: 'review_panel_run_error',
+          keys: {'review_id': id},
+        ),
+      );
       if (ref.mounted && scope.active) {
         state = ReviewPanelState(
           attentionOnly: state.attentionOnly,
@@ -138,7 +156,15 @@ class ReviewPanelViewModel extends Notifier<ReviewPanelState> {
           added: {...state.added, f.id},
         );
       }
-    } catch (e) {
+    } catch (e, st) {
+      unawaited(
+        ref.read(crashlyticsServiceProvider).logError(
+          e,
+          st,
+          reason: 'review_panel_add_finding_error',
+          keys: {'review_id': id, 'finding_id': f.id},
+        ),
+      );
       if (ref.mounted && scope.active) {
         state = ReviewPanelState(
           attentionOnly: state.attentionOnly,

@@ -32,7 +32,7 @@ final loginViewModelProvider = ChangeNotifierProvider<LoginViewModel>(
         await ref
             .read(academicSyncServiceProvider)
             ?.syncNow()
-            .timeout(const Duration(seconds: 5));
+            .timeout(const Duration(seconds: 2));
       } catch (_) {
         // Không đồng bộ được vẫn phải xoá: máy có thể là máy dùng chung.
       }
@@ -50,6 +50,12 @@ class LoginViewModel extends ChangeNotifier {
     this.clearLocalData,
   }) {
     try {
+      final initialUser = authService.currentUser;
+      if (initialUser != null) {
+        _status = AuthStatus.authenticated;
+        unawaited(analytics.setUser(initialUser.uid));
+        unawaited(crashlytics.setUser(initialUser.uid));
+      }
       _authSubscription = authService.authStateChanges.listen(
         _onAuthStateChanged,
         onError: (Object error, StackTrace stackTrace) {
@@ -87,6 +93,7 @@ class LoginViewModel extends ChangeNotifier {
 
   AuthStatus get status => _status;
   String? get errorMessage => _errorMessage;
+  User? get user => authService.currentUser;
 
   Future<LoginResult> loginWithGoogle() async {
     _setStatus(AuthStatus.loading);
@@ -104,16 +111,18 @@ class LoginViewModel extends ChangeNotifier {
       // Chỉ ghi `login` khi người dùng thực sự đăng nhập, không ghi khi
       // khôi phục phiên cũ lúc mở app.
       // Gắn UID trước để chính sự kiện login cũng mang user ID.
-      await analytics.setUser(user.uid);
-      await analytics.logLogin();
-      await crashlytics.setUser(user.uid);
+      unawaited(analytics.setUser(user.uid));
+      unawaited(analytics.logLogin());
+      unawaited(crashlytics.setUser(user.uid));
       return LoginResult.authenticated;
     } catch (error, stackTrace) {
-      await crashlytics.logError(
-        error,
-        stackTrace,
-        reason: 'google_sign_in_failed',
-        keys: {'auth_step': 'signInWithCredential'},
+      unawaited(
+        crashlytics.logError(
+          error,
+          stackTrace,
+          reason: 'google_sign_in_failed',
+          keys: {'auth_step': 'signInWithCredential'},
+        ),
       );
       _setError(error);
       return LoginResult.failed;
@@ -133,9 +142,9 @@ class LoginViewModel extends ChangeNotifier {
         _reportError(error, stackTrace, 'clear_local_data_failed', 'sign_out');
       }
       await authService.signOut();
-      await analytics.logLogout();
-      await analytics.setUser(null);
-      await crashlytics.setUser(null);
+      unawaited(analytics.logLogout());
+      unawaited(analytics.setUser(null));
+      unawaited(crashlytics.setUser(null));
       _onAuthStateChanged(null);
     } catch (error, stackTrace) {
       _reportError(error, stackTrace, 'sign_out_failed', 'sign_out');

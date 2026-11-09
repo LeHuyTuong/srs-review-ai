@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -24,7 +26,13 @@ class AuthService {
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  User? get currentUser => _auth.currentUser;
+  User? get currentUser {
+    try {
+      return _auth.currentUser;
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<User?> signInWithGoogle() async {
     // google_sign_in 7 trên web không có authenticate() và assert khi gặp
@@ -32,7 +40,7 @@ class AuthService {
     if (kIsWeb) {
       try {
         final user = (await _auth.signInWithPopup(GoogleAuthProvider())).user;
-        if (user != null) await _syncUserProfile(user);
+        if (user != null) unawaited(_syncUserProfile(user));
         return user;
       } on FirebaseAuthException catch (e) {
         // Người dùng đóng popup = huỷ, giống nhánh canceled của mobile.
@@ -63,9 +71,13 @@ class AuthService {
           message: 'Firebase Authentication không trả về người dùng.',
         );
       }
-      await _syncUserProfile(user);
+      unawaited(_syncUserProfile(user));
       return user;
     } on GoogleSignInException catch (error) {
+      final desc = (error.description ?? '').toLowerCase();
+      if (desc.contains('no credential')) {
+        return _signInWithFirebaseProvider();
+      }
       if (error.code == GoogleSignInExceptionCode.canceled) {
         return null;
       }
@@ -73,14 +85,34 @@ class AuthService {
     }
   }
 
+  Future<User?> _signInWithFirebaseProvider() async {
+    try {
+      final provider = GoogleAuthProvider()
+        ..setCustomParameters({'prompt': 'select_account'});
+      final user = (await _auth.signInWithProvider(provider)).user;
+      if (user != null) unawaited(_syncUserProfile(user));
+      return user;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'canceled' ||
+          e.code == 'web-context-canceled' ||
+          e.code == 'popup-closed-by-user' ||
+          e.code == 'cancelled-popup-request') {
+        return null;
+      }
+      rethrow;
+    }
+  }
+
   Future<void> signOut() async {
-    await fcmService.unregisterCurrentUser();
+    unawaited(fcmService.unregisterCurrentUser());
     if (kIsWeb) return _auth.signOut();
     try {
-      await _ensureGoogleInitialized();
-      await _googleSignIn.signOut();
+      await _ensureGoogleInitialized().timeout(const Duration(seconds: 2));
+      await _googleSignIn.signOut().timeout(const Duration(seconds: 2));
+    } catch (error) {
+      debugPrint('GoogleSignIn signOut error: $error');
     } finally {
-      await _auth.signOut();
+      await _auth.signOut().timeout(const Duration(seconds: 3));
     }
   }
 
@@ -91,34 +123,26 @@ class AuthService {
     try {
       final firestore = this.firestore ?? FirebaseFirestore.instance;
       final ref = firestore.collection('users').doc(user.uid);
-      final existing = await ref.get();
-      final existingRole = existing.data()?['role'];
-      final hasRole = existingRole is String && existingRole.trim().isNotEmpty;
-      await ref.set({
-        'uid': user.uid,
-        'email': user.email,
-        'displayName': user.displayName,
-        'photoUrl': user.photoURL,
-        'lastSignInAt': FieldValue.serverTimestamp(),
-        // Mobile chỉ dành cho giảng viên; chỉ ghi khi chưa có để không hạ quyền admin.
-        if (!hasRole) 'role': 'teacher',
-      }, SetOptions(merge: true));
+      final existing = await ref.get().timeout(const Duration(seconds: 5));
+      final existingRole = (existing.data()?['role'] as String?)?.trim();
+      final hasRole = existingRole != null && existingRole.isNotEmpty;
+      await ref
+          .set({
+            'uid': user.uid,
+            'email': user.email ?? '',
+            'displayName': user.displayName ?? '',
+            'photoUrl': user.photoURL ?? '',
+            'lastSignInAt': FieldValue.serverTimestamp(),
+            if (!hasRole) 'role': 'teacher',
+          }, SetOptions(merge: true))
+          .timeout(const Duration(seconds: 5));
     } catch (error) {
-      debugPrint('AuthService user profile sync error: $error');
+      debugPrint('User profile sync skipped: $error');
     }
   }
 
-  Future<void> _ensureGoogleInitialized() async {
-    final initialization = _googleInitialization ??= _googleSignIn.initialize(
-      serverClientId: DefaultFirebaseOptions.googleSignInServerClientId,
-    );
-    try {
-      await initialization;
-    } catch (_) {
-      if (identical(_googleInitialization, initialization)) {
-        _googleInitialization = null;
-      }
-      rethrow;
-    }
-  }
+  Future<void> _ensureGoogleInitialized() =>
+      _googleInitialization ??= _googleSignIn.initialize(
+        serverClientId: DefaultFirebaseOptions.googleSignInServerClientId,
+      );
 }

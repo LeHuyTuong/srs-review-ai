@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
@@ -39,6 +40,9 @@ class FirebaseCrashlyticsService implements CrashlyticsService {
   final FirebaseFirestore? firestore;
   String? _userId;
 
+  String get _resolvedUid =>
+      _userId ?? FirebaseAuth.instance.currentUser?.uid ?? '';
+
   @override
   Future<void> setUser(String? uid) {
     _userId = uid;
@@ -60,6 +64,10 @@ class FirebaseCrashlyticsService implements CrashlyticsService {
     Map<String, Object>? keys,
   }) async {
     await _safe(() async {
+      final uid = _resolvedUid;
+      if (uid.isNotEmpty) {
+        await _crashlytics.setUserIdentifier(uid);
+      }
       for (final entry in (keys ?? const <String, Object>{}).entries) {
         await _crashlytics.setCustomKey(entry.key, entry.value);
       }
@@ -70,7 +78,7 @@ class FirebaseCrashlyticsService implements CrashlyticsService {
         fatal: false,
       );
     });
-    unawaited(_mirrorLog(error, stackTrace, reason: reason));
+    unawaited(_mirrorLog(error, stackTrace, reason: reason, keys: keys));
   }
 
   /// Bản sao non-fatal để Admin Web đọc bằng `collection('crash_logs').snapshots()`.
@@ -79,6 +87,7 @@ class FirebaseCrashlyticsService implements CrashlyticsService {
     Object error,
     StackTrace? stackTrace, {
     String? reason,
+    Map<String, Object>? keys,
   }) async {
     if (Firebase.apps.isEmpty) return;
     try {
@@ -88,11 +97,12 @@ class FirebaseCrashlyticsService implements CrashlyticsService {
         'logId': ref.id,
         'type': 'non-fatal',
         'message': error.toString(),
-        'userId': _userId ?? '',
+        'userId': _resolvedUid,
         'timestamp': FieldValue.serverTimestamp(),
         'stackTrace': (stackTrace ?? StackTrace.current).toString(),
         'deviceInfo': defaultTargetPlatform.name,
         'reason': ?reason,
+        if (keys != null && keys.isNotEmpty) 'customKeys': keys,
       });
     } catch (mirrorError) {
       debugPrint('CrashlyticsService mirror error: $mirrorError');
@@ -101,6 +111,10 @@ class FirebaseCrashlyticsService implements CrashlyticsService {
 
   @override
   Future<void> triggerTestCrash() async {
+    final uid = _resolvedUid;
+    if (uid.isNotEmpty) {
+      await _safe(() => _crashlytics.setUserIdentifier(uid));
+    }
     await _crashlytics.log('Test crash được kích hoạt thủ công từ Settings');
     // Ghi bản mirror fatal trước khi tiến trình bị đóng, để Admin Web thấy được.
     await _mirrorFatalTestLog();
@@ -113,10 +127,12 @@ class FirebaseCrashlyticsService implements CrashlyticsService {
     if (Firebase.apps.isEmpty) return;
     try {
       final firestore = this.firestore ?? FirebaseFirestore.instance;
-      await firestore.collection('crash_logs').add({
+      final ref = firestore.collection('crash_logs').doc();
+      await ref.set({
+        'logId': ref.id,
         'type': 'fatal',
         'message': 'Fatal Crash Test',
-        'userId': _userId ?? '',
+        'userId': _resolvedUid,
         'timestamp': FieldValue.serverTimestamp(),
         'stackTrace': 'Được kích hoạt thủ công từ Settings (fatal test)',
         'deviceInfo': defaultTargetPlatform.name,

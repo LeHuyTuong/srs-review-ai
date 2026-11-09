@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:srs_review_ai_mobile/core/domain/academic/academic_models.dart';
-import 'package:srs_review_ai_mobile/features/academic/presentation/viewmodels/academic_view_model.dart';
 import 'package:srs_review_ai_mobile/core/session/session_view_model.dart';
 
 // Bộ lọc bất biến; danh sách Course phụ thuộc học kỳ, không phụ thuộc từ khóa.
@@ -46,14 +45,7 @@ class ClassFilterViewModel extends Notifier<ClassFilterState> {
   ClassFilterState build() {
     ref.watch(sessionScopeProvider);
     saved.clear();
-    return ClassFilterState(
-      facets: {
-        'semester': [
-          ref.read(academicViewModelProvider).requireValue.currentSemesterId,
-        ],
-        'status': ['active'],
-      },
-    );
+    return const ClassFilterState();
   }
 
   void query(String q) => state = ClassFilterState(q: q, facets: state.facets);

@@ -2,13 +2,13 @@
 // deterministic syllabus checks (F7 count, F9 transactions)?
 import 'dart:convert';
 import 'dart:io';
-import '/Volumes/SSD/Dev/active/PRM392_FlutterMobile/srs-review-ai/app/lib/data/checks/rubric_config.dart';
-import '/Volumes/SSD/Dev/active/PRM392_FlutterMobile/srs-review-ai/app/lib/data/checks/syllabus_checks.dart';
-import '/Volumes/SSD/Dev/active/PRM392_FlutterMobile/srs-review-ai/app/lib/data/models/srs_document.dart';
-import '/Volumes/SSD/Dev/active/PRM392_FlutterMobile/srs-review-ai/app/lib/data/parsing/requirement_splitter.dart';
+import '../../desktop/lib/deterministic_checks/checks/rubric_config.dart';
+import '../../desktop/lib/deterministic_checks/checks/syllabus_checks.dart';
+import '../../desktop/lib/document_import/models/srs_document.dart';
+import '../../desktop/lib/document_import/parsing/requirement_splitter.dart';
 
 void main() {
-  const rubricPath = '/Volumes/SSD/Dev/active/PRM392_FlutterMobile/srs-review-ai/server/app/rubric.json';
+  const rubricPath = '../../server/app/config/rubric.json';
   final rubric = RubricConfig.fromJson(
       jsonDecode(File(rubricPath).readAsStringSync()) as Map<String, dynamic>);
   final checks = SyllabusChecks(rubric);

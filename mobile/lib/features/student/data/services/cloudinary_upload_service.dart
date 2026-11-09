@@ -4,6 +4,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Uploads through Cloudinary's unsigned preset. No API secret is shipped in app.
 class CloudinaryUploadService {
@@ -15,6 +16,7 @@ class CloudinaryUploadService {
     required Uint8List bytes,
     required String fileName,
     required String folder,
+    void Function(double progress)? onProgress,
   }) async {
     const cloudNameDefine = String.fromEnvironment('CLOUDINARY_CLOUD_NAME');
     const uploadPresetDefine = String.fromEnvironment('CLOUDINARY_UPLOAD_PRESET');
@@ -33,24 +35,45 @@ class CloudinaryUploadService {
     final request = await _client.postUrl(
       Uri.https('api.cloudinary.com', '/v1_1/$cloudName/auto/upload'),
     );
-    request.headers.contentType = ContentType('multipart', 'form-data',
-        parameters: {'boundary': boundary});
+    request.headers.contentType = ContentType(
+      'multipart',
+      'form-data',
+      parameters: {'boundary': boundary},
+    );
 
+    final bodyBuilder = BytesBuilder(copy: false);
+    void writeAscii(String value) => bodyBuilder.add(utf8.encode(value));
     void field(String name, String value) {
-      request.write('--$boundary\r\n');
-      request.write('Content-Disposition: form-data; name="$name"\r\n\r\n');
-      request.write('$value\r\n');
+      writeAscii('--$boundary\r\n');
+      writeAscii('Content-Disposition: form-data; name="$name"\r\n\r\n');
+      writeAscii('$value\r\n');
     }
 
     field('upload_preset', uploadPreset);
     field('folder', folder);
-    request.write('--$boundary\r\n');
-    request.write(
+    writeAscii('--$boundary\r\n');
+    writeAscii(
       'Content-Disposition: form-data; name="file"; filename="${_safeName(fileName)}"\r\n',
     );
-    request.write('Content-Type: ${_contentType(fileName)}\r\n\r\n');
-    request.add(bytes);
-    request.write('\r\n--$boundary--\r\n');
+    writeAscii('Content-Type: ${_contentType(fileName)}\r\n\r\n');
+    bodyBuilder.add(bytes);
+    writeAscii('\r\n--$boundary--\r\n');
+
+    final payload = bodyBuilder.takeBytes();
+    request.contentLength = payload.length;
+
+    const chunkSize = 16 * 1024;
+    var sent = 0;
+    onProgress?.call(0.0);
+    for (var offset = 0; offset < payload.length; offset += chunkSize) {
+      final end = (offset + chunkSize < payload.length)
+          ? offset + chunkSize
+          : payload.length;
+      request.add(Uint8List.sublistView(payload, offset, end));
+      await request.flush();
+      sent = end;
+      onProgress?.call(sent / payload.length);
+    }
 
     final response = await request.close();
     final body = await utf8.decoder.bind(response).join();
@@ -65,6 +88,7 @@ class CloudinaryUploadService {
     if (uri == null || uri.scheme != 'https' || uri.host != 'res.cloudinary.com') {
       throw const CloudinaryUploadException('Cloudinary không trả về URL hợp lệ.');
     }
+    onProgress?.call(1.0);
     return uri;
   }
 
@@ -92,3 +116,7 @@ class CloudinaryUploadException implements Exception {
   @override
   String toString() => message;
 }
+
+final cloudinaryUploadServiceProvider = Provider<CloudinaryUploadService>((ref) {
+  return CloudinaryUploadService();
+});
