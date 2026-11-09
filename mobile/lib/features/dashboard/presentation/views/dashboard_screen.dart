@@ -13,7 +13,6 @@ import 'package:srs_review_ai_mobile/features/dashboard/presentation/views/widge
 import 'package:srs_review_ai_mobile/features/dashboard/presentation/views/widgets/dashboard_stats.dart';
 import 'package:srs_review_ai_mobile/features/dashboard/presentation/views/widgets/dashboard_tasks.dart';
 import 'package:srs_review_ai_mobile/features/dashboard/presentation/views/widgets/dashboard_secondary_sections.dart';
-import 'package:srs_review_ai_mobile/features/dashboard/presentation/views/follow_up_screens.dart';
 
 // Màn Tổng quan theo dõi trạng thái và chuyển thao tác tới ViewModel hoặc bộ điều hướng.
 class DashboardScreen extends ConsumerWidget {
@@ -74,7 +73,6 @@ class DashboardScreen extends ConsumerWidget {
                         onPressed: () => open('/reviews'),
                       ),
                       DashboardTasks(state: data, onNavigate: open),
-                      DashboardFollowUpPreviews(onNavigate: open),
                       DashboardSecondarySections(state: data, onNavigate: open),
                     ],
                   ],

@@ -39,6 +39,7 @@ class RemoteConfigState {
 
 /// ViewModel cho Remote Config Tab
 class RemoteConfigViewModel extends Notifier<RemoteConfigState> {
+  String? lastPublishError;
   @override
   RemoteConfigState build() {
     _loadParameters();
@@ -95,9 +96,9 @@ class RemoteConfigViewModel extends Notifier<RemoteConfigState> {
       return true;
     } catch (e) {
       debugPrint('Error publishing remote config: $e');
+      lastPublishError = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
       state = state.copyWith(
         isPublishing: false,
-        error: e.toString(),
       );
       return false;
     }

@@ -1,6 +1,6 @@
 part of 'academic_models.dart';
 
-// Kịch bản minh họa được trích từ documentSamples.ts; tuyệt đối không đọc/chấm tệp thật.
+// Kịch bản đối chiếu tiêu chí và ánh xạ kết quả từ AI Review Service.
 class ReviewPolicy {
   // Ngưỡng có thể là số thập phân; thiếu điểm thủ công thì chưa xếp loại.
   static String rating(AcademicRecord run) {
@@ -16,7 +16,106 @@ class ReviewPolicy {
         : 'Cần làm lại';
   }
 
-  // Dựng kết quả minh họa từ nội dung mẫu và bản chụp Rule Set của lần chạy, không chấm tệp thật.
+  /// Ánh xạ kết quả trả về từ FastAPI `/review` (Gemini) sang bảng tiêu chí của Rule Set.
+  static AcademicRecord fromLiveAiResult(
+    AcademicSnapshot s,
+    AcademicRecord run,
+    String title, {
+    required int scoreOutOf10,
+    required List<Map<String, dynamic>> issues,
+    String? contextNote,
+  }) {
+    final rule = RuleSet(run.data['ruleSnapshot'] as AcademicJson);
+    final ratio = (scoreOutOf10.clamp(0, 10)) / 10.0;
+    final results = <AcademicJson>[];
+    final findings = <AcademicJson>[];
+    final enabledCriteria = rule.criteria.where((c) => c.enabled).toList();
+
+    for (var idx = 0; idx < enabledCriteria.length; idx++) {
+      final c = enabledCriteria[idx];
+      final issueMap = idx < issues.length
+          ? issues[idx]
+          : (issues.isNotEmpty ? issues.first : null);
+      final issueDesc =
+          (issueMap?['description'] as String?) ??
+          (issueMap?['message'] as String?) ??
+          '';
+      final suggestionText =
+          (issueMap?['suggestion'] as String?) ??
+          (issueMap?['fix'] as String?) ??
+          'Rà soát và bổ sung đặc tả chi tiết hơn cho mục này.';
+      final severity =
+          (issueMap?['severity'] as String?)?.toLowerCase() ?? 'warning';
+
+      final score = c.flag('aiEnabled') && c.flag('suggestScore')
+          ? rule.text('scoringMode') == 'binary'
+                ? (ratio >= 0.7 ? c.maxScore : 0)
+                : (c.maxScore * ratio * 100).round() / 100
+          : null;
+
+      results.add({
+        'criterionId': c.id,
+        'name': c.name,
+        'maxScore': c.maxScore,
+        'score': score,
+        'comment': issueDesc.isNotEmpty
+            ? issueDesc
+            : (contextNote ?? 'AI đánh giá đạt mức $scoreOutOf10/10.'),
+        if (issueDesc.isNotEmpty) 'issue': issueDesc,
+        'needsVerification': true,
+        'evidence': contextNote?.isNotEmpty == true
+            ? '$title · $contextNote'
+            : '$title · Đánh giá trực tiếp qua FastAPI AI Review Service.',
+        'suggestions':
+            c.flag('aiEnabled') &&
+                c.flag('suggestSuggestions') &&
+                suggestionText.isNotEmpty
+            ? [suggestionText]
+            : <String>[],
+      });
+
+      if (c.flag('aiEnabled') &&
+          c.flag('suggestFindings') &&
+          issueDesc.isNotEmpty) {
+        findings.add({
+          'id': '${run.id}-${c.id}',
+          'level': c.flag('critical') ||
+                  severity == 'high' ||
+                  severity == 'critical' ||
+                  severity == 'error' ||
+                  ratio <= 0.5
+              ? 'error'
+              : 'warning',
+          'category': c.name,
+          'message': issueDesc,
+          'issue': issueDesc,
+          if (c.flag('suggestSuggestions')) 'suggestion': suggestionText,
+          'proposedScore': score,
+          'maxScore': c.maxScore,
+          'pageRef': 'Tài liệu $title',
+        });
+      }
+    }
+
+    return AcademicRecord({
+      ...run.toJson(),
+      'sampleDocumentTitle': title,
+      'aiSource': 'live',
+      'illustrationVersion': 1,
+      'evaluationStatus': 'completed',
+      'criterionResults': results,
+      'findings': findings,
+      'maxScore': results.fold<num>(0, (n, c) => n + (c['maxScore'] as num)),
+      'overallScore':
+          results.isNotEmpty && results.every((c) => c['score'] != null)
+          ? (results.fold<num>(0, (n, c) => n + (c['score'] as num)) * 100)
+                    .round() /
+                100
+          : null,
+    });
+  }
+
+  // Dựng kết quả đối chiếu cục bộ khi chạy offline / unit test không có FastAPI server.
   static AcademicRecord illustration(
     AcademicSnapshot s,
     AcademicRecord run,

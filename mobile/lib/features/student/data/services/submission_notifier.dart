@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:srs_review_ai_mobile/core/di/sync_providers.dart';
@@ -33,7 +34,8 @@ class HttpSubmissionNotifier implements SubmissionNotifier {
     try {
       final token = await idToken();
       if (token == null) return false;
-      final path = '${baseUri.path.replaceFirst(RegExp(r'/$'), '')}'
+      final path =
+          '${baseUri.path.replaceFirst(RegExp(r'/$'), '')}'
           '/notifications/submission';
       final request = await _client
           .postUrl(baseUri.replace(path: path))
@@ -61,8 +63,24 @@ class DisabledSubmissionNotifier implements SubmissionNotifier {
   Future<bool> notifyTeachers(String submissionId) async => false;
 }
 
+Uri? _notificationBaseUri() {
+  final syncUri = syncBaseUri();
+  if (syncUri != null) return syncUri;
+  const baseDefine = String.fromEnvironment('SRS_API_BASE_URL');
+  if (baseDefine.trim().isNotEmpty) {
+    return Uri.tryParse(baseDefine.trim().replaceFirst(RegExp(r'/+$'), ''));
+  }
+  if (dotenv.isInitialized) {
+    final envBase = dotenv.env['SRS_API_BASE_URL']?.trim() ?? '';
+    if (envBase.isNotEmpty) {
+      return Uri.tryParse(envBase.replaceFirst(RegExp(r'/+$'), ''));
+    }
+  }
+  return null;
+}
+
 final submissionNotifierProvider = Provider<SubmissionNotifier>((ref) {
-  final base = syncBaseUri();
+  final base = _notificationBaseUri();
   if (base == null) return const DisabledSubmissionNotifier();
   return HttpSubmissionNotifier(
     baseUri: base,

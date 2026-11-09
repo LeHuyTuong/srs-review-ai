@@ -1,5 +1,5 @@
-import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/management_shared.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/viewmodels/review_panel_view_model.dart';
+import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/management_shared.dart';
 
 // Kết quả bảng tiêu chí và lịch sử AI; giảng viên luôn phải tự ra quyết định.
 class AiReviewPanel extends ConsumerWidget {
@@ -30,6 +30,7 @@ class AiReviewPanel extends ConsumerWidget {
     final attention = panel.attention;
     final visible = panel.visible;
     final canRun = panel.canRun;
+    final isLiveAi = e?.text('aiSource') == 'live';
     String short(String value) => AcademicPresentation.shortCriterion(
       value,
       ((s.data['presentation'] as Map)['shortCriteria'] as Map?) ?? {},
@@ -97,9 +98,11 @@ class AiReviewPanel extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const Align(
+                Align(
                   alignment: Alignment.centerLeft,
-                  child: AppBadge('Kết quả minh họa', tone: 'amber'),
+                  child: isLiveAi
+                      ? const AppBadge('Đã chấm bằng AI (Live)', tone: 'brand')
+                      : const AppBadge('Kết quả minh họa', tone: 'amber'),
                 ),
                 Text(
                   '${panel.passed} đạt · ${panel.improve} cần cải thiện · ${panel.unscored} chưa chấm',

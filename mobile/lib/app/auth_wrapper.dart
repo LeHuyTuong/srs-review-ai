@@ -20,9 +20,7 @@ class AuthWrapper extends ConsumerWidget {
       if (auth.status == AuthStatus.authenticated) {
         final profile = ref.watch(currentUserProvider);
         return profile.when(
-          loading: () => const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          ),
+          loading: () => const DashboardScreen(),
           error: (_, _) => const DashboardScreen(),
           data: (user) => user?.role.trim().toLowerCase() == 'student'
               ? const StudentUploadScreen()

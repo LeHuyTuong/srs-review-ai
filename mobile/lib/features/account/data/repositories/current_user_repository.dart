@@ -48,6 +48,8 @@ class CurrentUserProfile {
       _ => role.trim().isEmpty ? 'Giảng viên' : role.trim(),
     };
   }
+
+  bool get isSupervisorRole => roleLabel != 'Sinh viên';
 }
 
 /// Hợp đồng đọc hồ sơ người dùng đang đăng nhập.

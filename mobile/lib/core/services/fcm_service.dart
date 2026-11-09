@@ -173,7 +173,7 @@ class FcmService {
     final uid = _uid, token = _token;
     if (uid == null || token == null) return;
     try {
-      await _store.remove(uid, token);
+      await _store.remove(uid, token).timeout(const Duration(seconds: 2));
     } catch (e) {
       debugPrint('FCM token remove error: $e');
     }
@@ -185,7 +185,9 @@ class FcmService {
     final uid = _uid;
     if (uid != null) unawaited(recordPushInInbox(_inbox, uid, message));
     final context = _navigatorKey.currentContext;
-    final messenger = context == null ? null : ScaffoldMessenger.maybeOf(context);
+    final messenger = context == null
+        ? null
+        : ScaffoldMessenger.maybeOf(context);
     final title = message.notification?.title;
     final body = message.notification?.body;
     if (messenger == null || (title == null && body == null)) return;

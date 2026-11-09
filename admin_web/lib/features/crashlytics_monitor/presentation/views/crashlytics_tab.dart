@@ -31,22 +31,23 @@ class CrashlyticsTab extends ConsumerWidget {
             padding: const EdgeInsets.all(AppSpacing.m),
             child: Row(
               children: [
-                Text(
-                  'Lọc theo mức độ:',
-                  style: AppTypography.body,
+                Expanded(
+                  child: DropdownButtonFormField<String?>(
+                    decoration: const InputDecoration(
+                      labelText: 'Lọc theo mức độ',
+                      border: OutlineInputBorder(),
+                    ),
+                    initialValue: state.filterType,
+                    isExpanded: true,
+                    items: const [
+                      DropdownMenuItem<String?>(value: null, child: Text('Tất cả')),
+                      DropdownMenuItem<String?>(value: 'fatal', child: Text('Chỉ lỗi nghiêm trọng')),
+                      DropdownMenuItem<String?>(value: 'non-fatal', child: Text('Chỉ cảnh báo')),
+                    ],
+                    onChanged: (value) => viewModel.setFilterType(value),
+                  ),
                 ),
                 const SizedBox(width: AppSpacing.m),
-                DropdownButton<String>(
-                  value: state.filterType,
-                  hint: const Text('Tất cả'),
-                  items: const [
-                    DropdownMenuItem(value: null, child: Text('Tất cả')),
-                    DropdownMenuItem(value: 'fatal', child: Text('Fatal')),
-                    DropdownMenuItem(value: 'non-fatal', child: Text('Non-fatal')),
-                  ],
-                  onChanged: (value) => viewModel.setFilterType(value),
-                ),
-                const Spacer(),
                 AppButton(
                   label: 'Làm mới',
                   icon: const Icon(Icons.refresh, size: 18),
@@ -66,7 +67,10 @@ class CrashlyticsTab extends ConsumerWidget {
                 children: [
                   // Table Header
                   Container(
-                    padding: const EdgeInsets.all(AppSpacing.m),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.m,
+                      vertical: AppSpacing.s,
+                    ),
                     decoration: const BoxDecoration(
                       color: AppColors.subtle,
                       border: Border(
@@ -76,52 +80,76 @@ class CrashlyticsTab extends ConsumerWidget {
                     child: const Row(
                       children: [
                         Expanded(
-                          flex: 1,
-                          child: Text(
-                            'Log ID',
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 1,
-                          child: Text(
-                            'Type',
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            'Message',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                          flex: 2,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text(
+                              'Mã sự cố',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
                         Expanded(
                           flex: 2,
-                          child: Text(
-                            'User ID',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text(
+                              'Mức độ',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 4,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text(
+                              'Thông báo lỗi',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
                         Expanded(
                           flex: 2,
-                          child: Text(
-                            'Device Info',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text(
+                              'Người dùng',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
                         Expanded(
                           flex: 2,
-                          child: Text(
-                            'Timestamp',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text(
+                              'Thiết bị',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
                         Expanded(
-                          flex: 1,
-                          child: Text(
-                            'Chi tiết',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                          flex: 2,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text(
+                              'Thời gian',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                'Chi tiết',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -166,8 +194,14 @@ class CrashlyticsTab extends ConsumerWidget {
   }
 
   Widget _buildCrashLogRow(BuildContext context, CrashLog log) {
+    final userId = log.userId.trim();
+    final hasUserId = userId.isNotEmpty;
+
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.m),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.m,
+        vertical: AppSpacing.m,
+      ),
       decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(color: AppColors.line),
@@ -176,62 +210,108 @@ class CrashlyticsTab extends ConsumerWidget {
       child: Row(
         children: [
           Expanded(
-            flex: 1,
-            child: Text(
-              log.logId,
-              style: AppTypography.body,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Expanded(
-            flex: 1,
-            child: AppBadge(
-              log.type == 'fatal' ? 'Fatal' : 'Non-fatal',
-              tone: log.type == 'fatal' ? 'danger' : 'amber',
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Text(
-              log.message,
-              style: AppTypography.body,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              child: Tooltip(
+                message: log.logId,
+                child: Text(
+                  log.logId,
+                  style: AppTypography.body,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ),
           ),
           Expanded(
             flex: 2,
-            child: Text(
-              log.userId,
-              style: AppTypography.body,
-              overflow: TextOverflow.ellipsis,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: AppBadge(
+                  log.type == 'fatal' ? 'Nghiêm trọng' : 'Cảnh báo',
+                  tone: log.type == 'fatal' ? 'danger' : 'amber',
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 4,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              child: Tooltip(
+                message: log.message,
+                child: Text(
+                  log.message,
+                  style: AppTypography.body,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                ),
+              ),
             ),
           ),
           Expanded(
             flex: 2,
-            child: Text(
-              log.deviceInfo,
-              style: AppTypography.body,
-              overflow: TextOverflow.ellipsis,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              child: hasUserId
+                  ? Tooltip(
+                      message: userId,
+                      child: Text(
+                        userId,
+                        style: AppTypography.body,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    )
+                  : Text(
+                      '—',
+                      style: AppTypography.body.copyWith(
+                        color: AppColors.muted,
+                      ),
+                    ),
             ),
           ),
           Expanded(
             flex: 2,
-            child: Text(
-              '${log.timestamp.day}/${log.timestamp.month}/${log.timestamp.year} ${log.timestamp.hour}:${log.timestamp.minute.toString().padLeft(2, '0')}',
-              style: AppTypography.body,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              child: Text(
+                log.deviceInfo.isNotEmpty ? log.deviceInfo : '—',
+                style: AppTypography.body,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
           Expanded(
-            flex: 1,
-            child: AppButton(
-              label: 'Xem',
-              icon: const Icon(Icons.visibility, size: 16),
-              onPressed: () {
-                _showCrashDetailDialog(context, log);
-              },
-              variant: AppButtonVariant.secondary,
-              compact: true,
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              child: Text(
+                '${log.timestamp.day}/${log.timestamp.month}/${log.timestamp.year} ${log.timestamp.hour}:${log.timestamp.minute.toString().padLeft(2, '0')}',
+                style: AppTypography.body,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: AppButton(
+                    label: 'Xem',
+                    icon: const Icon(Icons.visibility, size: 16),
+                    onPressed: () {
+                      _showCrashDetailDialog(context, log);
+                    },
+                    variant: AppButtonVariant.secondary,
+                    compact: true,
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -250,7 +330,7 @@ class CrashlyticsTab extends ConsumerWidget {
               color: log.type == 'fatal' ? AppColors.danger : AppColors.amber,
             ),
             const SizedBox(width: AppSpacing.s),
-            Text('Chi tiết Crash - ${log.logId}'),
+            Text('Chi tiết sự cố - ${log.logId}'),
           ],
         ),
         content: Container(
@@ -260,12 +340,12 @@ class CrashlyticsTab extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildDetailRow('Loại:', log.type == 'fatal' ? 'Fatal' : 'Non-fatal'),
-                _buildDetailRow('User ID:', log.userId),
-                _buildDetailRow('Thiết bị:', log.deviceInfo),
+                _buildDetailRow('Mức độ:', log.type == 'fatal' ? 'Nghiêm trọng' : 'Cảnh báo'),
+                _buildDetailRow('User ID:', log.userId.isNotEmpty ? log.userId : '— (Chưa đăng nhập)'),
+                _buildDetailRow('Thiết bị:', log.deviceInfo.isNotEmpty ? log.deviceInfo : '—'),
                 _buildDetailRow('Thời gian:', '${log.timestamp.day}/${log.timestamp.month}/${log.timestamp.year} ${log.timestamp.hour}:${log.timestamp.minute}:${log.timestamp.second}'),
                 const SizedBox(height: AppSpacing.m),
-                Text('Message:', style: AppTypography.strong),
+                Text('Nội dung lỗi:', style: AppTypography.strong),
                 const SizedBox(height: AppSpacing.s),
                 Container(
                   width: double.infinity,
@@ -275,13 +355,13 @@ class CrashlyticsTab extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(AppRadius.button),
                     border: Border.all(color: AppColors.line),
                   ),
-                  child: Text(
+                  child: SelectableText(
                     log.message,
                     style: const TextStyle(fontFamily: 'monospace'),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.m),
-                Text('Stack Trace:', style: AppTypography.strong),
+                Text('Truy vết lỗi (Stack Trace):', style: AppTypography.strong),
                 const SizedBox(height: AppSpacing.s),
                 Container(
                   width: double.infinity,
@@ -291,8 +371,8 @@ class CrashlyticsTab extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(AppRadius.button),
                     border: Border.all(color: AppColors.line),
                   ),
-                  child: Text(
-                    log.stackTrace,
+                  child: SelectableText(
+                    log.stackTrace.isNotEmpty ? log.stackTrace : 'Không có stack trace',
                     style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
                   ),
                 ),

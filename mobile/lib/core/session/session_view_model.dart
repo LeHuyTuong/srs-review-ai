@@ -1,3 +1,5 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:srs_review_ai_mobile/core/domain/app_session.dart';
 export 'package:srs_review_ai_mobile/core/domain/app_session.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,7 +31,15 @@ class SessionViewModel extends Notifier<AppSession?> {
   AppSession? build() {
     final initial = ref.read(initialSessionProvider);
     // Phiên khởi tạo khác Supervisor được xem là chưa đăng nhập.
-    final valid = initial?.isSupervisor == true ? initial : null;
+    var valid = initial?.isSupervisor == true ? initial : null;
+    if (valid == null && Firebase.apps.isNotEmpty) {
+      try {
+        final uid = FirebaseAuth.instance.currentUser?.uid.trim();
+        if (uid != null && uid.isNotEmpty) {
+          valid = AppSession('supervisor', userId: uid, generation: ++_generation);
+        }
+      } catch (_) {}
+    }
     scope = SessionScope(valid?.userId);
     ref.onDispose(() => scope.close());
     return valid;

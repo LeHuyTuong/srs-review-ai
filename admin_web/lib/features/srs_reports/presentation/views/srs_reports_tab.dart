@@ -35,7 +35,7 @@ class SrsReportsTab extends ConsumerWidget {
                   flex: 2,
                   child: AppTextInput(
                     decoration: const InputDecoration(
-                      hintText: 'Tìm kiếm theo tên file hoặc người upload...',
+                      hintText: 'Tìm kiếm theo tên tài liệu hoặc người tải lên...',
                       prefixIcon: Icon(Icons.search),
                       border: OutlineInputBorder(),
                     ),
@@ -44,7 +44,7 @@ class SrsReportsTab extends ConsumerWidget {
                 ),
                 const SizedBox(width: AppSpacing.m),
                 Expanded(
-                  child: DropdownButtonFormField<String>(
+                  child: DropdownButtonFormField<String?>(
                     decoration: const InputDecoration(
                       labelText: 'Trạng thái',
                       border: OutlineInputBorder(),
@@ -52,11 +52,11 @@ class SrsReportsTab extends ConsumerWidget {
                     initialValue: state.statusFilter,
                     isExpanded: true,
                     items: const [
-                      DropdownMenuItem(value: null, child: Text('Tất cả')),
-                      DropdownMenuItem(value: 'pending', child: Text('Chờ duyệt')),
-                      DropdownMenuItem(value: 'reviewed', child: Text('Đã xem xét')),
-                      DropdownMenuItem(value: 'approved', child: Text('Đã phê duyệt')),
-                      DropdownMenuItem(value: 'rejected', child: Text('Từ chối')),
+                      DropdownMenuItem<String?>(value: null, child: Text('Tất cả')),
+                      DropdownMenuItem<String?>(value: 'pending', child: Text('Chờ duyệt')),
+                      DropdownMenuItem<String?>(value: 'reviewed', child: Text('Đã xem xét')),
+                      DropdownMenuItem<String?>(value: 'approved', child: Text('Đã phê duyệt')),
+                      DropdownMenuItem<String?>(value: 'rejected', child: Text('Từ chối')),
                     ],
                     onChanged: (value) => viewModel.setStatusFilter(value),
                   ),
@@ -81,7 +81,10 @@ class SrsReportsTab extends ConsumerWidget {
                 children: [
                   // Table Header
                   Container(
-                    padding: const EdgeInsets.all(AppSpacing.m),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.m,
+                      vertical: AppSpacing.s,
+                    ),
                     decoration: const BoxDecoration(
                       color: AppColors.subtle,
                       border: Border(
@@ -92,44 +95,64 @@ class SrsReportsTab extends ConsumerWidget {
                       children: [
                         Expanded(
                           flex: 3,
-                          child: Text(
-                            'Tên file',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text(
+                              'Tên tài liệu',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
                         Expanded(
                           flex: 1,
-                          child: Text(
-                            'Dung lượng',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text(
+                              'Dung lượng',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                              softWrap: false,
+                              overflow: TextOverflow.visible,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 3,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text(
+                              'Người tải lên',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
                         Expanded(
                           flex: 2,
-                          child: Text(
-                            'Người upload',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text(
+                              'Ngày tạo',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
                         Expanded(
                           flex: 2,
-                          child: Text(
-                            'Ngày tạo',
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 1,
-                          child: Text(
-                            'Trạng thái',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text(
+                              'Trạng thái',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
                         Expanded(
                           flex: 2,
-                          child: Text(
-                            'Thao tác',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text(
+                              'Thao tác',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
                       ],
@@ -195,7 +218,10 @@ class SrsReportsTab extends ConsumerWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.m),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.m,
+        vertical: AppSpacing.m,
+      ),
       decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(color: AppColors.line),
@@ -205,112 +231,148 @@ class SrsReportsTab extends ConsumerWidget {
         children: [
           Expanded(
             flex: 3,
-            child: Row(
-              children: [
-                const AppIcon('file-text', color: AppColors.brand, size: 20),
-                const SizedBox(width: AppSpacing.s),
-                Expanded(
-                  child: Text(
-                    report.fileName,
-                    style: AppTypography.body,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              child: Row(
+                children: [
+                  const AppIcon('file-text', color: AppColors.brand, size: 20),
+                  const SizedBox(width: AppSpacing.s),
+                  Expanded(
+                    child: Tooltip(
+                      message: report.fileName,
+                      child: Text(
+                        report.fileName,
+                        style: AppTypography.body,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 1,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              child: Text(
+                report.fileSizeFormatted,
+                style: AppTypography.body,
+                softWrap: false,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    report.uploaderDisplayName,
+                    style: AppTypography.body.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Text(
-              report.fileSizeFormatted,
-              style: AppTypography.body,
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              report.uploadedBy,
-              style: AppTypography.body,
-              overflow: TextOverflow.ellipsis,
+                  const SizedBox(height: 2),
+                  Text(
+                    report.uploaderSubtitle,
+                    style: AppTypography.muted.copyWith(fontSize: 12),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ),
           Expanded(
             flex: 2,
-            child: Text(
-              '${report.uploadDate.day}/${report.uploadDate.month}/${report.uploadDate.year} ${report.uploadDate.hour}:${report.uploadDate.minute.toString().padLeft(2, '0')}',
-              style: AppTypography.body,
-            ),
-          ),
-          Expanded(
-            flex: 1,
-            child: AppBadge(
-              statusText,
-              tone: report.status == 'approved'
-                  ? 'olive'
-                  : report.status == 'rejected'
-                      ? 'danger'
-                      : report.status == 'pending'
-                          ? 'amber'
-                          : 'brand',
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              child: Text(
+                '${report.uploadDate.day}/${report.uploadDate.month}/${report.uploadDate.year} ${report.uploadDate.hour}:${report.uploadDate.minute.toString().padLeft(2, '0')}',
+                style: AppTypography.body,
+              ),
             ),
           ),
           Expanded(
             flex: 2,
-            child: Wrap(
-              spacing: AppSpacing.s,
-              runSpacing: AppSpacing.s,
-              children: [
-                AppButton(
-                  label: 'Xem',
-                  icon: const Icon(Icons.visibility, size: 16),
-                  onPressed: () async {
-                    try {
-                      await viewModel.previewReport(report);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Đang mở ${report.fileName}')),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Lỗi: $e'),
-                            backgroundColor: AppColors.danger,
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  variant: AppButtonVariant.secondary,
-                  compact: true,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: AppBadge(
+                    statusText,
+                    tone: report.status == 'approved'
+                        ? 'olive'
+                        : report.status == 'rejected'
+                            ? 'danger'
+                            : report.status == 'pending'
+                                ? 'amber'
+                                : 'brand',
+                  ),
                 ),
-                AppButton(
-                  label: 'Tải',
-                  icon: const Icon(Icons.download, size: 16),
-                  onPressed: () async {
-                    try {
-                      await viewModel.downloadReport(report);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Đã tải ${report.fileName}')),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Lỗi: $e'),
-                            backgroundColor: AppColors.danger,
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  variant: AppButtonVariant.secondary,
-                  compact: true,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AppButton(
+                      label: 'Xem',
+                      icon: const Icon(Icons.visibility, size: 16),
+                      onPressed: () async {
+                        try {
+                          await viewModel.previewReport(report);
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Lỗi: $e'),
+                                backgroundColor: AppColors.danger,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      variant: AppButtonVariant.secondary,
+                      compact: true,
+                    ),
+                    const SizedBox(width: AppSpacing.s),
+                    AppButton(
+                      label: 'Tải',
+                      icon: const Icon(Icons.download, size: 16),
+                      onPressed: () async {
+                        try {
+                          await viewModel.downloadReport(report);
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Lỗi: $e'),
+                                backgroundColor: AppColors.danger,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      variant: AppButtonVariant.secondary,
+                      compact: true,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ],

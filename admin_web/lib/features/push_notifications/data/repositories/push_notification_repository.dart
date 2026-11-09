@@ -79,9 +79,11 @@ class ApiPushNotificationRepository implements PushNotificationRepository {
   static const _baseUrl = String.fromEnvironment('SRS_API_BASE_URL');
   final http.Client _client;
 
-  Uri get _endpoint => Uri.parse(
-    '${_baseUrl.replaceFirst(RegExp(r'/+$'), '')}/admin/notifications/send',
-  );
+  String get _resolvedBase => _baseUrl.trim().isNotEmpty
+      ? _baseUrl.replaceFirst(RegExp(r'/+$'), '')
+      : 'http://160.30.160.113:8000';
+
+  Uri get _endpoint => Uri.parse('$_resolvedBase/admin/notifications/send');
 
   @override
   Future<PushSendResult> send(PushMessage message) async {
@@ -106,6 +108,12 @@ class ApiPushNotificationRepository implements PushNotificationRepository {
     try {
       decoded = jsonDecode(response.body);
     } on FormatException {
+      if (response.body.trim().startsWith('<')) {
+        throw Exception(
+          'Server tại $_resolvedBase trả về HTML (${response.statusCode}) thay vì JSON. '
+          'Hãy đảm bảo server FastAPI backend đang chạy và đã cấu hình đúng SRS_API_BASE_URL.',
+        );
+      }
       throw Exception('Server trả về ${response.statusCode} không đọc được.');
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {

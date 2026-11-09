@@ -1,224 +1,236 @@
+import 'package:srs_review_ai_mobile/core/di/data_providers.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/viewmodels/academic_presentation_view_model.dart';
+import 'package:srs_review_ai_mobile/features/academic/presentation/viewmodels/management_list_view_model.dart';
+import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/ai_review_panel.dart';
+import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/document_card.dart';
+import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/management_filter_bar.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/management_form_sheet.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/management_shared.dart';
-import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/management_filter_bar.dart';
-import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/document_card.dart';
-import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/sample_document_reader.dart';
-import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/ai_review_panel.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/review_feedback.dart';
-import 'package:srs_review_ai_mobile/features/academic/presentation/viewmodels/management_list_view_model.dart';
+import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/sample_document_reader.dart';
+import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/student_submissions_card.dart';
 
 // Yêu cầu đánh giá mặc định chờ xử lý trong học kỳ hiện tại; needsRevision đã hoàn tất lượt.
 class ReviewListScreen extends ConsumerWidget {
   const ReviewListScreen({super.key});
   @override
-  Widget build(BuildContext context, WidgetRef ref) => AcademicPage(
-    path: '/reviews',
-    builder: (s) {
-      final state = ref.watch(managementListProvider('reviews'));
-      final vm = ref.read(managementListProvider('reviews').notifier);
-      final defaultView =
-          state.facets['status']?.singleOrNull == 'waiting' &&
-          state.facets['semester']?.singleOrNull == s.currentSemesterId;
-      return [
-        AppPageHeading(
-          title: 'Yêu cầu đánh giá',
-          aside: TextButton(
-            onPressed: defaultView ? vm.clear : vm.actionable,
-            child: Text(defaultView ? 'Xem tất cả' : 'Việc cần làm'),
-          ),
-        ),
-        const ManagementFilterBar(
-          kind: 'reviews',
-          noun: 'yêu cầu đánh giá',
-          hint: 'Tìm dự án, tài liệu, sinh viên...',
-        ),
-        for (final r in vm.visible)
-          ClassReviewPreview(review: r, snapshot: s, compact: true),
-        if (vm.visible.isEmpty)
-          AppEmptyState(
-            title: 'Không có yêu cầu phù hợp',
-            description: 'Thử bỏ bớt bộ lọc hoặc chọn “Xem tất cả” để hiển thị toàn bộ tài liệu.',
-            action: AppButton(
-              label: 'Bỏ bộ lọc',
-              variant: AppButtonVariant.secondary,
-              onPressed: vm.clear,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(managementListProvider('reviews'));
+    final vm = ref.read(managementListProvider('reviews').notifier);
+    return AcademicPage(
+      path: '/reviews',
+      builder: (s) {
+        final defaultView =
+            state.facets['status']?.singleOrNull == 'waiting' &&
+            state.facets['semester']?.singleOrNull == s.currentSemesterId;
+        return [
+          AppPageHeading(
+            title: 'Yêu cầu đánh giá',
+            aside: TextButton(
+              onPressed: defaultView ? vm.clear : vm.actionable,
+              child: Text(defaultView ? 'Xem tất cả' : 'Việc cần làm'),
             ),
           ),
-      ];
-    },
-  );
+          const ManagementFilterBar(
+            kind: 'reviews',
+            noun: 'yêu cầu đánh giá',
+            hint: 'Tìm dự án, tài liệu, sinh viên...',
+          ),
+          for (final r in vm.visible)
+            ClassReviewPreview(review: r, snapshot: s, compact: true),
+          if (vm.visible.isEmpty)
+            AppEmptyState(
+              title: 'Không có yêu cầu phù hợp',
+              description:
+                  'Thử bỏ bớt bộ lọc hoặc chọn “Xem tất cả” để hiển thị toàn bộ tài liệu.',
+              action: AppButton(
+                label: 'Bỏ bộ lọc',
+                variant: AppButtonVariant.secondary,
+                onPressed: vm.clear,
+              ),
+            ),
+        ];
+      },
+    );
+  }
 }
 
-// Màn đánh giá có bốn phần, thanh quyết định cố định và trình đọc tài liệu mẫu bằng Flutter.
+// Màn đánh giá có bốn phần, thanh quyết định cố định và trình đọc tài liệu mẫu + bài nộp Cloudinary.
 class ReviewWorkspaceScreen extends ConsumerWidget {
   const ReviewWorkspaceScreen({required this.reviewId, super.key});
   final String reviewId;
   // Đặt thanh quyết định trong phần AI khi chưa có kết quả và phạm vi còn cho phép đánh giá.
-  bool inlineDecision(AcademicSnapshot s, WidgetRef ref) {
+  bool inlineDecision(AcademicSnapshot s, int currentTab) {
     final r = s.review(reviewId);
     if (r == null) return false;
-    return AcademicPresentationViewModel(s).inlineDecision(
-      r,
-      ref.watch(managementListProvider('workspace:$reviewId')).tab,
-    );
+    return AcademicPresentationViewModel(s).inlineDecision(r, currentTab);
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => AcademicPage(
-    path: '/reviews/$reviewId',
-    spacing: AppSpacing.s,
-    footerBuilder: (s) {
-      final r = s.review(reviewId);
-      return r == null || inlineDecision(s, ref)
-          ? const SizedBox.shrink()
-          : ReviewDecisionBar(review: r, snapshot: s);
-    },
-    builder: (s) {
-      final r = s.review(reviewId);
-      if (r == null) {
-        return [const AppEmptyState(title: 'Không tìm thấy yêu cầu đánh giá')];
-      }
-      final key = 'workspace:$reviewId';
-      final state = ref.watch(managementListProvider(key));
-      final vm = ref.read(managementListProvider(key).notifier);
-      // Tách phản hồi của phiên bản đang xem khỏi phản hồi cũ để không trộn nội dung giữa các bản nộp.
-      final current = AcademicPresentationViewModel(s).feedback(r);
-      final previous = AcademicPresentationViewModel(s)
-          .feedback(r, previous: true);
-      return [
-        Row(
-          children: [
-            const Expanded(
-              child: AcademicBackLink.to(
-                label: 'Yêu cầu đánh giá',
-                fallback: '/reviews',
-              ),
-            ),
-            TextButton(
-              onPressed: () => showAppSheet(
-                context,
-                AppSheetLayout(
-                  title: 'Thông tin bản nộp',
-                  children: [ReviewContextDetails(review: r, snapshot: s)],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final key = 'workspace:$reviewId';
+    final state = ref.watch(managementListProvider(key));
+    final vm = ref.read(managementListProvider(key).notifier);
+    final firebaseReady = ref.watch(firebaseInitializedProvider);
+    return AcademicPage(
+      path: '/reviews/$reviewId',
+      spacing: AppSpacing.s,
+      footerBuilder: (s) {
+        final r = s.review(reviewId);
+        return r == null || inlineDecision(s, state.tab)
+            ? const SizedBox.shrink()
+            : ReviewDecisionBar(review: r, snapshot: s);
+      },
+      builder: (s) {
+        final r = s.review(reviewId);
+        if (r == null) {
+          return [
+            const AppEmptyState(title: 'Không tìm thấy yêu cầu đánh giá'),
+          ];
+        }
+        // Tách phản hồi của phiên bản đang xem khỏi phản hồi cũ để không trộn nội dung giữa các bản nộp.
+        final current = AcademicPresentationViewModel(s).feedback(r);
+        final previous = AcademicPresentationViewModel(s)
+            .feedback(r, previous: true);
+        return [
+          Row(
+            children: [
+              const Expanded(
+                child: AcademicBackLink.to(
+                  label: 'Yêu cầu đánh giá',
+                  fallback: '/reviews',
                 ),
               ),
-              child: const Text('Thông tin'),
-            ),
-          ],
-        ),
-        Wrap(
-          spacing: AppSpacing.s,
-          runSpacing: AppSpacing.s,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Text(r.text('documentTitle'), style: AppTypography.pageHeading),
-            AppBadge(r.text('version')),
-          ],
-        ),
-        Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          spacing: AppSpacing.m,
-          runSpacing: AppSpacing.xs,
-          children: [
-            Text(
-              '${r.text('classCode')} · ${r.text('groupName')}',
-              style: AppTypography.muted,
-            ),
-            AppStatusBadge(r.text('supervisorStatus'), snapshot: s),
-          ],
-        ),
-        AppTabs(
-          labels: const ['Tài liệu', 'AI', 'Phản hồi', 'Lịch sử'],
-          selected: state.tab,
-          onChanged: vm.tab,
-          segmented: true,
-          expanded: true,
-          reviewStyle: true,
-        ),
-        if (state.tab == 0) ...[
-          SampleDocumentReader(review: r, snapshot: s),
-          const Text(
-            'Chỉ xem · Sinh viên nộp phiên bản mới để sửa.',
-            style: TextStyle(color: AppColors.muted),
-          ),
-        ],
-        if (state.tab == 1)
-          AiReviewPanel(
-            review: r,
-            snapshot: s,
-            allowFeedback: true,
-            onViewDocument: () => vm.tab(0),
-          ),
-        if (inlineDecision(s, ref))
-          SizedBox(
-            height: AppMetrics.decisionBarHeight,
-            child: OverflowBox(
-              minWidth: MediaQuery.sizeOf(context).width,
-              maxWidth: MediaQuery.sizeOf(context).width,
-              child: ReviewDecisionBar(review: r, snapshot: s),
-            ),
-          ),
-        if (state.tab == 2)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            spacing: AppSpacing.l,
-            children: [
-              Text(
-                'Phản hồi · ${r.text('version')}',
-                style: AppTypography.blockTitle,
-              ),
-              for (final f in current)
-                ReviewFeedbackCard(feedback: f, snapshot: s),
-              if (current.isEmpty)
-                const AppEmptyState(title: 'Chưa có phản hồi'),
-              if (s.completed(r))
-                const AppNotice(
-                  'Đánh giá đã hoàn tất. Phản hồi được chọn đã khóa; phản hồi bỏ chọn vẫn là nháp riêng.',
-                )
-              else
-                ReviewFeedbackComposer(reviewId: r.id),
-              if (previous.isNotEmpty)
-                AppDisclosure(
-                  title: 'Phiên bản trước (${previous.length} phản hồi)',
-                  divider: false,
-                  child: Column(
-                    spacing: AppSpacing.m,
-                    children: [
-                      for (final f in previous)
-                        ReviewFeedbackCard(feedback: f, snapshot: s),
-                    ],
+              TextButton(
+                onPressed: () => showAppSheet(
+                  context,
+                  AppSheetLayout(
+                    title: 'Thông tin bản nộp',
+                    children: [ReviewContextDetails(review: r, snapshot: s)],
                   ),
                 ),
+                child: const Text('Thông tin'),
+              ),
             ],
           ),
-        if (state.tab == 3)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            spacing: AppSpacing.l,
+          Wrap(
+            spacing: AppSpacing.s,
+            runSpacing: AppSpacing.s,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text('Lịch sử đánh giá', style: AppTypography.blockTitle),
-              if (s.eventsFor(r.id).isEmpty)
-                const AppEmptyState(title: 'Chưa có hoạt động đánh giá')
-              else
-                ReviewTimeline(events: s.eventsFor(r.id)),
-              AppButton(
-                label: 'Lịch sử phiên bản',
-                variant: AppButtonVariant.secondary,
-                onPressed: () =>
-                    AppNavigation.open(context, '/reviews/${r.id}/versions'),
-              ),
-              AppButton(
-                label: 'Lịch sử quyết định',
-                variant: AppButtonVariant.secondary,
-                onPressed: () =>
-                    AppNavigation.open(context, '/reviews/${r.id}/history'),
-              ),
+              Text(r.text('documentTitle'), style: AppTypography.pageHeading),
+              AppBadge(r.text('version')),
             ],
           ),
-      ];
-    },
-  );
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            spacing: AppSpacing.m,
+            runSpacing: AppSpacing.xs,
+            children: [
+              Text(
+                '${r.text('classCode')} · ${r.text('groupName')}',
+                style: AppTypography.muted,
+              ),
+              AppStatusBadge(r.text('supervisorStatus'), snapshot: s),
+            ],
+          ),
+          AppTabs(
+            labels: const ['Tài liệu', 'AI', 'Phản hồi', 'Lịch sử'],
+            selected: state.tab,
+            onChanged: vm.tab,
+            segmented: true,
+            expanded: true,
+            reviewStyle: true,
+          ),
+          if (state.tab == 0) ...[
+            if (firebaseReady)
+              StudentSubmissionsCard(
+                snapshot: s,
+                projectId: r.text('projectId'),
+              ),
+            SampleDocumentReader(review: r, snapshot: s),
+            const Text(
+              'Chỉ xem · Sinh viên nộp phiên bản mới để sửa.',
+              style: TextStyle(color: AppColors.muted),
+            ),
+          ],
+          if (state.tab == 1)
+            AiReviewPanel(
+              review: r,
+              snapshot: s,
+              allowFeedback: true,
+              onViewDocument: () => vm.tab(0),
+            ),
+          if (inlineDecision(s, state.tab))
+            SizedBox(
+              height: AppMetrics.decisionBarHeight,
+              child: OverflowBox(
+                minWidth: MediaQuery.sizeOf(context).width,
+                maxWidth: MediaQuery.sizeOf(context).width,
+                child: ReviewDecisionBar(review: r, snapshot: s),
+              ),
+            ),
+          if (state.tab == 2)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: AppSpacing.l,
+              children: [
+                Text(
+                  'Phản hồi · ${r.text('version')}',
+                  style: AppTypography.blockTitle,
+                ),
+                for (final f in current)
+                  ReviewFeedbackCard(feedback: f, snapshot: s),
+                if (current.isEmpty)
+                  const AppEmptyState(title: 'Chưa có phản hồi'),
+                if (s.completed(r))
+                  const AppNotice(
+                    'Đánh giá đã hoàn tất. Phản hồi được chọn đã khóa; phản hồi bỏ chọn vẫn là nháp riêng.',
+                  )
+                else
+                  ReviewFeedbackComposer(reviewId: r.id),
+                if (previous.isNotEmpty)
+                  AppDisclosure(
+                    title: 'Phiên bản trước (${previous.length} phản hồi)',
+                    divider: false,
+                    child: Column(
+                      spacing: AppSpacing.m,
+                      children: [
+                        for (final f in previous)
+                          ReviewFeedbackCard(feedback: f, snapshot: s),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          if (state.tab == 3)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: AppSpacing.l,
+              children: [
+                Text('Lịch sử đánh giá', style: AppTypography.blockTitle),
+                if (s.eventsFor(r.id).isEmpty)
+                  const AppEmptyState(title: 'Chưa có hoạt động đánh giá')
+                else
+                  ReviewTimeline(events: s.eventsFor(r.id)),
+                AppButton(
+                  label: 'Lịch sử phiên bản',
+                  variant: AppButtonVariant.secondary,
+                  onPressed: () =>
+                      AppNavigation.open(context, '/reviews/${r.id}/versions'),
+                ),
+                AppButton(
+                  label: 'Lịch sử quyết định',
+                  variant: AppButtonVariant.secondary,
+                  onPressed: () =>
+                      AppNavigation.open(context, '/reviews/${r.id}/history'),
+                ),
+              ],
+            ),
+        ];
+      },
+    );
+  }
 }
 
 // Khóa nút quyết định theo bản chụp Rule Set và quyền sửa dự án, lớp.

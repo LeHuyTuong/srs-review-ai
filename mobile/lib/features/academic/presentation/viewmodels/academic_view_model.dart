@@ -1,12 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:srs_review_ai_mobile/core/contracts/academic/course_contract.dart';
 import 'package:srs_review_ai_mobile/core/di/data_providers.dart';
 import 'package:srs_review_ai_mobile/core/domain/academic/academic_models.dart';
 import 'package:srs_review_ai_mobile/core/domain/academic/academic_policy.dart';
-import 'package:srs_review_ai_mobile/core/state/academic_changes.dart';
-import 'package:srs_review_ai_mobile/core/session/session_view_model.dart';
 import 'package:srs_review_ai_mobile/core/domain/session_scope.dart';
-import 'package:srs_review_ai_mobile/core/contracts/academic/course_contract.dart';
+import 'package:srs_review_ai_mobile/core/services/ai_review_service.dart';
+import 'package:srs_review_ai_mobile/core/session/session_view_model.dart';
+import 'package:srs_review_ai_mobile/core/state/academic_changes.dart';
+import 'package:srs_review_ai_mobile/services/analytics_service.dart';
+import 'package:srs_review_ai_mobile/services/crashlytics_service.dart';
 
 part 'management_actions.dart';
 part 'review_actions.dart';
@@ -21,6 +26,11 @@ final academicViewModelProvider =
 // Quản lý trạng thái học vụ chung; lệnh nghiệp vụ kiểm tra phạm vi trước khi lưu bản chụp.
 class AcademicViewModel extends AsyncNotifier<AcademicSnapshot> {
   AcademicSnapshot get snapshot => state.requireValue;
+  bool get isMounted => ref.mounted;
+  AiReviewService get aiReviewService => ref.read(aiReviewServiceProvider);
+  AnalyticsService get analyticsService => ref.read(analyticsServiceProvider);
+  CrashlyticsService get crashlyticsService =>
+      ref.read(crashlyticsServiceProvider);
 
   // Phân biệt tác vụ AI đang chạy với bản ghi loading bị gián đoạn để cho phép thử lại.
   final Set<String> activeEvaluationIds = {};

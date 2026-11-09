@@ -26,6 +26,7 @@ This file is excluded from its own scans; keep example keys out of it anyway.
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import sys
@@ -117,8 +118,11 @@ FIREBASE_CLIENT_CONFIG = ("firebase_options.dart", "google-services.json", "Goog
 
 def check_secrets(files: list[Path]) -> list[Violation]:
     violations: list[Violation] = []
+    tracked = set(git_tracked_files())
     for path in files:
         rel = path.relative_to(REPO).as_posix()
+        if rel == "server/firebase-admin.json" and rel not in tracked:
+            continue
         for number, line in read_lines(path):
             for name, pattern in SECRET_PATTERNS:
                 if name == "google-api-key" and rel.endswith(FIREBASE_CLIENT_CONFIG):
@@ -142,10 +146,14 @@ def check_secrets(files: list[Path]) -> list[Violation]:
                     )
                 )
 
-    tracked = git_tracked_files()
     for rel in tracked:
-        if rel.endswith(".env") or "/.env." in rel and not rel.endswith(".env.example"):
-            violations.append(Violation("secrets", rel, 0, "a .env file is tracked by git — untrack it"))
+        if (
+            rel.endswith(".env")
+            or "/.env." in rel
+            and not rel.endswith(".env.example")
+            or rel == "server/firebase-admin.json"
+        ):
+            violations.append(Violation("secrets", rel, 0, "a secret file is tracked by git — untrack it"))
     return violations
 
 
@@ -509,6 +517,20 @@ NATIVE_PLUGIN_RULES: tuple[NativePluginRule, ...] = (
         "nobody awaits, so the verdict has to be asked for before the plugin is touched",
         adapters=(
             NativePluginAdapter(
+                path="mobile/lib/features/academic/presentation/views/management/widgets/submission_pdf_preview.dart",
+                seams=(
+                    (
+                        "mobile/lib/features/academic/presentation/views/management/widgets/submission_pdf_preview.dart",
+                        r"typedef SubmissionPdfDocumentOpener =[\s\S]{0,100}?Function\(",
+                    ),
+                    (
+                        "mobile/lib/features/academic/presentation/views/management/widgets/submission_pdf_preview.dart",
+                        r"typedef SubmissionPdfSupportProbe =[\s\S]{0,100}?Function\(",
+                    ),
+                ),
+                seam_note="injectable document opener and preflight support probe for the in-app submission preview",
+            ),
+            NativePluginAdapter(
                 path="desktop/lib/diagram_audit/services/page_image_renderer.dart",
                 seams=(
                     (
@@ -655,11 +677,14 @@ def check_native_plugins(files: list[Path]) -> list[Violation]:
         for adapter in rule.adapters
     }
 
+    registered_paths = {adapter.path for adapter in registered.values()}
     imported: set[tuple[str, str]] = set()
     for path in files:
-        if path.suffix != ".dart" or not path.is_relative_to(app_lib):
+        if path.suffix != ".dart":
             continue
         rel = path.relative_to(REPO).as_posix()
+        if not (path.is_relative_to(app_lib) or rel in registered_paths):
+            continue
         for number, line in read_lines(path):
             match = IMPORT.match(line)
             if not match:
@@ -896,15 +921,20 @@ def read_lines(path: Path) -> list[tuple[int, str]]:
 
 def collect_files() -> list[Path]:
     files: list[Path] = []
-    for path in REPO.rglob("*"):
-        if not path.is_file():
-            continue
-        if any(part in SKIP_DIRS for part in path.parts):
-            continue
-        if path.suffix not in TEXT_SUFFIXES:
-            continue
-        files.append(path)
-    return files
+    for root, dirs, filenames in os.walk(REPO):
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        root_path = Path(root)
+        for name in filenames:
+            path = root_path / name
+            if path.suffix not in TEXT_SUFFIXES:
+                continue
+            try:
+                if not path.is_file():
+                    continue
+            except OSError:
+                continue
+            files.append(path)
+    return sorted(files)
 
 
 def git_tracked_files() -> list[str]:
