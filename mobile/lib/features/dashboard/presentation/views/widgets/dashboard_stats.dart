@@ -14,8 +14,10 @@ class DashboardStats extends StatelessWidget {
     label: 'Thống kê tổng quan',
     child: LayoutBuilder(
       builder: (context, constraints) {
-        final columns =
-            MediaQuery.sizeOf(context).width >= AppMetrics.tabletBreakpoint
+        final width = MediaQuery.sizeOf(context).width;
+        final columns = width >= AppMetrics.desktopBreakpoint
+            ? 4
+            : width >= AppMetrics.tabletBreakpoint
             ? 3
             : 2;
         return Column(

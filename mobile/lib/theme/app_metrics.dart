@@ -15,6 +15,13 @@ abstract final class AppMetrics {
   static const contentMaxWidth = 480.0;
   static const tabletBreakpoint = 640.0;
   static const desktopContentWidth = 880.0;
+  // Bố cục quản trị trên web/desktop: sidebar trái + top bar, nội dung rộng.
+  static const desktopBreakpoint = 1024.0;
+  static const desktopContentMaxWidth = 1200.0;
+  static const sidebarWidth = 248.0;
+  static const sidebarCollapsedWidth = 72.0;
+  static const desktopTopBarHeight = 64.0;
+  static const searchWidth = 240.0;
   static const semesterWidth = 140.0;
   static const disabledOpacity = 0.5;
   static const modalHeightFactor = 0.92;

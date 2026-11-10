@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:srs_review_ai_mobile/core/navigation/app_navigation.dart';
-import 'package:srs_review_ai_mobile/theme/app_metrics.dart';
 import 'package:srs_review_ai_mobile/theme/app_spacing.dart';
 import 'package:srs_review_ai_mobile/features/dashboard/presentation/viewmodels/dashboard_view_model.dart';
-import 'package:srs_review_ai_mobile/widgets/app_bottom_navigation.dart';
 import 'package:srs_review_ai_mobile/widgets/app_button.dart';
 import 'package:srs_review_ai_mobile/widgets/app_states.dart';
-import 'package:srs_review_ai_mobile/widgets/mobile_header.dart';
+import 'package:srs_review_ai_mobile/widgets/app_scaffold.dart';
 import 'package:srs_review_ai_mobile/features/dashboard/presentation/views/widgets/dashboard_heading.dart';
 import 'package:srs_review_ai_mobile/features/dashboard/presentation/views/widgets/dashboard_stats.dart';
 import 'package:srs_review_ai_mobile/features/dashboard/presentation/views/widgets/dashboard_tasks.dart';
@@ -23,12 +21,9 @@ class DashboardScreen extends ConsumerWidget {
     final state = ref.watch(dashboardViewModelProvider);
     final viewModel = ref.read(dashboardViewModelProvider.notifier);
     void open(String path) => AppNavigation.open(context, path);
-    return Scaffold(
-      appBar: MobileHeader(onHome: () => open('/dashboard')),
-      bottomNavigationBar: AppBottomNavigation(
-        path: '/dashboard',
-        onNavigate: open,
-      ),
+    final desktop = AppLayout.isDesktop(context);
+    return AppScaffold(
+      path: '/dashboard',
       body: state.when(
         loading: () => const AppLoadingState(),
         error: (error, stack) => Padding(
@@ -40,14 +35,14 @@ class DashboardScreen extends ConsumerWidget {
           child: Align(
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: AppMetrics.contentMaxWidth,
+              constraints: BoxConstraints(
+                maxWidth: AppLayout.contentMaxWidth(context),
               ),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.pagePadding,
-                  AppSpacing.pageTop,
-                  AppSpacing.pagePadding,
+                padding: EdgeInsets.fromLTRB(
+                  desktop ? AppSpacing.xl : AppSpacing.pagePadding,
+                  desktop ? AppSpacing.xl : AppSpacing.pageTop,
+                  desktop ? AppSpacing.xl : AppSpacing.pagePadding,
                   AppSpacing.xxl,
                 ),
                 child: Column(
@@ -68,12 +63,47 @@ class DashboardScreen extends ConsumerWidget {
                       )
                     else ...[
                       DashboardStats(stats: data.stats),
-                      AppButton(
-                        label: 'Mở đánh giá',
-                        onPressed: () => open('/reviews'),
-                      ),
-                      DashboardTasks(state: data, onNavigate: open),
-                      DashboardSecondarySections(state: data, onNavigate: open),
+                      if (desktop)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: AppButton(
+                            label: 'Mở đánh giá',
+                            onPressed: () => open('/reviews'),
+                          ),
+                        )
+                      else
+                        AppButton(
+                          label: 'Mở đánh giá',
+                          onPressed: () => open('/reviews'),
+                        ),
+                      if (desktop)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          spacing: AppSpacing.xl,
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: DashboardTasks(
+                                state: data,
+                                onNavigate: open,
+                              ),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: DashboardSecondarySections(
+                                state: data,
+                                onNavigate: open,
+                              ),
+                            ),
+                          ],
+                        )
+                      else ...[
+                        DashboardTasks(state: data, onNavigate: open),
+                        DashboardSecondarySections(
+                          state: data,
+                          onNavigate: open,
+                        ),
+                      ],
                     ],
                   ],
                 ),

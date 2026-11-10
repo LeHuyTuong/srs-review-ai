@@ -51,6 +51,8 @@ dependencies:
   firebase_storage: ^14.0.1
   firebase_remote_config: ^7.0.1
   flutter_dotenv: ^6.0.1
+  # dart:io HttpClient không chạy trên web; package:http chạy cả hai.
+  http: ^1.6.0
   sqflite: ^2.4.5
   path: ^1.9.1
   share_plus: ^13.3.1

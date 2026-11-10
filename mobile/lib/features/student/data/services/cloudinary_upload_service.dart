@@ -1,16 +1,21 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 
 /// Uploads through Cloudinary's unsigned preset. No API secret is shipped in app.
+///
+/// Dùng `package:http` thay `dart:io HttpClient`: HttpClient ném
+/// `Unsupported operation: Platform._version` ngay khi khởi tạo trên web,
+/// làm provider rơi vào error state và nút "Nộp tài liệu" chết.
 class CloudinaryUploadService {
-  CloudinaryUploadService({HttpClient? client}) : _client = client ?? HttpClient();
+  CloudinaryUploadService({http.Client? client})
+    : _client = client ?? http.Client();
 
-  final HttpClient _client;
+  final http.Client _client;
 
   Future<Uri> upload({
     required Uint8List bytes,
@@ -32,14 +37,12 @@ class CloudinaryUploadService {
     }
 
     final boundary = '----srs${Random.secure().nextInt(1 << 32)}';
-    final request = await _client.postUrl(
+    final request = http.StreamedRequest(
+      'POST',
       Uri.https('api.cloudinary.com', '/v1_1/$cloudName/auto/upload'),
     );
-    request.headers.contentType = ContentType(
-      'multipart',
-      'form-data',
-      parameters: {'boundary': boundary},
-    );
+    request.headers['content-type'] =
+        'multipart/form-data; boundary=$boundary';
 
     final bodyBuilder = BytesBuilder(copy: false);
     void writeAscii(String value) => bodyBuilder.add(utf8.encode(value));
@@ -62,21 +65,23 @@ class CloudinaryUploadService {
     final payload = bodyBuilder.takeBytes();
     request.contentLength = payload.length;
 
-    const chunkSize = 16 * 1024;
-    var sent = 0;
     onProgress?.call(0.0);
+    final pending = _client.send(request);
+    // Trên web trình duyệt gom cả body rồi mới gửi, nên tiến độ ở đây là tiến
+    // độ đẩy vào request; giữ dưới 95% tới khi server trả lời thật.
+    const chunkSize = 16 * 1024;
     for (var offset = 0; offset < payload.length; offset += chunkSize) {
       final end = (offset + chunkSize < payload.length)
           ? offset + chunkSize
           : payload.length;
-      request.add(Uint8List.sublistView(payload, offset, end));
-      await request.flush();
-      sent = end;
-      onProgress?.call(sent / payload.length);
+      request.sink.add(Uint8List.sublistView(payload, offset, end));
+      onProgress?.call(0.95 * end / payload.length);
+      await Future<void>.delayed(Duration.zero);
     }
+    await request.sink.close();
 
-    final response = await request.close();
-    final body = await utf8.decoder.bind(response).join();
+    final response = await http.Response.fromStream(await pending);
+    final body = utf8.decode(response.bodyBytes);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw CloudinaryUploadException(
         'Cloudinary trả lỗi ${response.statusCode}: $body',
