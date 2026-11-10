@@ -3,7 +3,6 @@ import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -52,16 +51,56 @@ class AiReviewUnit {
     required this.requirementId,
     required this.text,
     this.section,
+    this.criterion,
+    this.outputLanguage,
   });
 
   final String requirementId;
   final String text;
   final String? section;
 
+  /// Tiêu chí của giảng viên mà đoạn này được chấm theo. Thiếu nó, server chấm
+  /// theo checklist câu requirement chung nên mọi tiêu chí ra cùng một nhận xét.
+  final AiReviewCriterion? criterion;
+
+  /// `vi` → nhận xét và gợi ý bằng tiếng Việt; trích dẫn luôn giữ nguyên văn.
+  final String? outputLanguage;
+
   Map<String, dynamic> toJson() => {
     'requirement_id': requirementId,
     'text': text,
     'section': ?section,
+    'criterion': ?criterion?.toJson(),
+    'output_language': ?outputLanguage,
+  };
+}
+
+/// Một dòng rubric gửi kèm unit (field `criterion` của server, thêm 10/11/2026).
+class AiReviewCriterion {
+  const AiReviewCriterion({
+    required this.id,
+    required this.name,
+    this.description = '',
+    this.evidence = '',
+    this.maxScore,
+  });
+
+  final String id;
+  final String name;
+  final String description;
+  final String evidence;
+  final num? maxScore;
+
+  // Server giới hạn độ dài từng field; cắt ở đây để một mô tả dài không làm hỏng cả lượt.
+  static String _cap(String v, int max) =>
+      v.length > max ? v.substring(0, max) : v;
+
+  Map<String, dynamic> toJson() => {
+    'id': _cap(id, 80),
+    'name': _cap(name, 500),
+    if (description.trim().isNotEmpty) 'description': _cap(description, 2000),
+    if (evidence.trim().isNotEmpty) 'evidence': _cap(evidence, 1000),
+    'max_score': ?maxScore,
   };
 }
 
@@ -74,9 +113,51 @@ class AiBatchOutcome {
   final Map<String, String> failed;
 }
 
+/// Văn bản trích từ tệp nộp; `sections` giữ tiêu đề mục để dựng unit chấm theo tiêu chí.
+class ExtractedDocument {
+  const ExtractedDocument({
+    required this.sections,
+    this.fileName = '',
+    this.format = '',
+    this.pageCount = 0,
+    this.charCount = 0,
+    this.truncated = false,
+  });
+
+  factory ExtractedDocument.fromJson(Map<String, dynamic> json) =>
+      ExtractedDocument(
+        fileName: (json['file_name'] as String?) ?? '',
+        format: (json['format'] as String?) ?? '',
+        pageCount: (json['page_count'] as num?)?.toInt() ?? 0,
+        charCount: (json['char_count'] as num?)?.toInt() ?? 0,
+        truncated: json['truncated'] as bool? ?? false,
+        sections: [
+          for (final row in (json['sections'] as List? ?? const []))
+            if (row is Map)
+              (
+                title: (row['title'] as String?) ?? '',
+                text: (row['text'] as String?) ?? '',
+              ),
+        ],
+      );
+
+  final String fileName;
+  final String format;
+  final int pageCount;
+  final int charCount;
+  final bool truncated;
+  final List<({String title, String text})> sections;
+}
+
 /// Seam để ViewModel gọi AI thật mà test vẫn thay được bằng fake.
 abstract interface class AiReviewGateway {
   Future<AiBatchOutcome> reviewBatch(List<AiReviewUnit> units);
+
+  /// Trích văn bản từ tệp nộp (`POST /documents/extract`) để chấm đúng nội dung SV nộp.
+  Future<ExtractedDocument> extractDocument({
+    required Uri url,
+    required String fileName,
+  });
 }
 
 /// Gửi yêu cầu review tới FastAPI; Firebase ID token chỉ đi trong HTTPS header.
@@ -239,6 +320,85 @@ class AiReviewService implements AiReviewGateway {
     }
   }
 
+  /// `POST /documents/extract`, cùng máy chủ với `/review` (bỏ hậu tố `/review`).
+  Uri? get documentExtractEndpoint {
+    final target = endpoint;
+    if (target == null) return null;
+    final path = target.path.replaceFirst(RegExp(r'/+$'), '');
+    final base = path.endsWith('/review')
+        ? path.substring(0, path.length - '/review'.length)
+        : path;
+    return target.replace(path: '$base/documents/extract');
+  }
+
+  /// Trích văn bản từ tệp SV nộp; `detail` tiếng Việt của server đi thẳng vào lỗi.
+  @override
+  Future<ExtractedDocument> extractDocument({
+    required Uri url,
+    required String fileName,
+  }) async {
+    final target = documentExtractEndpoint;
+    if (target == null) {
+      throw const AiReviewException(
+        'Chưa cấu hình AI_REVIEW_ENDPOINT hoặc SRS_API_BASE_URL.',
+      );
+    }
+    final user = _resolvedAuth.currentUser;
+    if (user == null) {
+      throw const AiReviewException('Vui lòng đăng nhập để đánh giá AI.');
+    }
+    final token = await user.getIdToken();
+    if (token == null || token.isEmpty) {
+      throw const AiReviewException('Không lấy được Firebase ID token.');
+    }
+    try {
+      // Trích PDF/DOCX có thể lâu hơn một lượt chấm đơn; dùng cùng hạn mức với batch.
+      final response = await _client
+          .post(
+            target,
+            headers: _jsonHeaders(token),
+            body: jsonEncode({'url': url.toString(), 'file_name': fileName}),
+          )
+          .timeout(const Duration(seconds: 120));
+      final text = utf8.decode(response.bodyBytes);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw AiReviewException(_extractErrorDetail(text, response.statusCode));
+      }
+      final decoded = jsonDecode(text);
+      if (decoded is! Map<String, dynamic>) {
+        throw const AiReviewException(
+          'Máy chủ AI trả dữ liệu trích xuất không hợp lệ.',
+        );
+      }
+      return ExtractedDocument.fromJson(decoded);
+    } on TimeoutException {
+      throw const AiReviewException(
+        'Máy chủ AI không phản hồi. Kiểm tra kết nối rồi thử lại.',
+      );
+    } on http.ClientException {
+      throw const AiReviewException(
+        'Không kết nối được máy chủ AI. Kiểm tra mạng rồi thử lại.',
+      );
+    } on FormatException {
+      throw const AiReviewException(
+        'Máy chủ AI trả dữ liệu trích xuất không hợp lệ.',
+      );
+    }
+  }
+
+  static String _extractErrorDetail(String body, int status) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map && decoded['detail'] is String) {
+        final detail = (decoded['detail'] as String).trim();
+        if (detail.isNotEmpty) return detail;
+      }
+    } on FormatException {
+      // Body không phải JSON: dùng thông điệp theo mã trạng thái.
+    }
+    return 'Máy chủ AI trả lỗi $status. Chọn Thử lại để tiếp tục.';
+  }
+
   static Map<String, String> _jsonHeaders(String token) => {
     'content-type': 'application/json',
     'authorization': 'Bearer $token',
@@ -264,11 +424,15 @@ String resolveBaseUrl() {
       return fromDotenv.replaceFirst(RegExp(r'/+$'), '');
     }
   }
-  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-    return 'http://10.0.2.2:8000';
-  }
-  return 'http://127.0.0.1:8000';
+  // Không cấu hình gì → server đã deploy. Từng lùi về 10.0.2.2 (chỉ có trong
+  // emulator) nên APK trên máy thật treo tới timeout ("Máy chủ AI không phản
+  // hồi"). Chạy server local thì truyền SRS_API_BASE_URL qua define/.env.
+  return deployedBaseUrl;
 }
+
+/// FastAPI trên VPS (HTTP, chưa TLS; Android được miễn cleartext cho host này
+/// trong network_security_config.xml).
+const deployedBaseUrl = 'http://160.30.160.113:8000';
 
 String get vpsBaseUrl => resolveBaseUrl();
 

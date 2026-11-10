@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
+import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -168,14 +169,35 @@ def _form_error(o: dict, _: Any) -> dict[str, bool]:
 
 # --- ca đồng bộ offline: kiểm bằng DB server, không tin lời agent -------------
 
-def _sync_rows(name: str) -> int:
+# Backend chạy trong Docker (SRS_E2E_CONTAINER=srs-review-ai-server-1) thì DB sync nằm trong volume
+# của container: đọc bằng `docker exec`, chế độ chỉ đọc. Không có biến này thì đọc file trên host.
+SYNC_CONTAINER = os.environ.get("SRS_E2E_CONTAINER", "").strip()
+SYNC_DB_IN_CONTAINER = "/data/.cache/sync.sqlite3"
+_COUNT_SQL = "SELECT COUNT(*) FROM sync_records WHERE collection=? AND data LIKE ?"
+
+
+def sync_count(collection: str, needle: str) -> int:
+    if SYNC_CONTAINER:
+        code = (
+            "import os,sqlite3,sys\n"
+            f"p={SYNC_DB_IN_CONTAINER!r}\n"
+            "if not os.path.exists(p): print(0); sys.exit()\n"
+            "c=sqlite3.connect('file:'+p+'?mode=ro',uri=True)\n"
+            "print(c.execute(sys.argv[1],(sys.argv[2],sys.argv[3])).fetchone()[0])"
+        )
+        out = subprocess.run(
+            ["docker", "exec", SYNC_CONTAINER, "python", "-c", code, _COUNT_SQL, collection, f"%{needle}%"],
+            capture_output=True, text=True, timeout=30,
+        )
+        return int(out.stdout.strip() or 0) if out.returncode == 0 else 0
     if not SYNC_DB.exists():
         return 0
     with sqlite3.connect(f"file:{SYNC_DB}?mode=ro", uri=True) as conn:
-        return conn.execute(
-            "SELECT COUNT(*) FROM sync_records WHERE collection='semesters' AND data LIKE ?",
-            (f"%{name}%",),
-        ).fetchone()[0]
+        return conn.execute(_COUNT_SQL, (collection, f"%{needle}%")).fetchone()[0]
+
+
+def _sync_rows(name: str) -> int:
+    return sync_count("semesters", name)
 
 
 def _offline_before() -> dict:

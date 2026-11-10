@@ -73,6 +73,14 @@ App hiện **chấm SRS**; SDS mới có vision chain (steps 5–7). Port SDS te
 
 Thay đổi enum server = Pydantic StrEnum → client `DiagramKind.wire` phải có giá trị tương ứng, test 'every kind sends a wire and family the server accepts' sẽ bắt (xem comment trong `diagram_type_classifier.dart`). Thêm `ACT`/`DEP` vào whitelist family của judge schema.
 
+### 3a. Use Case `.drawio` — tầng tất định, không qua LLM (2026-11-10)
+
+`POST /diagram/drawio` (`server/app/api/diagram.py` → `server/app/infrastructure/drawio_review.py`) chạy `server/vendor/uc-review/uc-review.mjs` (skill `kickoff-uml`, cùng engine với startup-srs) trên XML draw.io. Không gọi model, không tốn quota, cùng file → cùng kết quả. Trả `findings[{num, severity: error|review, what, fix}]` + `reviewed_xml` có đánh số trên hình; mã luật nội bộ của công cụ không trả ra.
+
+- Luật là của công cụ vendor, không viết lại ở đây; muốn đổi luật → sửa ở skill gốc rồi vendor lại (xem `server/vendor/uc-review/README.md`).
+- Chỉ đọc được shape thật. `.drawio` chỉ chứa một ảnh SVG nhúng (như `docs/diagrams/uml25/`) → 422, không phải "0 lỗi".
+- Chưa có client gọi endpoint này.
+
 ## 4. Thứ tự port đề xuất (mỗi bước = 1 PR, test đi kèm)
 
 Thứ tự này đổi ở **v0.2** sau lần chạy thật trên OTES: chain 3 nhảy từ bước 5 lên bước 2, vì nó là check bắt lỗi nặng nhất mà lại **không cần vision** — chỉ so tên lifeline/message với danh sách class/operation đã có sẵn dưới dạng text.

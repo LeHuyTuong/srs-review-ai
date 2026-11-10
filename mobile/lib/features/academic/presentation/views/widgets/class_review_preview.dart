@@ -10,6 +10,7 @@ import 'package:srs_review_ai_mobile/widgets/app_card.dart';
 import 'package:srs_review_ai_mobile/widgets/app_badge.dart';
 import 'package:srs_review_ai_mobile/widgets/app_button.dart';
 import 'package:srs_review_ai_mobile/widgets/app_icon.dart';
+import 'package:srs_review_ai_mobile/core/domain/relative_time.dart';
 
 // Tóm tắt yêu cầu đánh giá trong lớp và dẫn tới màn xử lý; không ra quyết định tại thẻ này.
 class ClassReviewPreview extends StatelessWidget {
@@ -35,6 +36,10 @@ class ClassReviewPreview extends StatelessWidget {
             {},
       ),
     );
+    // Giờ gửi thật của yêu cầu; nhãn trong seed chỉ dùng khi bản ghi thiếu mốc.
+    final when =
+        RelativeTime.label(r.integer('requestedTs')) ??
+        request.text('relativeTime', 'Vừa xong');
     if (compact) {
       return AppCard(
         child: Column(
@@ -74,12 +79,7 @@ class ClassReviewPreview extends StatelessWidget {
             Row(
               spacing: AppSpacing.m,
               children: [
-                Expanded(
-                  child: Text(
-                    request.text('relativeTime', 'Vừa xong'),
-                    style: AppTypography.muted,
-                  ),
-                ),
+                Expanded(child: Text(when, style: AppTypography.muted)),
                 AppButton(
                   label: snapshot.completed(r)
                       ? 'Xem'
@@ -113,7 +113,7 @@ class ClassReviewPreview extends StatelessWidget {
                   style: AppTypography.muted,
                 ),
               ),
-              Text(request.text('relativeTime'), style: AppTypography.muted),
+              Text(when, style: AppTypography.muted),
             ],
           ),
           Text(r.text('projectName'), style: AppTypography.header),

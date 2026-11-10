@@ -1,4 +1,4 @@
-"""Admin-only endpoint that sends FCM push notifications to mobile users.
+"""FCM push notifications: admin broadcasts plus the student-facing pushes.
 
 Tokens live in Firestore ``users/{uid}.fcmTokens`` (written by the mobile app
 after sign-in). Tokens that FCM reports as unregistered are pruned so a device
@@ -13,7 +13,7 @@ import uuid
 from typing import Any, Literal, Protocol
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from ..config.settings import Settings, get_settings
 from ..core.firebase_auth import _get_firebase_app, verify_firebase_token
@@ -65,14 +65,26 @@ class NotificationGateway(Protocol):
 
 
 class SubmissionDirectory(Protocol):
-    """Firestore lookups behind the student "I submitted" notification."""
+    """Firestore lookups behind the student-facing notifications."""
 
     def submission(self, submission_id: str) -> dict[str, Any] | None: ...
 
     def teacher_uids(self, limit: int) -> list[str]: ...
 
+    def is_teacher(self, uid: str) -> bool:
+        """True when ``users/{uid}.role`` is the role ``teacher_uids`` selects."""
+        ...
+
     def claim_notification(self, submission_id: str) -> bool:
         """Mark the submission as notified; False if it already was."""
+        ...
+
+    def claim_decision_notification(self, submission_id: str, decision: str) -> bool:
+        """Claim ``(submission, decision)``; False when it was already sent."""
+        ...
+
+    def record_decision(self, submission_id: str, decision: str, reason: str, teacher_uid: str) -> None:
+        """Persist the decision on the submission the student's screen reads."""
         ...
 
 
@@ -155,6 +167,44 @@ class FirebaseNotificationGateway:
     def teacher_uids(self, limit: int) -> list[str]:
         query = self._db().collection("users").where("role", "==", "teacher").limit(limit)
         return [snapshot.id for snapshot in query.stream()]
+
+    def is_teacher(self, uid: str) -> bool:
+        # Same field and value teacher_uids filters on: one definition of
+        # "who may decide", so the push and the permission cannot drift apart.
+        snapshot = self._db().collection("users").document(uid).get()
+        return snapshot.exists and (snapshot.to_dict() or {}).get("role") == "teacher"
+
+    def record_decision(self, submission_id: str, decision: str, reason: str, teacher_uid: str) -> None:
+        from firebase_admin import firestore
+
+        self._db().collection("submissions").document(submission_id).update(
+            {
+                "decision": decision,
+                "decision_reason": reason,
+                "decided_at": firestore.SERVER_TIMESTAMP,
+                "decided_by": teacher_uid,
+            }
+        )
+
+    def claim_decision_notification(self, submission_id: str, decision: str) -> bool:
+        from firebase_admin import firestore
+
+        db = self._db()
+        ref = db.collection("submissions").document(submission_id)
+        field = f"student_notified_decisions.{decision}"
+
+        @firestore.transactional
+        def claim(transaction: Any) -> bool:
+            snapshot = ref.get(transaction=transaction)
+            if not snapshot.exists:
+                return False
+            notified = (snapshot.to_dict() or {}).get("student_notified_decisions") or {}
+            if decision in notified:
+                return False
+            transaction.update(ref, {field: firestore.SERVER_TIMESTAMP})
+            return True
+
+        return claim(db.transaction())
 
     def claim_notification(self, submission_id: str) -> bool:
         from firebase_admin import firestore
@@ -265,6 +315,38 @@ class SubmissionNotifyResult(BaseModel):
     result: SendResult | None = None
 
 
+class SubmissionDecisionRequest(BaseModel):
+    """A teacher's decision on a submission, pushed to the student.
+
+    The vocabulary is closed on purpose: the mobile app's BR-02-16 gate speaks
+    exactly these three values, and a fourth one would be a decision the
+    student's screen cannot render.
+    """
+
+    submissionId: str = Field(min_length=1, max_length=200, pattern=r"^[A-Za-z0-9_-]+$")
+    decision: Literal["approved", "needsRevision", "notAccepted"]
+    reason: str = Field(default="", max_length=500)
+
+    @model_validator(mode="after")
+    def _reason_required_unless_approved(self) -> SubmissionDecisionRequest:
+        # BR-02-16: "cần sửa" / "không chấp nhận" without a reason leaves the
+        # student nothing to act on, so the app refuses to send it. The server
+        # is the second gate, never the only one.
+        if self.decision != "approved" and not self.reason.strip():
+            raise ValueError("reason: required when decision is not approved")
+        return self
+
+
+# The push body is the whole message the student reads in the tray; keep it
+# under 200 characters so a long reason cannot push the verdict off-screen.
+_DECISION_BODIES = {
+    "approved": "{file}: Đã phê duyệt.",
+    "needsRevision": "{file}: Yêu cầu sửa — {reason}",
+    "notAccepted": "{file}: Không chấp nhận — {reason}",
+}
+_MAX_PUSH_BODY = 200
+
+
 def submission_directory(settings: Settings = Depends(get_settings)) -> SubmissionDirectory:
     return FirebaseNotificationGateway(settings)
 
@@ -298,4 +380,54 @@ async def notify_submission(
         {"type": "notification", "id": request.submissionId},
     )
     log.info("submission %s notified %d teachers: %d ok", request.submissionId, len(teachers), result.sent)
+    return SubmissionNotifyResult(notified=True, result=result)
+
+
+@student_router.post("/decision", response_model=SubmissionNotifyResult)
+async def notify_decision(
+    request: SubmissionDecisionRequest,
+    firebase_user: dict[str, Any] = Depends(verify_firebase_token),
+    directory: SubmissionDirectory = Depends(submission_directory),
+    gateway: NotificationGateway = Depends(notification_gateway),
+) -> SubmissionNotifyResult:
+    uid = firebase_user.get("uid")
+    # Authorization before existence: a non-teacher must not learn which
+    # submission ids exist by watching 404 vs 403.
+    if not isinstance(uid, str) or not await asyncio.to_thread(directory.is_teacher, uid):
+        raise HTTPException(status_code=403, detail="Only a teacher can record a decision.")
+    submission = await asyncio.to_thread(directory.submission, request.submissionId)
+    if submission is None:
+        raise HTTPException(status_code=404, detail="Submission not found.")
+
+    # The decision is the record; the push is a courtesy. Write it first so the
+    # student's screen shows the verdict even when no device token exists yet.
+    await asyncio.to_thread(
+        directory.record_decision, request.submissionId, request.decision, request.reason, uid
+    )
+
+    student_id = submission.get("student_id")
+    if not isinstance(student_id, str) or not student_id:
+        return SubmissionNotifyResult(notified=False)
+    # A retried request must not push the same decision twice; a later, different
+    # decision on the same submission still has its own claim and does go out.
+    if not await asyncio.to_thread(
+        directory.claim_decision_notification, request.submissionId, request.decision
+    ):
+        return SubmissionNotifyResult(notified=False)
+
+    file_name = str(submission.get("file_name") or "tài liệu")[:200]
+    body = _DECISION_BODIES[request.decision].format(file=file_name, reason=request.reason.strip())
+    result = await _deliver(
+        gateway,
+        [student_id],
+        "Giảng viên đã ra quyết định",
+        body[:_MAX_PUSH_BODY],
+        {"type": "notification", "id": request.submissionId},
+    )
+    log.info(
+        "submission %s decision %s pushed to student: %d ok",
+        request.submissionId,
+        request.decision,
+        result.sent,
+    )
     return SubmissionNotifyResult(notified=True, result=result)

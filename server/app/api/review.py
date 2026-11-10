@@ -60,6 +60,8 @@ async def review(
         settings=settings,
         rubric_cfg=rubric_cfg,
         provider=provider,
+        criterion=payload.criterion,
+        output_language=payload.output_language,
     )
     if hit := cached_review(cache, key):
         return hit.model_copy(
@@ -91,6 +93,8 @@ async def review(
             settings=settings,
             rubric_cfg=rubric_cfg,
             provider=provider,
+            criterion=payload.criterion,
+            output_language=payload.output_language,
         )
     except LlmError as exc:
         log.warning("review failed for %s: %s", payload.requirement_id, exc)
@@ -174,6 +178,8 @@ async def review_batch(
             settings=settings,
             rubric_cfg=rubric_cfg,
             provider=provider,
+            criterion=unit.criterion,
+            output_language=unit.output_language,
         )
         if hit := cached_review(cache, key):
             results[index] = hit

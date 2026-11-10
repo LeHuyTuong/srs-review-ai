@@ -90,6 +90,8 @@ def review_cache_key(
     settings: Settings,
     rubric_cfg: dict[str, object],
     provider: ReviewProvider,
+    criterion: Any = None,
+    output_language: str | None = None,
 ) -> str:
     """One key, used for BOTH the lookup and the store.
 
@@ -136,6 +138,10 @@ def review_cache_key(
         # to the new question. Without this line, switching a criterion off
         # would keep serving the reviews it produced.
         str(rubric_cfg.get("criteria_fingerprint", "")),
+        # The lecturer criterion and the output language both reach the prompt
+        # (2026-11-10), so both are part of the question being answered.
+        criterion.model_dump_json() if criterion is not None else "",
+        output_language or "",
     )
 
 
@@ -198,11 +204,13 @@ async def review_uncached(
     settings: Settings,
     rubric_cfg: dict[str, object],
     provider: ReviewProvider,
+    criterion: Any = None,
+    output_language: str | None = None,
 ) -> ReviewResult:
     """One unit, one provider call — the path that has always worked."""
     res = await provider.generate_json(
         system=review_system_prompt(rubric_cfg),
-        user=review_user_prompt(requirement_id, text, section, page_index),
+        user=review_user_prompt(requirement_id, text, section, page_index, criterion, output_language),
         schema=LLM_REVIEW_SCHEMA,
         image_b64=image_b64,
     )
@@ -275,6 +283,8 @@ async def review_group(
                 settings=settings,
                 rubric_cfg=rubric_cfg,
                 provider=provider,
+                criterion=unit.criterion,
+                output_language=unit.output_language,
             )
         except LlmError as exc:
             log.warning("batch unit %s failed: %s", unit.requirement_id, exc)
@@ -375,6 +385,8 @@ def store_review(
             settings=settings,
             rubric_cfg=rubric_cfg,
             provider=provider,
+            criterion=unit.criterion,
+            output_language=unit.output_language,
         ),
         result,
     )

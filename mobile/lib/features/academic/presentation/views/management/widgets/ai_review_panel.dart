@@ -104,9 +104,7 @@ class AiReviewPanel extends ConsumerWidget {
                       ? const AppBadge('Đã chấm bằng AI (Live)', tone: 'brand')
                       : const AppBadge('Kết quả minh họa', tone: 'amber'),
                 ),
-                Text(
-                  '${panel.passed} đạt · ${panel.improve} cần cải thiện · ${panel.unscored} chưa chấm',
-                ),
+                Text(panel.summary),
                 if (detailed)
                   Align(
                     alignment: Alignment.centerLeft,

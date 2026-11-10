@@ -39,6 +39,9 @@ from try_artemis import final_report, parse_json  # noqa: E402
 RESULTS = Path(__file__).resolve().parent / "results"
 
 
+TRACE_ROOT = Path(os.environ.get("ARTEMIS_HOME", "/Volumes/SSD/AppData/artemis")) / "traces"
+
+
 def adb(*args: str) -> str:
     out = subprocess.run(
         ["adb", "-s", SERIAL, *args], capture_output=True, text=True, timeout=60
@@ -54,7 +57,8 @@ def relaunch() -> None:
 
 def set_sync_online(online: bool) -> None:
     if online:
-        adb("reverse", "tcp:8010", "tcp:8010")
+        # App build trỏ 127.0.0.1:8010; SRS_E2E_HOST_PORT=8000 chuyển sang server Docker.
+        adb("reverse", "tcp:8010", f"tcp:{os.environ.get('SRS_E2E_HOST_PORT', '8010')}")
     else:
         adb("reverse", "--remove", "tcp:8010")
 
@@ -116,7 +120,16 @@ async def run_once(client: ArtemisClient, case: Case, run_no: int) -> dict:
         "checks": checks,
         "passed": passed,
         "error": error,
+        "video": find_video(task_id),
     }
+
+
+def find_video(task_id: str | None) -> str | None:
+    """ARTEMIS tự quay scrcpy thành traces/web_<ts>_<id8>_<verdict>_<time>/recording.mp4."""
+    if not task_id:
+        return None
+    hits = sorted(TRACE_ROOT.glob(f"web_*_{task_id[:8]}_*/recording.mp4"))
+    return str(hits[-1]) if hits else None
 
 
 def table(rows: list[dict]) -> str:

@@ -154,6 +154,9 @@ void main() {
         'findings': <dynamic>[],
         'criterionResults': [
           {'criterionId': 'a', 'name': 'Tự động', 'score': 25, 'maxScore': 30},
+          {'criterionId': 'c', 'name': 'Biên 80%', 'score': 16, 'maxScore': 20},
+          {'criterionId': 'd', 'name': 'Biên 70%', 'score': 14, 'maxScore': 20},
+          {'criterionId': 'e', 'name': 'Một nửa', 'score': 10, 'maxScore': 20},
           {
             'criterionId': 'b',
             'name': 'Thủ công',
@@ -171,9 +174,18 @@ void main() {
       const ReviewPanelState(),
     );
     expect(panel.percent, isNull);
+    // Cùng ngưỡng với điểm tổng: >=80% đạt, 70–79% cần cải thiện, <70% cần làm lại.
+    expect(panel.passed, 2);
     expect(panel.improve, 1);
+    expect(panel.redo, 1);
     expect(panel.unscored, 1);
-    expect(panel.visible.map((c) => c.text('criterionId')), ['a', 'b']);
+    expect(
+      panel.summary,
+      '2 đạt · 1 cần cải thiện · 1 cần làm lại · 1 chưa chấm',
+    );
+    expect(panel.attention.map((c) => c.text('criterionId')), ['d', 'e', 'b']);
+    // Mặc định lọc "cần chú ý": tiêu chí đạt (a, c) được ẩn.
+    expect(panel.visible.map((c) => c.text('criterionId')), ['d', 'e', 'b']);
     expect(snapshot.toJson(), before);
   });
 

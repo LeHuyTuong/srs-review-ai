@@ -80,24 +80,27 @@ void main() {
         }
       },
     );
-    test('Semester dates and references reject atomically; failed writes preserve snapshot', () async {
-      final before = repo.snapshot.toJson();
-      await expectLater(
-        vm.saveSemester({...draft(), 'endDate': '2026-01-01'}),
-        throwsA(isA<AcademicFailure>()),
-      );
-      await expectLater(
-        vm.deleteSemester(repo.snapshot.classes.first.semesterId),
-        throwsA(isA<AcademicFailure>()),
-      );
-      expect(repo.snapshot.toJson(), before);
-      repo.failWrite = true;
-      await expectLater(
-        vm.saveSemester(draft()),
-        throwsA(isA<AcademicFailure>()),
-      );
-      expect(repo.snapshot.toJson(), before);
-    });
+    test(
+      'Semester dates and references reject atomically; failed writes preserve snapshot',
+      () async {
+        final before = repo.snapshot.toJson();
+        await expectLater(
+          vm.saveSemester({...draft(), 'endDate': '2026-01-01'}),
+          throwsA(isA<AcademicFailure>()),
+        );
+        await expectLater(
+          vm.deleteSemester(repo.snapshot.classes.first.semesterId),
+          throwsA(isA<AcademicFailure>()),
+        );
+        expect(repo.snapshot.toJson(), before);
+        repo.failWrite = true;
+        await expectLater(
+          vm.saveSemester(draft()),
+          throwsA(isA<AcademicFailure>()),
+        );
+        expect(repo.snapshot.toJson(), before);
+      },
+    );
     test(
       'Offering without classes still prevents orphaning on semester delete',
       () async {
@@ -147,44 +150,47 @@ void main() {
         keep.close();
       },
     );
-    test('Enrollment/group/project mutations update directory and Dashboard from same repository', () async {
-      final keep = c.listen(studentDirectoryProvider, (_, _) {});
-      await vm.enrollStudents('se1701', [
-        {
-          'studentCode': 'SE989891',
-          'name': 'Phase Four',
-          'email': 'phase4@test.local',
-        },
-      ]);
-      final st = repo.snapshot.students.last;
-      expect(
-        c.read(studentDirectoryProvider.notifier).visible.map((s) => s.id),
-        contains(st.id),
-      );
-      await vm.createGroup('se1701', 'Phase 4 integration');
-      final g = repo.snapshot.groups.last;
-      await vm.addGroupMember(g.id, st.id);
-      await vm.saveProject({
-        'groupId': g.id,
-        'name': 'Phase 4 project',
-        'startDate': '2026-09-01',
-        'deadline': '2026-12-15T23:59',
-      });
-      final p = repo.snapshot.project(repo.snapshot.group(g.id)!.projectId)!;
-      expect(p.text('groupId'), g.id);
-      expect(p.values('members').single['name'], st.name);
-      final dashboard = await c.read(dashboardViewModelProvider.future);
-      expect(dashboard.snapshot.projects.map((p) => p.id), contains(p.id));
-      await vm.setClassState('se1701', 'archived');
-      await expectLater(
-        vm.renameGroup(g.id, 'blocked'),
-        throwsA(isA<AcademicFailure>()),
-      );
-      await vm.setClassState('se1701', 'active');
-      await vm.renameGroup(g.id, 'Restored');
-      expect(repo.snapshot.group(g.id)!.name, 'Restored');
-      keep.close();
-    });
+    test(
+      'Enrollment/group/project mutations update directory and Dashboard from same repository',
+      () async {
+        final keep = c.listen(studentDirectoryProvider, (_, _) {});
+        await vm.enrollStudents('se1701', [
+          {
+            'studentCode': 'SE989891',
+            'name': 'Phase Four',
+            'email': 'phase4@test.local',
+          },
+        ]);
+        final st = repo.snapshot.students.last;
+        expect(
+          c.read(studentDirectoryProvider.notifier).visible.map((s) => s.id),
+          contains(st.id),
+        );
+        await vm.createGroup('se1701', 'Phase 4 integration');
+        final g = repo.snapshot.groups.last;
+        await vm.addGroupMember(g.id, st.id);
+        await vm.saveProject({
+          'groupId': g.id,
+          'name': 'Phase 4 project',
+          'startDate': '2026-09-01',
+          'deadline': '2026-12-15T23:59',
+        });
+        final p = repo.snapshot.project(repo.snapshot.group(g.id)!.projectId)!;
+        expect(p.text('groupId'), g.id);
+        expect(p.values('members').single['name'], st.name);
+        final dashboard = await c.read(dashboardViewModelProvider.future);
+        expect(dashboard.snapshot.projects.map((p) => p.id), contains(p.id));
+        await vm.setClassState('se1701', 'archived');
+        await expectLater(
+          vm.renameGroup(g.id, 'blocked'),
+          throwsA(isA<AcademicFailure>()),
+        );
+        await vm.setClassState('se1701', 'active');
+        await vm.renameGroup(g.id, 'Restored');
+        expect(repo.snapshot.group(g.id)!.name, 'Restored');
+        keep.close();
+      },
+    );
     for (final decision in [0, 1, 2]) {
       test('Decision $decision never copies student submission note', () async {
         final r = repo.snapshot
@@ -237,18 +243,24 @@ void main() {
         expect(c.read(sessionProvider), isNull);
       },
     );
-    test('Supervisor notification category filters match React and exact destinations', () async {
-      final all = await FakeNotificationRepository(rootBundle).load();
-      expect(all.where((n) => notificationMatches(n, 1)).length, 2);
-      expect(all.where((n) => notificationMatches(n, 3)).single.id, 'n4');
-      expect(
-        all.where((n) => notificationMatches(n, 4)).single.text('link'),
-        '/reviews/review-008',
-      );
-      for (final n in all) {
-        expect(repo.snapshot.review(n.text('link').split('/').last), isNotNull);
-      }
-    });
+    test(
+      'Supervisor notification category filters match React and exact destinations',
+      () async {
+        final all = await FakeNotificationRepository(rootBundle).load();
+        expect(all.where((n) => notificationMatches(n, 1)).length, 2);
+        expect(all.where((n) => notificationMatches(n, 3)).single.id, 'n4');
+        expect(
+          all.where((n) => notificationMatches(n, 4)).single.text('link'),
+          '/reviews/review-008',
+        );
+        for (final n in all) {
+          expect(
+            repo.snapshot.review(n.text('link').split('/').last),
+            isNotNull,
+          );
+        }
+      },
+    );
   });
 
   Future<ProviderContainer> launch(
@@ -294,7 +306,8 @@ void main() {
     (t) async {
       final c = await launch(t);
       expect(find.byType(LoginScreen), findsOneWidget);
-      expect(find.text('Đăng nhập giảng viên'), findsOneWidget);
+      expect(find.text('Đăng nhập'), findsOneWidget);
+      expect(find.text('Đăng nhập giảng viên'), findsNothing);
       expect(find.text('Sinh viên'), findsNothing);
       expect(find.text('Bạn đăng nhập với vai trò'), findsNothing);
       expect(find.byType(DropdownButtonFormField<String>), findsNothing);
@@ -423,9 +436,19 @@ void main() {
           if (path == '/semesters') {
             await tapVisible(t, find.text('Tạo học kỳ'));
             expect(find.byType(ManagementFormSheet), findsOneWidget);
+            // Nút lưu bị khoá thì lý do phải nằm trên màn hình, không ở cuối form cuộn
+            // (FL02 trên máy thật: nút mờ, không thấy câu báo lỗi nào).
+            // hitTestable: nằm trong vùng nhìn thấy, không bị cắt bởi vùng cuộn.
+            void reasonOnScreen() => expect(
+              find.text('Nhập tên học kỳ.').hitTestable(),
+              findsOneWidget,
+            );
+
+            reasonOnScreen();
             t.view.viewInsets = FakeViewPadding(bottom: 280);
             await t.pumpAndSettle();
             expect(t.takeException(), isNull);
+            reasonOnScreen();
             t.view.resetViewInsets();
             await t.pumpAndSettle();
             await tapVisible(t, find.text('Hủy'));

@@ -1,7 +1,24 @@
 part of 'academic_models.dart';
 
-// Kịch bản đối chiếu tiêu chí và ánh xạ kết quả từ AI Review Service.
+// Đối chiếu tiêu chí với mục tài liệu: kết quả AI thật (fromAi) hoặc minh hoạ từ documentSamples (illustration).
+/// Điểm AI của một tiêu chí, độc lập với lớp HTTP để domain không phụ thuộc service.
+class AiCriterionScore {
+  const AiCriterionScore({
+    required this.score,
+    this.issues = const [],
+    this.contextNote,
+  });
+
+  /// Thang 0–10 của server.
+  final int score;
+  final List<AcademicRecord> issues;
+  final String? contextNote;
+}
+
 class ReviewPolicy {
+  /// Chế độ chấm Đạt/Chưa đạt: điểm AI từ 7/10 trở lên tính là đạt.
+  static const passScore = 7;
+
   // Ngưỡng có thể là số thập phân; thiếu điểm thủ công thì chưa xếp loại.
   static String rating(AcademicRecord run) {
     final score = run.data['overallScore'] as num?;
@@ -16,133 +33,178 @@ class ReviewPolicy {
         : 'Cần làm lại';
   }
 
-  /// Ánh xạ kết quả trả về từ FastAPI `/review` (Gemini) sang bảng tiêu chí của Rule Set.
-  static AcademicRecord fromLiveAiResult(
-    AcademicSnapshot s,
-    AcademicRecord run,
-    String title, {
-    required int scoreOutOf10,
-    required List<Map<String, dynamic>> issues,
-    String? contextNote,
-  }) {
-    final rule = RuleSet(run.data['ruleSnapshot'] as AcademicJson);
-    final ratio = (scoreOutOf10.clamp(0, 10)) / 10.0;
-    final results = <AcademicJson>[];
-    final findings = <AcademicJson>[];
-    final enabledCriteria = rule.criteria.where((c) => c.enabled).toList();
-
-    for (var idx = 0; idx < enabledCriteria.length; idx++) {
-      final c = enabledCriteria[idx];
-      final issueMap = idx < issues.length
-          ? issues[idx]
-          : (issues.isNotEmpty ? issues.first : null);
-      final issueDesc =
-          (issueMap?['description'] as String?) ??
-          (issueMap?['message'] as String?) ??
-          '';
-      final suggestionText =
-          (issueMap?['suggestion'] as String?) ??
-          (issueMap?['fix'] as String?) ??
-          'Rà soát và bổ sung đặc tả chi tiết hơn cho mục này.';
-      final severity =
-          (issueMap?['severity'] as String?)?.toLowerCase() ?? 'warning';
-
-      final score = c.flag('aiEnabled') && c.flag('suggestScore')
-          ? rule.text('scoringMode') == 'binary'
-                ? (ratio >= 0.7 ? c.maxScore : 0)
-                : (c.maxScore * ratio * 100).round() / 100
-          : null;
-
-      results.add({
-        'criterionId': c.id,
-        'name': c.name,
-        'maxScore': c.maxScore,
-        'score': score,
-        'comment': issueDesc.isNotEmpty
-            ? issueDesc
-            : (contextNote ?? 'AI đánh giá đạt mức $scoreOutOf10/10.'),
-        if (issueDesc.isNotEmpty) 'issue': issueDesc,
-        'needsVerification': true,
-        'evidence': contextNote?.isNotEmpty == true
-            ? '$title · $contextNote'
-            : '$title · Đánh giá trực tiếp qua FastAPI AI Review Service.',
-        'suggestions':
-            c.flag('aiEnabled') &&
-                c.flag('suggestSuggestions') &&
-                suggestionText.isNotEmpty
-            ? [suggestionText]
-            : <String>[],
-      });
-
-      if (c.flag('aiEnabled') &&
-          c.flag('suggestFindings') &&
-          issueDesc.isNotEmpty) {
-        findings.add({
-          'id': '${run.id}-${c.id}',
-          'level': c.flag('critical') ||
-                  severity == 'high' ||
-                  severity == 'critical' ||
-                  severity == 'error' ||
-                  ratio <= 0.5
-              ? 'error'
-              : 'warning',
-          'category': c.name,
-          'message': issueDesc,
-          'issue': issueDesc,
-          if (c.flag('suggestSuggestions')) 'suggestion': suggestionText,
-          'proposedScore': score,
-          'maxScore': c.maxScore,
-          'pageRef': 'Tài liệu $title',
-        });
-      }
+  // Mục tài liệu đối chiếu cho một tiêu chí: REVIEW01–05 khớp theo vị trí, tiêu chí khác khớp tên.
+  static AcademicRecord? _scenarioFor(
+    RubricCriterion c,
+    List<AcademicRecord> checks,
+  ) {
+    if (RegExp(r'^REVIEW0[1-5]$').hasMatch(c.id)) {
+      final i = int.parse(c.id.substring(c.id.length - 1)) - 1;
+      return i < checks.length ? checks[i] : null;
     }
-
-    return AcademicRecord({
-      ...run.toJson(),
-      'sampleDocumentTitle': title,
-      'aiSource': 'live',
-      'illustrationVersion': 1,
-      'evaluationStatus': 'completed',
-      'criterionResults': results,
-      'findings': findings,
-      'maxScore': results.fold<num>(0, (n, c) => n + (c['maxScore'] as num)),
-      'overallScore':
-          results.isNotEmpty && results.every((c) => c['score'] != null)
-          ? (results.fold<num>(0, (n, c) => n + (c['score'] as num)) * 100)
-                    .round() /
-                100
-          : null,
-    });
+    return checks
+        .where(
+          (v) => RegExp(v.text('match'), caseSensitive: false).hasMatch(c.name),
+        )
+        .firstOrNull;
   }
 
-  // Dựng kết quả đối chiếu cục bộ khi chạy offline / unit test không có FastAPI server.
-  static AcademicRecord illustration(
+  static List<AcademicRecord> _checks(AcademicSnapshot s, String title) {
+    final sample = (s.data['documentSamples'] as Map? ?? {})[title] as Map?;
+    return (sample?['checks'] as List? ?? [])
+        .map((c) => AcademicRecord(c as AcademicJson))
+        .toList();
+  }
+
+  /// Đoạn văn bản gửi lên AI: mỗi tiêu chí bật AI có mục đối chiếu là một unit,
+  /// `requirementId` = id tiêu chí để ghép điểm về đúng dòng rubric.
+  static List<({String criterionId, String section, String text})> aiUnits(
     AcademicSnapshot s,
     AcademicRecord run,
     String title,
   ) {
     final rule = RuleSet(run.data['ruleSnapshot'] as AcademicJson);
-    final sample = (s.data['documentSamples'] as Map? ?? {})[title] as Map?;
-    final checks = (sample?['checks'] as List? ?? [])
-        .map((c) => AcademicRecord(c as AcademicJson))
-        .toList();
+    final checks = _checks(s, title);
+    return [
+      for (final c in rule.criteria.where(
+        (c) => c.enabled && c.flag('aiEnabled'),
+      ))
+        if (_scenarioFor(c, checks) case final sc?
+            when sc.text('text').trim().isNotEmpty)
+          (
+            criterionId: c.id,
+            section: '$title · ${sc.name}',
+            text: sc.text('text'),
+          ),
+    ];
+  }
+
+  /// Unit chấm từ văn bản trích của tệp nộp: mỗi tiêu chí bật AI một unit, dùng
+  /// chung phần văn bản đã trích (cắt 12.000 ký tự) thay cho mẫu `documentSamples`.
+  static List<({String criterionId, String section, String text})> fileUnits(
+    RuleSet rule,
+    String title,
+    List<({String title, String text})> sections,
+  ) {
+    final body = sections
+        .where((section) => section.text.trim().isNotEmpty)
+        .map((section) => '## ${section.title}\n${section.text}')
+        .join('\n\n');
+    if (body.trim().isEmpty) return const [];
+    final text = body.length > maxUnitChars
+        ? body.substring(0, maxUnitChars)
+        : body;
+    return [
+      for (final c in rule.criteria.where(
+        (c) => c.enabled && c.flag('aiEnabled'),
+      ))
+        (criterionId: c.id, section: '$title · ${c.name}', text: text),
+    ];
+  }
+
+  /// Trần ký tự mỗi unit gửi AI, tính cả văn bản trích từ tệp nộp.
+  static const maxUnitChars = 12000;
+
+  // Dựng kết quả minh họa từ nội dung mẫu và bản chụp Rule Set của lần chạy, không chấm tệp thật.
+  static AcademicRecord illustration(
+    AcademicSnapshot s,
+    AcademicRecord run,
+    String title,
+  ) => _build(s, run, title, null, null);
+
+  /// Kết quả từ AI thật: điểm 0–10 của server quy về thang điểm từng tiêu chí,
+  /// nhận xét và lỗi lấy từ issue có trích dẫn đã kiểm ở server.
+  /// [fromFile] = true khi chấm tệp nộp: không đối chiếu `documentSamples` nữa.
+  static AcademicRecord fromAi(
+    AcademicSnapshot s,
+    AcademicRecord run,
+    String title,
+    Map<String, AiCriterionScore> ai, {
+    String? model,
+    bool fromFile = false,
+  }) => _build(s, run, title, ai, model, fromFile: fromFile);
+
+  static AcademicRecord _build(
+    AcademicSnapshot s,
+    AcademicRecord run,
+    String title,
+    Map<String, AiCriterionScore>? ai,
+    String? model, {
+    bool fromFile = false,
+  }) {
+    final rule = RuleSet(run.data['ruleSnapshot'] as AcademicJson);
+    final checks = fromFile ? const <AcademicRecord>[] : _checks(s, title);
+    final binary = rule.text('scoringMode') == 'binary';
     final results = <AcademicJson>[];
     final findings = <AcademicJson>[];
     for (final c in rule.criteria.where((c) => c.enabled)) {
-      AcademicRecord? scenario;
-      // Tiêu chí mẫu cũ REVIEW01–REVIEW05 khớp theo vị trí; tiêu chí khác khớp tên bằng mẫu tìm kiếm.
-      if (RegExp(r'^REVIEW0[1-5]$').hasMatch(c.id)) {
-        final i = int.parse(c.id.substring(c.id.length - 1)) - 1;
-        if (i < checks.length) scenario = checks[i];
-      } else {
-        scenario = checks
-            .where(
-              (v) => RegExp(
-                v.text('match'),
-                caseSensitive: false,
-              ).hasMatch(c.name),
-            )
-            .firstOrNull;
+      final scenario = _scenarioFor(c, checks);
+      final real = ai?[c.id];
+      if (ai != null && real != null) {
+        final score = c.flag('suggestScore')
+            ? binary
+                  ? (real.score >= passScore ? c.maxScore : 0)
+                  : (c.maxScore * real.score / 10 * 100).round() / 100
+            : null;
+        final first = real.issues.firstOrNull;
+        results.add({
+          'criterionId': c.id,
+          'name': c.name,
+          'maxScore': c.maxScore,
+          'score': score,
+          'aiScore': real.score,
+          'comment':
+              real.contextNote ??
+              (first == null
+                  ? 'AI không phát hiện vấn đề ở mục này.'
+                  : first.text('suggestion')),
+          if (first != null) 'issue': first.text('quote'),
+          'needsVerification': true,
+          'evidence': '$title · Mục ${scenario?.name ?? c.name}',
+          'suggestions': c.flag('suggestSuggestions')
+              ? [
+                  for (final i in real.issues)
+                    if (i.text('suggestion').isNotEmpty) i.text('suggestion'),
+                ]
+              : <String>[],
+        });
+        if (c.flag('suggestFindings')) {
+          for (final (n, i) in real.issues.indexed) {
+            findings.add({
+              'id': '${run.id}-${c.id}-$n',
+              'level': c.flag('critical') || i.text('severity') == 'high'
+                  ? 'error'
+                  : 'warning',
+              'category': c.name,
+              'message': i.text('suggestion'),
+              'issue': i.text('quote'),
+              if (c.flag('suggestSuggestions'))
+                'suggestion': i.text('suggestion'),
+              'proposedScore': score,
+              'maxScore': c.maxScore,
+              'pageRef': 'Mục ${scenario?.name ?? c.name}',
+            });
+          }
+        }
+        continue;
+      }
+      if (ai != null) {
+        // Tiêu chí không gửi AI (tắt AI / không có mục đối chiếu / AI không chấm được): để giảng viên chấm tay.
+        results.add({
+          'criterionId': c.id,
+          'name': c.name,
+          'maxScore': c.maxScore,
+          'score': null,
+          'comment': c.flag('aiEnabled')
+              ? 'AI chưa chấm được tiêu chí này. Giảng viên đối chiếu thủ công.'
+              : 'Tiêu chí chấm thủ công.',
+          'needsVerification': true,
+          'evidence': scenario != null
+              ? '$title · Mục ${scenario.name}'
+              : 'Chưa có nội dung đối chiếu cho tiêu chí này.',
+          'suggestions': <String>[],
+        });
+        continue;
       }
       // Chỉ đề xuất điểm khi tiêu chí bật AI, cho phép gợi ý điểm và có nội dung mẫu đối chiếu.
       final score =
@@ -194,7 +256,9 @@ class ReviewPolicy {
     return AcademicRecord({
       ...run.toJson(),
       'sampleDocumentTitle': title,
-      'illustrationVersion': 1,
+      if (ai == null) 'illustrationVersion': 1,
+      if (ai != null) 'aiSource': 'live',
+      'model': ?model,
       'evaluationStatus': 'completed',
       'criterionResults': results,
       'findings': findings,

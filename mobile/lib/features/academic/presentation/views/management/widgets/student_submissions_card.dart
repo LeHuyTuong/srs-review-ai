@@ -81,42 +81,75 @@ class _SubmissionRow extends ConsumerWidget {
         : snapshot.project(item.projectId)?.name;
     final who = item.studentName.isNotEmpty ? item.studentName : 'Học viên';
     final meta = [who, ?project, _formatTime(item.uploadedAt)].join(' · ');
+    // Bài nộp đã thành yêu cầu duyệt thì chỉ hiện nhãn, không cho đưa vào lần nữa.
+    final queued = snapshot
+        .reviewRows('requests')
+        .any((r) => r.text('submissionId') == item.id);
     return InkWell(
       onTap: url == null
           ? null
           : () => _openSubmission(context, ref, url, item.fileName),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
-        child: Row(
-          spacing: AppSpacing.m,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: AppSpacing.s,
           children: [
-            const AppIcon('file-text', size: AppMetrics.iconSmall),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: AppSpacing.xs,
-                children: [
-                  Text(
-                    item.fileName.isEmpty ? 'Tài liệu' : item.fileName,
-                    style: AppTypography.strong,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+            Row(
+              spacing: AppSpacing.m,
+              children: [
+                const AppIcon('file-text', size: AppMetrics.iconSmall),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: AppSpacing.xs,
+                    children: [
+                      Text(
+                        item.fileName.isEmpty ? 'Tài liệu' : item.fileName,
+                        style: AppTypography.strong,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        meta,
+                        style: AppTypography.muted,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                  Text(
-                    meta,
-                    style: AppTypography.muted,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                ),
+                if (url != null)
+                  AppBadge(
+                    item.fileName.toLowerCase().endsWith('.pdf')
+                        ? 'Xem PDF'
+                        : 'Chia sẻ / lưu',
                   ),
-                ],
-              ),
+              ],
             ),
-            if (url != null)
-              AppBadge(
-                item.fileName.toLowerCase().endsWith('.pdf')
-                    ? 'Xem PDF'
-                    : 'Chia sẻ / lưu',
-              ),
+            // Wrap giữ nhãn nút ở bề rộng hẹp (390px); Expanded trong Row sẽ bóp cạn chữ.
+            Wrap(
+              spacing: AppSpacing.s,
+              runSpacing: AppSpacing.s,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                if (queued)
+                  const AppBadge('Đã vào hàng chờ', tone: 'olive')
+                else
+                  AppButton(
+                    label: 'Đưa vào hàng chờ duyệt',
+                    compact: true,
+                    variant: AppButtonVariant.secondary,
+                    icon: const AppIcon('inbox', size: AppMetrics.iconSmall),
+                    onPressed: () => academicAction(
+                      context,
+                      () => ref
+                          .read(academicViewModelProvider.notifier)
+                          .queueSubmission(item),
+                    ),
+                  ),
+              ],
+            ),
           ],
         ),
       ),

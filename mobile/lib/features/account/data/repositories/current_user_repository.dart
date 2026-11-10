@@ -49,8 +49,12 @@ class CurrentUserProfile {
     };
   }
 
-  bool get isSupervisorRole => roleLabel != 'Sinh viên';
+  bool get isSupervisorRole => !isStudentRole(role);
 }
+
+/// Vai trò sinh viên, theo đúng các cách ghi mà [CurrentUserProfile.roleLabel] nhận.
+bool isStudentRole(String role) =>
+    const {'student', 'sinh viên', 'sinh vien'}.contains(role.trim().toLowerCase());
 
 /// Hợp đồng đọc hồ sơ người dùng đang đăng nhập.
 abstract interface class CurrentUserRepository {

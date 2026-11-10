@@ -10,6 +10,9 @@ import 'package:srs_review_ai_mobile/core/domain/session_scope.dart';
 import 'package:srs_review_ai_mobile/core/services/ai_review_service.dart';
 import 'package:srs_review_ai_mobile/core/session/session_view_model.dart';
 import 'package:srs_review_ai_mobile/core/state/academic_changes.dart';
+import 'package:srs_review_ai_mobile/features/academic/data/student_submissions_repository.dart';
+import 'package:srs_review_ai_mobile/features/academic/data/submission_status_sync.dart';
+import 'package:srs_review_ai_mobile/features/student/data/services/submission_notifier.dart';
 import 'package:srs_review_ai_mobile/services/analytics_service.dart';
 import 'package:srs_review_ai_mobile/services/crashlytics_service.dart';
 
@@ -27,10 +30,21 @@ final academicViewModelProvider =
 class AcademicViewModel extends AsyncNotifier<AcademicSnapshot> {
   AcademicSnapshot get snapshot => state.requireValue;
   bool get isMounted => ref.mounted;
-  AiReviewService get aiReviewService => ref.read(aiReviewServiceProvider);
+
+  /// Cổng AI thật; `null` khi chưa cấu hình endpoint/Firebase (→ kết quả minh hoạ).
+  AiReviewGateway? get aiGateway => ref.read(aiReviewGatewayProvider);
   AnalyticsService get analyticsService => ref.read(analyticsServiceProvider);
   CrashlyticsService get crashlyticsService =>
       ref.read(crashlyticsServiceProvider);
+
+  /// Kênh báo server đẩy thông báo cho học viên/giảng viên; kênh tắt khi chưa
+  /// cấu hình URL server (không ném lỗi, chỉ trả `false`).
+  SubmissionNotifier get submissionNotifier =>
+      ref.read(submissionNotifierProvider);
+
+  /// Ghi trạng thái duyệt lên `submissions/{id}`; `null` khi không có Firebase.
+  SubmissionStatusSync? get submissionStatusSync =>
+      ref.read(submissionStatusSyncProvider);
 
   // Phân biệt tác vụ AI đang chạy với bản ghi loading bị gián đoạn để cho phép thử lại.
   final Set<String> activeEvaluationIds = {};

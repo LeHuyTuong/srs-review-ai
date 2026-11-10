@@ -6,9 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:srs_review_ai_mobile/core/di/data_providers.dart';
 import 'package:srs_review_ai_mobile/features/account/presentation/viewmodels/login_view_model.dart';
+import 'package:srs_review_ai_mobile/features/student/data/my_submissions_repository.dart';
 import 'package:srs_review_ai_mobile/features/student/data/services/cloudinary_upload_service.dart';
 import 'package:srs_review_ai_mobile/features/student/data/services/student_file_picker_service.dart';
 import 'package:srs_review_ai_mobile/features/student/data/services/submission_notifier.dart';
+import 'package:srs_review_ai_mobile/features/student/domain/my_submission.dart';
 import 'package:srs_review_ai_mobile/services/analytics_service.dart';
 import 'package:srs_review_ai_mobile/services/crashlytics_service.dart';
 import 'package:srs_review_ai_mobile/services/remote_config_service.dart';
@@ -99,15 +101,33 @@ class StudentUploadViewModel extends Notifier<StudentUploadState> {
       }
     } on Object catch (error, stackTrace) {
       unawaited(
-        ref.read(crashlyticsServiceProvider).logError(
-          error,
-          stackTrace,
-          reason: 'student_pick_file_error',
-        ),
+        ref
+            .read(crashlyticsServiceProvider)
+            .logError(error, stackTrace, reason: 'student_pick_file_error'),
       );
       if (ref.mounted) {
         state = state.copyWith(error: error.toString());
       }
+    }
+  }
+
+  /// Đọc bài đã nộp của chính sinh viên; lỗi đọc thì không chặn nộp bài.
+  Future<String?> _duplicateOf(String uid, String hash) async {
+    final repo = ref.read(mySubmissionsRepositoryProvider);
+    if (repo == null) return null;
+    try {
+      final mine = await repo
+          .watch(uid)
+          .first
+          .timeout(const Duration(seconds: 8));
+      return duplicateUploadMessage(
+        mine,
+        projectId: state.projectId ?? '',
+        hash: hash,
+      );
+    } on Object catch (error) {
+      debugPrint('duplicate check skipped: $error');
+      return null;
     }
   }
 
@@ -139,21 +159,34 @@ class StudentUploadViewModel extends Notifier<StudentUploadState> {
           ? 'unknown'
           : file.fileName.substring(dot + 1).toLowerCase();
 
+      // Tệp y hệt một bài đã nộp cho cùng dự án: báo ngay, không tải lên và
+      // không tạo bài nộp mới (tránh chấm AI lại cùng nội dung).
+      final hash = contentHashOf(file.bytes);
+      final duplicate = await _duplicateOf(user.uid, hash);
+      if (duplicate != null) {
+        if (ref.mounted) {
+          state = state.copyWith(uploading: false, error: duplicate);
+        }
+        return;
+      }
+
       await analytics.logUploadSrsStart(
         fileType: extension,
         fileSizeBytes: file.bytes.length,
       );
 
-      final url = await ref.read(cloudinaryUploadServiceProvider).upload(
-        bytes: file.bytes,
-        fileName: file.fileName,
-        folder: 'student-srs/${user.uid}',
-        onProgress: (p) {
-          if (ref.mounted) {
-            state = state.copyWith(progress: p);
-          }
-        },
-      );
+      final url = await ref
+          .read(cloudinaryUploadServiceProvider)
+          .upload(
+            bytes: file.bytes,
+            fileName: file.fileName,
+            folder: 'student-srs/${user.uid}',
+            onProgress: (p) {
+              if (ref.mounted) {
+                state = state.copyWith(progress: p);
+              }
+            },
+          );
 
       final firestore = ref.read(firestoreProvider);
       final submission = firestore.collection('submissions').doc();
@@ -171,6 +204,7 @@ class StudentUploadViewModel extends Notifier<StudentUploadState> {
         if (state.classId != null) 'class_id': state.classId,
         if (state.projectId != null) 'project_id': state.projectId,
         'storage_provider': 'cloudinary',
+        'content_hash': hash,
       });
 
       // Đồng bộ sang `srs_reports` (kèm trường `uid` khớp firestore.rules) để Admin Web hiển thị trực tiếp

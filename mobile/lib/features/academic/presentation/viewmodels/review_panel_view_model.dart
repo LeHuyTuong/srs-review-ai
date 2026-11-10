@@ -62,15 +62,18 @@ class ReviewPanelViewModel extends Notifier<ReviewPanelState> {
     expanded: values,
     added: state.added,
   );
+
   /// Xuất kết quả AI thành tệp Markdown qua hộp chia sẻ của hệ điều hành.
   /// Trả về false khi người dùng đóng hộp chia sẻ hoặc xuất lỗi.
   Future<bool> exportReport(AiPanelPresentation panel) async {
     try {
-      final shared = await ref.read(reportSharerProvider).shareText(
-        fileName: AiReportExporter.fileName(panel),
-        mimeType: 'text/markdown',
-        content: AiReportExporter.markdown(panel),
-      );
+      final shared = await ref
+          .read(reportSharerProvider)
+          .shareText(
+            fileName: AiReportExporter.fileName(panel),
+            mimeType: 'text/markdown',
+            content: AiReportExporter.markdown(panel),
+          );
       if (shared) {
         await ref
             .read(analyticsServiceProvider)
@@ -79,12 +82,14 @@ class ReviewPanelViewModel extends Notifier<ReviewPanelState> {
       return shared;
     } catch (e, st) {
       unawaited(
-        ref.read(crashlyticsServiceProvider).logError(
-          e,
-          st,
-          reason: 'export_ai_report_error',
-          keys: {'review_id': id},
-        ),
+        ref
+            .read(crashlyticsServiceProvider)
+            .logError(
+              e,
+              st,
+              reason: 'export_ai_report_error',
+              keys: {'review_id': id},
+            ),
       );
       if (ref.mounted) {
         state = ReviewPanelState(
@@ -117,12 +122,14 @@ class ReviewPanelViewModel extends Notifier<ReviewPanelState> {
       }
     } catch (e, st) {
       unawaited(
-        ref.read(crashlyticsServiceProvider).logError(
-          e,
-          st,
-          reason: 'review_panel_run_error',
-          keys: {'review_id': id},
-        ),
+        ref
+            .read(crashlyticsServiceProvider)
+            .logError(
+              e,
+              st,
+              reason: 'review_panel_run_error',
+              keys: {'review_id': id},
+            ),
       );
       if (ref.mounted && scope.active) {
         state = ReviewPanelState(
@@ -158,12 +165,14 @@ class ReviewPanelViewModel extends Notifier<ReviewPanelState> {
       }
     } catch (e, st) {
       unawaited(
-        ref.read(crashlyticsServiceProvider).logError(
-          e,
-          st,
-          reason: 'review_panel_add_finding_error',
-          keys: {'review_id': id, 'finding_id': f.id},
-        ),
+        ref
+            .read(crashlyticsServiceProvider)
+            .logError(
+              e,
+              st,
+              reason: 'review_panel_add_finding_error',
+              keys: {'review_id': id, 'finding_id': f.id},
+            ),
       );
       if (ref.mounted && scope.active) {
         state = ReviewPanelState(
@@ -206,13 +215,21 @@ class AiPanelPresentation {
   late final findings = (evaluation?.values('findings') ?? [])
       .map((v) => AcademicRecord(v as AcademicJson))
       .toList();
-  late final attention = results
-      .where(
-        (c) =>
-            c.data['score'] == null ||
-            (c.data['score'] as num) < (c.data['maxScore'] as num),
-      )
-      .toList();
+
+  /// Dải của một tiêu chí theo đúng ngưỡng của điểm tổng (ReviewPolicy.rating):
+  /// trước 10/11/2026 tiêu chí chỉ "đạt" khi trọn điểm, nên 16/20 bị gọi là
+  /// "cần cải thiện" trong khi cả bài 80% lại là "Đạt".
+  String band(AcademicRecord c) {
+    final s = c.data['score'] as num?;
+    final m = c.data['maxScore'] as num? ?? 0;
+    if (s == null) return 'unscored';
+    final p = m > 0 ? s / m * 100 : 0;
+    if (p >= (rule?.passThreshold ?? 80)) return 'pass';
+    if (p >= (rule?.improveThreshold ?? 70)) return 'improve';
+    return 'redo';
+  }
+
+  late final attention = results.where((c) => band(c) != 'pass').toList();
   late final visible = state.attentionOnly && attention.isNotEmpty
       ? attention
       : results;
@@ -226,10 +243,23 @@ class AiPanelPresentation {
   num get max => evaluation?.data['maxScore'] as num? ?? 0;
   num? get score => evaluation?.data['overallScore'] as num?;
   num? get percent => score != null && max > 0 ? score! / max * 100 : null;
-  int get passed =>
-      results.where((c) => c.data['score'] == c.data['maxScore']).length;
-  int get improve => attention.where((c) => c.data['score'] != null).length;
-  int get unscored => results.where((c) => c.data['score'] == null).length;
+  int _count(String b) => results.where((c) => band(c) == b).length;
+  int get passed => _count('pass');
+  int get improve => _count('improve');
+  int get redo => _count('redo');
+  int get unscored => _count('unscored');
+
+  /// "x đạt · y cần cải thiện · z cần làm lại · w chưa chấm", bỏ nhóm bằng 0.
+  String get summary {
+    final parts = [
+      if (passed > 0) '$passed đạt',
+      if (improve > 0) '$improve cần cải thiện',
+      if (redo > 0) '$redo cần làm lại',
+      if (unscored > 0) '$unscored chưa chấm',
+    ];
+    return parts.isEmpty ? 'Chưa có tiêu chí' : parts.join(' · ');
+  }
+
   bool get allExpanded =>
       visible.every((c) => state.expanded.contains(c.text('criterionId')));
   List<AcademicRecord> findingsFor(String name) =>
@@ -266,10 +296,7 @@ abstract final class AiReportExporter {
       ..writeln('- Lớp / nhóm: ${r.text('classCode')} · ${r.text('groupName')}')
       ..writeln('- Phiên bản: ${r.text('version')}')
       ..writeln('- Điểm tham khảo: **${_n(panel.score)} / ${_n(panel.max)}**')
-      ..writeln(
-        '- Tổng hợp: ${panel.passed} đạt · ${panel.improve} cần cải thiện · '
-        '${panel.unscored} chưa chấm',
-      )
+      ..writeln('- Tổng hợp: ${panel.summary}')
       ..writeln()
       ..writeln('## Điểm theo tiêu chí')
       ..writeln()
@@ -288,14 +315,18 @@ abstract final class AiReportExporter {
     for (final f in panel.findings) {
       b
         ..writeln()
-        ..writeln('- **${f.text('category', 'Khác')}** — ${f.text('issue', f.text('message'))}');
+        ..writeln(
+          '- **${f.text('category', 'Khác')}** — ${f.text('issue', f.text('message'))}',
+        );
       if (f.text('suggestion').isNotEmpty) {
         b.writeln('  - Gợi ý: ${f.text('suggestion')}');
       }
     }
     b
       ..writeln()
-      ..writeln('_Kết quả AI chỉ mang tính tham khảo; giảng viên quyết định cuối cùng._');
+      ..writeln(
+        '_Kết quả AI chỉ mang tính tham khảo; giảng viên quyết định cuối cùng._',
+      );
     return b.toString();
   }
 }

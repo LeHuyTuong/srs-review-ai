@@ -13,6 +13,7 @@ class StudentSubmission {
     this.classId = '',
     this.projectId = '',
     this.uploadedAt,
+    this.contentHash = '',
   });
 
   factory StudentSubmission.fromJson(String id, Map<String, dynamic> data) {
@@ -25,6 +26,7 @@ class StudentSubmission {
       studentName: (data['student_name'] as String?) ?? '',
       classId: (data['class_id'] as String?) ?? '',
       projectId: (data['project_id'] as String?) ?? '',
+      contentHash: (data['content_hash'] as String?) ?? '',
       uploadedAt: uploaded is Timestamp
           ? uploaded.toDate()
           : uploaded is DateTime
@@ -34,6 +36,9 @@ class StudentSubmission {
   }
 
   final String id;
+
+  /// sha256 của nội dung tệp; rỗng với bài nộp cũ.
+  final String contentHash;
   final String fileName;
   final String fileUrl;
   final String studentId;

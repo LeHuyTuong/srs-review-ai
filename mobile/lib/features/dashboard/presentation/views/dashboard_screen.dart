@@ -40,9 +40,9 @@ class DashboardScreen extends ConsumerWidget {
               ),
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
-                  desktop ? AppSpacing.xl : AppSpacing.pagePadding,
+                  AppLayout.pagePadding(context),
                   desktop ? AppSpacing.xl : AppSpacing.pageTop,
-                  desktop ? AppSpacing.xl : AppSpacing.pagePadding,
+                  AppLayout.pagePadding(context),
                   AppSpacing.xxl,
                 ),
                 child: Column(

@@ -219,6 +219,7 @@ class _RecipientsCard extends ConsumerWidget {
                     children: [
                       Checkbox(
                         value: allOn,
+                        semanticLabel: 'Chọn tất cả người nhận đang hiển thị',
                         onChanged: visible.isEmpty
                             ? null
                             : (_) => vm.toggleAll(visible),
@@ -305,6 +306,7 @@ class _RecipientRow extends StatelessWidget {
             children: [
               Checkbox(
                 value: selected,
+                semanticLabel: 'Chọn ${user.displayName}',
                 onChanged: (_) => onTap(),
                 activeColor: AppColors.brand,
               ),

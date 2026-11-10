@@ -23,6 +23,10 @@ abstract final class AppLayout {
   static double contentMaxWidth(BuildContext context) => isDesktop(context)
       ? AppMetrics.desktopContentMaxWidth
       : AppMetrics.contentMaxWidth;
+
+  /// Desktop lấp kín vùng nội dung (kiểu dashboard quản trị) nên cần lề rộng hơn.
+  static double pagePadding(BuildContext context) =>
+      isDesktop(context) ? AppSpacing.xxl : AppSpacing.pagePadding;
 }
 
 /// Trạng thái thu gọn sidebar sống qua các lần chuyển trang.
@@ -36,10 +40,11 @@ class SidebarCollapsed extends Notifier<bool> {
   void toggle() => state = !state;
 }
 
-typedef _NavItem = ({String path, String label, String icon});
+typedef AppNavItem = ({String path, String label, String icon});
+typedef AppNavSection = ({String? title, List<AppNavItem> items});
 
 /// Menu desktop chỉ trỏ tới route đã có trong `app.dart`.
-const _sections = <({String? title, List<_NavItem> items})>[
+const _sections = <AppNavSection>[
   (
     title: null,
     items: [(path: '/dashboard', label: 'Tổng quan', icon: 'layout-dashboard')],
@@ -92,7 +97,7 @@ String desktopActivePath(String path) {
       path.startsWith('/group-questions')) {
     return '/dashboard';
   }
-  _NavItem? best;
+  AppNavItem? best;
   for (final section in _sections) {
     for (final item in section.items) {
       final hit = path == item.path || path.startsWith('${item.path}/');
@@ -102,16 +107,6 @@ String desktopActivePath(String path) {
     }
   }
   return best?.path ?? '';
-}
-
-String desktopTitle(String path) {
-  final active = desktopActivePath(path);
-  for (final section in _sections) {
-    for (final item in section.items) {
-      if (item.path == active) return item.label;
-    }
-  }
-  return 'SRS Đánh giá AI';
 }
 
 /// Khung trang dùng chung cho mọi màn của giảng viên.
@@ -171,13 +166,23 @@ class AppScaffold extends StatelessWidget {
 }
 
 class DesktopSidebar extends ConsumerWidget {
-  const DesktopSidebar({required this.path, super.key});
+  /// Mặc định là menu giảng viên điều hướng bằng route; màn sinh viên truyền
+  /// [sections] + [onSelect] riêng (chuyển tab, không đẩy route).
+  const DesktopSidebar({
+    required this.path,
+    this.sections,
+    this.onSelect,
+    super.key,
+  });
   final String path;
+  final List<AppNavSection>? sections;
+  final ValueChanged<String>? onSelect;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final collapsed = ref.watch(sidebarCollapsedProvider);
-    final active = desktopActivePath(path);
+    final menu = sections ?? _sections;
+    final active = sections == null ? desktopActivePath(path) : path;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       width: collapsed
@@ -237,7 +242,7 @@ class DesktopSidebar extends ConsumerWidget {
                 vertical: AppSpacing.m,
               ),
               children: [
-                for (final section in _sections) ...[
+                for (final section in menu) ...[
                   if (section.title != null)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(
@@ -263,8 +268,9 @@ class DesktopSidebar extends ConsumerWidget {
                       item: item,
                       selected: item.path == active,
                       collapsed: collapsed,
-                      onTap: () =>
-                          AppNavigation.openTopLevel(context, item.path),
+                      onTap: () => onSelect != null
+                          ? onSelect!(item.path)
+                          : AppNavigation.openTopLevel(context, item.path),
                     ),
                 ],
               ],
@@ -283,7 +289,7 @@ class _SidebarTile extends StatelessWidget {
     required this.collapsed,
     required this.onTap,
   });
-  final _NavItem item;
+  final AppNavItem item;
   final bool selected, collapsed;
   final VoidCallback onTap;
 
@@ -350,8 +356,20 @@ class _SidebarTile extends StatelessWidget {
 }
 
 class DesktopTopBar extends ConsumerWidget {
-  const DesktopTopBar({required this.path, super.key});
+  const DesktopTopBar({
+    required this.path,
+    this.onInbox,
+    this.onProfile,
+    this.fallbackName = 'Giảng viên',
+    this.inboxBadge = 0,
+    super.key,
+  });
   final String path;
+  final VoidCallback? onInbox, onProfile;
+  final String fallbackName;
+
+  /// Số thông báo chưa đọc hiện trên nút hộp thư; 0 = ẩn.
+  final int inboxBadge;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -361,7 +379,7 @@ class DesktopTopBar extends ConsumerWidget {
     final user = firebaseReady ? ref.watch(currentUserProvider).value : null;
     final name = (user?.displayName.trim().isNotEmpty ?? false)
         ? user!.displayName.trim()
-        : (user?.email ?? 'Giảng viên');
+        : (user?.email ?? fallbackName);
     return Container(
       height: AppMetrics.desktopTopBarHeight,
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
@@ -372,19 +390,21 @@ class DesktopTopBar extends ConsumerWidget {
       child: Row(
         spacing: AppSpacing.m,
         children: [
-          Expanded(
-            child: Text(
-              desktopTitle(path),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.header,
-            ),
-          ),
+          // Tiêu đề trang đã có trong thân trang; top bar không lặp lại.
+          const Spacer(),
           IconButton(
-            tooltip: 'Thông báo',
-            onPressed: () =>
-                AppNavigation.openTopLevel(context, '/notifications'),
-            icon: const AppIcon('inbox', color: AppColors.ink),
+            tooltip: inboxBadge > 0
+                ? 'Thông báo ($inboxBadge chưa đọc)'
+                : 'Thông báo',
+            onPressed:
+                onInbox ??
+                () => AppNavigation.openTopLevel(context, '/notifications'),
+            icon: Badge(
+              isLabelVisible: inboxBadge > 0,
+              backgroundColor: AppColors.danger,
+              label: Text('$inboxBadge'),
+              child: const AppIcon('inbox', color: AppColors.ink),
+            ),
           ),
           if (user != null) AppBadge(user.roleLabel, tone: 'brand'),
           ConstrainedBox(
@@ -398,12 +418,14 @@ class DesktopTopBar extends ConsumerWidget {
           ),
           InkWell(
             customBorder: const CircleBorder(),
-            onTap: () => AppNavigation.openTopLevel(context, '/profile'),
+            onTap:
+                onProfile ??
+                () => AppNavigation.openTopLevel(context, '/profile'),
             child: CircleAvatar(
               radius: AppMetrics.avatarRadius,
               backgroundColor: AppColors.brand,
               child: Text(
-                user?.initials ?? 'GV',
+                user?.initials ?? fallbackName.substring(0, 1),
                 style: AppTypography.badge.copyWith(color: AppColors.white),
               ),
             ),

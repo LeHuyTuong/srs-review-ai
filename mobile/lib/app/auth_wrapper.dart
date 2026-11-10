@@ -5,7 +5,8 @@ import 'package:srs_review_ai_mobile/features/account/presentation/views/login_s
 import 'package:srs_review_ai_mobile/features/account/presentation/viewmodels/login_view_model.dart';
 import 'package:srs_review_ai_mobile/features/dashboard/presentation/views/dashboard_screen.dart';
 import 'package:srs_review_ai_mobile/features/account/presentation/viewmodels/current_user_view_model.dart';
-import 'package:srs_review_ai_mobile/features/student/presentation/views/student_upload_screen.dart';
+import 'package:srs_review_ai_mobile/features/account/data/repositories/current_user_repository.dart';
+import 'package:srs_review_ai_mobile/features/student/presentation/views/student_home_screen.dart';
 
 class AuthWrapper extends ConsumerWidget {
   const AuthWrapper({super.key});
@@ -20,10 +21,13 @@ class AuthWrapper extends ConsumerWidget {
       if (auth.status == AuthStatus.authenticated) {
         final profile = ref.watch(currentUserProvider);
         return profile.when(
-          loading: () => const DashboardScreen(),
+          // Chưa biết role thì chưa dựng màn GV, để SV không thấy UI GV chớp qua.
+          loading: () => const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          ),
           error: (_, _) => const DashboardScreen(),
-          data: (user) => user?.role.trim().toLowerCase() == 'student'
-              ? const StudentUploadScreen()
+          data: (user) => user != null && isStudentRole(user.role)
+              ? const StudentHomeScreen()
               : const DashboardScreen(),
         );
       }

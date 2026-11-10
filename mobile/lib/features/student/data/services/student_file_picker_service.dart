@@ -29,10 +29,10 @@ class StudentFilePickerService {
 
   static Future<PlatformFile?> _showPicker(List<String> allowedExtensions) =>
       FilePicker.pickFile(
-    dialogTitle: 'Chọn tài liệu SRS',
-    type: FileType.custom,
-    allowedExtensions: allowedExtensions,
-  );
+        dialogTitle: 'Chọn tài liệu SRS',
+        type: FileType.custom,
+        allowedExtensions: allowedExtensions,
+      );
 
   Future<PickedStudentSrsFile?> pickSrsFile({
     required int maxSizeBytes,
@@ -40,11 +40,16 @@ class StudentFilePickerService {
     void Function(String message)? onStatus,
   }) async {
     final allowed = allowedExtensions
-        .map((extension) => extension.trim().toLowerCase().replaceFirst(RegExp(r'^\.'), ''))
+        .map(
+          (extension) =>
+              extension.trim().toLowerCase().replaceFirst(RegExp(r'^\.'), ''),
+        )
         .where(const {'pdf', 'docx', 'md'}.contains)
         .toSet();
     if (allowed.isEmpty) {
-      throw const StudentFileException('Chưa cấu hình định dạng tệp được phép.');
+      throw const StudentFileException(
+        'Chưa cấu hình định dạng tệp được phép.',
+      );
     }
     final file = await _picker(allowed.toList(growable: false));
     if (file == null) return null;

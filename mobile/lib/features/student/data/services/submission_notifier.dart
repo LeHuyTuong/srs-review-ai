@@ -16,6 +16,17 @@ import 'package:srs_review_ai_mobile/core/di/sync_providers.dart';
 /// ghi đã nằm trên Firestore và giảng viên vẫn thấy trong mục Tài liệu.
 abstract class SubmissionNotifier {
   Future<bool> notifyTeachers(String submissionId);
+
+  /// Báo server đẩy thông báo quyết định duyệt cho học viên của bài nộp thật.
+  ///
+  /// `decision` là `supervisorStatus` mới (`approved`/`needsRevision`/
+  /// `notAccepted`), `reason` là lý do giảng viên nhập. Thất bại không làm hỏng
+  /// quyết định đã lưu: chỉ ghi log và trả `false`.
+  Future<bool> notifyStudentDecision({
+    required String submissionId,
+    required String decision,
+    required String reason,
+  });
 }
 
 class HttpSubmissionNotifier implements SubmissionNotifier {
@@ -31,13 +42,26 @@ class HttpSubmissionNotifier implements SubmissionNotifier {
   final http.Client _client;
 
   @override
-  Future<bool> notifyTeachers(String submissionId) async {
+  Future<bool> notifyTeachers(String submissionId) =>
+      _post('/notifications/submission', {'submissionId': submissionId});
+
+  @override
+  Future<bool> notifyStudentDecision({
+    required String submissionId,
+    required String decision,
+    required String reason,
+  }) => _post('/notifications/decision', {
+    'submissionId': submissionId,
+    'decision': decision,
+    'reason': reason,
+  });
+
+  // Gửi một lệnh thông báo kèm Firebase ID token; lỗi mạng trả false, không ném.
+  Future<bool> _post(String suffix, Map<String, Object?> body) async {
     try {
       final token = await idToken();
       if (token == null) return false;
-      final path =
-          '${baseUri.path.replaceFirst(RegExp(r'/$'), '')}'
-          '/notifications/submission';
+      final path = '${baseUri.path.replaceFirst(RegExp(r'/$'), '')}$suffix';
       final response = await _client
           .post(
             baseUri.replace(path: path),
@@ -45,7 +69,7 @@ class HttpSubmissionNotifier implements SubmissionNotifier {
               'content-type': 'application/json',
               'authorization': 'Bearer $token',
             },
-            body: jsonEncode({'submissionId': submissionId}),
+            body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 35));
       return response.statusCode >= 200 && response.statusCode < 300;
@@ -61,6 +85,12 @@ class DisabledSubmissionNotifier implements SubmissionNotifier {
   const DisabledSubmissionNotifier();
   @override
   Future<bool> notifyTeachers(String submissionId) async => false;
+  @override
+  Future<bool> notifyStudentDecision({
+    required String submissionId,
+    required String decision,
+    required String reason,
+  }) async => false;
 }
 
 Uri? _notificationBaseUri() {

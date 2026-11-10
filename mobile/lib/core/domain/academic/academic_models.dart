@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:srs_review_ai_mobile/core/domain/academic/project_context.dart';
+import 'package:srs_review_ai_mobile/core/domain/relative_time.dart';
 
 part 'management_queries.dart';
 part 'review_policy.dart';
@@ -333,7 +334,9 @@ class AcademicSnapshot extends AcademicRecord {
                       }
                     : null,
               },
+              // Tính từ giờ gửi thật; chuỗi seed chỉ còn là dự phòng cho bản ghi thiếu mốc.
               'relativeTime':
+                  RelativeTime.label(r.integer('requestedTs')) ??
                   ((data['presentation'] as Map)['reviews']
                       as Map)[r.id]?['relativeTime'] ??
                   'Vừa xong',

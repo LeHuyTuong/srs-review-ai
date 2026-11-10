@@ -1,3 +1,4 @@
+import 'package:srs_review_ai_mobile/core/state/academic_changes.dart';
 import 'package:srs_review_ai_mobile/features/demo/data/repositories/demo_counter_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
@@ -72,12 +73,15 @@ final academicServiceProvider = Provider<FakeAcademicService>(
 
 /// Shared Firestore service for live academic data and the dashboard projection.
 final firestoreAcademicServiceProvider = Provider<FirebaseAcademicService>(
-  (ref) => FirebaseAcademicService(
-    ref.watch(firebaseInitializedProvider)
-        ? ref.watch(firestoreProvider)
-        : null,
-    syncOutbox: ref.watch(offlineAcademicStoreProvider),
-  ),
+  (ref) =>
+      FirebaseAcademicService(
+          ref.watch(firebaseInitializedProvider)
+              ? ref.watch(firestoreProvider)
+              : null,
+          syncOutbox: ref.watch(offlineAcademicStoreProvider),
+        )
+        ..onRemoteChange = () =>
+            ref.read(academicRemoteChangesProvider.notifier).applied(),
 );
 // Tách thao tác chọn tệp và sao chép khỏi ViewModel để thay thế được khi kiểm thử.
 final studentImportServiceProvider = Provider<StudentDeviceGateway>(

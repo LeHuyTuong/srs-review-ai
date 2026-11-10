@@ -7,7 +7,7 @@ models, so a drift on either side turns red in CI.
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -67,6 +67,27 @@ class Strict(BaseModel):
 # --------------------------- requests ---------------------------
 
 
+class ReviewCriterion(Strict):
+    """The lecturer's rubric row this unit is judged against (additive, 2026-11-10).
+
+    Without it the model scores the text with the server's generic SRS-sentence
+    checklist, which is why every criterion of a lecturer rubric came back with
+    the same "split this into singular requirements" advice. With it the model
+    answers the lecturer's question: does this document meet THIS criterion.
+    """
+
+    id: str = Field(min_length=1, max_length=80)
+    name: str = Field(min_length=1, max_length=500)
+    description: str | None = Field(default=None, max_length=2000)
+    evidence: str | None = Field(
+        default=None, max_length=1000, description="What evidence the lecturer expects to see."
+    )
+    max_score: float | None = Field(default=None, ge=0)
+
+
+OutputLanguage = Literal["en", "vi"]
+
+
 class ReviewRequest(Strict):
     requirement_id: str = Field(min_length=1)
     text: str = Field(min_length=1, description="Verbatim requirement text parsed by the app.")
@@ -75,6 +96,10 @@ class ReviewRequest(Strict):
     image_b64: str | None = Field(
         default=None,
         description="Optional PNG of the requirement's page (images = context only, never scored).",
+    )
+    criterion: ReviewCriterion | None = None
+    output_language: OutputLanguage | None = Field(
+        default=None, description="Language of `suggestion`/`context_note`; quotes stay verbatim."
     )
 
 
@@ -97,6 +122,8 @@ class BatchReviewUnit(Strict):
     text: str = Field(min_length=1)
     section: str | None = None
     page_index: int | None = Field(default=None, ge=0)
+    criterion: ReviewCriterion | None = None
+    output_language: OutputLanguage | None = None
 
 
 class BatchReviewRequest(Strict):

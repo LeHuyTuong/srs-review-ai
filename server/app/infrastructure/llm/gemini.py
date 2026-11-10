@@ -30,6 +30,12 @@ _RETRYABLE = {408, 429, 500, 502, 503, 504}
 _COOLDOWN_STATUS = {429, 503}
 # A 503 is the service talking, not one model's bucket.
 _SERVICE_WIDE_STATUS = {503}
+# 401/403 refuse a KEY, not the request: measured 2026-11-10, two of six keys
+# passed GET /models but got 403 "free tier is not available for this project"
+# on generateContent, and the whole batch died while four keys were healthy.
+# Park such a key for hours — it does not recover until someone adds billing.
+_KEY_REFUSED_STATUS = {401, 403}
+_KEY_REFUSED_COOLDOWN_S = 6 * 3600.0
 # Google's RetryInfo detail says e.g. "retryDelay": "7s" (sometimes "1.5s").
 _RETRY_DELAY = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*s?\s*$")
 
@@ -165,6 +171,14 @@ class GeminiProvider:
                         fingerprint(key),
                         len(self._ring.cooling()),
                         len(self._ring),
+                    )
+                    continue
+                if exc.status in _KEY_REFUSED_STATUS and len(self._ring) > 1 and self._ring.available() > 1:
+                    self._ring.penalize(key, _KEY_REFUSED_COOLDOWN_S)
+                    log.warning(
+                        "gemini key %s refused (HTTP %s); parked, rotating",
+                        fingerprint(key),
+                        exc.status,
                     )
                     continue
                 used += 1

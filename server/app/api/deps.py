@@ -135,20 +135,12 @@ def caller_identity(
     if authorization:
         scheme, separator, token = authorization.partition(" ")
         if scheme.lower() == "bearer" and separator and token.strip():
-            from firebase_admin import auth
+            from ..core.firebase_auth import decode_id_token
 
-            from ..core.firebase_auth import _get_firebase_app
-
-            firebase_app = _get_firebase_app(settings)
-            try:
-                decoded = auth.verify_id_token(token.strip(), app=firebase_app)
-                return {"uid": decoded.get("uid", "firebase_user"), "auth_type": "firebase"}
-            except Exception as exc:
-                raise HTTPException(
-                    status_code=401,
-                    detail="Firebase ID token is invalid or expired.",
-                    headers={"WWW-Authenticate": "Bearer"},
-                ) from exc
+            # 401 for a bad token, 503 when the server cannot verify at all —
+            # a missing key must not look like the caller's fault.
+            decoded = decode_id_token(token.strip(), settings)
+            return {"uid": decoded.get("uid", "firebase_user"), "auth_type": "firebase"}
 
     if x_app_token is not None:
         if settings.app_token and x_app_token == settings.app_token:

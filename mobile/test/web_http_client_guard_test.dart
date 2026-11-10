@@ -21,4 +21,16 @@ void main() {
     }
     expect(offenders, isEmpty);
   });
+
+  // Trên web `1 << 32` = 0 (dịch bit 32-bit) → nextInt(0) ném RangeError;
+  // đã làm nút "Nộp tài liệu" chết. VM thì ra 4294967296 nên test thường không bắt.
+  test('không dịch bit từ 32 trở lên (sai trên web)', () {
+    final shift = RegExp(r'<<\s*(3[2-9]|[4-9]\d)');
+    final offenders = <String>[];
+    for (final entity in Directory('lib').listSync(recursive: true)) {
+      if (entity is! File || !entity.path.endsWith('.dart')) continue;
+      if (shift.hasMatch(entity.readAsStringSync())) offenders.add(entity.path);
+    }
+    expect(offenders, isEmpty);
+  });
 }

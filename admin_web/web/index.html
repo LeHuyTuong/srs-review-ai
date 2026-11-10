@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <!-- Firebase chỉ cho đăng nhập Google từ domain đã cấp phép (có localhost,
+       không có 127.0.0.1) → đổi host trước khi app tải. -->
+  <script>
+    if (location.hostname === '127.0.0.1') {
+      location.replace(location.href.replace('//127.0.0.1', '//localhost'));
+    }
+  </script>
   <!--
     If you are serving your web app in a path other than the root, change the
     href value below to reflect the base path you are serving from.

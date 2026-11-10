@@ -41,6 +41,61 @@ class AppPageHeading extends StatelessWidget {
   );
 }
 
+// Dải cuộn ngang làm mờ mép còn nội dung bị che, để người dùng biết còn thẻ phía sau.
+class _EdgeFadeScroll extends StatefulWidget {
+  const _EdgeFadeScroll({required this.child});
+  final Widget child;
+  @override
+  State<_EdgeFadeScroll> createState() => _EdgeFadeScrollState();
+}
+
+class _EdgeFadeScrollState extends State<_EdgeFadeScroll> {
+  static const _fade = 32.0;
+  bool _before = false;
+  bool _after = false;
+
+  bool _update(ScrollMetrics m) {
+    final before = m.extentBefore > 0.5;
+    final after = m.extentAfter > 0.5;
+    if (before != _before || after != _after) {
+      setState(() {
+        _before = before;
+        _after = after;
+      });
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return NotificationListener<ScrollMetricsNotification>(
+      onNotification: (n) => _update(n.metrics),
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (n) => _update(n.metrics),
+        child: ShaderMask(
+          blendMode: BlendMode.dstIn,
+          shaderCallback: (rect) {
+            final edge = rect.width <= 0 ? 0.0 : (_fade / rect.width).clamp(0.0, 0.5);
+            return LinearGradient(
+              colors: [
+                _before ? Colors.transparent : Colors.black,
+                Colors.black,
+                Colors.black,
+                _after ? Colors.transparent : Colors.black,
+              ],
+              stops: [0, edge, 1 - edge, 1],
+            ).createShader(rect);
+          },
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: widget.child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // Các thẻ chọn chỉ điều khiển phần hiển thị, không xử lý nghiệp vụ học vụ.
 class AppTabs extends StatelessWidget {
   const AppTabs({
@@ -111,8 +166,7 @@ class AppTabs extends StatelessWidget {
     return segmented && expanded
         ? expandedSegments
         : segmented
-        ? SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+        ? _EdgeFadeScroll(
             child: Container(
               padding: const EdgeInsets.all(AppSpacing.xs),
               decoration: BoxDecoration(

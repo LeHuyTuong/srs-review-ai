@@ -6,7 +6,9 @@ consume ``upload://`` refs produced by the uploads router (ADR-0013).
 
 from __future__ import annotations
 
+import asyncio
 import logging
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field, ValidationError
@@ -29,6 +31,7 @@ from ..infrastructure.diagram import (
     judge_system_prompt,
     judge_user_prompt,
 )
+from ..infrastructure.drawio_review import MAX_XML_CHARS, DrawioReviewError, review_drawio
 from ..infrastructure.uploads import UploadError, UploadNotFoundError
 from . import deps
 
@@ -65,6 +68,72 @@ def _resolve_upload(uri: str) -> tuple[object, str]:
     except UploadError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return path, str(meta.get("sha256", ""))
+
+
+class DrawioReviewRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    xml: str = Field(min_length=1, max_length=MAX_XML_CHARS)
+    """Raw ``.drawio`` file content (``<mxfile>`` or ``<mxGraphModel>``)."""
+    file_name: str | None = Field(default=None, max_length=256)
+    lang: Literal["vi", "en"] = "vi"
+
+
+class DrawioFindingOut(BaseModel):
+    num: int
+    severity: Literal["error", "review"]
+    what: str
+    fix: str
+
+
+class DrawioReviewResponse(BaseModel):
+    engine: Literal["uc-review"] = "uc-review"
+    deterministic: bool = True
+    title: str
+    error_count: int
+    review_count: int
+    actors: int
+    use_cases: int
+    findings: list[DrawioFindingOut]
+    read_note: str | None = None
+    reviewed_xml: str
+    """The caller's diagram with numbered marks at each finding — open in draw.io."""
+
+
+# One tool process per CPU-ish slot: a burst of uploads must not fork-bomb the box.
+_drawio_slots = asyncio.Semaphore(2)
+
+
+@router.post(
+    "/diagram/drawio",
+    response_model=DrawioReviewResponse,
+    dependencies=[Depends(deps.require_app_token)],
+)
+async def review_drawio_file(payload: DrawioReviewRequest) -> DrawioReviewResponse:
+    """Deterministic Use Case review of a ``.drawio`` file (no LLM, no quota).
+
+    Same engine as startup-srs (vendored ``uc-review.mjs``): findings with a
+    number, severity, what and fix, plus the diagram back with marks on it.
+    """
+    async with _drawio_slots:
+        try:
+            result = await asyncio.to_thread(review_drawio, payload.xml, payload.lang)
+        except DrawioReviewError as exc:
+            if exc.status >= 500:
+                log.warning("drawio review failed (%s): %s", payload.file_name, exc.message)
+            raise HTTPException(status_code=exc.status, detail=exc.message) from exc
+    return DrawioReviewResponse(
+        title=result.title,
+        error_count=result.error_count,
+        review_count=result.review_count,
+        actors=result.actors,
+        use_cases=result.use_cases,
+        findings=[
+            DrawioFindingOut(num=f.num, severity=f.severity, what=f.what, fix=f.fix) for f in result.findings
+        ],
+        read_note=result.read_note,
+        reviewed_xml=result.reviewed_xml,
+    )
 
 
 @router.post("/diagram", response_model=DiagramResponse, dependencies=[Depends(deps.require_app_token)])

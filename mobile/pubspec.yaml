@@ -58,6 +58,7 @@ dependencies:
   share_plus: ^13.3.1
   url_launcher: ^6.3.3
   pdfx: ^2.11.0
+  crypto: ^3.0.8
 
 dev_dependencies:
   flutter_test:

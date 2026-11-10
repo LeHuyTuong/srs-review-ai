@@ -186,3 +186,6 @@ docs/evidence/video/
 
 # Flutter sinh tự động khi build macOS
 **/Flutter/ephemeral/
+
+# Video quay e2e (hàng chục MB mỗi file) — không commit
+e2e_test/videos/

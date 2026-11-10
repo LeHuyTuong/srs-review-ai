@@ -57,13 +57,13 @@ class _LoginState extends ConsumerState<LoginScreen> {
                     spacing: AppSpacing.s,
                     children: [
                       const AppIcon('files', color: AppColors.brand),
-                      Text('SRS Review AI', style: AppTypography.header),
+                      Text('SRS Đánh giá AI', style: AppTypography.header),
                       const AppBadge('AI', tone: 'olive'),
                     ],
                   ),
                   const AppPageHeading(
-                    title: 'Đăng nhập giảng viên',
-                    description: 'Đánh giá tài liệu, quản lý lớp và dự án.',
+                    title: 'Đăng nhập',
+                    description: 'Giảng viên đánh giá tài liệu; sinh viên nộp bài và xem kết quả.',
                   ),
                   if (auth.status == AuthStatus.error &&
                       auth.errorMessage != null)

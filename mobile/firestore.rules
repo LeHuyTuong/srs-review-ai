@@ -19,6 +19,20 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    // Sinh viên = hồ sơ users/{uid} có role sinh viên (admin gán; người dùng
+    // không tự đổi role được, xem match /users). Không có hồ sơ → coi như
+    // giảng viên, khớp mặc định của app (role rỗng hiển thị "Giảng viên").
+    function isStudent() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid))
+          .data.get('role', '').lower() in ['student', 'sinh viên', 'sinh vien'];
+    }
+
+    function isStaff() {
+      return signedIn() && !isStudent();
+    }
+
     // Bản ghi giám sát (crash/analytics) mang UID của người ghi, hoặc rỗng
     // khi chưa đăng nhập (ví dụ đăng nhập Google thất bại).
     function ownsMonitoringRecord() {
@@ -50,37 +64,57 @@ service cloud.firestore {
       // từ nơi khác (source = device) và đánh dấu đã đọc.
       match /inbox/{id} {
         allow read, delete: if isSelf(uid);
-        allow create: if isSelf(uid)
-          && request.resource.data.source == 'device'
-          && request.resource.data.title is string;
+        allow create: if (isSelf(uid)
+            && request.resource.data.source == 'device'
+            && request.resource.data.title is string)
+          // Giảng viên báo trạng thái bài nộp cho đúng chủ bài nộp đó.
+          || (isStaff()
+            && request.resource.data.source == 'teacher'
+            && request.resource.data.type == 'submission_status'
+            && request.resource.data.title is string
+            && request.resource.data.read == false
+            && get(/databases/$(database)/documents/submissions/$(request.resource.data.targetId))
+              .data.student_id == uid);
         allow update: if isSelf(uid)
           && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['read', 'receivedAt']);
       }
     }
 
-    // Dữ liệu học vụ dùng chung: mọi người đã đăng nhập (giảng viên trên
-    // mobile, admin web) đọc/ghi; người lạ không đọc được gì.
-    match /courses/{id} { allow read, write: if signedIn(); }
-    match /classes/{id} { allow read, write: if signedIn(); }
-    match /groups/{id} { allow read, write: if signedIn(); }
-    match /projects/{id} { allow read, write: if signedIn(); }
-    match /registrations/{id} { allow read, write: if signedIn(); }
-    match /semesters/{id} { allow read, write: if signedIn(); }
-    match /offerings/{id} { allow read, write: if signedIn(); }
-    match /ruleSets/{id} { allow read, write: if signedIn(); }
-    match /students/{id} { allow read, write: if signedIn(); }
-    match /_meta/{id} { allow read, write: if signedIn(); }
-    match /documents/{id} { allow read, write: if signedIn(); }
+    // Dữ liệu học vụ dùng chung: mọi người đã đăng nhập đọc được (sinh viên
+    // cần danh sách lớp/dự án để nộp bài), nhưng chỉ giảng viên/admin ghi.
+    match /courses/{id} { allow read: if signedIn(); allow write: if isStaff(); }
+    match /classes/{id} { allow read: if signedIn(); allow write: if isStaff(); }
+    match /groups/{id} { allow read: if signedIn(); allow write: if isStaff(); }
+    match /projects/{id} { allow read: if signedIn(); allow write: if isStaff(); }
+    match /registrations/{id} { allow read: if signedIn(); allow write: if isStaff(); }
+    match /semesters/{id} { allow read: if signedIn(); allow write: if isStaff(); }
+    match /offerings/{id} { allow read: if signedIn(); allow write: if isStaff(); }
+    match /ruleSets/{id} { allow read: if signedIn(); allow write: if isStaff(); }
+    match /students/{id} { allow read: if signedIn(); allow write: if isStaff(); }
+    match /_meta/{id} { allow read: if signedIn(); allow write: if isStaff(); }
+    match /documents/{id} { allow read: if signedIn(); allow write: if isStaff(); }
 
-    // Bài nộp: chỉ tạo cho chính mình; không ai sửa/xoá từ client.
+    // Bài nộp: chỉ tạo cho chính mình; không ai xoá từ client.
     match /submissions/{id} {
       allow create: if signedIn()
         && request.resource.data.student_id == request.auth.uid
         && request.resource.data.file_url is string
         && request.resource.data.file_name is string;
-      allow read: if signedIn();
-      allow update, delete: if false;
+      // Sinh viên chỉ đọc bài của mình (truy vấn phải lọc student_id).
+      allow read: if isStaff() || resource.data.student_id == request.auth.uid;
+      // Giảng viên chỉ ghi trạng thái duyệt, không sửa tệp hay chủ bài.
+      allow update: if isStaff()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'review_id', 'status_updated_at',
+          'decision', 'decision_reason', 'decided_at', 'decided_by'
+        ])
+        && request.resource.data.status in ['queued', 'reviewing', 'reviewed']
+        && request.resource.data.get('decision', '')
+          in ['', 'approved', 'needsRevision', 'notAccepted']
+        && request.resource.data.get('decided_by', request.auth.uid)
+          == request.auth.uid;
+      allow delete: if false;
     }
 
     match /srs_reports/{id} {

@@ -48,10 +48,12 @@ class AcademicPage extends ConsumerWidget {
                   maxWidth: AppLayout.contentMaxWidth(context),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.pagePadding,
-                    AppSpacing.pageTop,
-                    AppSpacing.pagePadding,
+                  padding: EdgeInsets.fromLTRB(
+                    AppLayout.pagePadding(context),
+                    AppLayout.isDesktop(context)
+                        ? AppSpacing.xl
+                        : AppSpacing.pageTop,
+                    AppLayout.pagePadding(context),
                     AppSpacing.xxl,
                   ),
                   child: Column(

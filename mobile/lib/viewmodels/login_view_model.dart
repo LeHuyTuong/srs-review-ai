@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart' show ChangeNotifierProvider;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:srs_review_ai_mobile/core/di/data_providers.dart';
 import 'package:srs_review_ai_mobile/core/di/sync_providers.dart';
@@ -16,6 +18,13 @@ enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
 
 enum LoginResult { authenticated, cancelled, failed }
 
+/// Đọc `users/{uid}.role`; null khi chưa có hồ sơ hoặc Firebase chưa khởi tạo.
+Future<String?> _firestoreRoleOf(String uid) async {
+  if (Firebase.apps.isEmpty) return null;
+  final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+  return doc.data()?['role'] as String?;
+}
+
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 
 final loginViewModelProvider = ChangeNotifierProvider<LoginViewModel>(
@@ -24,6 +33,7 @@ final loginViewModelProvider = ChangeNotifierProvider<LoginViewModel>(
     session: ref.read(sessionProvider.notifier),
     analytics: ref.watch(analyticsServiceProvider),
     crashlytics: ref.watch(crashlyticsServiceProvider),
+    roleOf: _firestoreRoleOf,
     clearLocalData: () async {
       final store = ref.read(offlineAcademicStoreProvider);
       if (store == null) return;
@@ -47,6 +57,7 @@ class LoginViewModel extends ChangeNotifier {
     required this.session,
     required this.analytics,
     required this.crashlytics,
+    this.roleOf,
     this.clearLocalData,
   }) {
     try {
@@ -84,6 +95,9 @@ class LoginViewModel extends ChangeNotifier {
   final AnalyticsService analytics;
   final CrashlyticsService crashlytics;
 
+  /// Đọc vai trò lưu ở `users/{uid}`; null thì không kiểm (test, chưa có Firebase).
+  final Future<String?> Function(String uid)? roleOf;
+
   /// Xoá dữ liệu người dùng lưu trên máy (SQLite); null trên web/test.
   final Future<void> Function()? clearLocalData;
   StreamSubscription<User?>? _authSubscription;
@@ -107,7 +121,7 @@ class LoginViewModel extends ChangeNotifier {
         _setStatus(AuthStatus.unauthenticated);
         return LoginResult.cancelled;
       }
-      _setAuthenticated(user);
+      if (!await _admit(user)) return LoginResult.failed;
       // Chỉ ghi `login` khi người dùng thực sự đăng nhập, không ghi khi
       // khôi phục phiên cũ lúc mở app.
       // Gắn UID trước để chính sự kiện login cũng mang user ID.
@@ -160,7 +174,19 @@ class LoginViewModel extends ChangeNotifier {
       _setStatus(AuthStatus.unauthenticated);
       return;
     }
+    unawaited(_admit(user));
+  }
+
+  /// Cả giảng viên lẫn sinh viên đều vào; AuthWrapper chọn màn theo role.
+  /// Vẫn đọc role trước để lỗi đọc hồ sơ được ghi lên Crashlytics.
+  Future<bool> _admit(User user) async {
+    try {
+      await roleOf?.call(user.uid);
+    } catch (error, stackTrace) {
+      _reportError(error, stackTrace, 'role_lookup_failed', 'role_lookup');
+    }
     _setAuthenticated(user);
+    return true;
   }
 
   void _setAuthenticated(User user) {

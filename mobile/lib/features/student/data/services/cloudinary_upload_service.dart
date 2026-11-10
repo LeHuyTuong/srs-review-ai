@@ -17,6 +17,9 @@ class CloudinaryUploadService {
 
   final http.Client _client;
 
+  /// Giá trị lớn nhất an toàn cho nextInt trên cả VM lẫn web.
+  static const _boundaryMax = 0x7fffffff;
+
   Future<Uri> upload({
     required Uint8List bytes,
     required String fileName,
@@ -24,8 +27,13 @@ class CloudinaryUploadService {
     void Function(double progress)? onProgress,
   }) async {
     const cloudNameDefine = String.fromEnvironment('CLOUDINARY_CLOUD_NAME');
-    const uploadPresetDefine = String.fromEnvironment('CLOUDINARY_UPLOAD_PRESET');
-    final cloudName = _configuredValue('CLOUDINARY_CLOUD_NAME', cloudNameDefine);
+    const uploadPresetDefine = String.fromEnvironment(
+      'CLOUDINARY_UPLOAD_PRESET',
+    );
+    final cloudName = _configuredValue(
+      'CLOUDINARY_CLOUD_NAME',
+      cloudNameDefine,
+    );
     final uploadPreset = _configuredValue(
       'CLOUDINARY_UPLOAD_PRESET',
       uploadPresetDefine,
@@ -36,13 +44,16 @@ class CloudinaryUploadService {
       );
     }
 
-    final boundary = '----srs${Random.secure().nextInt(1 << 32)}';
+    // Không dịch bit 1 sang trái 32 lần: trên web phép dịch là 32-bit nên ra 0 và
+    // nextInt(0) ném RangeError ngay khi bấm "Nộp tài liệu".
+    final random = Random.secure();
+    final boundary =
+        '----srs${random.nextInt(_boundaryMax)}${random.nextInt(_boundaryMax)}';
     final request = http.StreamedRequest(
       'POST',
       Uri.https('api.cloudinary.com', '/v1_1/$cloudName/auto/upload'),
     );
-    request.headers['content-type'] =
-        'multipart/form-data; boundary=$boundary';
+    request.headers['content-type'] = 'multipart/form-data; boundary=$boundary';
 
     final bodyBuilder = BytesBuilder(copy: false);
     void writeAscii(String value) => bodyBuilder.add(utf8.encode(value));
@@ -90,8 +101,12 @@ class CloudinaryUploadService {
     final decoded = jsonDecode(body);
     final url = decoded is Map<String, dynamic> ? decoded['secure_url'] : null;
     final uri = url is String ? Uri.tryParse(url) : null;
-    if (uri == null || uri.scheme != 'https' || uri.host != 'res.cloudinary.com') {
-      throw const CloudinaryUploadException('Cloudinary không trả về URL hợp lệ.');
+    if (uri == null ||
+        uri.scheme != 'https' ||
+        uri.host != 'res.cloudinary.com') {
+      throw const CloudinaryUploadException(
+        'Cloudinary không trả về URL hợp lệ.',
+      );
     }
     onProgress?.call(1.0);
     return uri;
@@ -107,9 +122,13 @@ class CloudinaryUploadService {
   String _safeName(String name) =>
       name.split(RegExp(r'[/\\]')).last.replaceAll('"', '_');
 
-  String _contentType(String name) => switch (name.split('.').last.toLowerCase()) {
+  String _contentType(String name) => switch (name
+      .split('.')
+      .last
+      .toLowerCase()) {
     'pdf' => 'application/pdf',
-    'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'docx' =>
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'md' => 'text/markdown',
     _ => 'application/octet-stream',
   };
@@ -122,6 +141,8 @@ class CloudinaryUploadException implements Exception {
   String toString() => message;
 }
 
-final cloudinaryUploadServiceProvider = Provider<CloudinaryUploadService>((ref) {
+final cloudinaryUploadServiceProvider = Provider<CloudinaryUploadService>((
+  ref,
+) {
   return CloudinaryUploadService();
 });

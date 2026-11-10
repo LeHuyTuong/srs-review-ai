@@ -88,7 +88,7 @@ class Settings(BaseSettings):
     """When true the proxy answers from server/app/mock/*.json — no network at all.
     This is the demo safety net (research 05, day 3 / AC4)."""
 
-    prompt_version: str = "p5"
+    prompt_version: str = "p6"
     """Part of the cache key: bumping it invalidates cached reviews.
     p2 (2026-09-21): unit-type briefings added to the review user prompt.
     p3 (2026-09-25): the hardcoded evaluation checklist moved OUT of prompt.py

@@ -115,3 +115,20 @@ Model chuyển sang `gemini/gemini-3.6-flash` cho lượt sau (bản DeepSeek: `
   với `--profile`/`--release` trước khi kết luận là lỗi app.
 - Lỗi runner: hết giờ phía client không dừng task trên daemon → `aba6d266` vẫn chạy và runner force-stop
   app giữa chừng. Đã sửa: `run_suite.py` gọi `stop_running()` khi `client.run` ném lỗi.
+
+## 07/11/2026 00:40 — Bộ flow, lượt 4: FL02–FL08 × 1 trên Xiaomi (DeepSeek)
+
+| Flow | Kết quả | Giây | Trace | Ghi chú |
+|---|---|---|---|---|
+| FL01 | FAIL | 900 | `aba6d266` | lượt 3: app ANR, hết giờ |
+| FL02 | FAIL | 181 | `25ec65bd` | chặn lưu đúng (14→14) nhưng **không hiện lỗi** (`error_text: ""`) |
+| FL03 | PASS | 303 | `c5aa2716` | |
+| FL04 | FAIL | 213 | `727ec969` | luồng đúng (điểm 78, chờ 6→5); app ghi `Đã phê duyệt` (kỳ vọng viết sai `Đã duyệt`); **0 `POST /review` trong log FastAPI** |
+| FL05 | PASS | 868 | `eda88b49` | |
+| FL06 | FAIL | 1200 | — | hết giờ, runner đã dừng task (bản sửa hoạt động) |
+| FL07 | FAIL | 900 | — | hết giờ, không có báo cáo |
+| FL08 | PASS | 293 | `1b0ec1fe` | Back hệ thống giữ bộ lọc `Hạn nộp`, app không thoát |
+
+Tỉ lệ: 3/8 PASS. Trong 5 FAIL: 3 lượt hết giờ (FL01, FL06, FL07) chưa cho biết app đúng hay sai;
+FL04 có 1 kỳ vọng sai chữ cần sửa trong `flows.py`; còn lại 2 điểm cần quyết: app không gọi FastAPI `/review`
+khi AI review (điểm lấy từ đâu?) và form tạo dự án không báo lỗi khi trống tên.

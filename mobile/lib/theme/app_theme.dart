@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:srs_review_ai_mobile/theme/app_colors.dart';
+import 'package:srs_review_ai_mobile/theme/app_page_transitions.dart';
 import 'package:srs_review_ai_mobile/theme/app_radius.dart';
 import 'package:srs_review_ai_mobile/theme/app_spacing.dart';
 import 'package:srs_review_ai_mobile/theme/app_typography.dart';
@@ -18,6 +19,7 @@ abstract final class AppTheme {
     useMaterial3: true,
     fontFamily: AppTypography.fontFamily,
     scaffoldBackgroundColor: AppColors.canvas,
+    pageTransitionsTheme: appPageTransitionsTheme(),
     colorScheme: const ColorScheme.light(
       primary: AppColors.brand,
       onPrimary: AppColors.white,

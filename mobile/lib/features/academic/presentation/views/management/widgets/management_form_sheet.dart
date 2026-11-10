@@ -30,33 +30,47 @@ class ManagementFormSheet extends ConsumerWidget {
     return AppSheetLayout(
       title: vm.title,
       description: vm.description,
-      footer: Row(
+      // Lý do nút lưu bị khoá nằm ngay trên nút: để cuối form cuộn thì người dùng bấm
+      // nút mờ mà không thấy vì sao (FL02 trên máy thật, 10/11/2026).
+      footer: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: AppSpacing.s,
         children: [
-          AppButton(
-            label: 'Hủy',
-            variant: AppButtonVariant.secondary,
-            onPressed: state.saving
-                ? null
-                : () => Navigator.pop(context, false),
-          ),
-          Flexible(
-            child: AppButton(
-              label: vm.saveLabel,
-              loading: state.saving,
-              onPressed: vm.invalid != null
-                  ? null
-                  : () async {
-                      if (await vm.save() && context.mounted) {
-                        if (spec.kind == 'semester') {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Đã lưu học kỳ')),
-                          );
-                        }
-                        Navigator.pop(context, true);
-                      }
-                    },
+          if (vm.invalid != null && !state.saving)
+            Semantics(
+              liveRegion: true,
+              child: Text(vm.invalid!, style: AppTypography.muted),
             ),
+          Row(
+            spacing: AppSpacing.s,
+            children: [
+              AppButton(
+                label: 'Hủy',
+                variant: AppButtonVariant.secondary,
+                onPressed: state.saving
+                    ? null
+                    : () => Navigator.pop(context, false),
+              ),
+              Flexible(
+                child: AppButton(
+                  label: vm.saveLabel,
+                  loading: state.saving,
+                  onPressed: vm.invalid != null
+                      ? null
+                      : () async {
+                          if (await vm.save() && context.mounted) {
+                            if (spec.kind == 'semester') {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Đã lưu học kỳ')),
+                              );
+                            }
+                            Navigator.pop(context, true);
+                          }
+                        },
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -65,7 +79,8 @@ class ManagementFormSheet extends ConsumerWidget {
         if (spec.kind == 'member' && vm.availableMembers.isEmpty)
           const AppEmptyState(
             title: 'Không còn sinh viên chưa có nhóm',
-            description: 'Nhập thêm sinh viên vào lớp hoặc xóa sinh viên khỏi nhóm khác.',
+            description:
+                'Nhập thêm sinh viên vào lớp hoặc xóa sinh viên khỏi nhóm khác.',
           ),
         if (spec.kind == 'project')
           ProjectFormFields(spec: spec)
@@ -125,7 +140,6 @@ class ManagementFormSheet extends ConsumerWidget {
             'Chỉ phản hồi được chọn và phản hồi tổng quan của yêu cầu chỉnh sửa được công bố. Phản hồi bỏ chọn vẫn là bản nháp, không hiển thị cho Sinh viên. AI không thay Giảng viên xác nhận.',
           ),
         ],
-        if (vm.invalid != null && !state.saving) AppNotice(vm.invalid!),
         if (state.saveError.isNotEmpty) AppNotice(state.saveError, error: true),
       ],
     );

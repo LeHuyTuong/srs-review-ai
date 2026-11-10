@@ -5,6 +5,7 @@ import 'package:srs_review_ai_mobile/features/academic/presentation/views/manage
 import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/ai_review_panel.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/views/management/widgets/management_filter_bar.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/viewmodels/management_list_view_model.dart';
+import 'package:srs_review_ai_mobile/core/domain/academic/version_comparison.dart';
 
 // Màn kết quả dùng lại bảng AI của màn đánh giá để thống nhất cách trình bày điểm.
 class AiResultScreen extends StatelessWidget {
@@ -239,6 +240,16 @@ class VersionHistoryScreen extends ConsumerWidget {
               ],
             ),
           ),
+          VersionScoreCompare(
+            comparison: VersionComparison.of(
+              s,
+              reviewId,
+              list[selected - 1].text('version'),
+              list[selected].text('version'),
+            ),
+            olderLabel: list[selected - 1].text('version'),
+            newerLabel: list[selected].text('version'),
+          ),
         ],
         AppButton(
           label: 'Xem lịch sử đánh giá',
@@ -409,4 +420,81 @@ class ReviewHistoryIndexScreen extends ConsumerWidget {
       ];
     },
   );
+}
+
+/// Điểm AI theo từng tiêu chí: bản cũ → bản mới, để giảng viên thấy bản nộp lại
+/// đã sửa được gì thay vì chấm lại từ đầu.
+class VersionScoreCompare extends StatelessWidget {
+  const VersionScoreCompare({
+    required this.comparison,
+    required this.olderLabel,
+    required this.newerLabel,
+    super.key,
+  });
+
+  final VersionComparison comparison;
+  final String olderLabel, newerLabel;
+
+  static String _n(num? v) => v == null
+      ? '—'
+      : (v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1));
+
+  @override
+  Widget build(BuildContext context) {
+    final c = comparison;
+    if (!c.comparable) {
+      final missing = [
+        if (c.older == null) olderLabel,
+        if (c.newer == null) newerLabel,
+      ].join(' và ');
+      return AppNotice(
+        'Chưa so sánh được điểm: $missing chưa có lượt Đánh giá AI hoàn tất.',
+      );
+    }
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: AppSpacing.m,
+        children: [
+          Text('So sánh điểm AI', style: AppTypography.ruleHeading),
+          Text(
+            'Tổng: ${_n(c.scoreBefore)} → ${_n(c.scoreAfter)} / ${_n(c.maxScore)}'
+            ' · ${c.improved} tiêu chí tăng · ${c.worse} giảm · ${c.unchanged} giữ nguyên',
+            style: AppTypography.strong,
+          ),
+          for (final row in c.rows)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: AppSpacing.s,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${row.criterionId} · ${row.name}'),
+                      Text(
+                        row.findingsBefore < 0
+                            ? 'Tiêu chí mới ở $newerLabel'
+                            : row.findingsAfter < 0
+                            ? 'Không còn trong rubric của $newerLabel'
+                            : 'Phát hiện: ${row.findingsBefore} → ${row.findingsAfter}',
+                        style: AppTypography.muted,
+                      ),
+                    ],
+                  ),
+                ),
+                AppBadge(
+                  '${_n(row.before)} → ${_n(row.after)}/${_n(row.maxScore)}',
+                  tone: switch (row.trend) {
+                    'up' => 'olive',
+                    'down' => 'danger',
+                    _ => 'neutral',
+                  },
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
 }

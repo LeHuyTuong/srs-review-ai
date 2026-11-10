@@ -23,6 +23,7 @@ class AppStatusBadge extends StatelessWidget {
               'archived': 'Đã lưu trữ',
               'notStarted': 'Chưa bắt đầu',
               'submissionLocked': 'Khóa gửi đánh giá',
+              'locked': 'Khóa gửi đánh giá',
             }[status] ??
             status,
         tone:

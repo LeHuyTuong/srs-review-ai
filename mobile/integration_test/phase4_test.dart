@@ -188,7 +188,8 @@ void main() {
       // Android Back at the signed-out root exits the Activity. Back isolation
       // is covered in widget tests; keep this Activity alive to submit evidence.
       expect(find.byType(AppBottomNavigation), findsNothing);
-      expect(find.text('Đăng nhập giảng viên'), findsOneWidget);
+      expect(find.text('Đăng nhập'), findsOneWidget);
+      expect(find.text('Đăng nhập giảng viên'), findsNothing);
       expect(find.text('Sinh viên'), findsNothing);
       expect(
         () => c

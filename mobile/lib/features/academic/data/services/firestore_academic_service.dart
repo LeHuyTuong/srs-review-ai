@@ -89,6 +89,48 @@ class FirebaseAcademicService {
 
   bool get _inMemoryTestBackend => _testHooksEnabled && !_available;
 
+  /// Kiểm thử: revision đang nằm trên server (`_meta/snapshot`). null = không
+  /// mô phỏng server, claim luôn qua.
+  int? serverRevisionForTest;
+
+  static const _conflict = AcademicFailure(
+    'Dữ liệu đã thay đổi. Đóng form và mở lại để tiếp tục.',
+    code: AcademicErrorCode.conflict,
+  );
+
+  /// Chiếm revision kế tiếp bằng transaction trên `_meta/snapshot`.
+  /// Cache của thiết bị có thể cũ (app nền, offline, listener chưa kịp về),
+  /// nên so với cache thôi là để máy ghi sau đè mất reviewState máy kia vừa
+  /// ghi. Mất mạng thì giữ hành vi cũ (ghi hoãn) thay vì chặn lưu offline.
+  Future<void> _claimRevision(int expected, int next) async {
+    if (_inMemoryTestBackend) {
+      final server = serverRevisionForTest;
+      if (server == null) return;
+      if (server != expected) throw _conflict;
+      serverRevisionForTest = next;
+      return;
+    }
+    if (!_available) return;
+    final meta = _firestore!.collection('_meta').doc('snapshot');
+    var stale = false;
+    try {
+      await _firestore
+          .runTransaction<void>((tx) async {
+            final snap = await tx.get(meta);
+            final server = (snap.data()?['revision'] as num?)?.toInt();
+            if (snap.exists && server != null && server != expected) {
+              stale = true;
+              return;
+            }
+            tx.set(meta, {'revision': next}, SetOptions(merge: true));
+          })
+          .timeout(const Duration(seconds: 5));
+    } catch (error) {
+      debugPrint('Firestore revision claim deferred: $error');
+    }
+    if (stale) throw _conflict;
+  }
+
   /// Kiểm thử: bơm snapshot đã dựng sẵn làm kho trong bộ nhớ.
   void injectForTest(AcademicSnapshot snapshot) {
     _testHooksEnabled = true;
@@ -133,29 +175,36 @@ class FirebaseAcademicService {
 
     for (final name in [..._recordCollections, ..._metaCollections]) {
       subs.add(
-        _firestore!.collection(name).snapshots().listen(
-          (snap) {
-            latest[name] = [
-              for (final doc in snap.docs) {...doc.data(), 'id': doc.id},
-            ];
-            emit();
-          },
-          onError: (Object error) {
-            debugPrint('Firestore watch($name) error: $error');
-          },
-        ),
+        _firestore!
+            .collection(name)
+            .snapshots()
+            .listen(
+              (snap) {
+                latest[name] = [
+                  for (final doc in snap.docs) {...doc.data(), 'id': doc.id},
+                ];
+                emit();
+              },
+              onError: (Object error) {
+                debugPrint('Firestore watch($name) error: $error');
+              },
+            ),
       );
     }
     subs.add(
-      _firestore!.collection('_meta').doc('snapshot').snapshots().listen(
-        (doc) async {
-          metaSnapshot = await _readMeta();
-          emit();
-        },
-        onError: (Object error) {
-          debugPrint('Firestore watch(_meta) error: $error');
-        },
-      ),
+      _firestore!
+          .collection('_meta')
+          .doc('snapshot')
+          .snapshots()
+          .listen(
+            (doc) async {
+              metaSnapshot = await _readMeta();
+              emit();
+            },
+            onError: (Object error) {
+              debugPrint('Firestore watch(_meta) error: $error');
+            },
+          ),
     );
 
     controller.onCancel = () async {
@@ -170,16 +219,47 @@ class FirebaseAcademicService {
     yield* controller.stream;
   }
 
+  /// Gọi khi Firestore đẩy về dữ liệu mới sau lần tải đầu (máy khác ghi,
+  /// hoặc lượt ghi của chính máy này được server xác nhận).
+  void Function()? onRemoteChange;
+
+  StreamSubscription<AcademicSnapshot>? _live;
+  final Completer<void> _serverReady = Completer<void>();
+
+  /// Một subscription realtime sống suốt phiên. Trước đây [load] trả fixture
+  /// đóng gói và không ai nghe [watch], nên UI luôn hiện dữ liệu mẫu và mọi
+  /// lượt ghi trông như biến mất sau khi tải lại.
+  void _ensureLive() {
+    if (_live != null) return;
+    _live = watch().skip(1).listen(
+      (_) {
+        if (!_serverReady.isCompleted) {
+          _serverReady.complete();
+        } else {
+          onRemoteChange?.call();
+        }
+      },
+      onError: (Object error) =>
+          debugPrint('Firestore live academic error: $error'),
+    );
+  }
+
   Future<AcademicSnapshot> load() async {
     if (_available) {
-      final cached = _lastSnapshot;
-      if (cached != null) {
-        return _withCurrentSupervisor(cached);
+      _ensureLive();
+      if (!_serverReady.isCompleted) {
+        try {
+          await _serverReady.future.timeout(const Duration(seconds: 8));
+        } catch (error) {
+          // Offline hoặc mạng chậm: dùng bản đang có, realtime sẽ cập nhật sau.
+          debugPrint('Firestore academic load fallback: $error');
+          if (!_serverReady.isCompleted) {
+            unawaited(_serverReady.future.then((_) => onRemoteChange?.call()));
+          }
+        }
       }
-      final seed = _withCurrentSupervisor(await _readSeed());
-      _lastSnapshot = seed;
-      unawaited(ensureSeeded());
-      return seed;
+      final cached = _lastSnapshot ?? await _readSeed();
+      return _withCurrentSupervisor(cached);
     }
     return watch().first;
   }
@@ -310,7 +390,7 @@ class FirebaseAcademicService {
     Future<void> flushIfNeeded() async {
       if (pending >= 400) {
         try {
-          await batch.commit().timeout(const Duration(seconds: 3));
+          await _commitBatch(batch);
         } catch (error) {
           debugPrint('Firestore batch commit deferred: $error');
         }
@@ -335,10 +415,23 @@ class FirebaseAcademicService {
     if (revision != null) metaData['revision'] = revision;
     batch.set(meta, metaData, SetOptions(merge: true));
     try {
-      await batch.commit().timeout(const Duration(seconds: 3));
+      await _commitBatch(batch);
     } catch (error) {
       debugPrint('Firestore batch commit deferred: $error');
     }
+  }
+
+  /// Chờ tối đa 3s để không treo UI khi offline, nhưng vẫn ghi lại kết quả
+  /// thật của batch: bị rules từ chối sau timeout trước đây mất tăm.
+  Future<void> _commitBatch(WriteBatch batch) {
+    final done = batch.commit();
+    unawaited(
+      done.then(
+        (_) => debugPrint('Firestore batch committed'),
+        onError: (Object e) => debugPrint('Firestore batch FAILED: $e'),
+      ),
+    );
+    return done.timeout(const Duration(seconds: 3));
   }
 
   /// Diffs `next` against the current snapshot and writes changed docs.
@@ -365,6 +458,7 @@ class FirebaseAcademicService {
       }
     }
     final newRevision = current.revision + 1;
+    await _claimRevision(expectedRevision, newRevision);
     await _writeSnapshot(next, revision: newRevision);
     final committed = AcademicSnapshot({
       ...next.toJson(),
@@ -389,6 +483,7 @@ class FirebaseAcademicService {
     }
     final next = command.apply(current);
     final newRevision = current.revision + 1;
+    await _claimRevision(expectedRevision, newRevision);
     await _writeSnapshot(next, revision: newRevision);
     final committed = AcademicSnapshot({
       ...next.toJson(),

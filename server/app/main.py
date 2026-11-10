@@ -26,8 +26,10 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import FastAPI
+import google.auth.exceptions
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 
@@ -35,6 +37,7 @@ from .api import (
     ask,
     classes,
     diagram,
+    documents,
     health,
     notifications,
     remote_config,
@@ -157,6 +160,23 @@ _criteria = CriteriaStore(_settings.cache_dir / "criteria.sqlite3")
 # quietly roll back is not an editable scale.
 _rubric = RubricStore(_settings.cache_dir / "rubric.sqlite3")
 
+
+@app.exception_handler(google.auth.exceptions.DefaultCredentialsError)
+async def _firebase_not_configured(_: Request, exc: Exception) -> JSONResponse:
+    """No service account on this server: a config gap, not a crash (11/11/2026).
+
+    Measured on local Docker: a student submission paged teachers through
+    POST /notifications/submission and got a bare 500 + traceback, because the
+    compose override mounts no firebase-admin.json. The client cannot tell that
+    from a bug; 503 with a reason it can show is the honest answer.
+    """
+    log.warning("firebase admin credentials missing: %s", exc)
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "Firebase Admin is not configured on this server (no service account)."},
+    )
+
+
 app.include_router(health.router)
 app.include_router(health.config_router)
 app.include_router(remote_config.router)
@@ -166,6 +186,7 @@ app.include_router(review.router)
 app.include_router(ask.router)
 app.include_router(diagram.router)
 app.include_router(diagram.documents_router)
+app.include_router(documents.router)
 app.include_router(uploads.router)
 app.include_router(uploads.share_router)
 app.include_router(submissions.router)

@@ -4,206 +4,320 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:srs_review_ai_mobile/core/di/data_providers.dart';
 import 'package:srs_review_ai_mobile/core/domain/academic/academic_models.dart';
-import 'package:srs_review_ai_mobile/features/account/presentation/viewmodels/login_view_model.dart';
 import 'package:srs_review_ai_mobile/features/student/presentation/viewmodels/student_upload_view_model.dart';
 import 'package:srs_review_ai_mobile/services/remote_config_service.dart';
+import 'package:srs_review_ai_mobile/theme/app_colors.dart';
+import 'package:srs_review_ai_mobile/theme/app_metrics.dart';
+import 'package:srs_review_ai_mobile/theme/app_spacing.dart';
+import 'package:srs_review_ai_mobile/theme/app_typography.dart';
+import 'package:srs_review_ai_mobile/widgets/app_button.dart';
+import 'package:srs_review_ai_mobile/widgets/app_card.dart';
+import 'package:srs_review_ai_mobile/widgets/app_icon.dart';
+import 'package:srs_review_ai_mobile/widgets/app_states.dart';
 
-final _studentAcademicSnapshotProvider = StreamProvider<AcademicSnapshot>((ref) {
+/// Lớp/dự án cho dropdown nộp bài và để hiện tên lớp ở "Bài của tôi".
+final studentAcademicSnapshotProvider = StreamProvider<AcademicSnapshot>((ref) {
   return ref.watch(firestoreAcademicServiceProvider).watch();
 });
 
-class StudentUploadScreen extends ConsumerWidget {
-  const StudentUploadScreen({super.key});
+/// Bước 1 của sinh viên: chọn lớp, dự án, tệp rồi nộp.
+class StudentUploadPanel extends ConsumerWidget {
+  const StudentUploadPanel({this.onViewMine, super.key});
+
+  /// Mở tab "Bài của tôi" sau khi nộp xong.
+  final VoidCallback? onViewMine;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final snapshot = ref.watch(_studentAcademicSnapshotProvider);
+    final snapshot = ref.watch(studentAcademicSnapshotProvider);
     final remoteConfig =
-        ref.watch(remoteConfigValuesProvider).value ?? const RemoteConfigValues();
-    final uploadState = ref.watch(studentUploadViewModelProvider);
+        ref.watch(remoteConfigValuesProvider).value ??
+        const RemoteConfigValues();
+    final state = ref.watch(studentUploadViewModelProvider);
     final vm = ref.read(studentUploadViewModelProvider.notifier);
-    final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nộp tài liệu SRS'),
-        actions: [
-          IconButton(
-            tooltip: 'Đăng xuất',
-            onPressed: uploadState.uploading
-                ? null
-                : () async {
-                    final viewModel = ref.read(loginViewModelProvider);
-                    await viewModel.logout();
-                    if (!context.mounted ||
-                        viewModel.status != AuthStatus.error ||
-                        viewModel.errorMessage == null) {
-                      return;
-                    }
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Không thể đăng xuất: ${viewModel.errorMessage}',
-                        ),
-                      ),
-                    );
-                  },
-            icon: const Icon(Icons.logout),
-          ),
-        ],
+    return snapshot.when(
+      loading: () => const AppLoadingState(),
+      error: (_, _) => AppErrorState(
+        onRetry: () => ref.invalidate(studentAcademicSnapshotProvider),
       ),
-      body: snapshot.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) =>
-            Center(child: Text('Không tải được danh sách lớp: $error')),
-        data: (data) {
-          final classes = data.classes;
-          final projects = uploadState.classId == null
-              ? const <AcademicRecord>[]
-              : data.classProjects(uploadState.classId!);
-          final selectedClass =
-              classes.any((item) => item.id == uploadState.classId)
-              ? uploadState.classId
-              : null;
-          final selectedProject =
-              projects.any((item) => item.id == uploadState.projectId)
-              ? uploadState.projectId
-              : null;
+      data: (data) {
+        final classes = data.classes;
+        final projects = state.classId == null
+            ? const <AcademicRecord>[]
+            : data.classProjects(state.classId!);
+        final selectedClass = classes.any((c) => c.id == state.classId)
+            ? state.classId
+            : null;
+        final selectedProject = projects.any((p) => p.id == state.projectId)
+            ? state.projectId
+            : null;
+        final types = remoteConfig.allowedSrsFileTypes
+            .map((t) => t.toUpperCase())
+            .join(', ');
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              Text('Gửi tài liệu dự án', style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 8),
-              Text(
-                'Định dạng được phép: ${remoteConfig.allowedSrsFileTypes.map((type) => type.toUpperCase()).join(', ')} · Tối đa ${remoteConfig.maxUploadFileSizeMb} MB.',
-                style: theme.textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 24),
-              DropdownButtonFormField<String>(
-                initialValue: selectedClass,
-                decoration: const InputDecoration(
-                  labelText: 'Lớp',
-                  border: OutlineInputBorder(),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: AppSpacing.l,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: AppSpacing.xs,
+              children: [
+                Semantics(
+                  header: true,
+                  headingLevel: 1,
+                  child: Text(
+                    'Nộp tài liệu SRS',
+                    style: AppTypography.pageHeading,
+                  ),
                 ),
-                items: [
-                  for (final item in classes)
-                    DropdownMenuItem(
-                      value: item.id,
-                      child: Text(
-                        item.name.trim().isEmpty
-                            ? item.code
-                            : '${item.code} · ${item.name}',
-                      ),
+                Text(
+                  'Định dạng: $types · Tối đa ${remoteConfig.maxUploadFileSizeMb} MB.',
+                  style: AppTypography.muted,
+                ),
+              ],
+            ),
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                spacing: AppSpacing.l,
+                children: [
+                  DropdownButtonFormField<String>(
+                    key: ValueKey('class-$selectedClass'),
+                    initialValue: selectedClass,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Lớp',
+                      border: OutlineInputBorder(),
                     ),
-                ],
-                onChanged: uploadState.uploading ? null : vm.selectClass,
-              ),
-              const SizedBox(height: 14),
-              DropdownButtonFormField<String>(
-                initialValue: selectedProject,
-                decoration: const InputDecoration(
-                  labelText: 'Dự án',
-                  border: OutlineInputBorder(),
-                ),
-                items: [
-                  for (final item in projects)
-                    DropdownMenuItem(value: item.id, child: Text(item.name)),
-                ],
-                onChanged: uploadState.uploading ? null : vm.selectProject,
-              ),
-              const SizedBox(height: 20),
-              OutlinedButton.icon(
-                onPressed: uploadState.uploading ? null : vm.pickFile,
-                icon: const Icon(Icons.attach_file),
-                label: Text(uploadState.file?.fileName ?? 'Chọn tệp SRS'),
-              ),
-              if (uploadState.file case final file?) ...[
-                const SizedBox(height: 8),
-                Text(
-                  '${(file.sizeBytes / (1024 * 1024)).toStringAsFixed(2)} MB',
-                ),
-              ],
-              const SizedBox(height: 20),
-              FilledButton.icon(
-                onPressed: uploadState.uploading ? null : vm.submit,
-                icon: uploadState.uploading
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.cloud_upload_outlined),
-                label: Text(
-                  uploadState.uploading ? 'Đang tải lên…' : 'Nộp tài liệu',
-                ),
-              ),
-              if (uploadState.uploading) ...[
-                const SizedBox(height: 12),
-                LinearProgressIndicator(
-                  value: uploadState.progress > 0 ? uploadState.progress : null,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Tiến độ tải lên Cloudinary: ${(uploadState.progress * 100).round()}%',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ],
-              if (uploadState.error != null) ...[
-                const SizedBox(height: 16),
-                Text(
-                  uploadState.error!,
-                  style: TextStyle(color: theme.colorScheme.error),
-                ),
-              ],
-              if (uploadState.uploadedUrl case final url?) ...[
-                const SizedBox(height: 20),
-                Card(
-                  color: theme.colorScheme.primaryContainer,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Nộp tài liệu thành công',
-                          style: theme.textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(uploadState.file?.fileName ?? ''),
-                        const SizedBox(height: 6),
-                        SelectableText(
-                          'Link xem file: ${url.toString()}',
-                          style: theme.textTheme.bodySmall,
-                        ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton.icon(
-                            onPressed: () async {
-                              await Clipboard.setData(
-                                ClipboardData(text: url.toString()),
-                              );
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Đã sao chép link Cloudinary'),
-                                  ),
-                                );
-                              }
-                            },
-                            icon: const Icon(Icons.content_copy),
-                            label: const Text('Sao chép link'),
+                    hint: Text(
+                      classes.isEmpty ? 'Chưa có lớp nào' : 'Chọn lớp',
+                    ),
+                    items: [
+                      for (final item in classes)
+                        DropdownMenuItem(
+                          value: item.id,
+                          child: Text(
+                            item.name.trim().isEmpty
+                                ? item.code
+                                : '${item.code} · ${item.name}',
+                            overflow: TextOverflow.ellipsis,
                           ),
+                        ),
+                    ],
+                    onChanged: state.uploading ? null : vm.selectClass,
+                  ),
+                  DropdownButtonFormField<String>(
+                    key: ValueKey('project-$selectedClass-$selectedProject'),
+                    initialValue: selectedProject,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Dự án',
+                      border: OutlineInputBorder(),
+                    ),
+                    hint: Text(
+                      selectedClass == null
+                          ? 'Chọn lớp trước'
+                          : projects.isEmpty
+                          ? 'Lớp này chưa có dự án'
+                          : 'Chọn dự án',
+                    ),
+                    items: [
+                      for (final item in projects)
+                        DropdownMenuItem(
+                          value: item.id,
+                          child: Text(
+                            item.name,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                    onChanged: state.uploading ? null : vm.selectProject,
+                  ),
+                  _FilePickerTile(
+                    fileName: state.file?.fileName,
+                    sizeBytes: state.file?.sizeBytes,
+                    onPick: state.uploading ? null : vm.pickFile,
+                  ),
+                  AppButton(
+                    label: state.uploading ? 'Đang tải lên…' : 'Nộp tài liệu',
+                    loading: state.uploading,
+                    icon: const AppIcon(
+                      'upload',
+                      size: AppMetrics.iconSmall,
+                      color: AppColors.white,
+                    ),
+                    onPressed: state.uploading || state.file == null
+                        ? null
+                        : vm.submit,
+                  ),
+                  if (state.uploading)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      spacing: AppSpacing.xs,
+                      children: [
+                        LinearProgressIndicator(
+                          value: state.progress > 0 ? state.progress : null,
+                          color: AppColors.brand,
+                          backgroundColor: AppColors.brandSoft,
+                        ),
+                        Text(
+                          'Đã tải ${(state.progress * 100).round()}%',
+                          style: AppTypography.muted,
                         ),
                       ],
                     ),
-                  ),
+                  if (state.error case final error?)
+                    Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        error,
+                        style: AppTypography.body.copyWith(
+                          color: AppColors.danger,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (state.uploadedUrl case final url?)
+              _SuccessCard(
+                fileName: state.file?.fileName ?? '',
+                url: url,
+                onViewMine: onViewMine,
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _FilePickerTile extends StatelessWidget {
+  const _FilePickerTile({
+    required this.fileName,
+    required this.sizeBytes,
+    required this.onPick,
+  });
+  final String? fileName;
+  final int? sizeBytes;
+  final VoidCallback? onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final picked = fileName != null;
+    return Semantics(
+      button: true,
+      label: picked ? 'Đổi tệp, đang chọn $fileName' : 'Chọn tệp SRS',
+      child: InkWell(
+        onTap: onPick,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: AppSpacing.tapMin),
+          padding: const EdgeInsets.all(AppSpacing.l),
+          decoration: BoxDecoration(
+            color: picked ? AppColors.brandTint : AppColors.subtle,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: picked ? AppColors.brand : AppColors.line,
+            ),
+          ),
+          child: Row(
+            spacing: AppSpacing.m,
+            children: [
+              AppIcon(
+                picked ? 'file-text' : 'file-up',
+                color: picked ? AppColors.brand : AppColors.muted,
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: AppSpacing.xs,
+                  children: [
+                    Text(
+                      fileName ?? 'Chọn tệp SRS',
+                      style: AppTypography.strong,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      picked
+                          ? '${((sizeBytes ?? 0) / (1024 * 1024)).toStringAsFixed(2)} MB · bấm để đổi tệp'
+                          : 'Bấm để chọn tệp từ máy',
+                      style: AppTypography.muted,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ],
-          );
-        },
+          ),
+        ),
       ),
     );
   }
+}
+
+class _SuccessCard extends StatelessWidget {
+  const _SuccessCard({
+    required this.fileName,
+    required this.url,
+    required this.onViewMine,
+  });
+  final String fileName;
+  final Uri url;
+  final VoidCallback? onViewMine;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    liveRegion: true,
+    child: AppCard(
+      tinted: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: AppSpacing.s,
+        children: [
+          Row(
+            spacing: AppSpacing.s,
+            children: [
+              const AppIcon('circle-check', color: AppColors.brand),
+              Expanded(
+                child: Text('Đã nộp thành công', style: AppTypography.strong),
+              ),
+            ],
+          ),
+          Text(
+            '$fileName đang chờ giảng viên. Theo dõi trạng thái ở mục Bài của tôi.',
+            style: AppTypography.body,
+          ),
+          Wrap(
+            spacing: AppSpacing.s,
+            runSpacing: AppSpacing.s,
+            children: [
+              if (onViewMine != null)
+                AppButton(
+                  label: 'Xem Bài của tôi',
+                  compact: true,
+                  onPressed: onViewMine,
+                ),
+              AppButton(
+                label: 'Sao chép link tệp',
+                compact: true,
+                variant: AppButtonVariant.secondary,
+                icon: const AppIcon('copy', size: AppMetrics.iconSmall),
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: url.toString()));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Đã sao chép link tệp')),
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
 }

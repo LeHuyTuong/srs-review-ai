@@ -6,7 +6,7 @@ extension ManagementQueries on AcademicSnapshot {
   AcademicRecord? project(String id) =>
       records('projects').where((p) => p.id == id).firstOrNull;
   List<AcademicRecord> reviewRows(String key) =>
-      ((data['reviewState'] as Map)[key] as List? ?? [])
+      ((data['reviewState'] as Map?)?[key] as List? ?? [])
           .map((v) => AcademicRecord(v as AcademicJson))
           .toList();
   AcademicRecord? review(String id) =>
