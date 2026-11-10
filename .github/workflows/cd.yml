@@ -1,0 +1,229 @@
+name: CD
+
+# Deploys only what CI already proved. `workflow_run` means this workflow is
+# triggered by CI finishing, not by the push itself -- so a red CI never
+# reaches a build, let alone the VPS.
+#
+# Why not a `docker` job inside ci.yml running in parallel with the tests:
+# that would push an image for a commit whose tests might still go red, and it
+# would mean editing the CI file that currently gates everything. Building only
+# after CI is green costs a couple of minutes and cannot ship untested code.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main, feat/docker-setup]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Existing tag to redeploy, e.g. sha-abc1234 (leave empty to build the current commit)"
+        required: false
+        default: ""
+        type: string
+
+concurrency:
+  # Two pushes in quick succession must not race for the same VPS. The later
+  # one wins and the older deploy is cancelled mid-flight -- safe because the
+  # deploy script only swaps after migrations succeed and always keeps :prev.
+  group: cd-vps
+  cancel-in-progress: true
+
+env:
+  IMAGE_NAME: ${{ vars.IMAGE_NAME }}
+  VPS_HOST: ${{ vars.VPS_HOST }}
+  VPS_PORT: ${{ vars.VPS_PORT }}
+  VPS_USER: ${{ vars.VPS_USER }}
+  VPS_PROJECT_DIR: ${{ vars.VPS_PROJECT_DIR }}
+  COMPOSE_SERVICE: ${{ vars.VPS_SERVICE || 'server' }}
+  HEALTH_PORT: ${{ vars.VPS_HEALTH_PORT || '8000' }}
+
+jobs:
+  build-and-push:
+    name: Build and push image
+    # Skip the build only when the caller is a manual run that already named an
+    # existing tag -- that is a redeploy. Everything else builds.
+    #
+    # The earlier form of this condition was `(dispatch AND tag) OR (run AND
+    # success)`, which skipped the build for a plain "Run workflow" with an
+    # empty tag, and then `deploy` skipped too because `needs` was unmet: the
+    # manual button did nothing at all.
+    if: >-
+      !(github.event_name == 'workflow_dispatch' && inputs.image_tag != '')
+      && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+    steps:
+      - name: Resolve the commit to build
+        id: meta
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            sha="${{ github.event.workflow_run.head_sha }}"
+          else
+            sha="${{ github.sha }}"
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "image_tag=sha-$sha" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.meta.outputs.sha }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Two tags, two jobs. `sha-<commit>` is immutable and answers "which
+      # commit is this image", which `latest` cannot. `latest` is what the
+      # compose file on the VPS points at, so it must keep moving.
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.image_tag }}
+            ${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          labels: |
+            org.opencontainers.image.revision=${{ steps.meta.outputs.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+      - name: Summarise
+        run: |
+          {
+            echo "### Image pushed"
+            echo ""
+            echo '| tag | value |'
+            echo '| --- | --- |'
+            echo "| immutable | \`${{ steps.meta.outputs.image_tag }}\` |"
+            echo "| moving | \`latest\` |"
+            echo "| commit | \`${{ steps.meta.outputs.sha }}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Deploy to VPS
+    needs: build-and-push
+    # `always()` so a skipped build (the redeploy path) still runs this job;
+    # the explicit result check below is what keeps a FAILED build from
+    # deploying. Without the check, `always()` combined with a failed build
+    # would pull whatever :latest happened to be on the registry -- silently
+    # deploying the previous release while the job reported success.
+    if: >-
+      always()
+      && (needs.build-and-push.result == 'success' || needs.build-and-push.result == 'skipped')
+      && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+    # A human click is required to reach production; remove the `environment`
+    # key entirely to make merges deploy on their own.
+    environment:
+      name: production
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Prepare SSH
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # Pinning the host key instead of trusting whatever answers first:
+          # StrictHostKeyChecking=no would accept a swapped host silently.
+          printf '%s\n' "${{ secrets.VPS_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy
+        id: deploy
+        env:
+          # `${{ }}` cannot span lines, so this is one expression on one line:
+          #   a tag typed into the manual run  -> "<image>:<tag>"
+          #   else the tag this run just built -> "<image>:sha-<commit>"
+          #   else (build skipped, no input)   -> "<image>:latest"
+          TARGET_REF: ${{ env.IMAGE_NAME }}:${{ inputs.image_tag || needs.build-and-push.outputs.image_tag || 'latest' }}
+        run: |
+          set -euo pipefail
+          # The script is piped over stdin, so nothing is left lying on the VPS
+          # and the host layout is never touched. `--` separates ssh's own
+          # arguments from the positional ones the script reads.
+          ssh -p "$VPS_PORT" \
+              -o BatchMode=yes \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              -o ConnectTimeout=20 \
+              "$VPS_USER@$VPS_HOST" \
+              bash -s -- "$IMAGE_NAME" "$VPS_PROJECT_DIR" "$COMPOSE_SERVICE" "$HEALTH_PORT" "$TARGET_REF" \
+            < .github/scripts/vps-deploy.sh 2>&1 | tee deploy.log
+          status=${PIPESTATUS[0]}
+          exit "$status"
+
+      - name: Collect diagnostics from the VPS
+        if: always() && (failure() || cancelled())
+        run: |
+          set -uo pipefail
+          {
+            echo "===== deploy.log ====="
+            cat deploy.log 2>/dev/null || echo "(no deploy.log)"
+            echo
+            echo "===== container state ====="
+            ssh -p "$VPS_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes \
+                -o UserKnownHostsFile=~/.ssh/known_hosts -o ConnectTimeout=20 \
+                "$VPS_USER@$VPS_HOST" bash -s -- "$VPS_PROJECT_DIR" "$COMPOSE_SERVICE" <<'REMOTE' || true
+          set -uo pipefail
+          cd "$1" || exit 0
+          service="$2"
+          echo "--- docker compose ps -a ---"
+          docker compose ps -a 2>&1 | head -40
+          echo
+          echo "--- service logs (last 300 lines) ---"
+          docker compose logs --tail=300 --no-color "$service" 2>&1
+          echo
+          echo "--- container State ---"
+          cid="$(docker compose ps -q "$service" 2>/dev/null || true)"
+          [ -n "$cid" ] && docker inspect --format '{{json .State}}' "$cid" 2>&1
+          echo
+          echo "--- image inventory ---"
+          docker image ls 2>&1 | head -20
+          echo
+          echo "--- disk ---"
+          df -h /var/lib/docker 2>&1
+          REMOTE
+          } > vps-diagnostics.txt 2>&1
+          cat vps-diagnostics.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vps-deploy-diagnostics
+          path: |
+            deploy.log
+            vps-diagnostics.txt
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo "### Deploy"
+            echo ""
+            if [ "${{ steps.deploy.outcome }}" = "success" ]; then
+              echo "Deployed \`${{ env.IMAGE_NAME }}:latest\` to \`${{ env.VPS_HOST }}\`."
+            else
+              echo "Deploy **failed** (\`${{ steps.deploy.outcome }}\`). The deploy script keeps a \`:prev\` tag and rolls back automatically when the health probe fails."
+              echo ""
+              echo "Exit codes: 10 compose/preflight, 11 pull, 12 migration, 13 container start, 14 health probe."
+            fi
+            echo ""
+            echo "Diagnostics: see the \`vps-deploy-diagnostics\` artifact."
+          } >> "$GITHUB_STEP_SUMMARY"

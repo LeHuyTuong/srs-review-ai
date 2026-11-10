@@ -6,9 +6,9 @@ on:
   # make just to see it. `gh workflow run CI` or the Actions tab both work.
   workflow_dispatch:
   push:
-    branches: [main, dev]
+    branches: [main, dev, feat/docker-setup]
   pull_request:
-    branches: [main, dev]
+    branches: [main, dev, feat/docker-setup]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
