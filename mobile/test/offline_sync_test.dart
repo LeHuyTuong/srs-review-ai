@@ -88,12 +88,14 @@ class _Server {
   final String cacheDir;
   Process? _process;
 
-  static const python = '../server/.venv/bin/python';
+  static String get python => Platform.isWindows
+      ? '../server/.venv/Scripts/python.exe'
+      : '../server/.venv/bin/python';
   static bool get available => File(python).existsSync();
 
   Future<void> start() async {
     _process = await Process.start(
-      '.venv/bin/python',
+      python,
       ['tests/support/sync_test_server.py', '$port'],
       workingDirectory: '../server',
       environment: {'SRS_CACHE_DIR': cacheDir, 'DATABASE_URL': ''},
@@ -267,7 +269,16 @@ void main() {
     });
     tearDown(() async {
       await server.stop();
-      await dir.delete(recursive: true);
+      for (var i = 0; i < 5; i++) {
+        try {
+          if (await dir.exists()) {
+            await dir.delete(recursive: true);
+          }
+          break;
+        } on FileSystemException {
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        }
+      }
     });
 
     test('offline edit is kept, pushed when the server returns, and reaches '

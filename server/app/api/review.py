@@ -30,7 +30,6 @@ from ..contracts.schemas import (
     ReviewRequest,
     ReviewResult,
 )
-from ..core.firebase_auth import verify_firebase_token
 from ..domain.provider import LlmError
 from . import deps
 from .deps import ensure_bounded as _ensure_bounded
@@ -44,11 +43,11 @@ router = APIRouter()
 async def review(
     payload: ReviewRequest,
     settings: Settings = Depends(get_settings),
-    firebase_user: dict = Depends(verify_firebase_token),
+    caller: dict = Depends(deps.caller_identity),
     cache=Depends(deps.review_cache),
     limiter=Depends(deps.limiter),
 ) -> ReviewResult:
-    user = firebase_user["uid"]
+    user = caller["uid"]
     _ensure_bounded(text=payload.text, image_b64=payload.image_b64, settings=settings)
     rubric_cfg = review_config(deps.rubric(), deps.criteria())
     provider = deps.build_provider(settings)
@@ -123,7 +122,7 @@ async def review(
 async def review_batch(
     payload: BatchReviewRequest,
     settings: Settings = Depends(get_settings),
-    firebase_user: dict = Depends(verify_firebase_token),
+    caller: dict = Depends(deps.caller_identity),
     cache=Depends(deps.review_cache),
     limiter=Depends(deps.limiter),
 ) -> BatchReviewResponse:
@@ -136,7 +135,7 @@ async def review_batch(
     the honest shape: the units that were reviewed are already cached and paid
     for, and a 502 would make the client throw them away.
     """
-    user = firebase_user["uid"]
+    user = caller["uid"]
     units = payload.units
     if len(units) > settings.max_batch_units:
         raise HTTPException(

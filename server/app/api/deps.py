@@ -121,6 +121,55 @@ def require_app_token(
         raise HTTPException(status_code=401, detail="invalid app token")
 
 
+def caller_identity(
+    request: Request,
+    authorization: str | None = Header(default=None),
+    x_app_token: str | None = Header(default=None),
+    x_user_id: str | None = Header(default=None),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, str]:
+    """Authenticate either via Firebase ID token (mobile/admin) or via app token (desktop)."""
+    from ..core.firebase_auth import verify_firebase_token
+    from ..main import app
+
+    if authorization:
+        scheme, separator, token = authorization.partition(" ")
+        if scheme.lower() == "bearer" and separator and token.strip():
+            from firebase_admin import auth
+
+            from ..core.firebase_auth import _get_firebase_app
+
+            firebase_app = _get_firebase_app(settings)
+            try:
+                decoded = auth.verify_id_token(token.strip(), app=firebase_app)
+                return {"uid": decoded.get("uid", "firebase_user"), "auth_type": "firebase"}
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Firebase ID token is invalid or expired.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                ) from exc
+
+    if x_app_token is not None:
+        if settings.app_token and x_app_token == settings.app_token:
+            uid = x_user_id or (request.client.host if request.client else "anonymous")
+            return {"uid": uid, "auth_type": "app_token"}
+        raise HTTPException(status_code=401, detail="invalid app token")
+
+    if verify_firebase_token in app.dependency_overrides:
+        override_val = app.dependency_overrides[verify_firebase_token]()
+        return {"uid": override_val.get("uid", "test-user"), "auth_type": "test_override"}
+
+    if settings.app_token:
+        if x_app_token == settings.app_token:
+            uid = x_user_id or (request.client.host if request.client else "anonymous")
+            return {"uid": uid, "auth_type": "app_token"}
+        raise HTTPException(status_code=401, detail="invalid app token")
+
+    uid = x_user_id or (request.client.host if request.client else "anonymous")
+    return {"uid": uid, "auth_type": "local_demo"}
+
+
 def caller_id(request: Request, x_user_id: str | None = Header(default=None)) -> str:
     return x_user_id or (request.client.host if request.client else "anonymous")
 

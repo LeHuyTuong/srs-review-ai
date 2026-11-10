@@ -12,12 +12,22 @@ class AiReviewResult {
     required this.score,
     required this.issues,
     this.contextNote,
+    this.contractVersion,
+    this.droppedIssueCount = 0,
+    this.model,
+    this.cached = false,
+    this.mock = false,
   });
 
   final String requirementId;
   final int score;
   final List<Map<String, dynamic>> issues;
   final String? contextNote;
+  final String? contractVersion;
+  final int droppedIssueCount;
+  final String? model;
+  final bool cached;
+  final bool mock;
 
   factory AiReviewResult.fromJson(Map<String, dynamic> json) => AiReviewResult(
     requirementId: (json['requirement_id'] as String?) ?? 'REQ-1',
@@ -26,6 +36,11 @@ class AiReviewResult {
         .whereType<Map<String, dynamic>>()
         .toList(growable: false),
     contextNote: json['context_note'] as String?,
+    contractVersion: json['contract_version'] as String?,
+    droppedIssueCount: (json['dropped_issue_count'] as num?)?.toInt() ?? 0,
+    model: json['model'] as String?,
+    cached: json['cached'] as bool? ?? false,
+    mock: json['mock'] as bool? ?? false,
   );
 }
 
@@ -100,6 +115,25 @@ class AiReviewException implements Exception {
   String toString() => message;
 }
 
+String resolveBaseUrl() {
+  const fromDefine = String.fromEnvironment('SRS_API_BASE_URL');
+  if (fromDefine.trim().isNotEmpty) {
+    return fromDefine.trim().replaceFirst(RegExp(r'/+$'), '');
+  }
+  if (dotenv.isInitialized) {
+    final fromDotenv = dotenv.env['SRS_API_BASE_URL']?.trim() ?? '';
+    if (fromDotenv.isNotEmpty) {
+      return fromDotenv.replaceFirst(RegExp(r'/+$'), '');
+    }
+  }
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    return 'http://10.0.2.2:8000';
+  }
+  return 'http://127.0.0.1:8000';
+}
+
+String get vpsBaseUrl => resolveBaseUrl();
+
 Uri? _resolveAiReviewEndpoint() {
   const fromDefine = String.fromEnvironment('AI_REVIEW_ENDPOINT');
   if (fromDefine.trim().isNotEmpty) {
@@ -108,18 +142,9 @@ Uri? _resolveAiReviewEndpoint() {
   if (dotenv.isInitialized) {
     final direct = dotenv.env['AI_REVIEW_ENDPOINT']?.trim() ?? '';
     if (direct.isNotEmpty) return Uri.tryParse(direct);
-    final base = dotenv.env['SRS_API_BASE_URL']?.trim() ?? '';
-    if (base.isNotEmpty) {
-      final normalized = base.replaceFirst(RegExp(r'/+$'), '');
-      return Uri.tryParse('$normalized/review');
-    }
   }
-  const baseDefine = String.fromEnvironment('SRS_API_BASE_URL');
-  if (baseDefine.trim().isNotEmpty) {
-    final normalized = baseDefine.trim().replaceFirst(RegExp(r'/+$'), '');
-    return Uri.tryParse('$normalized/review');
-  }
-  return null;
+  final base = resolveBaseUrl();
+  return Uri.tryParse('$base/review');
 }
 
 final aiReviewServiceProvider = Provider<AiReviewService>((ref) {

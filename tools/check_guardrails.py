@@ -46,6 +46,7 @@ SKIP_DIRS = {
     ".ruff_cache",
     "ephemeral",
     "Pods",
+    ".claude",
     "tools",  # this script and its neighbours describe the rules
 }
 

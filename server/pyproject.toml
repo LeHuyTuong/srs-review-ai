@@ -7,7 +7,9 @@ requires-python = ">=3.11"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "-q"
+addopts = "-q --basetemp=.pytest_temp -p no:cacheprovider"
+
+
 
 [tool.ruff]
 line-length = 110

@@ -127,6 +127,7 @@ class AcademicSyncService extends ChangeNotifier {
   bool _running = false;
   bool _again = false;
   bool _disposed = false;
+  Completer<SyncOutcome>? _currentRun;
 
   bool online = true;
   int pending = 0;
@@ -145,11 +146,12 @@ class AcademicSyncService extends ChangeNotifier {
     if (_disposed) return SyncOutcome.busy;
     if (_running) {
       _again = true;
-      return SyncOutcome.busy;
+      return _currentRun?.future ?? Future.value(SyncOutcome.busy);
     }
     _running = true;
+    _currentRun = Completer<SyncOutcome>();
     _timer?.cancel();
-    SyncOutcome outcome;
+    SyncOutcome outcome = SyncOutcome.offline;
     try {
       _deviceId ??= await store.deviceId();
       do {
@@ -172,6 +174,8 @@ class AcademicSyncService extends ChangeNotifier {
     lastOutcome = outcome;
     pending = await store.outboxCount();
     _schedule(outcome);
+    _currentRun?.complete(outcome);
+    _currentRun = null;
     if (!_disposed) notifyListeners();
     return outcome;
   }

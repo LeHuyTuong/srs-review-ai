@@ -81,7 +81,7 @@ class ApiPushNotificationRepository implements PushNotificationRepository {
 
   String get _resolvedBase => _baseUrl.trim().isNotEmpty
       ? _baseUrl.replaceFirst(RegExp(r'/+$'), '')
-      : 'http://160.30.160.113:8000';
+      : 'http://127.0.0.1:8000';
 
   Uri get _endpoint => Uri.parse('$_resolvedBase/admin/notifications/send');
 
