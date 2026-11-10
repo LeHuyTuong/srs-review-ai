@@ -1,38 +1,37 @@
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 
 typedef SubmissionBytesFetcher = Future<Uint8List> Function(Uri uri);
 
 /// Fetches a submitted Cloudinary document for in-app preview or sharing.
 class SubmissionFileService {
-  SubmissionFileService({HttpClient? client})
-    : _client = client ?? HttpClient();
+  SubmissionFileService({http.Client? client})
+    : _client = client ?? http.Client();
 
-  final HttpClient _client;
+  // package:http chạy được trên web; dart:io HttpClient thì không.
+  final http.Client _client;
   static const maxFileBytes = 30 * 1024 * 1024;
 
   Future<Uint8List> fetch(Uri uri) async {
     if (uri.scheme != 'https' || uri.host != 'res.cloudinary.com') {
       throw const SubmissionFileException('Link tệp không hợp lệ.');
     }
-    final request = await _client.getUrl(uri);
-    request.followRedirects = true;
-    final response = await request.close();
+    final response = await _client.send(http.Request('GET', uri));
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      await response.drain<void>();
+      await response.stream.drain<void>();
       throw SubmissionFileException(
         'Không tải được tệp (HTTP ${response.statusCode}).',
       );
     }
-    if (response.contentLength > maxFileBytes) {
-      await response.drain<void>();
+    if ((response.contentLength ?? 0) > maxFileBytes) {
+      await response.stream.drain<void>();
       throw const SubmissionFileException('Tệp vượt quá giới hạn 30 MB.');
     }
     final builder = BytesBuilder(copy: false);
     var length = 0;
-    await for (final chunk in response) {
+    await for (final chunk in response.stream) {
       length += chunk.length;
       if (length > maxFileBytes) {
         throw const SubmissionFileException('Tệp vượt quá giới hạn 30 MB.');

@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'package:srs_review_ai_mobile/core/navigation/app_navigation.dart';
 import 'package:srs_review_ai_mobile/theme/app_spacing.dart';
-import 'package:srs_review_ai_mobile/widgets/app_bottom_navigation.dart';
 import 'package:srs_review_ai_mobile/widgets/app_button.dart';
 import 'package:srs_review_ai_mobile/widgets/app_states.dart';
-import 'package:srs_review_ai_mobile/widgets/mobile_header.dart';
+import 'package:srs_review_ai_mobile/widgets/app_scaffold.dart';
 
 // Điểm dừng điều hướng cho màn ngoài phạm vi; không giả lập nghiệp vụ đã hoàn thành.
 class NavigationDestinationScreen extends StatelessWidget {
@@ -33,14 +32,8 @@ class NavigationDestinationScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: MobileHeader(
-      onHome: () => AppNavigation.open(context, '/dashboard'),
-    ),
-    bottomNavigationBar: AppBottomNavigation(
-      path: path,
-      onNavigate: (target) => AppNavigation.open(context, target),
-    ),
+  Widget build(BuildContext context) => AppScaffold(
+    path: path,
     body: Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.pagePadding),

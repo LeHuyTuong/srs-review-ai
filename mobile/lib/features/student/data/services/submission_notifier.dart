@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 
 import 'package:srs_review_ai_mobile/core/di/sync_providers.dart';
 
@@ -22,12 +22,13 @@ class HttpSubmissionNotifier implements SubmissionNotifier {
   HttpSubmissionNotifier({
     required this.baseUri,
     required this.idToken,
-    HttpClient? client,
-  }) : _client = client ?? HttpClient();
+    http.Client? client,
+  }) : _client = client ?? http.Client();
 
   final Uri baseUri;
   final Future<String?> Function() idToken;
-  final HttpClient _client;
+  // package:http chạy được trên web; dart:io HttpClient thì không.
+  final http.Client _client;
 
   @override
   Future<bool> notifyTeachers(String submissionId) async {
@@ -37,17 +38,16 @@ class HttpSubmissionNotifier implements SubmissionNotifier {
       final path =
           '${baseUri.path.replaceFirst(RegExp(r'/$'), '')}'
           '/notifications/submission';
-      final request = await _client
-          .postUrl(baseUri.replace(path: path))
-          .timeout(const Duration(seconds: 15));
-      request.headers
-        ..contentType = ContentType.json
-        ..set(HttpHeaders.authorizationHeader, 'Bearer $token');
-      request.write(jsonEncode({'submissionId': submissionId}));
-      final response = await request.close().timeout(
-        const Duration(seconds: 20),
-      );
-      await response.drain<void>();
+      final response = await _client
+          .post(
+            baseUri.replace(path: path),
+            headers: {
+              'content-type': 'application/json',
+              'authorization': 'Bearer $token',
+            },
+            body: jsonEncode({'submissionId': submissionId}),
+          )
+          .timeout(const Duration(seconds: 35));
       return response.statusCode >= 200 && response.statusCode < 300;
     } on Object catch (error) {
       debugPrint('Submission notify failed: $error');

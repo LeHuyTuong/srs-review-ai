@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:srs_review_ai_mobile/core/navigation/app_navigation.dart';
 import 'package:srs_review_ai_mobile/core/domain/academic/academic_models.dart';
 import 'package:srs_review_ai_mobile/theme/app_spacing.dart';
-import 'package:srs_review_ai_mobile/theme/app_metrics.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/viewmodels/academic_view_model.dart';
 import 'package:srs_review_ai_mobile/features/academic/presentation/viewmodels/academic_page_view_model.dart';
-import 'package:srs_review_ai_mobile/widgets/mobile_header.dart';
-import 'package:srs_review_ai_mobile/widgets/app_bottom_navigation.dart';
+import 'package:srs_review_ai_mobile/widgets/app_scaffold.dart';
 import 'package:srs_review_ai_mobile/widgets/app_states.dart';
 
 // Khung chung các màn học vụ; lỗi tải cho phép thử lại và giữ điều hướng chính.
@@ -27,26 +24,13 @@ class AcademicPage extends ConsumerWidget {
   final double spacing;
   final bool showBackButton;
   @override
-  Widget build(BuildContext context, WidgetRef ref) => Scaffold(
-    appBar: MobileHeader(
-      onHome: () => AppNavigation.open(context, '/dashboard'),
-      onBack: showBackButton
-          ? () => AppNavigation.open(context, '/dashboard')
-          : null,
-    ),
-    bottomNavigationBar: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (footerBuilder != null &&
-            ref.watch(academicViewModelProvider).hasValue)
-          footerBuilder!(ref.watch(academicViewModelProvider).requireValue),
-        AppBottomNavigation(
-          path: path,
-          onNavigate: (p) => AppNavigation.open(context, p),
-        ),
-      ],
-    ),
+  Widget build(BuildContext context, WidgetRef ref) => AppScaffold(
+    path: path,
+    showBackButton: showBackButton,
+    footer:
+        footerBuilder != null && ref.watch(academicViewModelProvider).hasValue
+        ? footerBuilder!(ref.watch(academicViewModelProvider).requireValue)
+        : null,
     body: ref
         .watch(academicPageProvider(path))
         .when(
@@ -60,8 +44,8 @@ class AcademicPage extends ConsumerWidget {
             child: Align(
               alignment: Alignment.topCenter,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: AppMetrics.contentMaxWidth,
+                constraints: BoxConstraints(
+                  maxWidth: AppLayout.contentMaxWidth(context),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(
