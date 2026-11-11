@@ -138,7 +138,11 @@ fi
 # else. Running them with the NEW image and before the container swap means new
 # code never serves a request against an old schema.
 log "running migrations with the new image"
-docker compose run --rm --no-deps -T "$SERVICE" alembic upgrade head \
+# `</dev/null` is load-bearing: this script reaches bash over ssh's stdin, and
+# `compose run` keeps stdin attached even with -T. Without it the container
+# swallowed the rest of the script, bash hit EOF and exited 0 -- run
+# 42936586178 reported success while the old container kept serving.
+docker compose run --rm --no-deps -T "$SERVICE" alembic upgrade head </dev/null \
   || fail 12 "alembic upgrade head failed — the container was NOT swapped"
 
 # --------------------------------------------------------------------- swap
@@ -155,7 +159,7 @@ probe_ok=0
 for attempt in $(seq 1 10); do
   if docker compose exec -T "$SERVICE" python -c \
     "import sys,urllib.request; sys.exit(0 if urllib.request.urlopen('${HEALTH_URL}', timeout=5).status == 200 else 1)" \
-    >/dev/null 2>&1; then
+    </dev/null >/dev/null 2>&1; then
     probe_ok=1
     break
   fi
