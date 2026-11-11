@@ -44,11 +44,11 @@ jobs:
     env:
       # Variables first (docs/deployment.md), then the repository secrets the
       # repo actually has today (2026-11-11 they were created as secrets).
-      IMAGE_NAME: ${{ vars.IMAGE_NAME || secrets.IMAGE_NAME }}
-      VPS_HOST: ${{ vars.VPS_HOST || secrets.VPS_HOST }}
-      VPS_PORT: ${{ vars.VPS_PORT || secrets.VPS_PORT }}
-      VPS_USER: ${{ vars.VPS_USER || secrets.VPS_USER }}
-      VPS_PROJECT_DIR: ${{ vars.VPS_PROJECT_DIR || secrets.VPS_PROJECT_DIR }}
+      RAW_IMAGE_NAME: ${{ vars.IMAGE_NAME || secrets.IMAGE_NAME }}
+      RAW_VPS_HOST: ${{ vars.VPS_HOST || secrets.VPS_HOST }}
+      RAW_VPS_PORT: ${{ vars.VPS_PORT || secrets.VPS_PORT }}
+      RAW_VPS_USER: ${{ vars.VPS_USER || secrets.VPS_USER }}
+      RAW_VPS_PROJECT_DIR: ${{ vars.VPS_PROJECT_DIR || secrets.VPS_PROJECT_DIR }}
       COMPOSE_SERVICE: ${{ vars.VPS_SERVICE || 'server' }}
       HEALTH_PORT: ${{ vars.VPS_HEALTH_PORT || '8000' }}
     runs-on: ubuntu-latest
@@ -57,11 +57,21 @@ jobs:
     outputs:
       image_tag: ${{ steps.meta.outputs.image_tag }}
     steps:
+      # Secrets pasted into the GitHub form keep a trailing newline; in a
+      # multi-line `tags:` input that newline splits "image:tag" in two
+      # (run 42936298591: invalid tag ":sha-..."). Trim once, here.
+      - name: Normalise deploy settings
+        run: |
+          set -euo pipefail
+          for v in IMAGE_NAME VPS_HOST VPS_PORT VPS_USER VPS_PROJECT_DIR; do
+            raw="RAW_$v"; val="$(printf '%s' "${!raw}" | tr -d '[:space:]')"
+            [ -n "$val" ] || { echo "::error::$v is empty (set it as a Variable or a Secret)"; exit 10; }
+            echo "$v=$val" >> "$GITHUB_ENV"
+          done
       - name: Resolve the commit to build
         id: meta
         run: |
           set -euo pipefail
-          [ -n "$IMAGE_NAME" ] || { echo "::error::IMAGE_NAME is empty (set it as a Variable or a Secret)"; exit 10; }
           if [ "${{ github.event_name }}" = "workflow_run" ]; then
             sha="${{ github.event.workflow_run.head_sha }}"
           else
@@ -129,17 +139,28 @@ jobs:
     env:
       # Variables first (docs/deployment.md), then the repository secrets the
       # repo actually has today (2026-11-11 they were created as secrets).
-      IMAGE_NAME: ${{ vars.IMAGE_NAME || secrets.IMAGE_NAME }}
-      VPS_HOST: ${{ vars.VPS_HOST || secrets.VPS_HOST }}
-      VPS_PORT: ${{ vars.VPS_PORT || secrets.VPS_PORT }}
-      VPS_USER: ${{ vars.VPS_USER || secrets.VPS_USER }}
-      VPS_PROJECT_DIR: ${{ vars.VPS_PROJECT_DIR || secrets.VPS_PROJECT_DIR }}
+      RAW_IMAGE_NAME: ${{ vars.IMAGE_NAME || secrets.IMAGE_NAME }}
+      RAW_VPS_HOST: ${{ vars.VPS_HOST || secrets.VPS_HOST }}
+      RAW_VPS_PORT: ${{ vars.VPS_PORT || secrets.VPS_PORT }}
+      RAW_VPS_USER: ${{ vars.VPS_USER || secrets.VPS_USER }}
+      RAW_VPS_PROJECT_DIR: ${{ vars.VPS_PROJECT_DIR || secrets.VPS_PROJECT_DIR }}
       COMPOSE_SERVICE: ${{ vars.VPS_SERVICE || 'server' }}
       HEALTH_PORT: ${{ vars.VPS_HEALTH_PORT || '8000' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
+      # Secrets pasted into the GitHub form keep a trailing newline; in a
+      # multi-line `tags:` input that newline splits "image:tag" in two
+      # (run 42936298591: invalid tag ":sha-..."). Trim once, here.
+      - name: Normalise deploy settings
+        run: |
+          set -euo pipefail
+          for v in IMAGE_NAME VPS_HOST VPS_PORT VPS_USER VPS_PROJECT_DIR; do
+            raw="RAW_$v"; val="$(printf '%s' "${!raw}" | tr -d '[:space:]')"
+            [ -n "$val" ] || { echo "::error::$v is empty (set it as a Variable or a Secret)"; exit 10; }
+            echo "$v=$val" >> "$GITHUB_ENV"
+          done
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
@@ -151,9 +172,6 @@ jobs:
           VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
         run: |
           set -euo pipefail
-          for v in IMAGE_NAME VPS_HOST VPS_PORT VPS_USER VPS_PROJECT_DIR; do
-            [ -n "${!v}" ] || { echo "::error::$v is empty (set it as a Variable or a Secret)"; exit 10; }
-          done
           install -m 700 -d ~/.ssh
           # Pinning the host key instead of trusting whatever answers first:
           # StrictHostKeyChecking=no would accept a swapped host silently.
@@ -174,7 +192,8 @@ jobs:
             # Fallback until VPS_SSH_KEY exists (docs/deployment.md, step 3).
             echo "::warning::VPS_SSH_KEY missing; logging in with VPS_PASSWORD"
             sudo apt-get install -y -qq sshpass >/dev/null
-            echo "SSHPASS=$VPS_PASSWORD" >> "$GITHUB_ENV"
+            # Only CR/LF are trimmed: a password may legitimately contain spaces.
+            echo "SSHPASS=$(printf '%s' "$VPS_PASSWORD" | tr -d '\r\n')" >> "$GITHUB_ENV"
             printf '#!/bin/sh\nexec sshpass -e ssh -o PubkeyAuthentication=no "$@"\n' > ~/bin/vps-ssh
           else
             echo "::error::neither VPS_SSH_KEY nor VPS_PASSWORD is set"; exit 10
