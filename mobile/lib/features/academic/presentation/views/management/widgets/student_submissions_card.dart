@@ -82,9 +82,11 @@ class _SubmissionRow extends ConsumerWidget {
     final who = item.studentName.isNotEmpty ? item.studentName : 'Học viên';
     final meta = [who, ?project, _formatTime(item.uploadedAt)].join(' · ');
     // Bài nộp đã thành yêu cầu duyệt thì chỉ hiện nhãn, không cho đưa vào lần nữa.
-    final queued = snapshot
-        .reviewRows('requests')
-        .any((r) => r.text('submissionId') == item.id);
+    // Bản nộp lại thành phiên bản của yêu cầu cũ nên còn phải tra `versions`.
+    final queued = [
+      ...snapshot.reviewRows('requests'),
+      ...snapshot.reviewRows('versions'),
+    ].any((r) => r.text('submissionId') == item.id);
     return InkWell(
       onTap: url == null
           ? null

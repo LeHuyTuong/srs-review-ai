@@ -156,6 +156,15 @@ extension ReviewActions on AcademicViewModel {
       }
       final cls = s.projectClass(p);
       final g = s.group(p.text('groupId'));
+      // Portal sinh viên nộp SRS: gắn đúng mục SRS của lab để chấm bằng Rule
+      // Set của mục đó, không lùi về Rule Set mặc định của đợt.
+      final srsItem = cls == null
+          ? null
+          : s
+                .effectiveLabs(cls)
+                .expand((l) => l.items)
+                .where((i) => i.text('documentType').toUpperCase() == 'SRS')
+                .firstOrNull;
       final id = nextId('review');
       reviewId = id;
       final at = timestamp();
@@ -172,7 +181,8 @@ extension ReviewActions on AcademicViewModel {
           'courseId': cls?.courseId ?? '',
           'classId': cls?.id ?? '',
           'groupId': p.text('groupId'),
-          'documentTitle': 'Tài liệu SRS',
+          'documentId': srsItem?.id ?? '',
+          'documentTitle': srsItem?.text('title') ?? 'Tài liệu SRS',
           'version': 'v1',
           'submitter': sub.studentName,
           'submittedAt': at,

@@ -424,15 +424,10 @@ String resolveBaseUrl() {
       return fromDotenv.replaceFirst(RegExp(r'/+$'), '');
     }
   }
-  // Không cấu hình gì → server đã deploy. Từng lùi về 10.0.2.2 (chỉ có trong
-  // emulator) nên APK trên máy thật treo tới timeout ("Máy chủ AI không phản
-  // hồi"). Chạy server local thì truyền SRS_API_BASE_URL qua define/.env.
-  return deployedBaseUrl;
+  // Không hardcode địa chỉ server vào repo: đặt SRS_API_BASE_URL trong
+  // mobile/.env (đã gitignore) hoặc --dart-define. Trống = chưa cấu hình.
+  return '';
 }
-
-/// FastAPI trên VPS (HTTP, chưa TLS; Android được miễn cleartext cho host này
-/// trong network_security_config.xml).
-const deployedBaseUrl = 'http://160.30.160.113:8000';
 
 String get vpsBaseUrl => resolveBaseUrl();
 
@@ -446,6 +441,7 @@ Uri? _resolveAiReviewEndpoint() {
     if (direct.isNotEmpty) return Uri.tryParse(direct);
   }
   final base = resolveBaseUrl();
+  if (base.isEmpty) return null;
   return Uri.tryParse('$base/review');
 }
 

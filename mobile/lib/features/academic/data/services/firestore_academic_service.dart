@@ -158,6 +158,9 @@ class FirebaseAcademicService {
     final latest = <String, List<AcademicJson>>{};
     final subs = <StreamSubscription<dynamic>>[];
     var metaSnapshot = await _readMeta();
+    // Bị huỷ lúc đang chờ ở trên: tạo listener lúc này là rò rỉ vĩnh viễn,
+    // vì `yield*` bên dưới sẽ thoát ngay và onCancel không bao giờ chạy.
+    if (_disposed) return;
     final controller = StreamController<AcademicSnapshot>();
 
     void emit() {
@@ -208,6 +211,7 @@ class FirebaseAcademicService {
     );
 
     controller.onCancel = () async {
+      _openSubs.removeWhere(subs.contains);
       for (final sub in subs) {
         await sub.cancel();
       }
@@ -216,21 +220,27 @@ class FirebaseAcademicService {
       }
     };
 
+    _openSubs.addAll(subs);
     yield* controller.stream;
   }
+
+  /// Listener Firestore của mọi lượt [watch] (live + dashboard), để
+  /// [dispose] huỷ hết trước khi đăng xuất.
+  final List<StreamSubscription<dynamic>> _openSubs = [];
 
   /// Gọi khi Firestore đẩy về dữ liệu mới sau lần tải đầu (máy khác ghi,
   /// hoặc lượt ghi của chính máy này được server xác nhận).
   void Function()? onRemoteChange;
 
   StreamSubscription<AcademicSnapshot>? _live;
+  bool _disposed = false;
   final Completer<void> _serverReady = Completer<void>();
 
   /// Một subscription realtime sống suốt phiên. Trước đây [load] trả fixture
   /// đóng gói và không ai nghe [watch], nên UI luôn hiện dữ liệu mẫu và mọi
   /// lượt ghi trông như biến mất sau khi tải lại.
   void _ensureLive() {
-    if (_live != null) return;
+    if (_live != null || _disposed) return;
     _live = watch().skip(1).listen(
       (_) {
         if (!_serverReady.isCompleted) {
@@ -242,6 +252,19 @@ class FirebaseAcademicService {
       onError: (Object error) =>
           debugPrint('Firestore live academic error: $error'),
     );
+  }
+
+  /// Huỷ subscription realtime khi phiên kết thúc.
+  void dispose() {
+    _disposed = true;
+    _lastSnapshot = null;
+    onRemoteChange = null;
+    unawaited(_live?.cancel());
+    _live = null;
+    for (final sub in _openSubs) {
+      unawaited(sub.cancel());
+    }
+    _openSubs.clear();
   }
 
   Future<AcademicSnapshot> load() async {
@@ -260,6 +283,14 @@ class FirebaseAcademicService {
       }
       final cached = _lastSnapshot ?? await _readSeed();
       return _withCurrentSupervisor(cached);
+    }
+    if (!_inMemoryTestBackend) {
+      // Không có Firestore (chưa đăng nhập): `watch()` rỗng, `.first` sẽ ném
+      // "No element". Báo phiên hết hạn thay vì trả dữ liệu mẫu.
+      throw const AcademicFailure(
+        'Phiên đã kết thúc. Vui lòng đăng nhập lại.',
+        code: AcademicErrorCode.sessionExpired,
+      );
     }
     return watch().first;
   }
@@ -377,11 +408,40 @@ class FirebaseAcademicService {
     }
   }
 
-  /// Writes a full snapshot as per-record docs (used for seed + commit).
-  /// Firestore giới hạn 500 thao tác/batch nên chia lô 400.
+  /// Doc cần ghi khi đi từ [previous] tới [next]: record và key meta có
+  /// JSON khác. [previous] null (seed) thì ghi đủ.
+  static ({Map<String, AcademicJson> records, Map<String, dynamic> meta})
+  snapshotWrites(AcademicSnapshot? previous, AcademicSnapshot next) {
+    final records = <String, AcademicJson>{};
+    for (final name in [..._recordCollections, ..._metaCollections]) {
+      final before = <String, String>{
+        if (previous != null)
+          for (final r in previous.records(name)) r.id: jsonEncode(r.toJson()),
+      };
+      for (final r in next.records(name)) {
+        final json = r.toJson();
+        if (before[r.id] != jsonEncode(json)) records['$name/${r.id}'] = json;
+      }
+    }
+    final meta = <String, dynamic>{};
+    for (final entry in next.data.entries) {
+      if (_collectionKeys.contains(entry.key) || entry.key == 'revision') {
+        continue;
+      }
+      if (previous == null ||
+          jsonEncode(previous.data[entry.key]) != jsonEncode(entry.value)) {
+        meta[entry.key] = entry.value;
+      }
+    }
+    return (records: records, meta: meta);
+  }
+
+  /// Ghi snapshot thành doc theo record (seed + commit), chỉ những doc đổi
+  /// so với [previous]. Firestore giới hạn 500 thao tác/batch nên chia lô 400.
   Future<void> _writeSnapshot(
     AcademicSnapshot snapshot, {
     int? revision,
+    AcademicSnapshot? previous,
   }) async {
     if (_inMemoryTestBackend) return;
     if (!_available) return;
@@ -399,19 +459,18 @@ class FirebaseAcademicService {
       }
     }
 
-    for (final name in [..._recordCollections, ..._metaCollections]) {
-      final ref = _firestore.collection(name);
-      for (final record in snapshot.records(name)) {
-        batch.set(ref.doc(record.id), record.toJson(), SetOptions(merge: true));
-        pending++;
-        await flushIfNeeded();
-      }
+    final writes = snapshotWrites(previous, snapshot);
+    for (final entry in writes.records.entries) {
+      batch.set(
+        _firestore.doc(entry.key),
+        entry.value,
+        SetOptions(merge: true),
+      );
+      pending++;
+      await flushIfNeeded();
     }
     final meta = _firestore.collection('_meta').doc('snapshot');
-    final metaData = <String, dynamic>{
-      for (final entry in snapshot.data.entries)
-        if (!_collectionKeys.contains(entry.key)) entry.key: entry.value,
-    };
+    final metaData = <String, dynamic>{...writes.meta};
     if (revision != null) metaData['revision'] = revision;
     batch.set(meta, metaData, SetOptions(merge: true));
     try {
@@ -459,7 +518,7 @@ class FirebaseAcademicService {
     }
     final newRevision = current.revision + 1;
     await _claimRevision(expectedRevision, newRevision);
-    await _writeSnapshot(next, revision: newRevision);
+    await _writeSnapshot(next, revision: newRevision, previous: current);
     final committed = AcademicSnapshot({
       ...next.toJson(),
       'revision': newRevision,
@@ -484,7 +543,7 @@ class FirebaseAcademicService {
     final next = command.apply(current);
     final newRevision = current.revision + 1;
     await _claimRevision(expectedRevision, newRevision);
-    await _writeSnapshot(next, revision: newRevision);
+    await _writeSnapshot(next, revision: newRevision, previous: current);
     final committed = AcademicSnapshot({
       ...next.toJson(),
       'revision': newRevision,
@@ -541,7 +600,4 @@ class FirebaseAcademicService {
     return updated;
   }
 
-  void dispose() {
-    _lastSnapshot = null;
-  }
 }

@@ -94,9 +94,7 @@ class CloudinaryUploadService {
     final response = await http.Response.fromStream(await pending);
     final body = utf8.decode(response.bodyBytes);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw CloudinaryUploadException(
-        'Cloudinary trả lỗi ${response.statusCode}: $body',
-      );
+      throw CloudinaryUploadException(errorMessage(response.statusCode, body));
     }
     final decoded = jsonDecode(body);
     final url = decoded is Map<String, dynamic> ? decoded['secure_url'] : null;
@@ -110,6 +108,29 @@ class CloudinaryUploadService {
     }
     onProgress?.call(1.0);
     return uri;
+  }
+
+  /// Câu cho sinh viên đọc: không lộ JSON thô của Cloudinary.
+  static String errorMessage(int status, String body) {
+    String? reason;
+    try {
+      final decoded = jsonDecode(body);
+      final error = decoded is Map ? decoded['error'] : null;
+      final message = error is Map ? error['message'] : null;
+      if (message is String && message.trim().isNotEmpty) {
+        reason = message.trim();
+      }
+    } on FormatException {
+      reason = null;
+    }
+    if (status >= 500 || reason == null) {
+      return 'Máy chủ lưu tệp đang lỗi (mã $status). Vui lòng thử lại sau ít phút.';
+    }
+    if (status == 400 && reason.toLowerCase().contains('invalid')) {
+      return 'Tệp bị hỏng hoặc sai định dạng nên không tải lên được. '
+          'Hãy xuất lại tệp rồi nộp lại.';
+    }
+    return 'Không tải được tệp lên (mã $status): $reason';
   }
 
   String _configuredValue(String key, String defineValue) {

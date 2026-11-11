@@ -159,3 +159,46 @@ def test_tool_is_never_handed_the_ai_switch(monkeypatch, tmp_path):
         drawio_review.review_drawio(FIXTURE.read_text(encoding="utf-8"))
     assert err.value.status == 504
     assert "UC_REVIEW_ASK" not in seen["env"]
+
+
+# ---- auth: mobile (Firebase bearer) and desktop (X-App-Token) must both get in ----
+
+_SECRET = "drawio-app-secret"
+
+
+@pytest.fixture
+def guarded_client():
+    from app.config.settings import Settings, get_settings
+    from app.core.firebase_auth import verify_firebase_token
+
+    # conftest installs a verified-Firebase-user override for every test; take it off
+    # so "no credentials" really means none.
+    previous = app.dependency_overrides.pop(verify_firebase_token, None)
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        mock_mode=True, gemini_api_key="", app_token=_SECRET
+    )
+    yield TestClient(app)
+    app.dependency_overrides.pop(get_settings, None)
+    if previous is not None:
+        app.dependency_overrides[verify_firebase_token] = previous
+
+
+def test_drawio_route_refuses_a_caller_with_no_credentials(guarded_client):
+    r = guarded_client.post("/diagram/drawio", json={"xml": "<svg></svg>"})
+    assert r.status_code == 401
+
+
+def test_drawio_route_accepts_the_desktop_app_token(guarded_client):
+    # 400 = got past auth and was refused for the body, not for the caller.
+    r = guarded_client.post("/diagram/drawio", json={"xml": "<svg></svg>"}, headers={"X-App-Token": _SECRET})
+    assert r.status_code == 400
+
+
+def test_drawio_route_accepts_a_firebase_bearer_like_review_does(guarded_client, monkeypatch):
+    from app.core import firebase_auth
+
+    monkeypatch.setattr(firebase_auth, "decode_id_token", lambda token, settings: {"uid": "teacher"})
+    r = guarded_client.post(
+        "/diagram/drawio", json={"xml": "<svg></svg>"}, headers={"Authorization": "Bearer abc"}
+    )
+    assert r.status_code == 400

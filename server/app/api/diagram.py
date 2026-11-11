@@ -107,7 +107,9 @@ _drawio_slots = asyncio.Semaphore(2)
 @router.post(
     "/diagram/drawio",
     response_model=DrawioReviewResponse,
-    dependencies=[Depends(deps.require_app_token)],
+    # caller_identity, not require_app_token: mobile signs in with Firebase (bearer),
+    # desktop sends X-App-Token — same rule /review already uses.
+    dependencies=[Depends(deps.caller_identity)],
 )
 async def review_drawio_file(payload: DrawioReviewRequest) -> DrawioReviewResponse:
     """Deterministic Use Case review of a ``.drawio`` file (no LLM, no quota).

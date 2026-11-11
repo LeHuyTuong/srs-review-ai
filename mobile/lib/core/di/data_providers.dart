@@ -72,17 +72,27 @@ final academicServiceProvider = Provider<FakeAcademicService>(
 );
 
 /// Shared Firestore service for live academic data and the dashboard projection.
-final firestoreAcademicServiceProvider = Provider<FirebaseAcademicService>(
-  (ref) =>
+final firestoreAcademicServiceProvider = Provider<FirebaseAcademicService>((
+  ref,
+) {
+  // Mỗi phiên đăng nhập một service: subscription realtime của phiên cũ chết
+  // vì permission-denied khi đăng xuất, và cache của người trước không được
+  // lọt sang người sau.
+  // Phiên rỗng (vừa đăng xuất): provider dựng lại trước khi màn GV/SV kịp
+  // gỡ, nên service này không được mở listener Firestore khi đã mất quyền.
+  final signedIn = ref.watch(sessionScopeProvider).userId != null;
+  final service =
       FirebaseAcademicService(
-          ref.watch(firebaseInitializedProvider)
+          signedIn && ref.watch(firebaseInitializedProvider)
               ? ref.watch(firestoreProvider)
               : null,
           syncOutbox: ref.watch(offlineAcademicStoreProvider),
         )
         ..onRemoteChange = () =>
-            ref.read(academicRemoteChangesProvider.notifier).applied(),
-);
+            ref.read(academicRemoteChangesProvider.notifier).applied();
+  ref.onDispose(service.dispose);
+  return service;
+});
 // Tách thao tác chọn tệp và sao chép khỏi ViewModel để thay thế được khi kiểm thử.
 final studentImportServiceProvider = Provider<StudentDeviceGateway>(
   (ref) => StudentImportService(),

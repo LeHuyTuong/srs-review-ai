@@ -18,8 +18,11 @@ Uri? syncBaseUri() {
   const explicit = String.fromEnvironment('SYNC_BASE_URL');
   if (explicit.isNotEmpty) return Uri.parse(explicit);
   const review = String.fromEnvironment('AI_REVIEW_ENDPOINT');
-  // Không truyền gì → dùng server trên VPS.
-  if (review.isEmpty) return Uri.parse(vpsBaseUrl);
+  // Không truyền gì → lấy SRS_API_BASE_URL (define/.env); trống thì tắt đồng bộ.
+  if (review.isEmpty) {
+    final base = vpsBaseUrl;
+    return base.isEmpty ? null : Uri.parse(base);
+  }
   final uri = Uri.parse(review);
   final path = uri.path.replaceFirst(RegExp(r'/review/?$'), '');
   return uri.replace(path: path, query: null);

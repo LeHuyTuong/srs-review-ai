@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:srs_review_ai_mobile/core/di/data_providers.dart';
 import 'package:srs_review_ai_mobile/core/domain/academic/academic_models.dart';
+import 'package:srs_review_ai_mobile/features/account/presentation/viewmodels/current_user_view_model.dart';
+import 'package:srs_review_ai_mobile/features/student/domain/my_submission.dart';
 import 'package:srs_review_ai_mobile/features/student/presentation/viewmodels/student_upload_view_model.dart';
 import 'package:srs_review_ai_mobile/services/remote_config_service.dart';
 import 'package:srs_review_ai_mobile/theme/app_colors.dart';
@@ -42,7 +44,10 @@ class StudentUploadPanel extends ConsumerWidget {
         onRetry: () => ref.invalidate(studentAcademicSnapshotProvider),
       ),
       data: (data) {
-        final classes = data.classes;
+        final classes = submittableClasses(
+          data,
+          ref.watch(currentUserProvider).value?.email,
+        );
         final projects = state.classId == null
             ? const <AcademicRecord>[]
             : data.classProjects(state.classId!);
@@ -183,7 +188,7 @@ class StudentUploadPanel extends ConsumerWidget {
             ),
             if (state.uploadedUrl case final url?)
               _SuccessCard(
-                fileName: state.file?.fileName ?? '',
+                fileName: state.submittedFileName ?? '',
                 url: url,
                 onViewMine: onViewMine,
               ),
@@ -243,7 +248,7 @@ class _FilePickerTile extends StatelessWidget {
                     ),
                     Text(
                       picked
-                          ? '${((sizeBytes ?? 0) / (1024 * 1024)).toStringAsFixed(2)} MB · bấm để đổi tệp'
+                          ? '${fileSizeLabel(sizeBytes ?? 0)} · bấm để đổi tệp'
                           : 'Bấm để chọn tệp từ máy',
                       style: AppTypography.muted,
                     ),

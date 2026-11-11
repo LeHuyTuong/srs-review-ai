@@ -35,6 +35,9 @@ final loginViewModelProvider = ChangeNotifierProvider<LoginViewModel>(
     crashlytics: ref.watch(crashlyticsServiceProvider),
     roleOf: _firestoreRoleOf,
     clearLocalData: () async {
+      // Huỷ listener Firestore học vụ TRƯỚC signOut: để tới lúc phiên đổi thì
+      // mọi watch đã chết vì permission-denied (đo được trên web 11/11).
+      ref.read(firestoreAcademicServiceProvider).dispose();
       final store = ref.read(offlineAcademicStoreProvider);
       if (store == null) return;
       // Đẩy nốt thay đổi chưa đồng bộ (nếu có mạng) rồi mới xoá.

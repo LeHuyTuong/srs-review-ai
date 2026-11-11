@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
+import 'package:srs_review_ai_mobile/core/domain/academic/academic_models.dart';
 
 /// Ba bước sinh viên thấy được. Chỉ suy từ field giảng viên/server đã ghi lên
 /// `submissions/{id}`, không đoán theo thời gian.
@@ -125,4 +126,26 @@ String? duplicateUploadMessage(
       : ' lúc ${two(t.hour)}:${two(t.minute)} ${two(t.day)}/${two(t.month)}/${t.year}';
   return 'File giống hệt bài "${same.fileName}" bạn đã nộp$when. '
       'Hãy sửa tài liệu trước khi nộp lại.';
+}
+
+/// Kích thước tệp cho người đọc: 600 byte không được hiện thành "0.00 MB".
+String fileSizeLabel(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+}
+
+/// Lớp sinh viên được nộp vào: lớp có tên trong danh sách sinh viên theo
+/// email. Chưa có trong danh sách (tài khoản mới) thì mọi lớp chưa lưu trữ,
+/// để không chặn việc nộp bài.
+List<ClassRoom> submittableClasses(AcademicSnapshot s, String? email) {
+  final open = s.classes.where((c) => !c.archived).toList();
+  final key = email?.trim().toLowerCase() ?? '';
+  if (key.isEmpty) return open;
+  final mine = {
+    for (final st in s.records('students'))
+      if (st.text('email').trim().toLowerCase() == key) st.text('classId'),
+  };
+  final enrolled = open.where((c) => mine.contains(c.id)).toList();
+  return enrolled.isEmpty ? open : enrolled;
 }

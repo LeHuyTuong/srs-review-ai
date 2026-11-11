@@ -189,3 +189,6 @@ docs/evidence/video/
 
 # Video quay e2e (hàng chục MB mỗi file) — không commit
 e2e_test/videos/
+
+# Sinh khi build từ SRS_API_BASE_URL (mobile/android/app/build.gradle.kts)
+mobile/android/app/src/main/res/xml/network_security_config.xml

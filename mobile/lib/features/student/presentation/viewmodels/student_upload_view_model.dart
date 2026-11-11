@@ -31,6 +31,7 @@ class StudentUploadState {
     this.progress = 0.0,
     this.error,
     this.uploadedUrl,
+    this.submittedFileName,
   });
 
   final PickedStudentSrsFile? file;
@@ -40,6 +41,18 @@ class StudentUploadState {
   final double progress;
   final String? error;
   final Uri? uploadedUrl;
+
+  /// Tên tệp vừa nộp, cho thẻ thành công; [file] đã được xoá khỏi form.
+  final String? submittedFileName;
+
+  /// Nộp xong: giữ lớp/dự án để nộp tiếp, bỏ tệp để không bấm nộp lại nhầm.
+  StudentUploadState succeeded(Uri url) => StudentUploadState(
+    classId: classId,
+    projectId: projectId,
+    progress: 1.0,
+    uploadedUrl: url,
+    submittedFileName: file?.fileName,
+  );
 
   StudentUploadState copyWith({
     PickedStudentSrsFile? file,
@@ -60,6 +73,7 @@ class StudentUploadState {
     progress: progress ?? this.progress,
     error: clearError ? null : (error ?? this.error),
     uploadedUrl: clearUploadedUrl ? null : (uploadedUrl ?? this.uploadedUrl),
+    submittedFileName: clearUploadedUrl ? null : submittedFileName,
   );
 }
 
@@ -238,11 +252,7 @@ class StudentUploadViewModel extends Notifier<StudentUploadState> {
       );
 
       if (ref.mounted) {
-        state = state.copyWith(
-          uploading: false,
-          progress: 1.0,
-          uploadedUrl: url,
-        );
+        state = state.succeeded(url);
       }
     } on Object catch (error, stackTrace) {
       await crashlytics.logError(

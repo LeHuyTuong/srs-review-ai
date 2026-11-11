@@ -26,7 +26,10 @@ StudentSubmission _submission() => const StudentSubmission(
   projectId: 'smart-attendance-system',
 );
 
-Future<ProviderContainer> _pump(WidgetTester tester) async {
+Future<ProviderContainer> _pump(
+  WidgetTester tester, [
+  List<StudentSubmission>? items,
+]) async {
   // Bề rộng điện thoại thật: nhãn nút không được bị bóp mất.
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
@@ -38,7 +41,7 @@ Future<ProviderContainer> _pump(WidgetTester tester) async {
           TestAcademicRepository(academicFixture()),
         ),
         studentSubmissionsRepositoryProvider.overrideWithValue(
-          _Repo([_submission()]),
+          _Repo(items ?? [_submission()]),
         ),
         aiReviewGatewayProvider.overrideWithValue(null),
       ],
@@ -100,4 +103,26 @@ void main() {
       );
     },
   );
+
+  testWidgets('bản nộp lại (thành phiên bản v2) vẫn hiện "Đã vào hàng chờ"', (
+    tester,
+  ) async {
+    const v2 = StudentSubmission(
+      id: 'sub-2',
+      fileName: 'srs-nhom-04-v2.pdf',
+      fileUrl: 'https://res.cloudinary.com/demo/raw/upload/srs-nhom-04-v2.pdf',
+      studentId: 's14',
+      studentName: 'Mai Phương Thảo',
+      projectId: 'smart-attendance-system',
+    );
+    await _pump(tester, [v2, _submission()]);
+
+    for (var i = 0; i < 2; i++) {
+      await tester.tap(find.text('Đưa vào hàng chờ duyệt').last);
+      await tester.pumpAndSettle();
+    }
+
+    expect(find.text('Đưa vào hàng chờ duyệt'), findsNothing);
+    expect(find.text('Đã vào hàng chờ'), findsNWidgets(2));
+  });
 }

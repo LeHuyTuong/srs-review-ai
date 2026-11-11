@@ -79,9 +79,18 @@ class ApiPushNotificationRepository implements PushNotificationRepository {
   static const _baseUrl = String.fromEnvironment('SRS_API_BASE_URL');
   final http.Client _client;
 
-  String get _resolvedBase => _baseUrl.trim().isNotEmpty
-      ? _baseUrl.replaceFirst(RegExp(r'/+$'), '')
-      : 'http://160.30.160.113:8000'; // server đã deploy (có Swagger /docs)
+  // Không hardcode địa chỉ server vào repo: đặt SRS_API_BASE_URL trong
+  // admin_web/.env (đã gitignore) rồi chạy với --dart-define-from-file=.env.
+  String get _resolvedBase {
+    final base = _baseUrl.trim();
+    if (base.isEmpty) {
+      throw StateError(
+        'Chưa cấu hình SRS_API_BASE_URL. Đặt nó trong admin_web/.env và chạy '
+        'với --dart-define-from-file=.env.',
+      );
+    }
+    return base.replaceFirst(RegExp(r'/+$'), '');
+  }
 
   Uri get _endpoint => Uri.parse('$_resolvedBase/admin/notifications/send');
 

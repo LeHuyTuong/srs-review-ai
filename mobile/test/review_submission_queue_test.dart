@@ -95,7 +95,9 @@ void main() {
     expect(r.text('fileUrl'), sub.fileUrl);
     expect(r.text('fileName'), 'srs-nhom-04.pdf');
     expect(r.text('fileType'), 'PDF');
-    expect(r.text('documentTitle'), 'Tài liệu SRS');
+    // Gắn mục SRS của lab (tên mục), để chấm bằng Rule Set của mục đó.
+    expect(r.text('documentTitle'), 'SRS');
+    expect(r.text('documentId'), isNotEmpty);
     expect(r.text('documentStatus'), 'submitted');
     expect(r.text('supervisorStatus'), 'waiting');
     expect(r.text('aiStatus'), 'notRun');
