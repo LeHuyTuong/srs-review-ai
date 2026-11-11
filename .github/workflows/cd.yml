@@ -28,17 +28,6 @@ concurrency:
   group: cd-vps
   cancel-in-progress: true
 
-env:
-  # Variables first (docs/deployment.md), then the repository secrets the
-  # repo actually has today (2026-11-11 they were created as secrets).
-  IMAGE_NAME: ${{ vars.IMAGE_NAME || secrets.IMAGE_NAME }}
-  VPS_HOST: ${{ vars.VPS_HOST || secrets.VPS_HOST }}
-  VPS_PORT: ${{ vars.VPS_PORT || secrets.VPS_PORT }}
-  VPS_USER: ${{ vars.VPS_USER || secrets.VPS_USER }}
-  VPS_PROJECT_DIR: ${{ vars.VPS_PROJECT_DIR || secrets.VPS_PROJECT_DIR }}
-  COMPOSE_SERVICE: ${{ vars.VPS_SERVICE || 'server' }}
-  HEALTH_PORT: ${{ vars.VPS_HEALTH_PORT || '8000' }}
-
 jobs:
   build-and-push:
     name: Build and push image
@@ -52,6 +41,16 @@ jobs:
     if: >-
       !(github.event_name == 'workflow_dispatch' && inputs.image_tag != '')
       && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+    env:
+      # Variables first (docs/deployment.md), then the repository secrets the
+      # repo actually has today (2026-11-11 they were created as secrets).
+      IMAGE_NAME: ${{ vars.IMAGE_NAME || secrets.IMAGE_NAME }}
+      VPS_HOST: ${{ vars.VPS_HOST || secrets.VPS_HOST }}
+      VPS_PORT: ${{ vars.VPS_PORT || secrets.VPS_PORT }}
+      VPS_USER: ${{ vars.VPS_USER || secrets.VPS_USER }}
+      VPS_PROJECT_DIR: ${{ vars.VPS_PROJECT_DIR || secrets.VPS_PROJECT_DIR }}
+      COMPOSE_SERVICE: ${{ vars.VPS_SERVICE || 'server' }}
+      HEALTH_PORT: ${{ vars.VPS_HEALTH_PORT || '8000' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -62,6 +61,7 @@ jobs:
         id: meta
         run: |
           set -euo pipefail
+          [ -n "$IMAGE_NAME" ] || { echo "::error::IMAGE_NAME is empty (set it as a Variable or a Secret)"; exit 10; }
           if [ "${{ github.event_name }}" = "workflow_run" ]; then
             sha="${{ github.event.workflow_run.head_sha }}"
           else
@@ -126,6 +126,16 @@ jobs:
     # key entirely to make merges deploy on their own.
     environment:
       name: production
+    env:
+      # Variables first (docs/deployment.md), then the repository secrets the
+      # repo actually has today (2026-11-11 they were created as secrets).
+      IMAGE_NAME: ${{ vars.IMAGE_NAME || secrets.IMAGE_NAME }}
+      VPS_HOST: ${{ vars.VPS_HOST || secrets.VPS_HOST }}
+      VPS_PORT: ${{ vars.VPS_PORT || secrets.VPS_PORT }}
+      VPS_USER: ${{ vars.VPS_USER || secrets.VPS_USER }}
+      VPS_PROJECT_DIR: ${{ vars.VPS_PROJECT_DIR || secrets.VPS_PROJECT_DIR }}
+      COMPOSE_SERVICE: ${{ vars.VPS_SERVICE || 'server' }}
+      HEALTH_PORT: ${{ vars.VPS_HEALTH_PORT || '8000' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
