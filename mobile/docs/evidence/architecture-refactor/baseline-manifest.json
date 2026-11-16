@@ -1,0 +1,506 @@
+[
+  {
+    "path": "lib/app/app.dart",
+    "sha256": "ec52aa70f8ce44bdee29e907779997bd7edebab6c5993292207d9f17c4a495c6"
+  },
+  {
+    "path": "lib/app/app_navigation.dart",
+    "sha256": "e4fc639ca271728821ce342250015602226866b92e0c42905df7d4a902278c27"
+  },
+  {
+    "path": "lib/app/providers.dart",
+    "sha256": "bf21fa92f0b323eb65b0db9c27e311aa058572e150b57aecd343805ff02ad42f"
+  },
+  {
+    "path": "lib/app/session.dart",
+    "sha256": "0e24480552e61ba288e31780dea6d254f99fb1b2631bd317a39a366713ca2c7d"
+  },
+  {
+    "path": "lib/main.dart",
+    "sha256": "f1b9f392535f31362a6f503b1991c023482dd750d425c87129fede26ec0e107b"
+  },
+  {
+    "path": "lib/models/academic/academic_models.dart",
+    "sha256": "fe3195c02e1b9dc0c4e41e0fdfb9711da14e255785d1129b5ec912334839f721"
+  },
+  {
+    "path": "lib/models/academic/academic_policy.dart",
+    "sha256": "5bc640eda620dcd7489935373be2e610b494696b8975a66d8f7e2b52bdfe3a9c"
+  },
+  {
+    "path": "lib/models/academic/academic_presentation.dart",
+    "sha256": "4ef0ec6c1adc5e9524188fbe09e95117fb5a318b7d008fabf22c2e8f26c4568f"
+  },
+  {
+    "path": "lib/models/academic/academic_projections.dart",
+    "sha256": "ad90d29de6eb4e7404722c6d93d85db8f127933a604a875d97b2c3d0c588f9d9"
+  },
+  {
+    "path": "lib/models/academic/management_queries.dart",
+    "sha256": "2d298847d1cfe5dce17e2136ff1ebeaa41be7d6708508c13c62eb01fe3f46750"
+  },
+  {
+    "path": "lib/models/academic/project_context.dart",
+    "sha256": "2ae3cab3afb84fd0aabb650a68110ae15bc4a5dfb3b117854c282834f63b73de"
+  },
+  {
+    "path": "lib/models/academic/review_policy.dart",
+    "sha256": "3526a229abd5f76092c0855ed0620fe9e931b77999863d57ff780a5e7ade1828"
+  },
+  {
+    "path": "lib/models/counter_state.dart",
+    "sha256": "cca66aa0c871d219dcb56fff49bcc0d765900adeca53cdc130fde2dc6326b8e8"
+  },
+  {
+    "path": "lib/models/dashboard/dashboard_snapshot.dart",
+    "sha256": "e435582647b13808d5a5cbb7f2609c02fbc1aaa7a96311f165e0311b51fe08db"
+  },
+  {
+    "path": "lib/models/dashboard/dashboard_state.dart",
+    "sha256": "7c78f10397a82162ba3996acb183df324f441669443e68ea2cd37a1b043756aa"
+  },
+  {
+    "path": "lib/models/session_scope.dart",
+    "sha256": "7cbfa85b675e8ccd659df4502b4a1608b939fca55efce19b258d5dd846293239"
+  },
+  {
+    "path": "lib/repositories/academic/academic_repository.dart",
+    "sha256": "dfc2dc15880522dd53c52cb4120893fd854b3e919539b3737e3489b9eac5e21f"
+  },
+  {
+    "path": "lib/repositories/academic/course_contract.dart",
+    "sha256": "eb398cbc6b809e7c67361ebf00c2eb567c4c4ff7016d47c841c77c85e5b829c9"
+  },
+  {
+    "path": "lib/repositories/academic/fake_academic_repository.dart",
+    "sha256": "625d437b0a4fc76d9712b6588edc667ab574483ab4eccbe156518abf2997ea0c"
+  },
+  {
+    "path": "lib/repositories/academic/student_device_gateway.dart",
+    "sha256": "a27535c96b1678dacba2df81bb4e307c64d63cd58fae58df31355566cb373815"
+  },
+  {
+    "path": "lib/repositories/counter_repository.dart",
+    "sha256": "05dd7287b34e7fb05fecd8c63fce688b0cb96252277106d31dac4e82e838f976"
+  },
+  {
+    "path": "lib/repositories/dashboard/dashboard_repository.dart",
+    "sha256": "226a7afe260dbd2b84687176d3de0b84c372e1eec8dba9f39bcca9c8acf7b06a"
+  },
+  {
+    "path": "lib/repositories/dashboard/fake_dashboard_repository.dart",
+    "sha256": "c6c2f9b1be49d51f983842f68a920c4f700b88ee5449d7bc23af9c930b6dd302"
+  },
+  {
+    "path": "lib/repositories/notification_repository.dart",
+    "sha256": "a6be4355c0b8efea92af434d255059c398581aa0bbe20a64f81c94021d63a1f8"
+  },
+  {
+    "path": "lib/screens/academic/class_screens.dart",
+    "sha256": "e7a6be42840bd0e730d739ab819363f916b10d6bbb836223db2185bfb42c71b5"
+  },
+  {
+    "path": "lib/screens/academic/course_screens.dart",
+    "sha256": "d96bbb4f3cb246ebe03ffbe6c40b005be27ad492535b199f3b226413407827d2"
+  },
+  {
+    "path": "lib/screens/academic/directory_screens.dart",
+    "sha256": "3a60a85c9fe5201b9dfba2e0281d5b6b3730816957a7768eb4410b6b4cf02a89"
+  },
+  {
+    "path": "lib/screens/academic/offering_detail_screen.dart",
+    "sha256": "30117f850625e7a68c3ba48e0492014a174717442f7de2f1a69ba61f9f75b5df"
+  },
+  {
+    "path": "lib/screens/academic/widgets/academic_form_sheet.dart",
+    "sha256": "6f276ec47b051fa4ea684c13b308b86a9b3a608dd68dceddb35d3126d60b995e"
+  },
+  {
+    "path": "lib/screens/academic/widgets/academic_page.dart",
+    "sha256": "5f079425b45189b14583f6a99bb69cf2108ce49c50c17143198bfd52015c84de"
+  },
+  {
+    "path": "lib/screens/academic/widgets/class_card.dart",
+    "sha256": "d61445f60d0e20a61f73796b1e9602d0c1af93458922515c317b4cac18b23b87"
+  },
+  {
+    "path": "lib/screens/academic/widgets/class_filter_bar.dart",
+    "sha256": "7b0f1085d21d8fb9fbd23a136b690f80686e343f12892c69f6240e78816e7922"
+  },
+  {
+    "path": "lib/screens/academic/widgets/class_overview.dart",
+    "sha256": "be8307acb94057428f5c8e79d853996cbb5d3688c80a60083d160ef013bf6090"
+  },
+  {
+    "path": "lib/screens/academic/widgets/class_review_preview.dart",
+    "sha256": "59b6f42bd866f29d62afc29ab981d0ee9933730f2995014a02d2e62a79c41868"
+  },
+  {
+    "path": "lib/screens/academic/widgets/group_summary_card.dart",
+    "sha256": "4873b7b282dd66031b7f36e002102d36b693fdfec0b9ecfab3b8a2c84f5d56a2"
+  },
+  {
+    "path": "lib/screens/academic/widgets/lab_editor.dart",
+    "sha256": "42c42eb82f02f8632fa111ae819320467b6d8bb841effcc51447d0b8b436cef7"
+  },
+  {
+    "path": "lib/screens/academic/widgets/rule_set_panel.dart",
+    "sha256": "a86f1eb68a87eb0f1b894e9ca5c01337657eb8f3997b153c0342c83562dedf79"
+  },
+  {
+    "path": "lib/screens/academic/widgets/student_enrollment_sheet.dart",
+    "sha256": "7617a1e2bd3fc7fb3256a10a5a216199a653ae4ac9eeaca08fb24e70fb3f0d5d"
+  },
+  {
+    "path": "lib/screens/account/account_screens.dart",
+    "sha256": "f06a161b9f8b2f949010410cc7a3d6e0a06127e2576851af1e8cf351bc18d75e"
+  },
+  {
+    "path": "lib/screens/account/login_screen.dart",
+    "sha256": "74364d5a3aed729ed4ba7bac6730eee2a6167622223e600f54707867eada9436"
+  },
+  {
+    "path": "lib/screens/dashboard/dashboard_screen.dart",
+    "sha256": "b6c125af9bfc72e0dac140bf5061ed857b6712bfdfbdb8aa8b083e91828a6e15"
+  },
+  {
+    "path": "lib/screens/dashboard/widgets/dashboard_heading.dart",
+    "sha256": "2d415e6591301d3021eff746607263bdffc267d393a5197649bb4067fd284995"
+  },
+  {
+    "path": "lib/screens/dashboard/widgets/dashboard_review_row.dart",
+    "sha256": "aaf8b1dcc2d17ccd5505485fdffaed790863f21183a55375e7ca836e241f394c"
+  },
+  {
+    "path": "lib/screens/dashboard/widgets/dashboard_secondary_sections.dart",
+    "sha256": "4ac6a7e301bb8cc4b75b47648f623f6cdd0cc0840cea1bb688e443291de7d05f"
+  },
+  {
+    "path": "lib/screens/dashboard/widgets/dashboard_stats.dart",
+    "sha256": "8c4328140bcda15261b4248ad7daaecd4f1b3737050d105914181141a5a1e820"
+  },
+  {
+    "path": "lib/screens/dashboard/widgets/dashboard_tasks.dart",
+    "sha256": "e67a7979a111b519ab7dd5986fddf3e9532a6c2cd2335baa87aa67b3c8347c39"
+  },
+  {
+    "path": "lib/screens/demo_screen.dart",
+    "sha256": "a30e53000489d4cba821b4eac7e3b610cec93878fd006548c140059018ab56eb"
+  },
+  {
+    "path": "lib/screens/management/document_screens.dart",
+    "sha256": "b3e823e645cec456669caef57a8735957dceaf3a16d43b7672c6804e6cda103b"
+  },
+  {
+    "path": "lib/screens/management/group_screens.dart",
+    "sha256": "228bd38e93a9b520b0478880dcb0841cf318f9e7a1b9066385a3bd2321f09c3c"
+  },
+  {
+    "path": "lib/screens/management/project_registrations_screen.dart",
+    "sha256": "92cc6e57e6aa1d12c057af36c27192b8074ae065e4ea4eadc16d1d993631f205"
+  },
+  {
+    "path": "lib/screens/management/project_screens.dart",
+    "sha256": "42c7b286782635845771364adfcc4f694f76f5e4a61cc4c6e0c828f8853932f3"
+  },
+  {
+    "path": "lib/screens/management/review_history_screens.dart",
+    "sha256": "64f8fbf9fea2e5f3d907bf5cdb53c699b436968e196c8448c907fbc7b5053b43"
+  },
+  {
+    "path": "lib/screens/management/review_screens.dart",
+    "sha256": "c8b64e9d0de0e7bf5ed820fe7590be55cf0c11a23662bb8b3ed7a4a5144aedd3"
+  },
+  {
+    "path": "lib/screens/management/widgets/ai_review_panel.dart",
+    "sha256": "e41aebfa9e0e3c4b53b946384794fdd24894cd9319f7e4f48c947dc103849c46"
+  },
+  {
+    "path": "lib/screens/management/widgets/document_card.dart",
+    "sha256": "5f182394addeb9930266ec0ec9419a9e547ca6f1fd3ffc4964b25be4bb5e2991"
+  },
+  {
+    "path": "lib/screens/management/widgets/management_filter_bar.dart",
+    "sha256": "8e7c6b7ae2b50c2f48e1f2294837d9e441473e48ab03a30f734eb0dd30350fee"
+  },
+  {
+    "path": "lib/screens/management/widgets/management_form_sheet.dart",
+    "sha256": "5750953307e31e33d7f64b4ff31dda497f932232c80dac71ae547d31157b603c"
+  },
+  {
+    "path": "lib/screens/management/widgets/management_shared.dart",
+    "sha256": "124d7d6652c8443cdc6e312ef3861138253ce09c6bf9cca862ecd6ba0f92aff9"
+  },
+  {
+    "path": "lib/screens/management/widgets/project_form_fields.dart",
+    "sha256": "b36d580e016e07c3dbc3c9364cfc167f01e1798382e946fa61df7ee11fec1327"
+  },
+  {
+    "path": "lib/screens/management/widgets/review_feedback.dart",
+    "sha256": "f4dacdcb7c72a9c8f3c3eeaf85125198ffb30c16fea48dd07a1bfb09b12320af"
+  },
+  {
+    "path": "lib/screens/management/widgets/sample_document_reader.dart",
+    "sha256": "f76bb8fca6a107da3f269997cfa74c3f5f85291063c1f2ad8d29380a07c459a4"
+  },
+  {
+    "path": "lib/screens/navigation_destination_screen.dart",
+    "sha256": "0becdc175755c81df1076ed9b76f46302f0a81765220963f75b1b7b58834ec4d"
+  },
+  {
+    "path": "lib/services/academic/fake_academic_service.dart",
+    "sha256": "e32bc2fadb126c0419d3baed75bab7842a8c63d888fdb62b146feffe03ba74e3"
+  },
+  {
+    "path": "lib/services/academic/student_import_service.dart",
+    "sha256": "96cfb36fd7595d6db5b54d4513a7f24d4a3c43ccbf9cc7c1645622ffd5f49a5a"
+  },
+  {
+    "path": "lib/services/dashboard/fake_dashboard_service.dart",
+    "sha256": "db689da4b1a5934a12579c6c134153be0bb9d088c68c6c2d997689bbcbc6857f"
+  },
+  {
+    "path": "lib/services/demo_counter_service.dart",
+    "sha256": "a0de7881af56774ee866bb4c627dd4f923b8bfe2f507942fa439413061944982"
+  },
+  {
+    "path": "lib/theme/app_colors.dart",
+    "sha256": "1c7834d16b9a45d10f5c87b8d49d3cb40a0e3d126b6d98eb6436dc908df32825"
+  },
+  {
+    "path": "lib/theme/app_metrics.dart",
+    "sha256": "09908f5856fa01f9187f9906c21da287c25665a5842d0bb72d0e9a6bbc76c9c6"
+  },
+  {
+    "path": "lib/theme/app_radius.dart",
+    "sha256": "df42cb7629787286ff20028900a6e58403d71711c410ab297bc75a6948710f65"
+  },
+  {
+    "path": "lib/theme/app_shadows.dart",
+    "sha256": "cc05e029f8e5608c55d2abb6f572fe3b41dea6c1226f4e25c3878fc954711010"
+  },
+  {
+    "path": "lib/theme/app_spacing.dart",
+    "sha256": "fad4e118b165dd784015ba5cb91575c84f088c2cb0409cfc5b6cbb2975379753"
+  },
+  {
+    "path": "lib/theme/app_theme.dart",
+    "sha256": "4193bbfe5b70fd1f3a01d5fa4626af681a9f06d6be007ae7196443cda0153428"
+  },
+  {
+    "path": "lib/theme/app_typography.dart",
+    "sha256": "00b02da33e8a3b10b66d1ca578467b0ae9707fa5a51d6fa638d940e152a4dc48"
+  },
+  {
+    "path": "lib/viewmodels/academic/academic_form_view_model.dart",
+    "sha256": "2612b0ad68d8a64cb5d407a52e3ab4847b019776650b33056ff6b43d36fa09e5"
+  },
+  {
+    "path": "lib/viewmodels/academic/academic_view_model.dart",
+    "sha256": "f480ec5c731de7327d382e00a79e84b2f617f22c68b4b9d8a63a3eebb74384a9"
+  },
+  {
+    "path": "lib/viewmodels/academic/class_filter_view_model.dart",
+    "sha256": "fd1ca74e564a7a431e3ea8bf01729d558f0e926b221fbd056da50bf0e54ed008"
+  },
+  {
+    "path": "lib/viewmodels/academic/directory_view_model.dart",
+    "sha256": "10b9488da5c6b1fe1a55fb59aec5673ca80ff524b30cc14ce1438e0afe410624"
+  },
+  {
+    "path": "lib/viewmodels/academic/document_reader_view_model.dart",
+    "sha256": "0b19f8e4e88e7cb6b511b352da0017d8bc40f81416c655ae1ba6b7cee282ae16"
+  },
+  {
+    "path": "lib/viewmodels/academic/management_actions.dart",
+    "sha256": "145b72793b3e3711821709ab55fa7edb0fe4de14cd5dd26214b1c16cd8b2903b"
+  },
+  {
+    "path": "lib/viewmodels/academic/management_form_view_model.dart",
+    "sha256": "80cc3d7142441c2797050119aaa50cbb800e4a56bf0425ad9f24dcef1d598401"
+  },
+  {
+    "path": "lib/viewmodels/academic/management_list_view_model.dart",
+    "sha256": "f7c6e00af9ace31c674473b0c4237878cc4fceddd5c500f504a0ad10991f3ec7"
+  },
+  {
+    "path": "lib/viewmodels/academic/review_actions.dart",
+    "sha256": "fb3194d68cc3919ec4fe54fa3f5148ce5f97243308adee65b0da6e339e292420"
+  },
+  {
+    "path": "lib/viewmodels/academic/review_panel_view_model.dart",
+    "sha256": "6de772b6926e117972b999e6a1981e3f540e55de14288937ed494ad24923a102"
+  },
+  {
+    "path": "lib/viewmodels/academic/student_enrollment_view_model.dart",
+    "sha256": "ca33948ac307d5a3ff2f7bf6a85b9f9d2d7c6db769f4a784b6cf5d7fceada6e6"
+  },
+  {
+    "path": "lib/viewmodels/counter_view_model.dart",
+    "sha256": "092b58e7ad718cf82b2a3380c91a97e3f36f0108097a4f5edce8eccc4366df3d"
+  },
+  {
+    "path": "lib/viewmodels/dashboard/dashboard_view_model.dart",
+    "sha256": "22d6ff133b49283ae15abf8f546c053a0890dd983b0cb1d91f14250b9c26b670"
+  },
+  {
+    "path": "lib/widgets/app_academic_layout.dart",
+    "sha256": "28263484a02504f97bb892311ba7949221d0373054e0d96b3dce32d41bc0112a"
+  },
+  {
+    "path": "lib/widgets/app_badge.dart",
+    "sha256": "e63d21c715ae95333ca2d98e6cf41a0ae83bf2f535bb2db75ef1ec628039fce6"
+  },
+  {
+    "path": "lib/widgets/app_bottom_navigation.dart",
+    "sha256": "22c496f51df0ced12866c896a3595a489ee5aab2762db2e49b29a5603f9b8283"
+  },
+  {
+    "path": "lib/widgets/app_button.dart",
+    "sha256": "c17fd46fa3f3ccfb45c544a9129f980599edcf71cdb3e48994988a25148d95d4"
+  },
+  {
+    "path": "lib/widgets/app_card.dart",
+    "sha256": "1926a3ace9dc9b8c250f1dbed4c7817d0e8f77691020d0d4e7a588606eb71221"
+  },
+  {
+    "path": "lib/widgets/app_disclosure.dart",
+    "sha256": "d5d3a2ace2d9e3523302736e2ce6436b375ec8dd6f4f431a9e08d297bb000f2f"
+  },
+  {
+    "path": "lib/widgets/app_filter_controls.dart",
+    "sha256": "8509370c76afe39273d4ae6f6016a013f915ec94987b1ea07f1430d2e5e5b7a3"
+  },
+  {
+    "path": "lib/widgets/app_icon.dart",
+    "sha256": "f5788a6ca73ce53cb5ebd88c4569c8d40c879f1d9f447fe155f0eb8e0586fd60"
+  },
+  {
+    "path": "lib/widgets/app_meta_grid.dart",
+    "sha256": "0e80072c332573a89c1374f649ae1f44a38950d5d2b0e84396be190e9b00c245"
+  },
+  {
+    "path": "lib/widgets/app_search_field.dart",
+    "sha256": "0c193514813be6fb76248d80d09c93fe56f44713b97e3e9ad4ae267de272b558"
+  },
+  {
+    "path": "lib/widgets/app_states.dart",
+    "sha256": "88c80f9bcf0bcdd82e5e97d40b76e371c06502673febfc7ef985d24a7155d273"
+  },
+  {
+    "path": "lib/widgets/app_status_tracks.dart",
+    "sha256": "3facdf5f1da4e289574157373db9dca4d23f6fea03b41e8fdeb3ffa05c30d288"
+  },
+  {
+    "path": "lib/widgets/demo_counter_value.dart",
+    "sha256": "da6a5417ca8ced3f79c40779e07ca5f219d9a54d36d46948d614d3918fcaa293"
+  },
+  {
+    "path": "lib/widgets/mobile_header.dart",
+    "sha256": "a9d76138adc1028f23f80692d17b9b5e8356852749b749d5a5e0f78290f60519"
+  },
+  {
+    "path": "lib/widgets/stat_card.dart",
+    "sha256": "6d8fb75b6b4a300c6a7290af5df2f7e0153d3db79aaa0030e5e296f8a7b11970"
+  },
+  {
+    "path": "test/academic_view_model_test.dart",
+    "sha256": "c06ecbf5a2f22bbb7fa6fd96db3a7045691344800e635c77dc7b0728f27c0313"
+  },
+  {
+    "path": "test/academic_widget_test.dart",
+    "sha256": "0b43c786522e0932d1b0c318d38806592e8371ae96c351e57043cd561211b603"
+  },
+  {
+    "path": "test/counter_view_model_test.dart",
+    "sha256": "2aaed99d87f6e02b4126b805f61f198e16d920cdb924cbda4c8348b7b02804a3"
+  },
+  {
+    "path": "test/dashboard_view_model_test.dart",
+    "sha256": "6e2ad8f8871f207c3c3c1656eb397fe9568373402dbeb871394cdd77b4bf06a1"
+  },
+  {
+    "path": "test/dashboard_widget_test.dart",
+    "sha256": "01af26417630f0b32919cbdf34c56df41015edbde60ecaf7942022647ea8d1c6"
+  },
+  {
+    "path": "test/fixtures/react-review-oracle.json",
+    "sha256": "685d42485a54dedd3ce85d9e372ecf6b1b6e97d8cafc9ad114ab6f432d004fa4"
+  },
+  {
+    "path": "test/management_view_model_test.dart",
+    "sha256": "8de1d33b645e3c5c271fab5129dfb400e63e9e5111ca82b6dfa6fd35d2fc921a"
+  },
+  {
+    "path": "test/management_widget_test.dart",
+    "sha256": "996ccdfeeb8467b543d4353c1982881ed3b88be727534a5a9e5fe4ddac6cbc70"
+  },
+  {
+    "path": "test/phase4_test.dart",
+    "sha256": "944435d0378451f46f654fbaab55e1f006e66df926e1593672840aab49ab865a"
+  },
+  {
+    "path": "test/pre_firebase_boundaries_test.dart",
+    "sha256": "2087e2229331c594fb59c92a88d61052eac3400b1022e08dc5f27593a625bdcf"
+  },
+  {
+    "path": "test/pre_firebase_regression_test.dart",
+    "sha256": "47d5a625836825917ba29c56b0f151c25559f87da985ea7915549d298794bc0b"
+  },
+  {
+    "path": "test/support/academic_fixture.dart",
+    "sha256": "60a14b746f03c838c67a0a0c450137fe5ebfa69ab47b6ee90464cf513a6bfe29"
+  },
+  {
+    "path": "test/support/dashboard_fixture.dart",
+    "sha256": "a4fbe9f20c1edde04bbe89192bdcdae8d5bf4efbf6acca87842359a5228b2acb"
+  },
+  {
+    "path": "test/widget_test.dart",
+    "sha256": "5bee1ff298ee142c8aa9e15b5c68a9cc426cbed3d11056824351b7aa93532f21"
+  },
+  {
+    "path": "integration_test/academic_test.dart",
+    "sha256": "5e75167b2887ed0d2410a37fd050598c1c0735b6cae8354b58b754cda05a4c58"
+  },
+  {
+    "path": "integration_test/dashboard_test.dart",
+    "sha256": "4bc378961d9eb59216f34eba16691281254b65521ad0e4942cfb062bebf4e468"
+  },
+  {
+    "path": "integration_test/management_test.dart",
+    "sha256": "98c6d93c4cf2440447f3f29fdc0fede15134a3899706a6353ce22d60d2432ef8"
+  },
+  {
+    "path": "integration_test/phase4_test.dart",
+    "sha256": "9c34fdf4c09fa50a7a1901aa91e67128a54e469fcc739673a3af0c49adf6ef84"
+  },
+  {
+    "path": "test_driver/academic_driver.dart",
+    "sha256": "a3f70576b27180d85b6e9c1ddc5e6f0a1081ec8c13ea7581502e294da4b28fcf"
+  },
+  {
+    "path": "test_driver/dashboard_driver.dart",
+    "sha256": "c8fcabaf23301a3393b9d635ea4d3d3dff6bd9645a0ce581b0481b12e2e1d4b8"
+  },
+  {
+    "path": "test_driver/management_driver.dart",
+    "sha256": "f067718519535f91e2730ff16378d64506697b4ecac18e36ec42d123d481ea34"
+  },
+  {
+    "path": "test_driver/phase4_driver.dart",
+    "sha256": "0bd2e8c958393656b7770b91b909ed9fd4429cc208f4eff599481cb6e002d65a"
+  },
+  {
+    "path": "pubspec.yaml",
+    "sha256": "4aef5eb3bbcd808b07576df2d1ae58761cb9efffee215287116b6e078dac0742"
+  },
+  {
+    "path": "pubspec.lock",
+    "sha256": "ad39e48266b02b40ffd3c7a62c18b4bcf2d05417aa2ba18f52157eb9faac5813"
+  },
+  {
+    "path": "analysis_options.yaml",
+    "sha256": "98d70dd5a9033911f40e2e7f3ff9d74618e2aa13652990efe860ed0fe1cedfa9"
+  }
+]

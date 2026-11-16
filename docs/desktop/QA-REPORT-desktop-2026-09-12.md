@@ -41,7 +41,7 @@
   (`unnecessary_non_null_assertion`) — a concurrent-edit file, **BLOCKED**, not ours.
   Zero issues in any desktop file, including the 31 new QA tests.
 - `python3 tools/check_guardrails.py`: **exit 0**, 191 files.
-- `git diff app/pubspec.yaml`: **empty**. No new dependency.
+- `git diff desktop/pubspec.yaml`: **empty**. No new dependency.
 
 ### Breakdown of the desktop tests (31, engineer's)
 
@@ -69,7 +69,7 @@
 
 ### D-1 · P0 — `SetMinSize` is not declared in `win32_window.h`; the Windows build cannot compile
 
-- **File**: `app/windows/runner/win32_window.h` (missing), `app/windows/runner/flutter_window.cpp:25` (caller)
+- **File**: `desktop/windows/runner/win32_window.h` (missing), `desktop/windows/runner/flutter_window.cpp:25` (caller)
 - **Evidence**: the header declares `Create`, `Show`, `Destroy`, `SetChildContent`,
   `GetHandle`, `SetQuitOnClose`, `GetClientArea` — and nothing else. The implementation
   exists at `win32_window.cpp:262`. `flutter_window.cpp:25` calls `SetMinSize(Size(960, 680));`.
@@ -87,8 +87,8 @@
 
 ### D-2 · P0 — `WM_GETMINMAXINFO` is never handled, so the 960×680 floor is not enforced
 
-- **File**: `app/windows/runner/win32_window.cpp`, `MessageHandler` switch, lines 181–219
-- **Evidence**: `grep -rn "WM_GETMINMAXINFO" app/windows/runner/` returns **zero hits**.
+- **File**: `desktop/windows/runner/win32_window.cpp`, `MessageHandler` switch, lines 181–219
+- **Evidence**: `grep -rn "WM_GETMINMAXINFO" desktop/windows/runner/` returns **zero hits**.
   The switch handles `WM_DESTROY`, `WM_DPICHANGED`, `WM_SIZE`, `WM_ACTIVATE`,
   `WM_DWMCOLORIZATIONCOLORCHANGED` only. `min_size_` is written by `SetMinSize` and read
   by nobody — a dead member.
@@ -161,7 +161,7 @@ The measurement in §7.1 confirms the premise of that objection.
 
 ### D-4 · P2 — `desktop_layout_test.dart` drains layout exceptions unconditionally
 
-- **File**: `app/test/desktop/desktop_layout_test.dart:63`, `:126`, `:291`
+- **File**: `desktop/test/desktop/desktop_layout_test.dart:63`, `:126`, `:291`
   — `while (tester.takeException() != null) {}`
 - **Measured**: a probe (since deleted) that pumped the real app with a loaded document
   at 960/1280/1600/2560 recorded **2–3 exceptions drained per pump at every size**.
@@ -254,7 +254,7 @@ pass because the detector silently stopped working.
 | Check | Result |
 |---|---|
 | `dart:io` in any new desktop file | none (two matches are prose in a doc comment) |
-| `git diff app/pubspec.yaml` | empty — no new dependency |
+| `git diff desktop/pubspec.yaml` | empty — no new dependency |
 | `Color(0x…)` / `BorderRadius.circular(` outside `core/theme/` | none |
 | `workspace_tab_controller.dart` imports | `flutter_riverpod`, `../models/workspace_tab.dart` only |
 | `workspace_shortcut_commands.dart` imports | `flutter/foundation`, `flutter_riverpod`, `../models/workspace_tab.dart` only |
@@ -311,7 +311,7 @@ honest options are a Windows compile in CI or a manual build on a Windows machin
 this ships.
 
 **Files added by QA** (no source file was modified):
-- `app/test/desktop/qa_adversarial_test.dart` — 31 tests, 1 intentionally failing
+- `desktop/test/desktop/qa_adversarial_test.dart` — 31 tests, 1 intentionally failing
   (documents D-3). **Keep it failing until D-3 is fixed**; it is the regression guard.
 
 ---
@@ -337,7 +337,7 @@ before two more test files landed).
 
 - `flutter analyze --fatal-infos --fatal-warnings`: clean (before §5.6's file appeared).
 - `python3 tools/check_guardrails.py`: **exit 0**, 194 files.
-- `git diff app/pubspec.yaml`: still empty.
+- `git diff desktop/pubspec.yaml`: still empty.
 - **No pre-existing test regressed** against the 188 baseline. 284 − 41 (my round-2 +
   round-1 files) − 31 (desktop) − 23 (concurrent workstream) = 189, i.e. baseline +1.
 
@@ -457,7 +457,7 @@ is a different knob and it should go, at least for the Windows leg.
 ## 5.6 · Coordination issue — not our defect
 
 At 05:53Z a file appeared that I did not write:
-`app/test/desktop/qa_round2_independent_esc_test.dart` (another agent's in-flight work).
+`desktop/test/desktop/qa_round2_independent_esc_test.dart` (another agent's in-flight work).
 It failed to compile at first — 12 analyzer errors, `Undefined name 'counted'` — taking the
 suite from **284/0 to 284/1**. My 05:52:51Z numbers were taken before it landed. **I never
 touched that file**; its author repaired it.
@@ -513,7 +513,7 @@ would ban the only test that matters.*
 2. **Always bracket the injection** with greppable markers
    (`// QA-INJECTION-START` … `// QA-INJECTION-END`), so a forgotten one is findable.
 3. **Always sweep before declaring done** —
-   `grep -rn "QA-INJECT\|QA-TEETH" app/` must return nothing, plus a green re-run.
+   `grep -rn "QA-INJECT\|QA-TEETH" desktop/` must return nothing, plus a green re-run.
 
 Announcing alone is not enough: it relies on someone getting interrupted *after* reading
 the message. The markers and the sweep are what make a leftover structurally detectable.
@@ -581,7 +581,7 @@ actually be allowed to fail, and (b) someone must see a green Windows compile. U
 the Windows half is *believed* correct, not *known* correct.
 
 **Files added by QA in round 2** (no source file was modified):
-- `app/test/desktop/qa_round2_esc_test.dart` — 10 tests: user-visible Esc outcome on both
+- `desktop/test/desktop/qa_round2_esc_test.dart` — 10 tests: user-visible Esc outcome on both
   platforms + the 4-row characterisation table that settles the root-cause dispute.
 
 ---
@@ -811,14 +811,14 @@ in-flight work.
 | `continue-on-error` | accepted risk, **schedule removal** | Team lead |
 
 **Routing decision: PASS for source code.** No defect remains in
-`app/lib/**`, `app/windows/**` or `app/macos/**` that I can find or provoke.
+`desktop/lib/**`, `desktop/windows/**` or `desktop/macos/**` that I can find or provoke.
 The only open items are process/risk, not code: **not one line of the Windows
 runner has ever been compiled by anything**, and `continue-on-error` is
 scheduled (not urgent) removal.
 
 **Files added by this pass** (no production source modified):
-- `app/test/desktop/qa_round2_independent_esc_test.dart` — 24 tests: 6
+- `desktop/test/desktop/qa_round2_independent_esc_test.dart` — 24 tests: 6
   behavioural × 2 platforms, 4 sole-handler proofs, 3 focus controls × 2
   platforms, 4 characterisation rows × 2 platforms.
-- `app/test/desktop/desktop_layout_test.dart` — tolerance predicate tightened
+- `desktop/test/desktop/desktop_layout_test.dart` — tolerance predicate tightened
   (D-8) + 3 permanent guard tests.

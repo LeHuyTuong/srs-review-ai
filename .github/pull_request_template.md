@@ -9,9 +9,9 @@
 ## Checklist
 
 - [ ] `python3 tools/check_guardrails.py` passes
-- [ ] `cd app && flutter analyze && flutter test` passes
+- [ ] `cd desktop && flutter analyze && flutter test` passes
 - [ ] `cd server && pytest && ruff check .` passes
-- [ ] No API key, `.env` file, or provider URL added to `app/`
+- [ ] No API key, `.env` file, or provider URL added to `desktop/`
 - [ ] Wire-format change? Updated `contracts/`, the Pydantic models, the Dart
       models and the contract version — all in this PR
 - [ ] Rubric/threshold change? Edited `server/app/rubric.json`, not Dart or

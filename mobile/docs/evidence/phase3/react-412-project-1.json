@@ -1,0 +1,132 @@
+[
+  {
+    "text": "SE1701 / Group 01",
+    "box": {
+      "x": 12,
+      "y": 69,
+      "width": 160.296875,
+      "height": 48,
+      "top": 69,
+      "right": 172.296875,
+      "bottom": 117,
+      "left": 12
+    }
+  },
+  {
+    "text": "Smart Campus Management",
+    "box": {
+      "x": 20,
+      "y": 161.296875,
+      "width": 312,
+      "height": 61.34375,
+      "top": 161.296875,
+      "right": 332,
+      "bottom": 222.640625,
+      "left": 20
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 344,
+      "y": 161.296875,
+      "width": 48,
+      "height": 48,
+      "top": 161.296875,
+      "right": 392,
+      "bottom": 209.296875,
+      "left": 344
+    }
+  },
+  {
+    "text": "Tổng quan\nTài liệu\nThành viên\nLịch sử đánh giá\nThông tin",
+    "box": {
+      "x": 20,
+      "y": 458.828125,
+      "width": 372,
+      "height": 59.59375,
+      "top": 458.828125,
+      "right": 392,
+      "bottom": 518.421875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Tổng quan",
+    "box": {
+      "x": 20,
+      "y": 458.828125,
+      "width": 71.1875,
+      "height": 58.59375,
+      "top": 458.828125,
+      "right": 91.1875,
+      "bottom": 517.421875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Tài liệu",
+    "box": {
+      "x": 95.1875,
+      "y": 458.828125,
+      "width": 71.203125,
+      "height": 58.59375,
+      "top": 458.828125,
+      "right": 166.390625,
+      "bottom": 517.421875,
+      "left": 95.1875
+    }
+  },
+  {
+    "text": "Thành viên",
+    "box": {
+      "x": 170.390625,
+      "y": 458.828125,
+      "width": 71.203125,
+      "height": 58.59375,
+      "top": 458.828125,
+      "right": 241.59375,
+      "bottom": 517.421875,
+      "left": 170.390625
+    }
+  },
+  {
+    "text": "Lịch sử đánh giá",
+    "box": {
+      "x": 245.59375,
+      "y": 458.828125,
+      "width": 71.203125,
+      "height": 58.59375,
+      "top": 458.828125,
+      "right": 316.796875,
+      "bottom": 517.421875,
+      "left": 245.59375
+    }
+  },
+  {
+    "text": "Thông tin",
+    "box": {
+      "x": 320.796875,
+      "y": 458.828125,
+      "width": 71.203125,
+      "height": 58.59375,
+      "top": 458.828125,
+      "right": 392,
+      "bottom": 517.421875,
+      "left": 320.796875
+    }
+  },
+  {
+    "text": "Tài liệu\n7 tài liệu\nMở trang tài liệu\nUse Case Diagram\n3 phiên bản\nTài liệu\nĐã nộp lại\nAI đề xuất\nAI chưa có kết quả\nGiảng viên\nĐã phê duyệt\nPhiên bản mới nhất\n",
+    "box": {
+      "x": 20,
+      "y": 534.421875,
+      "width": 372,
+      "height": 2599.046875,
+      "top": 534.421875,
+      "right": 392,
+      "bottom": 3133.46875,
+      "left": 20
+    }
+  }
+]

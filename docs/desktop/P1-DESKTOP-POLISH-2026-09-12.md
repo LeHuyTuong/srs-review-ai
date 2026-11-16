@@ -143,7 +143,7 @@ small platform channel. Still needs a Windows CI runner to be safe.
 
 ## 3. Tests
 
-New files, all under `app/test/desktop/`:
+New files, all under `desktop/test/desktop/`:
 
 | File | Tests | Asserts |
 | --- | --- | --- |
@@ -164,7 +164,7 @@ Two traps worth recording, both of which cost a hang rather than a failure:
 ## 4. Manual verification on macOS
 
 ```sh
-cd app && flutter run -d macos
+cd desktop && flutter run -d macos
 ```
 
 1. **Scrollbars** — open any tab with content: a thumb is visible without
@@ -198,7 +198,7 @@ cd app && flutter run -d macos
 * Every new affordance is gated on `AppPlatform.isDesktop`; off desktop the
   widget tree is unchanged, which is what the Android-side assertions in each
   test file exist to prove.
-* Nothing under `app/lib/data/**`, `core/providers.dart`,
+* Nothing under `desktop/lib/data/**`, `core/providers.dart`,
   `workspace_view_model.dart`, `syllabus_rubric_view.dart`,
   `report_export.dart` or `workspace_modals.dart` was touched.
 

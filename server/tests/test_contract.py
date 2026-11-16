@@ -1,6 +1,6 @@
 """Cross-language contract test.
 
-Both this suite and app/test/contract_test.dart parse the SAME fixture files in
+Both this suite and desktop/test/contract_test.dart parse the SAME fixture files in
 contracts/fixtures/. If Python and Dart drift apart, one of the two turns red.
 """
 

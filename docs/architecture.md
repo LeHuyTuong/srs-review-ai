@@ -1,6 +1,6 @@
 # Kiến trúc SRS Review AI
 
-> Nguồn: `README.md`, `docs/adr/0001-architecture.md`, `docs/adr/0004-model-selection.md`, `pubspec.yaml`, source `app/lib` + `server/app`.
+> Nguồn: `README.md`, `docs/adr/0001-architecture.md`, `docs/adr/0004-model-selection.md`, `pubspec.yaml`, source `desktop/lib` + `server/app`.
 > Kiểu kiến trúc: **MVVM 2 lớp (UI + Data), không tầng domain** (ADR-0001 D3) — client parse tài liệu, server là proxy mỏng giữ API key.
 
 ## 1. Bức tranh tổng thể (3 khối)
@@ -32,7 +32,7 @@ flowchart LR
 
 Điểm nhấn kiến trúc (ADR-0001 D6/D8): app **không** gọi LLM trực tiếp — key nằm trong proxy, và proxy **chỉ trả issue có quote trùng khớp văn bản gốc** (exact, hoặc fuzzy ≥92%; không khớp → bỏ issue, đếm vào `dropped_issue_count`).
 
-## 2. Kiến trúc bên trong app Flutter (`app/lib`)
+## 2. Kiến trúc bên trong app Flutter (`desktop/lib`)
 
 ```mermaid
 flowchart TB

@@ -89,7 +89,7 @@ deterministic offline provider, and the whole flow still works.
 ### 2. App
 
 ```bash
-cd app
+cd desktop
 flutter pub get
 flutter run -d chrome                        # fastest way to look at the UI
 flutter run                                  # macOS/Android/Windows
@@ -104,7 +104,7 @@ flutter run --dart-define=MOCK_MODE=true     # start in offline mode
 > profile, and `r` / `R` hot reload still work:
 >
 > ```powershell
-> powershell -ExecutionPolicy Bypass -File app\tool\dev_web.ps1
+> powershell -ExecutionPolicy Bypass -File desktop\tool\dev_web.ps1
 > ```
 
 **Chrome is for development only.** The deliverable targets are Android and
@@ -138,7 +138,8 @@ real failing test can sit unnoticed on `main`. Same order locally, no surprise.
 python3 tools/check_guardrails.py            # architecture + secret rules
 python3 tools/report_line_endings.py         # CR per changed file (rule 9's numbers)
 cd server && ruff check . && ruff format --check . && pytest
-cd app && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test
+cd desktop && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test
+cd mobile && flutter analyze && flutter test
 ./tools/install-hooks.sh                     # guardrails + both formatters, on every commit
 ```
 
@@ -169,7 +170,7 @@ change them in their own PR when they are genuinely wrong.
 
 ```
 srs-review-ai/
-├── app/                     Flutter app
+├── desktop/                 Flutter desktop app (sinh viên)
 │   └── lib/
 │       ├── core/            config, theme, router, DI
 │       ├── data/
@@ -179,6 +180,7 @@ srs-review-ai/
 │       │   ├── services/    picker, PDF/DOCX parser, API, offline mock
 │       │   └── repositories/ document + review orchestration
 │       └── features/        <feature>/view + <feature>/view_model
+├── mobile/                  Flutter mobile app (giảng viên)
 ├── server/                  FastAPI proxy (key lives here, nowhere else)
 │   └── app/rubric.json      ← the rubric is DATA; edit this, not the code
 ├── contracts/               wire schema + fixtures both test suites parse

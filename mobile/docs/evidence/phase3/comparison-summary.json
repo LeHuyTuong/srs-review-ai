@@ -1,0 +1,13 @@
+{
+  "pairs": 99,
+  "widths": [
+    360,
+    390,
+    412
+  ],
+  "order": [
+    "React",
+    "Flutter"
+  ],
+  "note": "So sánh hình học bằng mắt; không tuyên bố pixel parity."
+}

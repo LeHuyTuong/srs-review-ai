@@ -1,0 +1,608 @@
+[
+  {
+    "Path": "lib/main.dart",
+    "Bytes": 300,
+    "SHA256": "F1B9F392535F31362A6F503B1991C023482DD750D425C87129FEDE26EC0E107B",
+    "Changed": true
+  },
+  {
+    "Path": "lib/app/app_navigation.dart",
+    "Bytes": 458,
+    "SHA256": "E4FC639CA271728821CE342250015602226866B92E0C42905DF7D4A902278C27",
+    "Changed": true
+  },
+  {
+    "Path": "lib/app/app.dart",
+    "Bytes": 4077,
+    "SHA256": "EC52AA70F8CE44BDEE29E907779997BD7EDEBAB6C5993292207D9F17C4A495C6",
+    "Changed": true
+  },
+  {
+    "Path": "lib/app/providers.dart",
+    "Bytes": 2304,
+    "SHA256": "BF21FA92F0B323EB65B0DB9C27E311AA058572E150B57AECD343805FF02AD42F",
+    "Changed": true
+  },
+  {
+    "Path": "lib/app/session.dart",
+    "Bytes": 2799,
+    "SHA256": "0E24480552E61BA288E31780DEA6D254F99FB1B2631BD317A39A366713CA2C7D",
+    "Changed": true
+  },
+  {
+    "Path": "lib/models/counter_state.dart",
+    "Bytes": 194,
+    "SHA256": "CCA66AA0C871D219DCB56FFF49BCC0D765900ADECA53CDC130FDE2DC6326B8E8",
+    "Changed": true
+  },
+  {
+    "Path": "lib/models/session_scope.dart",
+    "Bytes": 649,
+    "SHA256": "7CBFA85B675E8CCD659DF4502B4A1608B939FCA55EFCE19B258D5DD846293239",
+    "Changed": true
+  },
+  {
+    "Path": "lib/models/academic/academic_models.dart",
+    "Bytes": 14453,
+    "SHA256": "FE3195C02E1B9DC0C4E41E0FDFB9711DA14E255785D1129B5EC912334839F721",
+    "Changed": true
+  },
+  {
+    "Path": "lib/models/academic/academic_policy.dart",
+    "Bytes": 7382,
+    "SHA256": "5BC640EDA620DCD7489935373BE2E610B494696B8975A66D8F7E2B52BDFE3A9C",
+    "Changed": true
+  },
+  {
+    "Path": "lib/models/academic/academic_presentation.dart",
+    "Bytes": 3753,
+    "SHA256": "4EF0EC6C1ADC5E9524188FBE09E95117FB5A318B7D008FABF22C2E8F26C4568F",
+    "Changed": true
+  },
+  {
+    "Path": "lib/models/academic/academic_projections.dart",
+    "Bytes": 3338,
+    "SHA256": "AD90D29DE6EB4E7404722C6D93D85DB8F127933A604A875D97B2C3D0C588F9D9",
+    "Changed": true
+  },
+  {
+    "Path": "lib/models/academic/management_queries.dart",
+    "Bytes": 11111,
+    "SHA256": "2D298847D1CFE5DCE17E2136FF1EBEAA41BE7D6708508C13C62EB01FE3F46750",
+    "Changed": true
+  },
+  {
+    "Path": "lib/models/academic/project_context.dart",
+    "Bytes": 261,
+    "SHA256": "2AE3CAB3AFB84FD0AABB650A68110AE15BC4A5DFB3B117854C282834F63B73DE",
+    "Changed": true
+  },
+  {
+    "Path": "lib/models/academic/review_policy.dart",
+    "Bytes": 6584,
+    "SHA256": "3526A229ABD5F76092C0855ED0620FE9E931B77999863D57FF780A5E7ADE1828",
+    "Changed": true
+  },
+  {
+    "Path": "lib/models/dashboard/dashboard_snapshot.dart",
+    "Bytes": 7177,
+    "SHA256": "E435582647B13808D5A5CBB7F2609C02FBC1AAA7A96311F165E0311B51FE08DB",
+    "Changed": true
+  },
+  {
+    "Path": "lib/models/dashboard/dashboard_state.dart",
+    "Bytes": 1368,
+    "SHA256": "7C78F10397A82162BA3996ACB183DF324F441669443E68EA2CD37A1B043756AA",
+    "Changed": true
+  },
+  {
+    "Path": "lib/repositories/counter_repository.dart",
+    "Bytes": 709,
+    "SHA256": "05DD7287B34E7FB05FECD8C63FCE688B0CB96252277106D31DAC4E82E838F976",
+    "Changed": true
+  },
+  {
+    "Path": "lib/repositories/notification_repository.dart",
+    "Bytes": 2658,
+    "SHA256": "A6BE4355C0B8EFEA92AF434D255059C398581AA0BBE20A64F81C94021D63A1F8",
+    "Changed": true
+  },
+  {
+    "Path": "lib/repositories/academic/academic_repository.dart",
+    "Bytes": 345,
+    "SHA256": "DFC2DC15880522DD53C52CB4120893FD854B3E919539B3737E3489B9EAC5E21F",
+    "Changed": true
+  },
+  {
+    "Path": "lib/repositories/academic/course_contract.dart",
+    "Bytes": 3969,
+    "SHA256": "EB398CBC6B809E7C67361EBF00C2EB567C4C4FF7016D47C841C77C85E5B829C9",
+    "Changed": true
+  },
+  {
+    "Path": "lib/repositories/academic/fake_academic_repository.dart",
+    "Bytes": 1199,
+    "SHA256": "625D437B0A4FC76D9712B6588EDC667AB574483AB4ECCBE156518ABF2997EA0C",
+    "Changed": true
+  },
+  {
+    "Path": "lib/repositories/academic/student_device_gateway.dart",
+    "Bytes": 239,
+    "SHA256": "A27535C96B1678DACBA2DF81BB4E307C64D63CD58FAE58DF31355566CB373815",
+    "Changed": true
+  },
+  {
+    "Path": "lib/repositories/dashboard/dashboard_repository.dart",
+    "Bytes": 261,
+    "SHA256": "226A7AFE260DBD2B84687176D3DE0B84C372E1EEC8DBA9F39BCCA9C8ACF7B06A",
+    "Changed": true
+  },
+  {
+    "Path": "lib/repositories/dashboard/fake_dashboard_repository.dart",
+    "Bytes": 535,
+    "SHA256": "C6C2F9B1BE49D51F983842F68A920C4F700B88EE5449D7BC23AF9C930B6DD302",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/demo_screen.dart",
+    "Bytes": 1099,
+    "SHA256": "A30E53000489D4CBA821B4EAC7E3B610CEC93878FD006548C140059018AB56EB",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/navigation_destination_screen.dart",
+    "Bytes": 1984,
+    "SHA256": "0BECDC175755C81DF1076ED9B76F46302F0A81765220963F75B1B7B58834EC4D",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/academic/class_screens.dart",
+    "Bytes": 14186,
+    "SHA256": "E7A6BE42840BD0E730D739AB819363F916B10D6BBB836223DB2185BFB42C71B5",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/academic/course_screens.dart",
+    "Bytes": 12440,
+    "SHA256": "D96BBB4F3CB246EBE03FFBE6C40B005BE27AD492535B199F3B226413407827D2",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/academic/directory_screens.dart",
+    "Bytes": 13013,
+    "SHA256": "3A60A85C9FE5201B9DFBA2E0281D5B6B3730816957A7768EB4410B6B4CF02A89",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/academic/offering_detail_screen.dart",
+    "Bytes": 7948,
+    "SHA256": "30117F850625E7A68C3BA48E0492014A174717442F7DE2F1A69BA61F9F75B5DF",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/academic/widgets/academic_form_sheet.dart",
+    "Bytes": 15052,
+    "SHA256": "6F276EC47B051FA4EA684C13B308B86A9B3A608DD68DCEDDB35D3126D60B995E",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/academic/widgets/academic_page.dart",
+    "Bytes": 3228,
+    "SHA256": "5F079425B45189B14583F6A99BB69CF2108CE49C50C17143198BFD52015C84DE",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/academic/widgets/class_card.dart",
+    "Bytes": 9717,
+    "SHA256": "D61445F60D0E20A61F73796B1E9602D0C1AF93458922515C317B4CAC18B23B87",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/academic/widgets/class_filter_bar.dart",
+    "Bytes": 9301,
+    "SHA256": "7B0F1085D21D8FB9FBD23A136B690F80686E343F12892C69F6240E78816E7922",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/academic/widgets/class_overview.dart",
+    "Bytes": 4311,
+    "SHA256": "BE8307ACB94057428F5C8E79D853996CBB5D3688C80A60083D160EF013BF6090",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/academic/widgets/class_review_preview.dart",
+    "Bytes": 7836,
+    "SHA256": "59B6F42BD866F29D62AFC29AB981D0EE9933730F2995014A02D2E62A79C41868",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/academic/widgets/group_summary_card.dart",
+    "Bytes": 8558,
+    "SHA256": "4873B7B282DD66031B7F36E002102D36B693FDFEC0B9ECFAB3B8A2C84F5D56A2",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/academic/widgets/lab_editor.dart",
+    "Bytes": 13072,
+    "SHA256": "42C42EB82F02F8632FA111AE819320467B6D8BB841EFFCC51447D0B8B436CEF7",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/academic/widgets/rule_set_panel.dart",
+    "Bytes": 9895,
+    "SHA256": "A86F1EB68A87EB0F1B894E9CA5C01337657EB8F3997B153C0342C83562DEDF79",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/academic/widgets/student_enrollment_sheet.dart",
+    "Bytes": 7778,
+    "SHA256": "7617A1E2BD3FC7FB3256A10A5A216199A653AE4AC9EEACA08FB24E70FB3F0D5D",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/account/account_screens.dart",
+    "Bytes": 8113,
+    "SHA256": "F06A161B9F8B2F949010410CC7A3D6E0A06127E2576851AF1E8CF351BC18D75E",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/account/login_screen.dart",
+    "Bytes": 3979,
+    "SHA256": "74364D5A3AED729ED4BA7BAC6730EEE2A6167622223E600F54707867EADA9436",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/dashboard/dashboard_screen.dart",
+    "Bytes": 3338,
+    "SHA256": "B6C125AF9BFC72E0DAC140BF5061ED857B6712BFDFBDB8AA8B083E91828A6E15",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/dashboard/widgets/dashboard_heading.dart",
+    "Bytes": 3028,
+    "SHA256": "2D415E6591301D3021EFF746607263BDFFC267D393A5197649BB4067FD284995",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/dashboard/widgets/dashboard_review_row.dart",
+    "Bytes": 1935,
+    "SHA256": "AAF8B1DCC2D17CCD5505485FDFFAED790863F21183A55375E7CA836E241F394C",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/dashboard/widgets/dashboard_secondary_sections.dart",
+    "Bytes": 5833,
+    "SHA256": "4AC6A7E301BB8CC4B75B47648F623F6CDD0CC0840CEA1BB688E443291DE7D05F",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/dashboard/widgets/dashboard_stats.dart",
+    "Bytes": 1655,
+    "SHA256": "8C4328140BCDA15261B4248AD7DAAECD4F1B3737050D105914181141A5A1E820",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/dashboard/widgets/dashboard_tasks.dart",
+    "Bytes": 2610,
+    "SHA256": "E67A7979A111B519AB7DD5986FDDF3E9532A6C2CD2335BAA87AA67B3C8347C39",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/management/document_screens.dart",
+    "Bytes": 6012,
+    "SHA256": "B3E823E645CEC456669CAEF57A8735957DCEAF3A16D43B7672C6804E6CDA103B",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/management/group_screens.dart",
+    "Bytes": 13045,
+    "SHA256": "228BD38E93A9B520B0478880DCB0841CF318F9E7A1B9066385A3BD2321F09C3C",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/management/project_registrations_screen.dart",
+    "Bytes": 5638,
+    "SHA256": "92CC6E57E6AA1D12C057AF36C27192B8074AE065E4EA4EADC16D1D993631F205",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/management/project_screens.dart",
+    "Bytes": 14494,
+    "SHA256": "42C7B286782635845771364ADFCC4F694F76F5E4A61CC4C6E0C828F8853932F3",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/management/review_history_screens.dart",
+    "Bytes": 16075,
+    "SHA256": "64F8FBF9FEA2E5F3D907BF5CDB53C699B436968E196C8448C907FBC7B5053B43",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/management/review_screens.dart",
+    "Bytes": 14356,
+    "SHA256": "C8B64E9D0DE0E7BF5ED820FE7590BE55CF0C11A23662BB8B3ED7A4A5144AEDD3",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/management/widgets/ai_review_panel.dart",
+    "Bytes": 19896,
+    "SHA256": "E41AEBFA9E0E3C4B53B946384794FDD24894CD9319F7E4F48C947DC103849C46",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/management/widgets/document_card.dart",
+    "Bytes": 12339,
+    "SHA256": "5F182394ADDEB9930266EC0EC9419A9E547CA6F1FD3FFC4964B25BE4BB5E2991",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/management/widgets/management_filter_bar.dart",
+    "Bytes": 10366,
+    "SHA256": "8E7C6B7AE2B50C2F48E1F2294837D9E441473E48AB03A30F734EB0DD30350FEE",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/management/widgets/management_form_sheet.dart",
+    "Bytes": 5614,
+    "SHA256": "5750953307E31E33D7F64B4FF31DDA497F932232C80DAC71AE547D31157B603C",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/management/widgets/management_shared.dart",
+    "Bytes": 1482,
+    "SHA256": "124D7D6652C8443CDC6E312EF3861138253CE09C6BF9CCA862ECD6BA0F92AFF9",
+    "Changed": false
+  },
+  {
+    "Path": "lib/screens/management/widgets/project_form_fields.dart",
+    "Bytes": 2537,
+    "SHA256": "B36D580E016E07C3DBC3C9364CFC167F01E1798382E946FA61DF7EE11FEC1327",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/management/widgets/review_feedback.dart",
+    "Bytes": 5103,
+    "SHA256": "F4DACDCB7C72A9C8F3C3EEAF85125198FFB30C16FEA48DD07A1BFB09B12320AF",
+    "Changed": true
+  },
+  {
+    "Path": "lib/screens/management/widgets/sample_document_reader.dart",
+    "Bytes": 14338,
+    "SHA256": "F76BB8FCA6A107DA3F269997CFA74C3F5F85291063C1F2AD8D29380A07C459A4",
+    "Changed": true
+  },
+  {
+    "Path": "lib/services/demo_counter_service.dart",
+    "Bytes": 221,
+    "SHA256": "A0DE7881AF56774EE866BB4C627DD4F923B8BFE2F507942FA439413061944982",
+    "Changed": true
+  },
+  {
+    "Path": "lib/services/academic/fake_academic_service.dart",
+    "Bytes": 2802,
+    "SHA256": "E32BC2FADB126C0419D3BAED75BAB7842A8C63D888FDB62B146FEFFE03BA74E3",
+    "Changed": true
+  },
+  {
+    "Path": "lib/services/academic/student_import_service.dart",
+    "Bytes": 1032,
+    "SHA256": "96CFB36FD7595D6DB5B54D4513A7F24D4A3C43CCBF9CC7C1645622FFD5F49A5A",
+    "Changed": true
+  },
+  {
+    "Path": "lib/services/dashboard/fake_dashboard_service.dart",
+    "Bytes": 689,
+    "SHA256": "DB689DA4B1A5934A12579C6C134153BE0BB9D088C68C6C2D997689BBCBC6857F",
+    "Changed": true
+  },
+  {
+    "Path": "lib/theme/app_colors.dart",
+    "Bytes": 1081,
+    "SHA256": "1C7834D16B9A45D10F5C87B8D49D3CB40A0E3D126B6D98EB6436DC908DF32825",
+    "Changed": true
+  },
+  {
+    "Path": "lib/theme/app_metrics.dart",
+    "Bytes": 1369,
+    "SHA256": "09908F5856FA01F9187F9906C21DA287C25665A5842D0BB72D0E9A6BBC76C9C6",
+    "Changed": true
+  },
+  {
+    "Path": "lib/theme/app_radius.dart",
+    "Bytes": 399,
+    "SHA256": "DF42CB7629787286FF20028900A6E58403D71711C410AB297BC75A6948710F65",
+    "Changed": true
+  },
+  {
+    "Path": "lib/theme/app_shadows.dart",
+    "Bytes": 694,
+    "SHA256": "CC05E029F8E5608C55D2ABB6F572FE3B41DEA6C1226F4E25C3878FC954711010",
+    "Changed": true
+  },
+  {
+    "Path": "lib/theme/app_spacing.dart",
+    "Bytes": 424,
+    "SHA256": "FAD4E118B165DD784015BA5CB91575C84F088C2CB0409CFC5B6CBB2975379753",
+    "Changed": true
+  },
+  {
+    "Path": "lib/theme/app_theme.dart",
+    "Bytes": 4944,
+    "SHA256": "4193BBFE5B70FD1F3A01D5FA4626AF681A9F06D6BE007AE7196443CDA0153428",
+    "Changed": true
+  },
+  {
+    "Path": "lib/theme/app_typography.dart",
+    "Bytes": 2833,
+    "SHA256": "00B02DA33E8A3B10B66D1CA578467B0AE9707FA5A51D6FA638D940E152A4DC48",
+    "Changed": true
+  },
+  {
+    "Path": "lib/viewmodels/counter_view_model.dart",
+    "Bytes": 777,
+    "SHA256": "092B58E7AD718CF82B2A3380C91A97E3F36F0108097A4F5EDCE8ECCC4366DF3D",
+    "Changed": true
+  },
+  {
+    "Path": "lib/viewmodels/academic/academic_form_view_model.dart",
+    "Bytes": 29193,
+    "SHA256": "2612B0AD68D8A64CB5D407A52E3AB4847B019776650B33056FF6B43D36FA09E5",
+    "Changed": true
+  },
+  {
+    "Path": "lib/viewmodels/academic/academic_view_model.dart",
+    "Bytes": 19263,
+    "SHA256": "F480EC5C731DE7327D382E00A79E84B2F617F22C68B4B9D8A63A3EEBB74384A9",
+    "Changed": true
+  },
+  {
+    "Path": "lib/viewmodels/academic/class_filter_view_model.dart",
+    "Bytes": 2604,
+    "SHA256": "FD1CA74E564A7A431E3EA8BF01729D558F0E926B221FBD056DA50BF0E54ED008",
+    "Changed": true
+  },
+  {
+    "Path": "lib/viewmodels/academic/directory_view_model.dart",
+    "Bytes": 5651,
+    "SHA256": "10B9488DA5C6B1FE1A55FB59AEC5673CA80FF524B30CC14CE1438E0AFE410624",
+    "Changed": true
+  },
+  {
+    "Path": "lib/viewmodels/academic/document_reader_view_model.dart",
+    "Bytes": 1549,
+    "SHA256": "0B19F8E4E88E7CB6B511B352DA0017D8BC40F81416C655AE1BA6B7CEE282AE16",
+    "Changed": true
+  },
+  {
+    "Path": "lib/viewmodels/academic/management_actions.dart",
+    "Bytes": 12586,
+    "SHA256": "145B72793B3E3711821709AB55FA7EDB0FE4DE14CD5DD26214B1C16CD8B2903B",
+    "Changed": true
+  },
+  {
+    "Path": "lib/viewmodels/academic/management_form_view_model.dart",
+    "Bytes": 19499,
+    "SHA256": "80CC3D7142441C2797050119AAA50CBB800E4A56BF0425AD9F24DCEF1D598401",
+    "Changed": true
+  },
+  {
+    "Path": "lib/viewmodels/academic/management_list_view_model.dart",
+    "Bytes": 20752,
+    "SHA256": "F7C6E00AF9ACE31C674473B0C4237878CC4FCEDDD5C500F504A0AD10991F3EC7",
+    "Changed": true
+  },
+  {
+    "Path": "lib/viewmodels/academic/review_actions.dart",
+    "Bytes": 15509,
+    "SHA256": "FB3194D68CC3919EC4FE54FA3F5148CE5F97243308ADEE65B0DA6E339E292420",
+    "Changed": true
+  },
+  {
+    "Path": "lib/viewmodels/academic/review_panel_view_model.dart",
+    "Bytes": 3682,
+    "SHA256": "6DE772B6926E117972B999E6A1981E3F540E55DE14288937ED494AD24923A102",
+    "Changed": true
+  },
+  {
+    "Path": "lib/viewmodels/academic/student_enrollment_view_model.dart",
+    "Bytes": 7266,
+    "SHA256": "CA33948AC307D5A3FF2F7BF6A85B9F9D2D7C6DB769F4A784B6CF5D7FCEADA6E6",
+    "Changed": true
+  },
+  {
+    "Path": "lib/viewmodels/dashboard/dashboard_view_model.dart",
+    "Bytes": 4814,
+    "SHA256": "22D6FF133B49283AE15ABF8F546C053A0890DD983B0CB1D91F14250B9C26B670",
+    "Changed": true
+  },
+  {
+    "Path": "lib/widgets/app_academic_layout.dart",
+    "Bytes": 10515,
+    "SHA256": "28263484A02504F97BB892311BA7949221D0373054E0D96B3DCE32D41BC0112A",
+    "Changed": true
+  },
+  {
+    "Path": "lib/widgets/app_badge.dart",
+    "Bytes": 1647,
+    "SHA256": "E63D21C715AE95333CA2D98E6CF41A0AE83BF2F535BB2DB75EF1EC628039FCE6",
+    "Changed": true
+  },
+  {
+    "Path": "lib/widgets/app_bottom_navigation.dart",
+    "Bytes": 4679,
+    "SHA256": "22C496F51DF0CED12866C896A3595A489EE5AAB2762DB2E49B29A5603F9B8283",
+    "Changed": true
+  },
+  {
+    "Path": "lib/widgets/app_button.dart",
+    "Bytes": 4681,
+    "SHA256": "C17FD46FA3F3CCFB45C544A9129F980599EDCF71CDB3E48994988A25148D95D4",
+    "Changed": true
+  },
+  {
+    "Path": "lib/widgets/app_card.dart",
+    "Bytes": 972,
+    "SHA256": "1926A3ACE9DC9B8C250F1DBED4C7817D0E8F77691020D0D4E7A588606EB71221",
+    "Changed": true
+  },
+  {
+    "Path": "lib/widgets/app_disclosure.dart",
+    "Bytes": 3911,
+    "SHA256": "D5D3A2ACE2D9E3523302736E2CE6436B375EC8DD6F4F431A9E08D297BB000F2F",
+    "Changed": true
+  },
+  {
+    "Path": "lib/widgets/app_filter_controls.dart",
+    "Bytes": 3067,
+    "SHA256": "8509370C76AFE39273D4AE6F6016A013F915EC94987B1EA07F1430D2E5E5B7A3",
+    "Changed": true
+  },
+  {
+    "Path": "lib/widgets/app_icon.dart",
+    "Bytes": 719,
+    "SHA256": "F5788A6CA73CE53CB5EBD88C4569C8D40C879F1D9F447FE155F0EB8E0586FD60",
+    "Changed": true
+  },
+  {
+    "Path": "lib/widgets/app_meta_grid.dart",
+    "Bytes": 3873,
+    "SHA256": "0E80072C332573A89C1374F649AE1F44A38950D5D2B0E84396BE190E9B00C245",
+    "Changed": true
+  },
+  {
+    "Path": "lib/widgets/app_search_field.dart",
+    "Bytes": 1465,
+    "SHA256": "0C193514813BE6FB76248D80D09C93FE56F44713B97E3E9AD4AE267DE272B558",
+    "Changed": true
+  },
+  {
+    "Path": "lib/widgets/app_states.dart",
+    "Bytes": 4579,
+    "SHA256": "88C80F9BCF0BCDD82E5E97D40B76E371C06502673FEBFC7EF985D24A7155D273",
+    "Changed": true
+  },
+  {
+    "Path": "lib/widgets/app_status_tracks.dart",
+    "Bytes": 2781,
+    "SHA256": "3FACDF5F1DA4E289574157373DB9DCA4D23F6FEA03B41E8FDEB3FFA05C30D288",
+    "Changed": true
+  },
+  {
+    "Path": "lib/widgets/demo_counter_value.dart",
+    "Bytes": 392,
+    "SHA256": "DA6A5417CA8CED3F79C40779E07CA5F219D9A54D36D46948D614D3918FCAA293",
+    "Changed": true
+  },
+  {
+    "Path": "lib/widgets/mobile_header.dart",
+    "Bytes": 2383,
+    "SHA256": "A9D76138ADC1028F23F80692D17B9B5E8356852749B749D5A5E0F78290F60519",
+    "Changed": true
+  },
+  {
+    "Path": "lib/widgets/stat_card.dart",
+    "Bytes": 914,
+    "SHA256": "6D8FB75B6B4A300C6A7290AF5DF2F7E0153D3DB79AAA0030E5E296F8A7B11970",
+    "Changed": true
+  }
+]

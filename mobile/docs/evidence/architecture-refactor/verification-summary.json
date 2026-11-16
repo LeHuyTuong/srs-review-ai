@@ -1,0 +1,100 @@
+{
+  "tests": {
+    "Baseline": {
+      "count": 213,
+      "exit": "0",
+      "log": "baseline-tests.log"
+    },
+    "Nhóm 1: domain/contracts/data": {
+      "count": 29,
+      "exit": "0",
+      "log": "stage1-tests.log"
+    },
+    "Nhóm 2: ViewModel/command": {
+      "count": 57,
+      "exit": "0",
+      "log": "stage2-tests.log"
+    },
+    "Nhóm 3: View theo feature": {
+      "count": 145,
+      "exit": "0",
+      "log": "stage3-tests.log"
+    },
+    "Nhóm 4: phép chiếu/trạng thái tải": {
+      "count": 154,
+      "exit": "0",
+      "log": "stage4-tests.log"
+    },
+    "Nhóm 5: trạng thái UI": {
+      "count": 135,
+      "exit": "0",
+      "log": "stage5-tests.log"
+    },
+    "Tests mới": {
+      "count": 7,
+      "exit": "0",
+      "log": "projection-tests.log"
+    },
+    "Suite cuối": {
+      "count": 220,
+      "exit": "0",
+      "log": "final-tests.log"
+    }
+  },
+  "protectedFiles": 25,
+  "allProtectedFilesIdentical": true,
+  "finalLibFiles": 191,
+  "architectureAudit": {
+    "files": 191,
+    "edges": 614,
+    "cycles": [],
+    "upwardImports": [],
+    "missingLocalImports": [],
+    "sdkImportsInViewsOrViewModels": [],
+    "businessCollectionOperationsInBuild": [],
+    "preservedDeclarationTokens": {
+      "lib/services/academic/fake_academic_service.dart": true,
+      "lib/theme/app_colors.dart": true,
+      "lib/theme/app_metrics.dart": true,
+      "lib/theme/app_radius.dart": true,
+      "lib/theme/app_shadows.dart": true,
+      "lib/theme/app_spacing.dart": true,
+      "lib/theme/app_theme.dart": true,
+      "lib/theme/app_typography.dart": true,
+      "lib/widgets/app_academic_layout.dart": true,
+      "lib/widgets/app_badge.dart": true,
+      "lib/widgets/app_bottom_navigation.dart": true,
+      "lib/widgets/app_button.dart": true,
+      "lib/widgets/app_card.dart": true,
+      "lib/widgets/app_disclosure.dart": true,
+      "lib/widgets/app_filter_controls.dart": true,
+      "lib/widgets/app_icon.dart": true,
+      "lib/widgets/app_meta_grid.dart": true,
+      "lib/widgets/app_search_field.dart": true,
+      "lib/widgets/app_states.dart": true,
+      "lib/widgets/app_status_tracks.dart": true,
+      "lib/widgets/demo_counter_value.dart": true,
+      "lib/widgets/mobile_header.dart": true,
+      "lib/widgets/stat_card.dart": true
+    },
+    "limits": "Kiểm tra import/AST là kiểm tra cấu trúc, không thay thế audit nghiệp vụ hoặc kiểm thử thiết bị."
+  },
+  "businessDeclarationsPreserved": {
+    "lib/models/academic/academic_models.dart": true,
+    "lib/models/academic/academic_policy.dart": true,
+    "lib/models/academic/academic_projections.dart": true,
+    "lib/models/academic/management_queries.dart": true,
+    "lib/models/academic/project_context.dart": true,
+    "lib/models/academic/review_policy.dart": true,
+    "lib/models/dashboard/dashboard_snapshot.dart": true,
+    "lib/models/dashboard/dashboard_state.dart": true,
+    "lib/models/session_scope.dart": true,
+    "lib/repositories/academic/course_contract.dart": true,
+    "lib/repositories/academic/fake_academic_repository.dart": true,
+    "lib/services/academic/fake_academic_service.dart": true,
+    "lib/services/academic/student_import_service.dart": true,
+    "lib/viewmodels/academic/directory_view_model.dart": true,
+    "lib/viewmodels/academic/management_actions.dart": true,
+    "lib/viewmodels/academic/review_actions.dart": true
+  }
+}

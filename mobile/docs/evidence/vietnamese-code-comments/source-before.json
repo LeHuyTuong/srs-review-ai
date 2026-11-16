@@ -1,0 +1,507 @@
+[
+  {
+    "Path": "lib\\main.dart",
+    "Bytes": 192,
+    "SHA256": "C50C487FCDF6B55973183AB7E288A3F413D394B0F93F8CCF549197198D7970B1"
+  },
+  {
+    "Path": "lib\\app\\app_navigation.dart",
+    "Bytes": 464,
+    "SHA256": "FE011E42307F4C0E0DFA4DCE4E1C407C55CE0D22410AB95EE6F145F4CDE6EB71"
+  },
+  {
+    "Path": "lib\\app\\app.dart",
+    "Bytes": 3814,
+    "SHA256": "1F7EC713D86DCF313519EC770618C5E18A6DDD764083E972DA7E32677401056F"
+  },
+  {
+    "Path": "lib\\app\\providers.dart",
+    "Bytes": 1939,
+    "SHA256": "094AAAA8F248220822A34B6D27F813AAD64068CEFDADF25E4B326C6ABCD1386C"
+  },
+  {
+    "Path": "lib\\app\\session.dart",
+    "Bytes": 2009,
+    "SHA256": "999E4599E13CEF77B07383C03966B28FA84C77943F3B25DFC48DB586D93C0744"
+  },
+  {
+    "Path": "lib\\models\\counter_state.dart",
+    "Bytes": 181,
+    "SHA256": "79634BD5859A577F80B60B457E6DA428A18317710B7D18C3C55AB879975D34FF"
+  },
+  {
+    "Path": "lib\\models\\session_scope.dart",
+    "Bytes": 497,
+    "SHA256": "CDA99E2804DD6D1F36952F453766A70F58AECC002BCBB9EB67565B16DF0809EF"
+  },
+  {
+    "Path": "lib\\models\\academic\\academic_models.dart",
+    "Bytes": 13320,
+    "SHA256": "5D4E2A6CE353B0C0FB27FA7A8114222C9575C252FF9DC11B564EB822888FA22F"
+  },
+  {
+    "Path": "lib\\models\\academic\\academic_policy.dart",
+    "Bytes": 6447,
+    "SHA256": "8CB623227E5AB0014A254297128F122549D2A6FCF0D0BE067750E955F7E90D90"
+  },
+  {
+    "Path": "lib\\models\\academic\\academic_presentation.dart",
+    "Bytes": 3488,
+    "SHA256": "9D485B4C759E44B137D1CC058511C56ECE4ED0EC56F3AC18B9341C69BEB3CBEC"
+  },
+  {
+    "Path": "lib\\models\\academic\\academic_projections.dart",
+    "Bytes": 2682,
+    "SHA256": "8B782E6BCBA98D8BF7BDD8035ECFDCAC220B1325DE4EB8C8BE840B627C8E059F"
+  },
+  {
+    "Path": "lib\\models\\academic\\management_queries.dart",
+    "Bytes": 9824,
+    "SHA256": "4CCC6F517F11ADD8B549335989028C9B014AFA57F45CC2A1694428D94B94368D"
+  },
+  {
+    "Path": "lib\\models\\academic\\project_context.dart",
+    "Bytes": 225,
+    "SHA256": "B96AEF5391D55C037407D30018C1815D1F3C99CAEF9217013ABA5682B6170483"
+  },
+  {
+    "Path": "lib\\models\\academic\\review_policy.dart",
+    "Bytes": 5950,
+    "SHA256": "B1FC9D430864D15221CAB01CA5F47F0FCCA2778AA2B1F11620A8A99EBD2805C5"
+  },
+  {
+    "Path": "lib\\models\\dashboard\\dashboard_snapshot.dart",
+    "Bytes": 6912,
+    "SHA256": "DC5C6C9724A46803239335876B473F196C36A505F0155E41E05713B74AB68842"
+  },
+  {
+    "Path": "lib\\models\\dashboard\\dashboard_state.dart",
+    "Bytes": 1359,
+    "SHA256": "BB4F8E5D0A6E65882FE013B53425A88A9295827FBEF17A72713C99642F5BDE39"
+  },
+  {
+    "Path": "lib\\repositories\\counter_repository.dart",
+    "Bytes": 675,
+    "SHA256": "F66B4088431F9353ECFF68AAA78A1F6C01FE5C4D27C1BAF2F86CD7E410A77A00"
+  },
+  {
+    "Path": "lib\\repositories\\notification_repository.dart",
+    "Bytes": 2079,
+    "SHA256": "925E6255FA57B7EB5E8BF61C13B66CC082821F915D5B496AACBB17933EF4A7C4"
+  },
+  {
+    "Path": "lib\\repositories\\academic\\academic_repository.dart",
+    "Bytes": 338,
+    "SHA256": "E8B25A96F0AE42F94D1AA1C84008CCEB5A7741C1A769CDFA3EFFBA4E33DC230A"
+  },
+  {
+    "Path": "lib\\repositories\\academic\\course_contract.dart",
+    "Bytes": 3299,
+    "SHA256": "04E47DBBF302CDEBD3BB2A166474E38306AF91FED77603F1FA6F9B41CD99D780"
+  },
+  {
+    "Path": "lib\\repositories\\academic\\fake_academic_repository.dart",
+    "Bytes": 1070,
+    "SHA256": "27786B866139AC70C1072D33911106EF2512D52A821C15CE5B0764F916265451"
+  },
+  {
+    "Path": "lib\\repositories\\academic\\student_device_gateway.dart",
+    "Bytes": 231,
+    "SHA256": "884258AF637CDBA119141AC26F319623D1DA19202BD93C3BE9FF12DC71D42655"
+  },
+  {
+    "Path": "lib\\repositories\\dashboard\\dashboard_repository.dart",
+    "Bytes": 245,
+    "SHA256": "82CD501EA51068165E97309060E5A085DE453860188C1DE1A2A275F6AA6F3236"
+  },
+  {
+    "Path": "lib\\repositories\\dashboard\\fake_dashboard_repository.dart",
+    "Bytes": 520,
+    "SHA256": "5BCBAB218466538987001C1B0A0E81F1FEB1A6FA02AA6FCF75A90B5EAAF03FAC"
+  },
+  {
+    "Path": "lib\\screens\\demo_screen.dart",
+    "Bytes": 1109,
+    "SHA256": "8CDA9BF26723E1415733F9CD532B8060F4AB52FFE32B61F3FDE1D14DCC381BA6"
+  },
+  {
+    "Path": "lib\\screens\\navigation_destination_screen.dart",
+    "Bytes": 1985,
+    "SHA256": "7A8E83980AEFDB1B53F6AA9A1161F38E9D68865114B34C879CA8075244E1526F"
+  },
+  {
+    "Path": "lib\\screens\\academic\\class_screens.dart",
+    "Bytes": 14161,
+    "SHA256": "5EDCA05DF4B9055C32562188B9D2D06334823349CD907BD5B638944E20DEE00A"
+  },
+  {
+    "Path": "lib\\screens\\academic\\course_screens.dart",
+    "Bytes": 12382,
+    "SHA256": "EEB45CB6056F447F5D9DE3A62008B7D25ED0F6F5E7ACE58BE1056FA7F1F3994D"
+  },
+  {
+    "Path": "lib\\screens\\academic\\directory_screens.dart",
+    "Bytes": 12633,
+    "SHA256": "E41A26978AE05459CCB3268C431E417CA47C2F46427C83ACD29627B767FD3AA7"
+  },
+  {
+    "Path": "lib\\screens\\academic\\offering_detail_screen.dart",
+    "Bytes": 7927,
+    "SHA256": "93CE1692411E21A0E64DC6C6A9E32E5D4AD1F67CD8A4D8B1C6BF00F1DF2CC364"
+  },
+  {
+    "Path": "lib\\screens\\academic\\widgets\\academic_form_sheet.dart",
+    "Bytes": 14991,
+    "SHA256": "173D0254A98CE9A3CFD53D8F0F7B8B4BF3DBA3C98DF38CD52AE5E3E050429189"
+  },
+  {
+    "Path": "lib\\screens\\academic\\widgets\\academic_page.dart",
+    "Bytes": 3220,
+    "SHA256": "8E9489456A5C399E094482BA013741D9B4F6D291CC55BE7E33864ED6212A0764"
+  },
+  {
+    "Path": "lib\\screens\\academic\\widgets\\class_card.dart",
+    "Bytes": 9712,
+    "SHA256": "FC3AF51DFA84E560E6DD10FDCB45F35686E1D8D5412636CEE916F7BC16F32C4A"
+  },
+  {
+    "Path": "lib\\screens\\academic\\widgets\\class_filter_bar.dart",
+    "Bytes": 9176,
+    "SHA256": "299E9D25E8F2F65FA5F75EF2B8AB88B2174AF83C0EC0FA1EDF6FCB952B46F2A1"
+  },
+  {
+    "Path": "lib\\screens\\academic\\widgets\\class_overview.dart",
+    "Bytes": 4302,
+    "SHA256": "DFF9F500D5B03123FB4FCDC0AE38835E6E8C69A1BB9D74FF953D1A627F26CB1B"
+  },
+  {
+    "Path": "lib\\screens\\academic\\widgets\\class_review_preview.dart",
+    "Bytes": 7816,
+    "SHA256": "FE1A0CA3FEF092461729D25D90DFEE26D01898C2A5E915FC60F0FC2E0B1C2D51"
+  },
+  {
+    "Path": "lib\\screens\\academic\\widgets\\group_summary_card.dart",
+    "Bytes": 8554,
+    "SHA256": "82FDD05582957E8AA75908EDD2F8D004F16EBAD07B2285C82751D2A1C8A36233"
+  },
+  {
+    "Path": "lib\\screens\\academic\\widgets\\lab_editor.dart",
+    "Bytes": 13060,
+    "SHA256": "E2C3AC23F48BC4701DFFD2135ABE11827A3278BD90B0624E22FFF674B822B247"
+  },
+  {
+    "Path": "lib\\screens\\academic\\widgets\\rule_set_panel.dart",
+    "Bytes": 9773,
+    "SHA256": "FAB96A4FED105FD11EBC1ACD140E989CFA58A0D5341D01BF68306D5DF32FFDB5"
+  },
+  {
+    "Path": "lib\\screens\\academic\\widgets\\student_enrollment_sheet.dart",
+    "Bytes": 7768,
+    "SHA256": "FAAD5E11DD74D6BAF211DDD81E2F8942A7C9C0FF9BFF0CEB5C615BF09E4213D0"
+  },
+  {
+    "Path": "lib\\screens\\account\\account_screens.dart",
+    "Bytes": 7902,
+    "SHA256": "D4E06AC70E2D78226BAB1AE2C4AD747E6538B474A0F55C69DD313DC07CF15B51"
+  },
+  {
+    "Path": "lib\\screens\\account\\login_screen.dart",
+    "Bytes": 3825,
+    "SHA256": "1381565A6AFF0DB6E0BF00DA1860BFA79E317B766980A47EA5843B44F4DC410D"
+  },
+  {
+    "Path": "lib\\screens\\dashboard\\dashboard_screen.dart",
+    "Bytes": 3319,
+    "SHA256": "D654CF039679F75DADDFCF01857AB76CB733BCC2EA668883E8CF891184C62109"
+  },
+  {
+    "Path": "lib\\screens\\dashboard\\widgets\\dashboard_heading.dart",
+    "Bytes": 3029,
+    "SHA256": "985FE9F310062C1E1C6989855CEC0DF226199F7569B8828231F986D0034F9D2C"
+  },
+  {
+    "Path": "lib\\screens\\dashboard\\widgets\\dashboard_review_row.dart",
+    "Bytes": 1936,
+    "SHA256": "75BC8DC4EA800D0AF070FF0DB3B1E510027060B947B87071248BC8EA5CEE1892"
+  },
+  {
+    "Path": "lib\\screens\\dashboard\\widgets\\dashboard_secondary_sections.dart",
+    "Bytes": 5834,
+    "SHA256": "5B710A558EE797E075EE9EA1F6728D54D6A8FC945FC1EAE5373BBBD1FE190816"
+  },
+  {
+    "Path": "lib\\screens\\dashboard\\widgets\\dashboard_stats.dart",
+    "Bytes": 1618,
+    "SHA256": "C8DF294BF8D93AADF55C215AF2D970386D8B014027CDAEF51C06258AF7166851"
+  },
+  {
+    "Path": "lib\\screens\\dashboard\\widgets\\dashboard_tasks.dart",
+    "Bytes": 2611,
+    "SHA256": "BCDC35D0C84EAAAB0708AC15A7DF03728EAA9FE168EE40B80F6B7DD965DE9E50"
+  },
+  {
+    "Path": "lib\\screens\\management\\document_screens.dart",
+    "Bytes": 6013,
+    "SHA256": "764044FFAB6E4F83CEFB35E52B15711C9F688AFD212D99E690B867454B02A66A"
+  },
+  {
+    "Path": "lib\\screens\\management\\group_screens.dart",
+    "Bytes": 13030,
+    "SHA256": "8661887239FDE28DD195E5AF87DABB7E33558AC943F50EB1FAA343685071C895"
+  },
+  {
+    "Path": "lib\\screens\\management\\project_registrations_screen.dart",
+    "Bytes": 5630,
+    "SHA256": "AF4C93D675D063F425D103A2BA4A39801D1045AE964443E0AA71FFAC830E3C4E"
+  },
+  {
+    "Path": "lib\\screens\\management\\project_screens.dart",
+    "Bytes": 14346,
+    "SHA256": "3A750A393B1500EEA0BC5D75095697D006853977BAF0DC99732710D3EBD2A437"
+  },
+  {
+    "Path": "lib\\screens\\management\\review_history_screens.dart",
+    "Bytes": 16058,
+    "SHA256": "2032F70C34BCB04B3E2BE442609E51554CA2E0E31A201386FBB049BE9FE13FEC"
+  },
+  {
+    "Path": "lib\\screens\\management\\review_screens.dart",
+    "Bytes": 14082,
+    "SHA256": "FB2A2A060898AD9A261642359F4799925D868A942BF61254A3C1BB2777F6615B"
+  },
+  {
+    "Path": "lib\\screens\\management\\widgets\\ai_review_panel.dart",
+    "Bytes": 19231,
+    "SHA256": "1B7E8765EE1A18BC6D5F1CB78A1E964DA121A4ADB3F9D4FD9E710E92ADCC4D94"
+  },
+  {
+    "Path": "lib\\screens\\management\\widgets\\document_card.dart",
+    "Bytes": 12356,
+    "SHA256": "85247F12EDFE985566EF8DCC615A605EC021F0043138710E646594187275845E"
+  },
+  {
+    "Path": "lib\\screens\\management\\widgets\\management_filter_bar.dart",
+    "Bytes": 10250,
+    "SHA256": "5DD9D0CEAC094C35ED7AE5AAB84E339B17A0E5C247CC0C042043208DBD8772A3"
+  },
+  {
+    "Path": "lib\\screens\\management\\widgets\\management_form_sheet.dart",
+    "Bytes": 5609,
+    "SHA256": "2F7DD774ED78B6FFC1B8831AB4787DBB348B7817161D999AFA3F7474010B6416"
+  },
+  {
+    "Path": "lib\\screens\\management\\widgets\\management_shared.dart",
+    "Bytes": 1482,
+    "SHA256": "124D7D6652C8443CDC6E312EF3861138253CE09C6BF9CCA862ECD6BA0F92AFF9"
+  },
+  {
+    "Path": "lib\\screens\\management\\widgets\\project_form_fields.dart",
+    "Bytes": 2533,
+    "SHA256": "6FF75C6B70F90991175264A6EBC55C1509795A6105AC6F67CB16167350118D40"
+  },
+  {
+    "Path": "lib\\screens\\management\\widgets\\review_feedback.dart",
+    "Bytes": 4975,
+    "SHA256": "2D67938DA363FEA8B9D49A508910320BD402FD991C7E52F554FF04AC7BACD528"
+  },
+  {
+    "Path": "lib\\screens\\management\\widgets\\sample_document_reader.dart",
+    "Bytes": 13836,
+    "SHA256": "FADA1E6D5D31B6E5CA1710D52D7567ADACEDC53E906EF70206B6CE4575385DA1"
+  },
+  {
+    "Path": "lib\\services\\demo_counter_service.dart",
+    "Bytes": 218,
+    "SHA256": "DDDFDDE6D90158D1B1CCED12F021A89C480C61EB59465623E59E435AC359B286"
+  },
+  {
+    "Path": "lib\\services\\academic\\fake_academic_service.dart",
+    "Bytes": 2182,
+    "SHA256": "6EBA042B323C894AB81F0688984FF968D7BE9B9AFAAFC750DE2895CDE0FBB75E"
+  },
+  {
+    "Path": "lib\\services\\academic\\student_import_service.dart",
+    "Bytes": 882,
+    "SHA256": "63E2C9BB2F9D2015B076E7F10D5CBEBF4023ABBD5A64257AF82799C62488A885"
+  },
+  {
+    "Path": "lib\\services\\dashboard\\fake_dashboard_service.dart",
+    "Bytes": 649,
+    "SHA256": "D87A00124A3AE38DC5E0F545EC51A2A8E7B616681D0B5B901565D37D987E4DC9"
+  },
+  {
+    "Path": "lib\\theme\\app_colors.dart",
+    "Bytes": 1078,
+    "SHA256": "8C624A264D27A277C987411E89B98C8D250951C8F4ECE88D47ADA1626FED785A"
+  },
+  {
+    "Path": "lib\\theme\\app_metrics.dart",
+    "Bytes": 1348,
+    "SHA256": "D1C6705A207A6F07978CF918409F0E7F0A55ACBED9F6DFB935326910F04AA687"
+  },
+  {
+    "Path": "lib\\theme\\app_radius.dart",
+    "Bytes": 368,
+    "SHA256": "6391B20B1F60877CBAB912EC48FAAB5EE5A267D52954D0B8C9C62A2331BCD362"
+  },
+  {
+    "Path": "lib\\theme\\app_shadows.dart",
+    "Bytes": 689,
+    "SHA256": "BB19C8E0A90BDFF2D94FE536D5C866EBB443BF879DF2A9C1E8D6F3B46FFC3F2C"
+  },
+  {
+    "Path": "lib\\theme\\app_spacing.dart",
+    "Bytes": 426,
+    "SHA256": "AC10A53ACC6F3DE0F0C3867B51308E2DDC87C45729A979AC0A1BDD864BEFFDB6"
+  },
+  {
+    "Path": "lib\\theme\\app_theme.dart",
+    "Bytes": 4935,
+    "SHA256": "9F6569621BB289BCA568FA3D6A7268CA5EE56277C06B4294DB4D6E9841D97213"
+  },
+  {
+    "Path": "lib\\theme\\app_typography.dart",
+    "Bytes": 2799,
+    "SHA256": "49F46603B2247B46070CBCD6450059C6AAC564497778377C9AD149E13FEDC2F5"
+  },
+  {
+    "Path": "lib\\viewmodels\\counter_view_model.dart",
+    "Bytes": 650,
+    "SHA256": "06BDEA3D248EA7062F61A32A518F22C22D91DE73FEF8BBE9A1F63AC74F7A5E33"
+  },
+  {
+    "Path": "lib\\viewmodels\\academic\\academic_form_view_model.dart",
+    "Bytes": 27897,
+    "SHA256": "A852927E769165454AE4E2F8B71AD5D34A90AEA32958D33A394453054E2BE71A"
+  },
+  {
+    "Path": "lib\\viewmodels\\academic\\academic_view_model.dart",
+    "Bytes": 17408,
+    "SHA256": "4CFABCB94E35E266DF468FA3B96FF735FDB8519A1AABF54A2192D2674F45D2D7"
+  },
+  {
+    "Path": "lib\\viewmodels\\academic\\class_filter_view_model.dart",
+    "Bytes": 2230,
+    "SHA256": "682C5690A06EBEDDA2F2763792CD72E13AE1EB64C7E0864746DD0415E2C18E21"
+  },
+  {
+    "Path": "lib\\viewmodels\\academic\\directory_view_model.dart",
+    "Bytes": 4676,
+    "SHA256": "02DE132650711447A281187B86987BB9944EC825B6967FC5D8D793D6E2D0ED5B"
+  },
+  {
+    "Path": "lib\\viewmodels\\academic\\document_reader_view_model.dart",
+    "Bytes": 1177,
+    "SHA256": "F1ADDEDFF1007E10C716A54D601E4CDF2CE3583E9C4A4032E28A173CCBA79936"
+  },
+  {
+    "Path": "lib\\viewmodels\\academic\\management_actions.dart",
+    "Bytes": 11319,
+    "SHA256": "4C2F55CB798300FFC2E57CBB3DC617FBD55420137ECEB100AF35292567CA322E"
+  },
+  {
+    "Path": "lib\\viewmodels\\academic\\management_form_view_model.dart",
+    "Bytes": 18602,
+    "SHA256": "88DBEC09D9278B53286F334CFCC22D1F86BE4C1C014FCF979F30854165C5C51E"
+  },
+  {
+    "Path": "lib\\viewmodels\\academic\\management_list_view_model.dart",
+    "Bytes": 18999,
+    "SHA256": "BDEB2E820CE30C661ACD5996EDA3356069058593651E53CFB5F0E1F71D5270F8"
+  },
+  {
+    "Path": "lib\\viewmodels\\academic\\review_actions.dart",
+    "Bytes": 13981,
+    "SHA256": "02B902C53C43CA2B3EE8EB28FE119A695FCAC136FD27352181B2839B3B16C57C"
+  },
+  {
+    "Path": "lib\\viewmodels\\academic\\review_panel_view_model.dart",
+    "Bytes": 3243,
+    "SHA256": "BE2E7F8A75945CA85A37024BF257C31B8A381CA782E902B312AE98D11257DECE"
+  },
+  {
+    "Path": "lib\\viewmodels\\academic\\student_enrollment_view_model.dart",
+    "Bytes": 6354,
+    "SHA256": "4633F17F509FFF6926878A6F1E35E0557A6ADD08A7835BE17EEA7537E1895090"
+  },
+  {
+    "Path": "lib\\viewmodels\\dashboard\\dashboard_view_model.dart",
+    "Bytes": 4354,
+    "SHA256": "AB897926500DF85B8C1D6BBC3205A0A068929696241313EA5D595A263488789D"
+  },
+  {
+    "Path": "lib\\widgets\\app_academic_layout.dart",
+    "Bytes": 10474,
+    "SHA256": "1120F501F1B6AF9E5E9877E834380BF0E0810EC2FE4E0A97F0274A290FFA50AC"
+  },
+  {
+    "Path": "lib\\widgets\\app_badge.dart",
+    "Bytes": 1648,
+    "SHA256": "ED4D9E2E017E702317A443DE8E79FDEDEC8B37A41714DA5E7D484A59A935B000"
+  },
+  {
+    "Path": "lib\\widgets\\app_bottom_navigation.dart",
+    "Bytes": 4641,
+    "SHA256": "F29FD754EA478C005926B7880FC3241AED0338A07E108D813B544CF4794CAA62"
+  },
+  {
+    "Path": "lib\\widgets\\app_button.dart",
+    "Bytes": 4563,
+    "SHA256": "4092F9FF95174573122D93714CF3DB2DF000D6BE9E23C11C7251A7B0FA5108B6"
+  },
+  {
+    "Path": "lib\\widgets\\app_card.dart",
+    "Bytes": 965,
+    "SHA256": "3EECB5CC103D23712AA6D438F6FA7EB50E87FB5EC46B4402BA3782AE53301011"
+  },
+  {
+    "Path": "lib\\widgets\\app_disclosure.dart",
+    "Bytes": 3901,
+    "SHA256": "8B215839FE136CCF53857F1E2F984D84F3107EE397D06DF0E3A11C6F7ACF19CC"
+  },
+  {
+    "Path": "lib\\widgets\\app_filter_controls.dart",
+    "Bytes": 3069,
+    "SHA256": "B583F94AE093A7C098DC8A0532C4DDD16A60DC601FE771D5244819234D616A79"
+  },
+  {
+    "Path": "lib\\widgets\\app_icon.dart",
+    "Bytes": 720,
+    "SHA256": "8E9AE1A82047014D026EEE35989204F687BA06D865624D877E68EAB2DF89AAD8"
+  },
+  {
+    "Path": "lib\\widgets\\app_meta_grid.dart",
+    "Bytes": 3874,
+    "SHA256": "E91F32B08A731263AF7A9112C76A85E09B1A81EA14FC466C87A735BB2B19964B"
+  },
+  {
+    "Path": "lib\\widgets\\app_search_field.dart",
+    "Bytes": 1396,
+    "SHA256": "7B4A2556968A7E310A0BFC7B705B446C523E8E5DA2C8F72D9A4660E7DBECE2EC"
+  },
+  {
+    "Path": "lib\\widgets\\app_states.dart",
+    "Bytes": 4550,
+    "SHA256": "0A6719F024AB8D2055C031061EEC629C8B719FE0E77268F63AF6DAD8D4B7F759"
+  },
+  {
+    "Path": "lib\\widgets\\app_status_tracks.dart",
+    "Bytes": 2746,
+    "SHA256": "857CC5758DED8F0D80495F79F850C28844E1F2E0916B0B13DD8CA233C889110E"
+  },
+  {
+    "Path": "lib\\widgets\\demo_counter_value.dart",
+    "Bytes": 379,
+    "SHA256": "0DAD35DB52C4813AFD9353D1D2ACC378F4A756F3068AC72FD0BB04ADDBA0954E"
+  },
+  {
+    "Path": "lib\\widgets\\mobile_header.dart",
+    "Bytes": 2365,
+    "SHA256": "D3BE1BFB703C3C86566F9952AB50B8407E330CF94A309039C9D0DF7915FBDC2D"
+  },
+  {
+    "Path": "lib\\widgets\\stat_card.dart",
+    "Bytes": 915,
+    "SHA256": "CFB635C53B762DD44BEDEC03473BF17BB280C2B969480077A8AE80C4CB1F2FA5"
+  }
+]

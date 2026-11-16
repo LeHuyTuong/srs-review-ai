@@ -1,0 +1,110 @@
+/// Build-time configuration.
+///
+/// Everything here is a `--dart-define`, never a committed literal. The app
+/// holds NO LLM credential of any kind — `tools/check_guardrails.py` fails the
+/// build if a provider URL or an API key ever appears under `app/lib`.
+library;
+
+// `dart:io` is deliberately not imported: it does not compile for web, and
+// Chrome is the fastest way to eyeball the UI during development.
+import 'package:flutter/foundation.dart';
+
+class AppConfig {
+  const AppConfig._();
+
+  /// Where the FastAPI proxy lives.
+  ///
+  /// Configured via `--dart-define=API_BASE_URL=...` or desktop/.env.
+  static String get apiBaseUrl {
+    const override = String.fromEnvironment('API_BASE_URL');
+    if (override.isNotEmpty) return override;
+    const srs = String.fromEnvironment('SRS_API_BASE_URL');
+    if (srs.isNotEmpty) return srs;
+    if (kIsWeb) return 'http://127.0.0.1:8000';
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:8000';
+    }
+    return 'http://127.0.0.1:8000';
+  }
+
+  static String get vpsBaseUrl => apiBaseUrl;
+
+  /// Demo safety net: skip the network entirely and serve bundled fixtures.
+  static const bool forceMockMode = bool.fromEnvironment('MOCK_MODE');
+
+  // No Syncfusion licence key is configured on purpose. Verified in
+  // syncfusion_flutter_core 34.2.7 CHANGELOG: "The license key is not required
+  // now to run the application with our widgets" — so there is no trial banner
+  // to worry about at the defense. A Community Licence is still legally
+  // required; see docs/adr/0003-syncfusion-licence.md.
+
+  static const Duration requestTimeout = Duration(seconds: 90);
+  static const Duration connectTimeout = Duration(seconds: 10);
+
+  /// Deadline for reading CONFIG from the proxy (`/rubric`, `/criteria`).
+  ///
+  /// Measured 2026-09-26 with the proxy down: `fetchCriteria` burned 7.4s against
+  /// a refused port and ~31s against a host that blackholes packets, because the
+  /// request inherited the review timeout. That is the wrong trade for a panel
+  /// that only has to draw a checklist: 90s exists because a review run is long,
+  /// and a config read is not one. Four seconds is far above a real round trip
+  /// to a LAN proxy and far below "did the app just hang?".
+  static const Duration configReadTimeout = Duration(seconds: 4);
+
+  /// Client-side guard so a stray loop cannot burn the free-tier quota.
+  ///
+  /// Intended to be EQUAL to the proxy's `rate_limit_per_day`
+  /// (`server/app/config.py`, default 50). It was 60 for a while and every run of
+  /// more than 50 units then hit 429 part-way through: the quota was spent,
+  /// the run died, and the user was left with "Thất bại" on every row and no
+  /// reason anywhere on screen. The client must never promise more units per
+  /// run than the server will actually serve.
+  ///
+  /// That "never promise more than the server serves" invariant is only a
+  /// comment — nothing checks it, and the two values now differ deliberately.
+  /// `GET /rubric` publishes the deployment's real quota (`limits.reviews_per_day`),
+  /// so the UI can state it instead of assuming this constant describes it.
+  ///
+  /// TESTING OVERRIDE (2026-09-21, local dev only): raised to 250 so a full OTES
+  /// import (~235 units incl. section units) fits one run, paired with a raised
+  /// `RATE_LIMIT_PER_DAY` in `server/.env`. Restore 50 before shipping — the
+  /// Gemini free tier throttles hard under bursts. The exact dev quota is in
+  /// that `.env`, not here: it is deployment config and naming it in two places
+  /// is how the two drifted apart before.
+  static const int maxRequirementsPerRun = 250;
+
+  /// How many requirements are reviewed at once.
+  ///
+  /// The old sequential loop made a full run take minutes during which the
+  /// UI had nothing to show; four in flight cuts the wait roughly fourfold
+  /// while keeping the proxy and the provider quota comfortable.
+  ///
+  /// Since units are batched (see [reviewBatchSize]) a "requirement in flight"
+  /// is usually a group, so this bounds in-flight PROVIDER CALLS: 4 groups of 6
+  /// is 4 calls, not 24. The proxy paces those to its own ceiling anyway.
+  static const int reviewConcurrency = 4;
+
+  /// How many text-only requirements travel in one `/review/batch` call.
+  ///
+  /// Measured on the OTES run of 2026-09-22: 238 reviewed units cost 1347
+  /// upstream calls, 1109 of them refusals. One call per unit is the root of
+  /// that number — batching 6 units per call cuts it roughly sixfold before any
+  /// retry policy is even considered. Six is the tested balance: large enough to
+  /// matter, small enough that the model keeps the units apart (a batch whose
+  /// answer skips units is detected and re-split by the proxy).
+  static const int reviewBatchSize = 6;
+
+  /// The proxy's hard ceiling on units per batch (`Settings.max_batch_units`).
+  /// The client must never ask for more than the server will accept.
+  static const int reviewBatchMaxSize = 8;
+
+  /// Attempts per requirement before it is recorded as a failure.
+  ///
+  /// Only errors flagged retryable are re-sent (network, timeout, 5xx). A
+  /// flaky connection used to cost a requirement outright and the run moved
+  /// on, so a whole document could quietly lose units to a brief blip.
+  static const int maxReviewAttempts = 3;
+
+  /// Base delay for retry backoff; doubles on each further attempt.
+  static const Duration reviewRetryBaseDelay = Duration(milliseconds: 400);
+}

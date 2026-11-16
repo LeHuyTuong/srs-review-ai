@@ -1,0 +1,9 @@
+# 02 F1 happy path
+precondition: supervisor signed in; group G1 has no project
+steps:
+  - account -> classes -> group G1 -> create project
+  - enter name "Dự án MobAI"
+  - save
+expected:
+  - group.project.title == "Dự án MobAI"
+  - project.detail.title visible

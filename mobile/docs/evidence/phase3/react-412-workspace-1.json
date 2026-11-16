@@ -1,0 +1,158 @@
+[
+  {
+    "text": "Yêu cầu đánh giá",
+    "box": {
+      "x": 12,
+      "y": 69,
+      "width": 156.421875,
+      "height": 48,
+      "top": 69,
+      "right": 168.421875,
+      "bottom": 117,
+      "left": 12
+    }
+  },
+  {
+    "text": "Thông tin",
+    "box": {
+      "x": 311.625,
+      "y": 69,
+      "width": 80.375,
+      "height": 48,
+      "top": 69,
+      "right": 392,
+      "bottom": 117,
+      "left": 311.625
+    }
+  },
+  {
+    "text": "Use Case Diagram",
+    "box": {
+      "x": 20,
+      "y": 125,
+      "width": 230.84375,
+      "height": 32.5,
+      "top": 125,
+      "right": 250.84375,
+      "bottom": 157.5,
+      "left": 20
+    }
+  },
+  {
+    "text": "Tài liệu\nAI\nPhản hồi\nLịch sử",
+    "box": {
+      "x": 20,
+      "y": 199.09375,
+      "width": 372,
+      "height": 56,
+      "top": 199.09375,
+      "right": 392,
+      "bottom": 255.09375,
+      "left": 20
+    }
+  },
+  {
+    "text": "Tài liệu",
+    "box": {
+      "x": 24,
+      "y": 203.09375,
+      "width": 88,
+      "height": 48,
+      "top": 203.09375,
+      "right": 112,
+      "bottom": 251.09375,
+      "left": 24
+    }
+  },
+  {
+    "text": "AI",
+    "box": {
+      "x": 116,
+      "y": 203.09375,
+      "width": 88,
+      "height": 48,
+      "top": 203.09375,
+      "right": 204,
+      "bottom": 251.09375,
+      "left": 116
+    }
+  },
+  {
+    "text": "Phản hồi",
+    "box": {
+      "x": 208,
+      "y": 203.09375,
+      "width": 88,
+      "height": 48,
+      "top": 203.09375,
+      "right": 296,
+      "bottom": 251.09375,
+      "left": 208
+    }
+  },
+  {
+    "text": "Lịch sử",
+    "box": {
+      "x": 300,
+      "y": 203.09375,
+      "width": 88,
+      "height": 48,
+      "top": 203.09375,
+      "right": 388,
+      "bottom": 251.09375,
+      "left": 300
+    }
+  },
+  {
+    "text": "Chưa có kết quả AI\nBắt đầu Đánh giá AI\nĐối chiếu tài liệu\nCấu hình đánh giá · 5 tiêu chí bật\nKết quả & lịch sử AI",
+    "box": {
+      "x": 20,
+      "y": 263.09375,
+      "width": 372,
+      "height": 276.1875,
+      "top": 263.09375,
+      "right": 392,
+      "bottom": 539.28125,
+      "left": 20
+    }
+  },
+  {
+    "text": "Bắt đầu Đánh giá AI",
+    "box": {
+      "x": 20,
+      "y": 298.28125,
+      "width": 372,
+      "height": 48,
+      "top": 298.28125,
+      "right": 392,
+      "bottom": 346.28125,
+      "left": 20
+    }
+  },
+  {
+    "text": "Đối chiếu tài liệu",
+    "box": {
+      "x": 20,
+      "y": 358.28125,
+      "width": 145.4375,
+      "height": 48,
+      "top": 358.28125,
+      "right": 165.4375,
+      "bottom": 406.28125,
+      "left": 20
+    }
+  },
+  {
+    "text": "Bắt đầu đánh giá",
+    "box": {
+      "x": 20,
+      "y": 560.28125,
+      "width": 372,
+      "height": 48,
+      "top": 560.28125,
+      "right": 392,
+      "bottom": 608.28125,
+      "left": 20
+    }
+  }
+]

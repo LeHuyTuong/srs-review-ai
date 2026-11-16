@@ -1,0 +1,10 @@
+# 04 F3 simplified flow
+precondition: supervisor signed in; review needs revision
+steps:
+  - open review
+  - request revision with note
+  - reopen after v2 submitted
+  - approve
+expected:
+  - review has 2 versions
+  - review.status == "Đã phê duyệt"

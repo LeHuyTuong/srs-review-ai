@@ -1,0 +1,41 @@
+[
+  {
+    "text": "Không gian đánh giá",
+    "box": {
+      "x": 12,
+      "y": 69,
+      "width": 178.984375,
+      "height": 48,
+      "top": 69,
+      "right": 190.984375,
+      "bottom": 117,
+      "left": 12
+    }
+  },
+  {
+    "text": "Lịch sử đánh giá",
+    "box": {
+      "x": 20,
+      "y": 133,
+      "width": 204.28125,
+      "height": 30.671875,
+      "top": 133,
+      "right": 224.28125,
+      "bottom": 163.671875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Nhật ký hoạt động\n6 sự kiện\n\n30/09/2026 · 10:05\n\nNguyễn Minh Anh đã tải lên v1.\n\nSinh viên\n\n30/09/2026 · 15:30\n\nGiảng viên yêu cầu chỉnh sửa v1.\n\nNguyễn Văn An\n",
+    "box": {
+      "x": 20,
+      "y": 484.28125,
+      "width": 350,
+      "height": 735.21875,
+      "top": 484.28125,
+      "right": 370,
+      "bottom": 1219.5,
+      "left": 20
+    }
+  }
+]

@@ -7,7 +7,9 @@ requires-python = ">=3.11"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "-q"
+addopts = "-q --basetemp=.pytest_temp -p no:cacheprovider"
+
+
 
 [tool.ruff]
 line-length = 110
@@ -22,3 +24,8 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S105", "S106"]
+
+[tool.ruff.lint.isort]
+# server/alembic/ (migration scripts) shares its name with the installed package;
+# without this ruff sorts `from alembic import op` as first-party.
+known-third-party = ["alembic"]

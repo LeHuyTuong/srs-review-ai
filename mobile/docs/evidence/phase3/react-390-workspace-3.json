@@ -1,0 +1,132 @@
+[
+  {
+    "text": "Yêu cầu đánh giá",
+    "box": {
+      "x": 12,
+      "y": -61,
+      "width": 156.421875,
+      "height": 48,
+      "top": -61,
+      "right": 168.421875,
+      "bottom": -13,
+      "left": 12
+    }
+  },
+  {
+    "text": "Thông tin",
+    "box": {
+      "x": 289.625,
+      "y": -61,
+      "width": 80.375,
+      "height": 48,
+      "top": -61,
+      "right": 370,
+      "bottom": -13,
+      "left": 289.625
+    }
+  },
+  {
+    "text": "Use Case Diagram",
+    "box": {
+      "x": 20,
+      "y": -5,
+      "width": 230.84375,
+      "height": 32.5,
+      "top": -5,
+      "right": 250.84375,
+      "bottom": 27.5,
+      "left": 20
+    }
+  },
+  {
+    "text": "Tài liệu\nAI\nPhản hồi\nLịch sử",
+    "box": {
+      "x": 20,
+      "y": 69.09375,
+      "width": 350,
+      "height": 56,
+      "top": 69.09375,
+      "right": 370,
+      "bottom": 125.09375,
+      "left": 20
+    }
+  },
+  {
+    "text": "Tài liệu",
+    "box": {
+      "x": 24,
+      "y": 73.09375,
+      "width": 82.5,
+      "height": 48,
+      "top": 73.09375,
+      "right": 106.5,
+      "bottom": 121.09375,
+      "left": 24
+    }
+  },
+  {
+    "text": "AI",
+    "box": {
+      "x": 110.5,
+      "y": 73.09375,
+      "width": 82.5,
+      "height": 48,
+      "top": 73.09375,
+      "right": 193,
+      "bottom": 121.09375,
+      "left": 110.5
+    }
+  },
+  {
+    "text": "Phản hồi",
+    "box": {
+      "x": 197,
+      "y": 73.09375,
+      "width": 82.5,
+      "height": 48,
+      "top": 73.09375,
+      "right": 279.5,
+      "bottom": 121.09375,
+      "left": 197
+    }
+  },
+  {
+    "text": "Lịch sử",
+    "box": {
+      "x": 283.5,
+      "y": 73.09375,
+      "width": 82.5,
+      "height": 48,
+      "top": 73.09375,
+      "right": 366,
+      "bottom": 121.09375,
+      "left": 283.5
+    }
+  },
+  {
+    "text": "Lịch sử đánh giá\n\n30/09/2026 · 10:05\n\nNguyễn Minh Anh đã tải lên v1.\n\nSinh viên\n\n30/09/2026 · 15:30\n\nGiảng viên yêu cầu chỉnh sửa v1.\n\nNguyễn Văn An\n\n“Bổ sung A",
+    "box": {
+      "x": 20,
+      "y": 133.09375,
+      "width": 350,
+      "height": 693.125,
+      "top": 133.09375,
+      "right": 370,
+      "bottom": 826.21875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Bắt đầu đánh giá",
+    "box": {
+      "x": 20,
+      "y": 648.5,
+      "width": 350,
+      "height": 48,
+      "top": 648.5,
+      "right": 370,
+      "bottom": 696.5,
+      "left": 20
+    }
+  }
+]

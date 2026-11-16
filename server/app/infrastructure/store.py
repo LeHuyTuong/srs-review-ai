@@ -75,6 +75,7 @@ class SqliteCache(Generic[T]):
         # /health reports.
         self._fallback: LruCache[str] = LruCache(max_entries)
         self._degraded = False
+        self._last_ts = 0.0
         self._open()
 
     # ------------------------------------------------------------------ #
@@ -198,6 +199,13 @@ class SqliteCache(Generic[T]):
             self._conn = None
             self._degraded = True
 
+    def _now(self) -> float:
+        current = time.time()
+        if current <= self._last_ts:
+            current = self._last_ts + 0.0001
+        self._last_ts = current
+        return current
+
     def _read(self, key: str) -> str | None:
         with self._lock:
             if self._conn is None:
@@ -217,7 +225,7 @@ class SqliteCache(Generic[T]):
                 # a unit read every day is still the first victim.
                 self._conn.execute(
                     "UPDATE cache_entries SET accessed_at = ? WHERE namespace = ? AND key = ?",
-                    (time.time(), self._namespace, key),
+                    (self._now(), self._namespace, key),
                 )
                 self._conn.commit()
                 return payload
@@ -231,7 +239,7 @@ class SqliteCache(Generic[T]):
                 self._fallback.put(key, payload)
                 return
             try:
-                now = time.time()
+                now = self._now()
                 self._conn.execute(
                     "INSERT OR REPLACE INTO cache_entries"
                     " (namespace, key, payload, created_at, accessed_at)"
@@ -257,7 +265,7 @@ class SqliteCache(Generic[T]):
         self._conn.execute(
             "DELETE FROM cache_entries WHERE namespace = ? AND key IN ("
             "  SELECT key FROM cache_entries WHERE namespace = ?"
-            "  ORDER BY accessed_at ASC LIMIT ?)",
+            "  ORDER BY accessed_at ASC, created_at ASC, rowid ASC LIMIT ?)",
             (self._namespace, self._namespace, excess),
         )
         self._conn.commit()

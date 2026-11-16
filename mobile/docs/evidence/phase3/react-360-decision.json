@@ -1,0 +1,275 @@
+[
+  {
+    "text": "Yêu cầu đánh giá",
+    "box": {
+      "x": 12,
+      "y": -347,
+      "width": 156.421875,
+      "height": 48,
+      "top": -347,
+      "right": 168.421875,
+      "bottom": -299,
+      "left": 12
+    }
+  },
+  {
+    "text": "Thông tin",
+    "box": {
+      "x": 259.625,
+      "y": -347,
+      "width": 80.375,
+      "height": 48,
+      "top": -347,
+      "right": 340,
+      "bottom": -299,
+      "left": 259.625
+    }
+  },
+  {
+    "text": "Use Case Diagram",
+    "box": {
+      "x": 20,
+      "y": -291,
+      "width": 230.84375,
+      "height": 32.5,
+      "top": -291,
+      "right": 250.84375,
+      "bottom": -258.5,
+      "left": 20
+    }
+  },
+  {
+    "text": "Tài liệu\nAI\nPhản hồi\nLịch sử",
+    "box": {
+      "x": 20,
+      "y": -216.90625,
+      "width": 320,
+      "height": 56,
+      "top": -216.90625,
+      "right": 340,
+      "bottom": -160.90625,
+      "left": 20
+    }
+  },
+  {
+    "text": "Tài liệu",
+    "box": {
+      "x": 24,
+      "y": -212.90625,
+      "width": 75,
+      "height": 48,
+      "top": -212.90625,
+      "right": 99,
+      "bottom": -164.90625,
+      "left": 24
+    }
+  },
+  {
+    "text": "AI",
+    "box": {
+      "x": 103,
+      "y": -212.90625,
+      "width": 75,
+      "height": 48,
+      "top": -212.90625,
+      "right": 178,
+      "bottom": -164.90625,
+      "left": 103
+    }
+  },
+  {
+    "text": "Phản hồi",
+    "box": {
+      "x": 182,
+      "y": -212.90625,
+      "width": 75,
+      "height": 48,
+      "top": -212.90625,
+      "right": 257,
+      "bottom": -164.90625,
+      "left": 182
+    }
+  },
+  {
+    "text": "Lịch sử",
+    "box": {
+      "x": 261,
+      "y": -212.90625,
+      "width": 75,
+      "height": 48,
+      "top": -212.90625,
+      "right": 336,
+      "bottom": -164.90625,
+      "left": 261
+    }
+  },
+  {
+    "text": "Phản hồi · v2\nQuan trọng\nThiếu thành phần\nBản nháp · chưa công bố\n\n“Phản hồi Android cần làm rõ ngoại lệ”\n\nNguyễn Văn An\n25/10/2026 · 18:38\nPhiên bản v2\nSửa\nBỏ ",
+    "box": {
+      "x": 20,
+      "y": -152.90625,
+      "width": 320,
+      "height": 741.125,
+      "top": -152.90625,
+      "right": 340,
+      "bottom": 588.21875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Sửa",
+    "box": {
+      "x": 211.796875,
+      "y": 27.0625,
+      "width": 48,
+      "height": 48,
+      "top": 27.0625,
+      "right": 259.796875,
+      "bottom": 75.0625,
+      "left": 211.796875
+    }
+  },
+  {
+    "text": "Bỏ nháp",
+    "box": {
+      "x": 271.796875,
+      "y": 27.0625,
+      "width": 55.203125,
+      "height": 48,
+      "top": 27.0625,
+      "right": 327,
+      "bottom": 75.0625,
+      "left": 271.796875
+    }
+  },
+  {
+    "text": "Nhẹ",
+    "box": {
+      "x": 33,
+      "y": 342.21875,
+      "width": 61.234375,
+      "height": 48,
+      "top": 342.21875,
+      "right": 94.234375,
+      "bottom": 390.21875,
+      "left": 33
+    }
+  },
+  {
+    "text": "Quan trọng",
+    "box": {
+      "x": 102.234375,
+      "y": 342.21875,
+      "width": 129.875,
+      "height": 48,
+      "top": 342.21875,
+      "right": 232.109375,
+      "bottom": 390.21875,
+      "left": 102.234375
+    }
+  },
+  {
+    "text": "Nghiêm trọng",
+    "box": {
+      "x": 33,
+      "y": 398.21875,
+      "width": 125.34375,
+      "height": 48,
+      "top": 398.21875,
+      "right": 158.34375,
+      "bottom": 446.21875,
+      "left": 33
+    }
+  },
+  {
+    "text": "Thêm phản hồi",
+    "box": {
+      "x": 33,
+      "y": 458.21875,
+      "width": 294,
+      "height": 48,
+      "top": 458.21875,
+      "right": 327,
+      "bottom": 506.21875,
+      "left": 33
+    }
+  },
+  {
+    "text": "Yêu cầu sửa",
+    "box": {
+      "x": 20,
+      "y": 608.5,
+      "width": 128,
+      "height": 48,
+      "top": 608.5,
+      "right": 148,
+      "bottom": 656.5,
+      "left": 20
+    }
+  },
+  {
+    "text": "Phê duyệt",
+    "box": {
+      "x": 156,
+      "y": 608.5,
+      "width": 128,
+      "height": 48,
+      "top": 608.5,
+      "right": 284,
+      "bottom": 656.5,
+      "left": 156
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 292,
+      "y": 608.5,
+      "width": 48,
+      "height": 48,
+      "top": 608.5,
+      "right": 340,
+      "bottom": 656.5,
+      "left": 292
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 300,
+      "y": 74.484375,
+      "width": 48,
+      "height": 48,
+      "top": 74.484375,
+      "right": 348,
+      "bottom": 122.484375,
+      "left": 300
+    }
+  },
+  {
+    "text": "Hủy",
+    "box": {
+      "x": 20,
+      "y": 667,
+      "width": 61.25,
+      "height": 48,
+      "top": 667,
+      "right": 81.25,
+      "bottom": 715,
+      "left": 20
+    }
+  },
+  {
+    "text": "Xác nhận quyết định",
+    "box": {
+      "x": 89.25,
+      "y": 667,
+      "width": 172.109375,
+      "height": 48,
+      "top": 667,
+      "right": 261.359375,
+      "bottom": 715,
+      "left": 89.25
+    }
+  }
+]

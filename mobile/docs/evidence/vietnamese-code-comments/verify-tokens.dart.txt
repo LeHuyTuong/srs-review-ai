@@ -1,0 +1,38 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:analyzer/dart/analysis/utilities.dart';
+
+List<String> tokens(String text, String path) {
+  final parsed = parseString(content: text, path: path, throwIfDiagnostics: false);
+  final result = <String>[];
+  var token = parsed.unit.beginToken;
+  while (!token.isEof) {
+    result.add('${token.type}:${token.lexeme}');
+    token = token.next!;
+  }
+  return result;
+}
+
+void main() {
+  final original = Directory('.local/vietnamese-comments-before/lib');
+  final results = <Map<String, Object>>[];
+  final current = Directory('lib').listSync(recursive: true)
+      .whereType<File>().where((f) => f.path.endsWith('.dart')).toList()
+    ..sort((a, b) => a.path.compareTo(b.path));
+  for (final file in current) {
+    final relative = file.path.substring(4);
+    final before = File('${original.path}/$relative');
+    final a = tokens(before.readAsStringSync(), file.path);
+    final b = tokens(file.readAsStringSync(), file.path);
+    final equal = a.length == b.length &&
+        Iterable.generate(a.length).every((i) => a[i] == b[i]);
+    results.add({'path': file.path.replaceAll('\\', '/'),
+      'tokensBefore': a.length, 'tokensAfter': b.length, 'identical': equal});
+    if (!equal) exitCode = 1;
+  }
+  final out = {'files': results.length, 'allExecutableTokensIdentical': exitCode == 0,
+    'results': results};
+  File('docs/evidence/vietnamese-code-comments/token-verification.json')
+      .writeAsStringSync(const JsonEncoder.withIndent('  ').convert(out));
+  print('Files: ${results.length}; all executable tokens identical: ${exitCode == 0}');
+}

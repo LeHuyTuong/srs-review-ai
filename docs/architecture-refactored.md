@@ -12,7 +12,7 @@ thực tế, để hai bản không lệch nhau im lặng.
 
 | Hạng mục | Trước | Sau |
 |---|---|---|
-| `app/lib/data/` | 50 file, 5 capability trộn | **không còn** — 6 component headless |
+| `desktop/lib/data/` | 50 file, 5 capability trộn | **không còn** — 6 component headless |
 | `workspace_view_model.dart` | 2.063 dòng, 1 class | 692 dòng: state + copyWith + façade |
 | Controller use case | — | 7 file, 71–418 dòng (+ base 71 dòng) |
 | `server/app/main.py` | 1.164 dòng | ~120 dòng: bootstrap + router + composition root |
@@ -55,7 +55,7 @@ case); `docs/arch-*-notes.md` là bản khảo sát trước refactor, đã đư
 
 ## 1. Kiến trúc hiện tại (đo được từ import graph, 2026-09-25)
 
-### Flutter `app/lib` (~32.5k dòng)
+### Flutter `desktop/lib` (~32.5k dòng)
 
 ```
 core/                          app_config, providers (423 dòng gom TOÀN BỘ DI), router, theme, widgets
@@ -105,8 +105,8 @@ và orchestration use case (cache lookup + pacing + verify + rubric/chimney cho
 ### Guardrails hiện tại
 
 `tools/check_guardrails.py` (LAYER_RULES) soi theo path fragment:
-`app/lib/features/` + `/view/` không được import `data/services/|dio|data/repositories/`;
-`/view_model/` không được import material//view/; `app/lib/data/` không được import
+`desktop/lib/features/` + `/view/` không được import `data/services/|dio|data/repositories/`;
+`/view_model/` không được import material//view/; `desktop/lib/data/` không được import
 `features/` hay material; `data/models/` không import dio/services. **Mọi move file
 phải đồng bộ LAYER_RULES, nếu không luật tê liệt im lặng.**
 
@@ -120,7 +120,7 @@ duy nhất) nếu được phép bị phụ thuộc. Component KHÔNG có `api.d
 lộ qua workspace shell).
 
 ```
-app/lib/
+desktop/lib/
   core/                        # shared: config, router, theme, widgets, di base
     app_config.dart
     router/

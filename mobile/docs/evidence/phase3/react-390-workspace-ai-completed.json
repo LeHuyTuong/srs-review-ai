@@ -1,0 +1,184 @@
+[
+  {
+    "text": "Yêu cầu đánh giá",
+    "box": {
+      "x": 12,
+      "y": 69,
+      "width": 156.421875,
+      "height": 48,
+      "top": 69,
+      "right": 168.421875,
+      "bottom": 117,
+      "left": 12
+    }
+  },
+  {
+    "text": "Thông tin",
+    "box": {
+      "x": 289.625,
+      "y": 69,
+      "width": 80.375,
+      "height": 48,
+      "top": 69,
+      "right": 370,
+      "bottom": 117,
+      "left": 289.625
+    }
+  },
+  {
+    "text": "Persona",
+    "box": {
+      "x": 20,
+      "y": 125,
+      "width": 103.234375,
+      "height": 32.5,
+      "top": 125,
+      "right": 123.234375,
+      "bottom": 157.5,
+      "left": 20
+    }
+  },
+  {
+    "text": "Tài liệu\nAI\nPhản hồi\nLịch sử",
+    "box": {
+      "x": 20,
+      "y": 223.390625,
+      "width": 350,
+      "height": 56,
+      "top": 223.390625,
+      "right": 370,
+      "bottom": 279.390625,
+      "left": 20
+    }
+  },
+  {
+    "text": "Tài liệu",
+    "box": {
+      "x": 24,
+      "y": 227.390625,
+      "width": 82.5,
+      "height": 48,
+      "top": 227.390625,
+      "right": 106.5,
+      "bottom": 275.390625,
+      "left": 24
+    }
+  },
+  {
+    "text": "AI",
+    "box": {
+      "x": 110.5,
+      "y": 227.390625,
+      "width": 82.5,
+      "height": 48,
+      "top": 227.390625,
+      "right": 193,
+      "bottom": 275.390625,
+      "left": 110.5
+    }
+  },
+  {
+    "text": "Phản hồi",
+    "box": {
+      "x": 197,
+      "y": 227.390625,
+      "width": 82.5,
+      "height": 48,
+      "top": 227.390625,
+      "right": 279.5,
+      "bottom": 275.390625,
+      "left": 197
+    }
+  },
+  {
+    "text": "Lịch sử",
+    "box": {
+      "x": 283.5,
+      "y": 227.390625,
+      "width": 82.5,
+      "height": 48,
+      "top": 227.390625,
+      "right": 366,
+      "bottom": 275.390625,
+      "left": 283.5
+    }
+  },
+  {
+    "text": "Nội dung tài liệu\nNội dung mẫu\n\npersona-demo-v2.pdf · v2\n\nTrang 1 / 3\n\nDEMO323 · DEMO GROUP\n\nPersona\n\nProject Review AI — Demo\n\nPhiên bản v2 · Người nộp: Sinh v",
+    "box": {
+      "x": 20,
+      "y": 287.390625,
+      "width": 350,
+      "height": 576.890625,
+      "top": 287.390625,
+      "right": 370,
+      "bottom": 864.28125,
+      "left": 20
+    }
+  },
+  {
+    "text": "Nội dung tài liệu\nNội dung mẫu\n\npersona-demo-v2.pdf · v2\n\nTrang 1 / 3\n\nDEMO323 · DEMO GROUP\n\nPersona\n\nProject Review AI — Demo\n\nPhiên bản v2 · Người nộp: Sinh v",
+    "box": {
+      "x": 20,
+      "y": 287.390625,
+      "width": 350,
+      "height": 540.59375,
+      "top": 287.390625,
+      "right": 370,
+      "bottom": 827.984375,
+      "left": 20
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 33,
+      "y": 381.984375,
+      "width": 48,
+      "height": 48,
+      "top": 381.984375,
+      "right": 81,
+      "bottom": 429.984375,
+      "left": 33
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 224.328125,
+      "y": 381.984375,
+      "width": 48,
+      "height": 48,
+      "top": 381.984375,
+      "right": 272.328125,
+      "bottom": 429.984375,
+      "left": 224.328125
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 309,
+      "y": 381.984375,
+      "width": 48,
+      "height": 48,
+      "top": 381.984375,
+      "right": 357,
+      "bottom": 429.984375,
+      "left": 309
+    }
+  },
+  {
+    "text": "Bắt đầu đánh giá",
+    "box": {
+      "x": 20,
+      "y": 648.5,
+      "width": 350,
+      "height": 48,
+      "top": 648.5,
+      "right": 370,
+      "bottom": 696.5,
+      "left": 20
+    }
+  }
+]

@@ -1,0 +1,612 @@
+{
+  "files": 101,
+  "allExecutableTokensIdentical": true,
+  "results": [
+    {
+      "path": "lib/app/app.dart",
+      "tokensBefore": 560,
+      "tokensAfter": 560,
+      "identical": true
+    },
+    {
+      "path": "lib/app/app_navigation.dart",
+      "tokensBefore": 77,
+      "tokensAfter": 77,
+      "identical": true
+    },
+    {
+      "path": "lib/app/providers.dart",
+      "tokensBefore": 225,
+      "tokensAfter": 225,
+      "identical": true
+    },
+    {
+      "path": "lib/app/session.dart",
+      "tokensBefore": 352,
+      "tokensAfter": 352,
+      "identical": true
+    },
+    {
+      "path": "lib/main.dart",
+      "tokensBefore": 28,
+      "tokensAfter": 28,
+      "identical": true
+    },
+    {
+      "path": "lib/models/academic/academic_models.dart",
+      "tokensBefore": 2468,
+      "tokensAfter": 2468,
+      "identical": true
+    },
+    {
+      "path": "lib/models/academic/academic_policy.dart",
+      "tokensBefore": 1217,
+      "tokensAfter": 1217,
+      "identical": true
+    },
+    {
+      "path": "lib/models/academic/academic_presentation.dart",
+      "tokensBefore": 546,
+      "tokensAfter": 546,
+      "identical": true
+    },
+    {
+      "path": "lib/models/academic/academic_projections.dart",
+      "tokensBefore": 581,
+      "tokensAfter": 581,
+      "identical": true
+    },
+    {
+      "path": "lib/models/academic/management_queries.dart",
+      "tokensBefore": 1841,
+      "tokensAfter": 1841,
+      "identical": true
+    },
+    {
+      "path": "lib/models/academic/project_context.dart",
+      "tokensBefore": 22,
+      "tokensAfter": 22,
+      "identical": true
+    },
+    {
+      "path": "lib/models/academic/review_policy.dart",
+      "tokensBefore": 1150,
+      "tokensAfter": 1150,
+      "identical": true
+    },
+    {
+      "path": "lib/models/counter_state.dart",
+      "tokensBefore": 20,
+      "tokensAfter": 20,
+      "identical": true
+    },
+    {
+      "path": "lib/models/dashboard/dashboard_snapshot.dart",
+      "tokensBefore": 1257,
+      "tokensAfter": 1257,
+      "identical": true
+    },
+    {
+      "path": "lib/models/dashboard/dashboard_state.dart",
+      "tokensBefore": 198,
+      "tokensAfter": 198,
+      "identical": true
+    },
+    {
+      "path": "lib/models/session_scope.dart",
+      "tokensBefore": 66,
+      "tokensAfter": 66,
+      "identical": true
+    },
+    {
+      "path": "lib/repositories/academic/academic_repository.dart",
+      "tokensBefore": 34,
+      "tokensAfter": 34,
+      "identical": true
+    },
+    {
+      "path": "lib/repositories/academic/course_contract.dart",
+      "tokensBefore": 556,
+      "tokensAfter": 556,
+      "identical": true
+    },
+    {
+      "path": "lib/repositories/academic/fake_academic_repository.dart",
+      "tokensBefore": 147,
+      "tokensAfter": 147,
+      "identical": true
+    },
+    {
+      "path": "lib/repositories/academic/student_device_gateway.dart",
+      "tokensBefore": 34,
+      "tokensAfter": 34,
+      "identical": true
+    },
+    {
+      "path": "lib/repositories/counter_repository.dart",
+      "tokensBefore": 83,
+      "tokensAfter": 83,
+      "identical": true
+    },
+    {
+      "path": "lib/repositories/dashboard/dashboard_repository.dart",
+      "tokensBefore": 17,
+      "tokensAfter": 17,
+      "identical": true
+    },
+    {
+      "path": "lib/repositories/dashboard/fake_dashboard_repository.dart",
+      "tokensBefore": 50,
+      "tokensAfter": 50,
+      "identical": true
+    },
+    {
+      "path": "lib/repositories/notification_repository.dart",
+      "tokensBefore": 320,
+      "tokensAfter": 320,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/academic/class_screens.dart",
+      "tokensBefore": 1724,
+      "tokensAfter": 1724,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/academic/course_screens.dart",
+      "tokensBefore": 1518,
+      "tokensAfter": 1518,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/academic/directory_screens.dart",
+      "tokensBefore": 1828,
+      "tokensAfter": 1828,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/academic/offering_detail_screen.dart",
+      "tokensBefore": 1104,
+      "tokensAfter": 1104,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/academic/widgets/academic_form_sheet.dart",
+      "tokensBefore": 2479,
+      "tokensAfter": 2479,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/academic/widgets/academic_page.dart",
+      "tokensBefore": 431,
+      "tokensAfter": 431,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/academic/widgets/class_card.dart",
+      "tokensBefore": 1189,
+      "tokensAfter": 1189,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/academic/widgets/class_filter_bar.dart",
+      "tokensBefore": 1373,
+      "tokensAfter": 1373,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/academic/widgets/class_overview.dart",
+      "tokensBefore": 571,
+      "tokensAfter": 571,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/academic/widgets/class_review_preview.dart",
+      "tokensBefore": 1077,
+      "tokensAfter": 1077,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/academic/widgets/group_summary_card.dart",
+      "tokensBefore": 1254,
+      "tokensAfter": 1254,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/academic/widgets/lab_editor.dart",
+      "tokensBefore": 1603,
+      "tokensAfter": 1603,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/academic/widgets/rule_set_panel.dart",
+      "tokensBefore": 1262,
+      "tokensAfter": 1262,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/academic/widgets/student_enrollment_sheet.dart",
+      "tokensBefore": 1115,
+      "tokensAfter": 1115,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/account/account_screens.dart",
+      "tokensBefore": 1054,
+      "tokensAfter": 1054,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/account/login_screen.dart",
+      "tokensBefore": 459,
+      "tokensAfter": 459,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/dashboard/dashboard_screen.dart",
+      "tokensBefore": 401,
+      "tokensAfter": 401,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/dashboard/widgets/dashboard_heading.dart",
+      "tokensBefore": 400,
+      "tokensAfter": 400,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/dashboard/widgets/dashboard_review_row.dart",
+      "tokensBefore": 259,
+      "tokensAfter": 259,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/dashboard/widgets/dashboard_secondary_sections.dart",
+      "tokensBefore": 843,
+      "tokensAfter": 843,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/dashboard/widgets/dashboard_stats.dart",
+      "tokensBefore": 210,
+      "tokensAfter": 210,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/dashboard/widgets/dashboard_tasks.dart",
+      "tokensBefore": 394,
+      "tokensAfter": 394,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/demo_screen.dart",
+      "tokensBefore": 146,
+      "tokensAfter": 146,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/management/document_screens.dart",
+      "tokensBefore": 862,
+      "tokensAfter": 862,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/management/group_screens.dart",
+      "tokensBefore": 1666,
+      "tokensAfter": 1666,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/management/project_registrations_screen.dart",
+      "tokensBefore": 878,
+      "tokensAfter": 878,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/management/project_screens.dart",
+      "tokensBefore": 2170,
+      "tokensAfter": 2170,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/management/review_history_screens.dart",
+      "tokensBefore": 2271,
+      "tokensAfter": 2271,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/management/review_screens.dart",
+      "tokensBefore": 2209,
+      "tokensAfter": 2209,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/management/widgets/ai_review_panel.dart",
+      "tokensBefore": 2919,
+      "tokensAfter": 2919,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/management/widgets/document_card.dart",
+      "tokensBefore": 1788,
+      "tokensAfter": 1788,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/management/widgets/management_filter_bar.dart",
+      "tokensBefore": 1460,
+      "tokensAfter": 1460,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/management/widgets/management_form_sheet.dart",
+      "tokensBefore": 754,
+      "tokensAfter": 754,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/management/widgets/management_shared.dart",
+      "tokensBefore": 89,
+      "tokensAfter": 89,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/management/widgets/project_form_fields.dart",
+      "tokensBefore": 427,
+      "tokensAfter": 427,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/management/widgets/review_feedback.dart",
+      "tokensBefore": 835,
+      "tokensAfter": 835,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/management/widgets/sample_document_reader.dart",
+      "tokensBefore": 2370,
+      "tokensAfter": 2370,
+      "identical": true
+    },
+    {
+      "path": "lib/screens/navigation_destination_screen.dart",
+      "tokensBefore": 260,
+      "tokensAfter": 260,
+      "identical": true
+    },
+    {
+      "path": "lib/services/academic/fake_academic_service.dart",
+      "tokensBefore": 342,
+      "tokensAfter": 342,
+      "identical": true
+    },
+    {
+      "path": "lib/services/academic/student_import_service.dart",
+      "tokensBefore": 134,
+      "tokensAfter": 134,
+      "identical": true
+    },
+    {
+      "path": "lib/services/dashboard/fake_dashboard_service.dart",
+      "tokensBefore": 86,
+      "tokensAfter": 86,
+      "identical": true
+    },
+    {
+      "path": "lib/services/demo_counter_service.dart",
+      "tokensBefore": 27,
+      "tokensAfter": 27,
+      "identical": true
+    },
+    {
+      "path": "lib/theme/app_colors.dart",
+      "tokensBefore": 177,
+      "tokensAfter": 177,
+      "identical": true
+    },
+    {
+      "path": "lib/theme/app_metrics.dart",
+      "tokensBefore": 204,
+      "tokensAfter": 204,
+      "identical": true
+    },
+    {
+      "path": "lib/theme/app_radius.dart",
+      "tokensBefore": 42,
+      "tokensAfter": 42,
+      "identical": true
+    },
+    {
+      "path": "lib/theme/app_shadows.dart",
+      "tokensBefore": 126,
+      "tokensAfter": 126,
+      "identical": true
+    },
+    {
+      "path": "lib/theme/app_spacing.dart",
+      "tokensBefore": 72,
+      "tokensAfter": 72,
+      "identical": true
+    },
+    {
+      "path": "lib/theme/app_theme.dart",
+      "tokensBefore": 746,
+      "tokensAfter": 746,
+      "identical": true
+    },
+    {
+      "path": "lib/theme/app_typography.dart",
+      "tokensBefore": 519,
+      "tokensAfter": 519,
+      "identical": true
+    },
+    {
+      "path": "lib/viewmodels/academic/academic_form_view_model.dart",
+      "tokensBefore": 4652,
+      "tokensAfter": 4652,
+      "identical": true
+    },
+    {
+      "path": "lib/viewmodels/academic/academic_view_model.dart",
+      "tokensBefore": 3408,
+      "tokensAfter": 3408,
+      "identical": true
+    },
+    {
+      "path": "lib/viewmodels/academic/class_filter_view_model.dart",
+      "tokensBefore": 460,
+      "tokensAfter": 460,
+      "identical": true
+    },
+    {
+      "path": "lib/viewmodels/academic/directory_view_model.dart",
+      "tokensBefore": 937,
+      "tokensAfter": 937,
+      "identical": true
+    },
+    {
+      "path": "lib/viewmodels/academic/document_reader_view_model.dart",
+      "tokensBefore": 177,
+      "tokensAfter": 177,
+      "identical": true
+    },
+    {
+      "path": "lib/viewmodels/academic/management_actions.dart",
+      "tokensBefore": 2257,
+      "tokensAfter": 2257,
+      "identical": true
+    },
+    {
+      "path": "lib/viewmodels/academic/management_form_view_model.dart",
+      "tokensBefore": 3171,
+      "tokensAfter": 3171,
+      "identical": true
+    },
+    {
+      "path": "lib/viewmodels/academic/management_list_view_model.dart",
+      "tokensBefore": 3762,
+      "tokensAfter": 3762,
+      "identical": true
+    },
+    {
+      "path": "lib/viewmodels/academic/review_actions.dart",
+      "tokensBefore": 2739,
+      "tokensAfter": 2739,
+      "identical": true
+    },
+    {
+      "path": "lib/viewmodels/academic/review_panel_view_model.dart",
+      "tokensBefore": 544,
+      "tokensAfter": 544,
+      "identical": true
+    },
+    {
+      "path": "lib/viewmodels/academic/student_enrollment_view_model.dart",
+      "tokensBefore": 1328,
+      "tokensAfter": 1328,
+      "identical": true
+    },
+    {
+      "path": "lib/viewmodels/counter_view_model.dart",
+      "tokensBefore": 70,
+      "tokensAfter": 70,
+      "identical": true
+    },
+    {
+      "path": "lib/viewmodels/dashboard/dashboard_view_model.dart",
+      "tokensBefore": 753,
+      "tokensAfter": 753,
+      "identical": true
+    },
+    {
+      "path": "lib/widgets/app_academic_layout.dart",
+      "tokensBefore": 1761,
+      "tokensAfter": 1761,
+      "identical": true
+    },
+    {
+      "path": "lib/widgets/app_badge.dart",
+      "tokensBefore": 268,
+      "tokensAfter": 268,
+      "identical": true
+    },
+    {
+      "path": "lib/widgets/app_bottom_navigation.dart",
+      "tokensBefore": 572,
+      "tokensAfter": 572,
+      "identical": true
+    },
+    {
+      "path": "lib/widgets/app_button.dart",
+      "tokensBefore": 668,
+      "tokensAfter": 668,
+      "identical": true
+    },
+    {
+      "path": "lib/widgets/app_card.dart",
+      "tokensBefore": 157,
+      "tokensAfter": 157,
+      "identical": true
+    },
+    {
+      "path": "lib/widgets/app_disclosure.dart",
+      "tokensBefore": 559,
+      "tokensAfter": 559,
+      "identical": true
+    },
+    {
+      "path": "lib/widgets/app_filter_controls.dart",
+      "tokensBefore": 516,
+      "tokensAfter": 516,
+      "identical": true
+    },
+    {
+      "path": "lib/widgets/app_icon.dart",
+      "tokensBefore": 108,
+      "tokensAfter": 108,
+      "identical": true
+    },
+    {
+      "path": "lib/widgets/app_meta_grid.dart",
+      "tokensBefore": 464,
+      "tokensAfter": 464,
+      "identical": true
+    },
+    {
+      "path": "lib/widgets/app_search_field.dart",
+      "tokensBefore": 209,
+      "tokensAfter": 209,
+      "identical": true
+    },
+    {
+      "path": "lib/widgets/app_states.dart",
+      "tokensBefore": 670,
+      "tokensAfter": 670,
+      "identical": true
+    },
+    {
+      "path": "lib/widgets/app_status_tracks.dart",
+      "tokensBefore": 382,
+      "tokensAfter": 382,
+      "identical": true
+    },
+    {
+      "path": "lib/widgets/demo_counter_value.dart",
+      "tokensBefore": 58,
+      "tokensAfter": 58,
+      "identical": true
+    },
+    {
+      "path": "lib/widgets/mobile_header.dart",
+      "tokensBefore": 280,
+      "tokensAfter": 280,
+      "identical": true
+    },
+    {
+      "path": "lib/widgets/stat_card.dart",
+      "tokensBefore": 146,
+      "tokensAfter": 146,
+      "identical": true
+    }
+  ]
+}

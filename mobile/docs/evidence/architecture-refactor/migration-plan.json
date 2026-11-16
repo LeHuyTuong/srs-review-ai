@@ -1,0 +1,608 @@
+[
+  {
+    "before": "lib/app/app.dart",
+    "after": "lib/app/app.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/app/app_navigation.dart",
+    "after": "lib/core/navigation/app_navigation.dart",
+    "classification": "move-only",
+    "stage": 1
+  },
+  {
+    "before": "lib/app/providers.dart",
+    "after": "lib/core/di/data_providers.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 1
+  },
+  {
+    "before": "lib/app/session.dart",
+    "after": "lib/core/session/session_view_model.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 1
+  },
+  {
+    "before": "lib/main.dart",
+    "after": "lib/main.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/models/academic/academic_models.dart",
+    "after": "lib/core/domain/academic/academic_models.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 1
+  },
+  {
+    "before": "lib/models/academic/academic_policy.dart",
+    "after": "lib/core/domain/academic/academic_policy.dart",
+    "classification": "move-only",
+    "stage": 1
+  },
+  {
+    "before": "lib/models/academic/academic_presentation.dart",
+    "after": "lib/core/domain/academic/academic_presentation.dart",
+    "classification": "move-only",
+    "stage": 1
+  },
+  {
+    "before": "lib/models/academic/academic_projections.dart",
+    "after": "lib/core/domain/academic/academic_projections.dart",
+    "classification": "move-only",
+    "stage": 1
+  },
+  {
+    "before": "lib/models/academic/management_queries.dart",
+    "after": "lib/core/domain/academic/management_queries.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 1
+  },
+  {
+    "before": "lib/models/academic/project_context.dart",
+    "after": "lib/core/domain/academic/project_context.dart",
+    "classification": "move-only",
+    "stage": 1
+  },
+  {
+    "before": "lib/models/academic/review_policy.dart",
+    "after": "lib/core/domain/academic/review_policy.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 1
+  },
+  {
+    "before": "lib/models/counter_state.dart",
+    "after": "lib/core/domain/counter_state.dart",
+    "classification": "move-only",
+    "stage": 1
+  },
+  {
+    "before": "lib/models/dashboard/dashboard_snapshot.dart",
+    "after": "lib/core/domain/dashboard/dashboard_snapshot.dart",
+    "classification": "move-only",
+    "stage": 1
+  },
+  {
+    "before": "lib/models/dashboard/dashboard_state.dart",
+    "after": "lib/core/domain/dashboard/dashboard_state.dart",
+    "classification": "move-only",
+    "stage": 1
+  },
+  {
+    "before": "lib/models/session_scope.dart",
+    "after": "lib/core/domain/session_scope.dart",
+    "classification": "move-only",
+    "stage": 1
+  },
+  {
+    "before": "lib/repositories/academic/academic_repository.dart",
+    "after": "lib/core/contracts/academic/academic_repository.dart",
+    "classification": "move-only",
+    "stage": 1
+  },
+  {
+    "before": "lib/repositories/academic/course_contract.dart",
+    "after": "lib/core/contracts/academic/course_contract.dart",
+    "classification": "move-only",
+    "stage": 1
+  },
+  {
+    "before": "lib/repositories/academic/fake_academic_repository.dart",
+    "after": "lib/features/academic/data/repositories/fake_academic_repository.dart",
+    "classification": "move-only",
+    "stage": 1
+  },
+  {
+    "before": "lib/repositories/academic/student_device_gateway.dart",
+    "after": "lib/core/contracts/academic/student_device_gateway.dart",
+    "classification": "move-only",
+    "stage": 1
+  },
+  {
+    "before": "lib/repositories/counter_repository.dart",
+    "after": "lib/core/contracts/counter_repository.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 1
+  },
+  {
+    "before": "lib/repositories/dashboard/dashboard_repository.dart",
+    "after": "lib/core/contracts/dashboard/dashboard_repository.dart",
+    "classification": "move-only",
+    "stage": 1
+  },
+  {
+    "before": "lib/repositories/dashboard/fake_dashboard_repository.dart",
+    "after": "lib/features/dashboard/data/repositories/fake_dashboard_repository.dart",
+    "classification": "move-only",
+    "stage": 1
+  },
+  {
+    "before": "lib/repositories/notification_repository.dart",
+    "after": "lib/features/account/data/notification_repository.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 1
+  },
+  {
+    "before": "lib/screens/academic/class_screens.dart",
+    "after": "lib/features/academic/presentation/views/class_screens.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/academic/course_screens.dart",
+    "after": "lib/features/academic/presentation/views/course_screens.dart",
+    "classification": "move-only",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/academic/directory_screens.dart",
+    "after": "lib/features/academic/presentation/views/directory_screens.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/academic/offering_detail_screen.dart",
+    "after": "lib/features/academic/presentation/views/offering_detail_screen.dart",
+    "classification": "move-only",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/academic/widgets/academic_form_sheet.dart",
+    "after": "lib/features/academic/presentation/views/widgets/academic_form_sheet.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/academic/widgets/academic_page.dart",
+    "after": "lib/features/academic/presentation/views/widgets/academic_page.dart",
+    "classification": "move-only",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/academic/widgets/class_card.dart",
+    "after": "lib/features/academic/presentation/views/widgets/class_card.dart",
+    "classification": "move-only",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/academic/widgets/class_filter_bar.dart",
+    "after": "lib/features/academic/presentation/views/widgets/class_filter_bar.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/academic/widgets/class_overview.dart",
+    "after": "lib/features/academic/presentation/views/widgets/class_overview.dart",
+    "classification": "move-only",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/academic/widgets/class_review_preview.dart",
+    "after": "lib/features/academic/presentation/views/widgets/class_review_preview.dart",
+    "classification": "move-only",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/academic/widgets/group_summary_card.dart",
+    "after": "lib/features/academic/presentation/views/widgets/group_summary_card.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/academic/widgets/lab_editor.dart",
+    "after": "lib/features/academic/presentation/views/widgets/lab_editor.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/academic/widgets/rule_set_panel.dart",
+    "after": "lib/features/academic/presentation/views/widgets/rule_set_panel.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/academic/widgets/student_enrollment_sheet.dart",
+    "after": "lib/features/academic/presentation/views/widgets/student_enrollment_sheet.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/account/account_screens.dart",
+    "after": "lib/features/account/presentation/views/account_screens.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/account/login_screen.dart",
+    "after": "lib/features/account/presentation/views/login_screen.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/dashboard/dashboard_screen.dart",
+    "after": "lib/features/dashboard/presentation/views/dashboard_screen.dart",
+    "classification": "move-only",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/dashboard/widgets/dashboard_heading.dart",
+    "after": "lib/features/dashboard/presentation/views/widgets/dashboard_heading.dart",
+    "classification": "move-only",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/dashboard/widgets/dashboard_review_row.dart",
+    "after": "lib/features/dashboard/presentation/views/widgets/dashboard_review_row.dart",
+    "classification": "move-only",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/dashboard/widgets/dashboard_secondary_sections.dart",
+    "after": "lib/features/dashboard/presentation/views/widgets/dashboard_secondary_sections.dart",
+    "classification": "move-only",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/dashboard/widgets/dashboard_stats.dart",
+    "after": "lib/features/dashboard/presentation/views/widgets/dashboard_stats.dart",
+    "classification": "move-only",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/dashboard/widgets/dashboard_tasks.dart",
+    "after": "lib/features/dashboard/presentation/views/widgets/dashboard_tasks.dart",
+    "classification": "move-only",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/demo_screen.dart",
+    "after": "lib/features/demo/presentation/views/demo_screen.dart",
+    "classification": "move-only",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/management/document_screens.dart",
+    "after": "lib/features/academic/presentation/views/management/document_screens.dart",
+    "classification": "move-only",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/management/group_screens.dart",
+    "after": "lib/features/academic/presentation/views/management/group_screens.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/management/project_registrations_screen.dart",
+    "after": "lib/features/academic/presentation/views/management/project_registrations_screen.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/management/project_screens.dart",
+    "after": "lib/features/academic/presentation/views/management/project_screens.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/management/review_history_screens.dart",
+    "after": "lib/features/academic/presentation/views/management/review_history_screens.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/management/review_screens.dart",
+    "after": "lib/features/academic/presentation/views/management/review_screens.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/management/widgets/ai_review_panel.dart",
+    "after": "lib/features/academic/presentation/views/management/widgets/ai_review_panel.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/management/widgets/document_card.dart",
+    "after": "lib/features/academic/presentation/views/management/widgets/document_card.dart",
+    "classification": "move-only",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/management/widgets/management_filter_bar.dart",
+    "after": "lib/features/academic/presentation/views/management/widgets/management_filter_bar.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/management/widgets/management_form_sheet.dart",
+    "after": "lib/features/academic/presentation/views/management/widgets/management_form_sheet.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/management/widgets/management_shared.dart",
+    "after": "lib/features/academic/presentation/views/management/widgets/management_shared.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/management/widgets/project_form_fields.dart",
+    "after": "lib/features/academic/presentation/views/management/widgets/project_form_fields.dart",
+    "classification": "move-only",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/management/widgets/review_feedback.dart",
+    "after": "lib/features/academic/presentation/views/management/widgets/review_feedback.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/management/widgets/sample_document_reader.dart",
+    "after": "lib/features/academic/presentation/views/management/widgets/sample_document_reader.dart",
+    "classification": "move-only",
+    "stage": 3
+  },
+  {
+    "before": "lib/screens/navigation_destination_screen.dart",
+    "after": "lib/screens/navigation_destination_screen.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/services/academic/fake_academic_service.dart",
+    "after": "lib/features/academic/data/services/fake_academic_service.dart",
+    "classification": "move-only",
+    "stage": 1
+  },
+  {
+    "before": "lib/services/academic/student_import_service.dart",
+    "after": "lib/features/academic/data/services/student_import_service.dart",
+    "classification": "move-only",
+    "stage": 1
+  },
+  {
+    "before": "lib/services/dashboard/fake_dashboard_service.dart",
+    "after": "lib/features/dashboard/data/services/fake_dashboard_service.dart",
+    "classification": "move-only",
+    "stage": 1
+  },
+  {
+    "before": "lib/services/demo_counter_service.dart",
+    "after": "lib/features/demo/data/services/demo_counter_service.dart",
+    "classification": "move-only",
+    "stage": 1
+  },
+  {
+    "before": "lib/theme/app_colors.dart",
+    "after": "lib/theme/app_colors.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/theme/app_metrics.dart",
+    "after": "lib/theme/app_metrics.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/theme/app_radius.dart",
+    "after": "lib/theme/app_radius.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/theme/app_shadows.dart",
+    "after": "lib/theme/app_shadows.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/theme/app_spacing.dart",
+    "after": "lib/theme/app_spacing.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/theme/app_theme.dart",
+    "after": "lib/theme/app_theme.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/theme/app_typography.dart",
+    "after": "lib/theme/app_typography.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/viewmodels/academic/academic_form_view_model.dart",
+    "after": "lib/features/academic/presentation/viewmodels/academic_form_view_model.dart",
+    "classification": "move-only",
+    "stage": 2
+  },
+  {
+    "before": "lib/viewmodels/academic/academic_view_model.dart",
+    "after": "lib/features/academic/presentation/viewmodels/academic_view_model.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 2
+  },
+  {
+    "before": "lib/viewmodels/academic/class_filter_view_model.dart",
+    "after": "lib/features/academic/presentation/viewmodels/class_filter_view_model.dart",
+    "classification": "move-only",
+    "stage": 2
+  },
+  {
+    "before": "lib/viewmodels/academic/directory_view_model.dart",
+    "after": "lib/features/academic/presentation/viewmodels/directory_view_model.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 2
+  },
+  {
+    "before": "lib/viewmodels/academic/document_reader_view_model.dart",
+    "after": "lib/features/academic/presentation/viewmodels/document_reader_view_model.dart",
+    "classification": "move-only",
+    "stage": 2
+  },
+  {
+    "before": "lib/viewmodels/academic/management_actions.dart",
+    "after": "lib/features/academic/presentation/viewmodels/management_actions.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 2
+  },
+  {
+    "before": "lib/viewmodels/academic/management_form_view_model.dart",
+    "after": "lib/features/academic/presentation/viewmodels/management_form_view_model.dart",
+    "classification": "move-only",
+    "stage": 2
+  },
+  {
+    "before": "lib/viewmodels/academic/management_list_view_model.dart",
+    "after": "lib/features/academic/presentation/viewmodels/management_list_view_model.dart",
+    "classification": "move-only",
+    "stage": 2
+  },
+  {
+    "before": "lib/viewmodels/academic/review_actions.dart",
+    "after": "lib/features/academic/presentation/viewmodels/review_actions.dart",
+    "classification": "cần tách trách nhiệm",
+    "stage": 2
+  },
+  {
+    "before": "lib/viewmodels/academic/review_panel_view_model.dart",
+    "after": "lib/features/academic/presentation/viewmodels/review_panel_view_model.dart",
+    "classification": "move-only",
+    "stage": 2
+  },
+  {
+    "before": "lib/viewmodels/academic/student_enrollment_view_model.dart",
+    "after": "lib/features/academic/presentation/viewmodels/student_enrollment_view_model.dart",
+    "classification": "move-only",
+    "stage": 2
+  },
+  {
+    "before": "lib/viewmodels/counter_view_model.dart",
+    "after": "lib/features/demo/presentation/viewmodels/counter_view_model.dart",
+    "classification": "move-only",
+    "stage": 2
+  },
+  {
+    "before": "lib/viewmodels/dashboard/dashboard_view_model.dart",
+    "after": "lib/features/dashboard/presentation/viewmodels/dashboard_view_model.dart",
+    "classification": "move-only",
+    "stage": 2
+  },
+  {
+    "before": "lib/widgets/app_academic_layout.dart",
+    "after": "lib/widgets/app_academic_layout.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/widgets/app_badge.dart",
+    "after": "lib/widgets/app_badge.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/widgets/app_bottom_navigation.dart",
+    "after": "lib/widgets/app_bottom_navigation.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/widgets/app_button.dart",
+    "after": "lib/widgets/app_button.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/widgets/app_card.dart",
+    "after": "lib/widgets/app_card.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/widgets/app_disclosure.dart",
+    "after": "lib/widgets/app_disclosure.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/widgets/app_filter_controls.dart",
+    "after": "lib/widgets/app_filter_controls.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/widgets/app_icon.dart",
+    "after": "lib/widgets/app_icon.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/widgets/app_meta_grid.dart",
+    "after": "lib/widgets/app_meta_grid.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/widgets/app_search_field.dart",
+    "after": "lib/widgets/app_search_field.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/widgets/app_states.dart",
+    "after": "lib/widgets/app_states.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/widgets/app_status_tracks.dart",
+    "after": "lib/widgets/app_status_tracks.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/widgets/demo_counter_value.dart",
+    "after": "lib/widgets/demo_counter_value.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/widgets/mobile_header.dart",
+    "after": "lib/widgets/mobile_header.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  },
+  {
+    "before": "lib/widgets/stat_card.dart",
+    "after": "lib/widgets/stat_card.dart",
+    "classification": "giữ nguyên",
+    "stage": 0
+  }
+]

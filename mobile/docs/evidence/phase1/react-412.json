@@ -1,0 +1,114 @@
+[
+  {
+    "text": "SRS Đánh giá AI",
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "width": 412,
+      "height": 57,
+      "top": 0,
+      "right": 412,
+      "bottom": 57,
+      "left": 0
+    },
+    "font": "14px"
+  },
+  {
+    "text": "SRS Đánh giá AI",
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "width": 412,
+      "height": 56,
+      "top": 0,
+      "right": 412,
+      "bottom": 56,
+      "left": 0
+    },
+    "font": "14px"
+  },
+  {
+    "text": "Xin chào, Nguyễn Văn An\n\nGiảng viên\n\nTổng quan\nHọc kỳ đang xem\nTất cả học kỳ\nFall 2026\nSummer 2026\nSpring 2026\nSpring 2027",
+    "rect": {
+      "x": 20,
+      "y": 69,
+      "width": 372,
+      "height": 103.25,
+      "top": 69,
+      "right": 392,
+      "bottom": 172.25,
+      "left": 20
+    },
+    "font": "14px"
+  },
+  {
+    "text": "3\nMôn học quản lý\n6\nLớp đang theo dõi\n8\nTài liệu chờ đánh giá\n3\nTài liệu đang đánh giá\n0\nĐăng ký chờ phản hồi\n10\nDự án cần xử lý",
+    "rect": {
+      "x": 20,
+      "y": 188.25,
+      "width": 372,
+      "height": 260.890625,
+      "top": 188.25,
+      "right": 392,
+      "bottom": 449.140625,
+      "left": 20
+    },
+    "font": "14px"
+  },
+  {
+    "text": "Mở đánh giá",
+    "rect": {
+      "x": 20,
+      "y": 465.140625,
+      "width": 372,
+      "height": 48,
+      "top": 465.140625,
+      "right": 392,
+      "bottom": 513.140625,
+      "left": 20
+    },
+    "font": "14px"
+  },
+  {
+    "text": "Việc cần làm\nUse Case Diagram\nv2\n\nSmart Attendance System\n\nSE1701 · Group 04\n\nAI chưa có kết quả\n\n2 giờ trước\n\nSequence Diagram\nv2\n\nSmart Campus Management\n\nSE1701 · Group 01\n\nAI chưa có kết quả\n\n2 giờ trước\n\nActivity Diagram\nv1\n\nDormitory Management Platform\n\nSE1701 · Group 05\n\nAI chưa có kết quả\n\nHôm qua · 09:00\n\nXem 8 yêu cầu\nYêu cầu khác (5)",
+    "rect": {
+      "x": 20,
+      "y": 529.140625,
+      "width": 372,
+      "height": 628.53125,
+      "top": 529.140625,
+      "right": 392,
+      "bottom": 1157.671875,
+      "left": 20
+    },
+    "font": "14px"
+  },
+  {
+    "text": "Đăng ký dự án\n0 chờ duyệt",
+    "rect": {
+      "x": 20,
+      "y": 1173.671875,
+      "width": 372,
+      "height": 55.59375,
+      "top": 1173.671875,
+      "right": 392,
+      "bottom": 1229.265625,
+      "left": 20
+    },
+    "font": "14px"
+  },
+  {
+    "text": "Tổng quan\nDự án\nĐánh giá\nThông báo\nTài khoản",
+    "rect": {
+      "x": 0,
+      "y": 829.5,
+      "width": 412,
+      "height": 62.5,
+      "top": 829.5,
+      "right": 412,
+      "bottom": 892,
+      "left": 0
+    },
+    "font": "14px"
+  }
+]

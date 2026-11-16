@@ -1,0 +1,9 @@
+# 08 Profile and Remote Config
+precondition: console published non-default values
+steps:
+  - account -> profile
+  - refresh remote config
+expected:
+  - profile.name and profile.email visible
+  - rc values match console
+  - ai review button enabled/disabled by ai_review_enabled

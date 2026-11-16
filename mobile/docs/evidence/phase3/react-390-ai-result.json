@@ -1,0 +1,41 @@
+[
+  {
+    "text": "Không gian đánh giá",
+    "box": {
+      "x": 12,
+      "y": 69,
+      "width": 178.984375,
+      "height": 48,
+      "top": 69,
+      "right": 190.984375,
+      "bottom": 117,
+      "left": 12
+    }
+  },
+  {
+    "text": "Kết quả AI",
+    "box": {
+      "x": 20,
+      "y": 129,
+      "width": 129.125,
+      "height": 30.671875,
+      "top": 129,
+      "right": 149.125,
+      "bottom": 159.671875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Bắt đầu Đánh giá AI",
+    "box": {
+      "x": 20,
+      "y": 235.15625,
+      "width": 350,
+      "height": 48,
+      "top": 235.15625,
+      "right": 370,
+      "bottom": 283.15625,
+      "left": 20
+    }
+  }
+]

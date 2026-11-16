@@ -1,0 +1,106 @@
+[
+  {
+    "text": "Yêu cầu đánh giá",
+    "box": {
+      "x": 20,
+      "y": 69,
+      "width": 213.90625,
+      "height": 30.671875,
+      "top": 69,
+      "right": 233.90625,
+      "bottom": 99.671875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Xem tất cả",
+    "box": {
+      "x": 252.25,
+      "y": 69,
+      "width": 87.75,
+      "height": 48,
+      "top": 69,
+      "right": 340,
+      "bottom": 117,
+      "left": 252.25
+    }
+  },
+  {
+    "text": "Fall 2026",
+    "box": {
+      "x": 20,
+      "y": 191,
+      "width": 108.796875,
+      "height": 48,
+      "top": 191,
+      "right": 128.796875,
+      "bottom": 239,
+      "left": 20
+    }
+  },
+  {
+    "text": "Bộ lọc · 1",
+    "box": {
+      "x": 136.796875,
+      "y": 191,
+      "width": 105.984375,
+      "height": 48,
+      "top": 191,
+      "right": 242.78125,
+      "bottom": 239,
+      "left": 136.796875
+    }
+  },
+  {
+    "text": "",
+    "box": {
+      "x": 292,
+      "y": 191,
+      "width": 48,
+      "height": 48,
+      "top": 191,
+      "right": 340,
+      "bottom": 239,
+      "left": 292
+    }
+  },
+  {
+    "text": "Giảng viên đánh giá: Chờ đánh giá",
+    "box": {
+      "x": 20,
+      "y": 251,
+      "width": 267.21875,
+      "height": 48,
+      "top": 251,
+      "right": 287.21875,
+      "bottom": 299,
+      "left": 20
+    }
+  },
+  {
+    "text": "Xóa bộ lọc",
+    "box": {
+      "x": 295.21875,
+      "y": 251,
+      "width": 79.046875,
+      "height": 48,
+      "top": 251,
+      "right": 374.265625,
+      "bottom": 299,
+      "left": 295.21875
+    }
+  },
+  {
+    "text": "Persona\nv2\n\nProject Review AI — Demo\n\nDEMO323 · Demo Group\nChờ giảng viên đánh giá\n\nAI đề xuất: 1 lỗi · 5 cảnh báo · 10 gợi ý\n\n14/10/2026 · 09:00\nĐánh giá ngay\n",
+    "box": {
+      "x": 20,
+      "y": 375,
+      "width": 320,
+      "height": 2148.625,
+      "top": 375,
+      "right": 340,
+      "bottom": 2523.625,
+      "left": 20
+    }
+  }
+]

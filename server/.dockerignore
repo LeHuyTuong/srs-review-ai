@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.cache/
+.uploads/
+.shares/
+.submissions/
+.env
+*.py[cod]
+tests/

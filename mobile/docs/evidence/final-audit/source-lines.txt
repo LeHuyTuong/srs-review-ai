@@ -1,0 +1,2585 @@
+
+===== lib/app/app.dart =====
+
+   1: import 'package:flutter/material.dart';
+   2: import 'package:flutter_localizations/flutter_localizations.dart';
+   3: 
+   4: import '../screens/dashboard/dashboard_screen.dart';
+   5: import '../screens/navigation_destination_screen.dart';
+   6: import '../screens/academic/course_screens.dart';
+   7: import '../screens/academic/offering_detail_screen.dart';
+   8: import '../screens/academic/class_screens.dart';
+   9: import '../theme/app_theme.dart';
+  10: import '../screens/management/group_screens.dart';
+  11: import '../screens/management/project_screens.dart';
+  12: import '../screens/management/document_screens.dart';
+  13: import '../screens/management/review_screens.dart';
+  14: import '../screens/management/review_history_screens.dart';
+  15: import 'session.dart';
+  16: 
+  17: import 'package:flutter_riverpod/flutter_riverpod.dart';
+  18: 
+  19: import '../screens/account/login_screen.dart';
+  20: import '../screens/account/account_screens.dart';
+  21: import '../screens/academic/directory_screens.dart';
+  22: 
+  23: /// Điểm vào Supervisor; router native nối Dashboard và các màn học vụ đã chuyển.
+  24: class SrsReviewApp extends ConsumerWidget {
+  25:   const SrsReviewApp({super.key});
+  26: 
+  27:   @override
+  28:   Widget build(BuildContext context, WidgetRef ref) => MaterialApp(
+  29:     title: 'SRS Đánh giá AI',
+  30:     debugShowCheckedModeBanner: false,
+  31:     theme: AppTheme.light,
+  32:     locale: const Locale('vi'),
+  33:     supportedLocales: const [Locale('vi')],
+  34:     localizationsDelegates: GlobalMaterialLocalizations.delegates,
+  35:     home: const DashboardScreen(),
+  36:     builder: (context, child) {
+  37:       final session = ref.watch(sessionProvider);
+  38:       if (session == null || session.role == 'student') {
+  39:         return Navigator(
+  40:           key: ValueKey(session == null ? 'signed-out' : 'student-boundary'),
+  41:           onGenerateRoute: (_) => MaterialPageRoute<void>(
+  42:             builder: (_) => session == null
+  43:                 ? const LoginScreen()
+  44:                 : const StudentUnavailableScreen(),
+  45:           ),
+  46:         );
+  47:       }
+  48:       return child!;
+  49:     },
+  50:     onGenerateRoute: (settings) => MaterialPageRoute<void>(
+  51:       settings: settings,
+  52:       builder: (_) {
+  53:         final path = settings.name ?? '/dashboard';
+  54:         final parts = Uri.parse(path).pathSegments;
+  55:         return switch (parts) {
+  56:           [] || ['dashboard'] || ['login'] => const DashboardScreen(),
+  57:           ['profile'] => const ProfileScreen(),
+  58:           ['notifications'] => const NotificationsScreen(),
+  59:           ['semesters'] => const SemesterListScreen(),
+  60:           ['students'] => const StudentDirectoryScreen(),
+  61:           ['courses'] => const CourseListScreen(),
+  62:           ['courses', final id] => CourseDetailScreen(courseId: id),
+  63:           ['course-offerings', final id] => OfferingDetailScreen(
+  64:             offeringId: id,
+  65:           ),
+  66:           ['classes'] => const ClassListScreen(),
+  67:           ['classes', final id] => ClassDetailScreen(classId: id),
+  68:           ['rule-sets'] => const RuleSetSelectionScreen(),
+  69:           ['groups'] => const GroupListScreen(),
+  70:           ['groups', final id] => GroupDetailScreen(groupId: id),
+  71:           ['projects'] => const ProjectListScreen(),
+  72:           ['projects', final id] => ProjectDetailScreen(projectId: id),
+  73:           ['projects', final id, 'documents'] => ProjectDocumentsScreen(
+  74:             projectId: id,
+  75:           ),
+  76:           ['project-registrations'] => const ProjectRegistrationsScreen(),
+  77:           ['documents'] => const DocumentListScreen(),
+  78:           ['reviews'] => const ReviewListScreen(),
+  79:           ['reviews', final id] => ReviewWorkspaceScreen(reviewId: id),
+  80:           ['reviews', final id, 'ai-result'] => AiResultScreen(reviewId: id),
+  81:           ['reviews', final id, 'versions'] => VersionHistoryScreen(
+  82:             reviewId: id,
+  83:           ),
+  84:           ['reviews', final id, 'history'] => ReviewHistoryScreen(reviewId: id),
+  85:           ['review-history'] => const ReviewHistoryIndexScreen(),
+  86:           ['student', ...] => const DashboardScreen(),
+  87:           _ => NavigationDestinationScreen(path: path),
+  88:         };
+  89:       },
+  90:     ),
+  91:   );
+  92: }
+
+===== lib/app/session.dart =====
+
+   1: import 'package:flutter_riverpod/flutter_riverpod.dart';
+   2: 
+   3: /// Demo application session only. Phase 5 replaces this boundary with auth state.
+   4: class AppSession {
+   5:   const AppSession(this.role, {this.studentId});
+   6:   final String role;
+   7:   final String? studentId;
+   8: }
+   9: 
+  10: final initialSessionProvider = Provider<AppSession?>((ref) => null);
+  11: final sessionProvider = NotifierProvider<SessionViewModel, AppSession?>(
+  12:   SessionViewModel.new,
+  13: );
+  14: 
+  15: class SessionViewModel extends Notifier<AppSession?> {
+  16:   @override
+  17:   AppSession? build() => ref.read(initialSessionProvider);
+  18: 
+  19:   void signIn(String role, String email, String password, {String? studentId}) {
+  20:     if (!['supervisor', 'student'].contains(role) ||
+  21:         email.trim().isEmpty ||
+  22:         password.isEmpty ||
+  23:         (role == 'student' && (studentId == null || studentId.isEmpty))) {
+  24:       throw const FormatException('Vui lòng nhập email và mật khẩu.');
+  25:     }
+  26:     state = AppSession(role, studentId: studentId);
+  27:   }
+  28: 
+  29:   void signOut() => state = null;
+  30: }
+
+===== lib/screens/academic/directory_screens.dart =====
+
+   1: import '../management/widgets/management_shared.dart';
+   2: import '../../viewmodels/academic/directory_view_model.dart';
+   3: import 'widgets/student_enrollment_sheet.dart';
+   4: 
+   5: class SemesterListScreen extends ConsumerWidget {
+   6:   const SemesterListScreen({super.key});
+   7:   @override
+   8:   Widget build(BuildContext context, WidgetRef ref) => AcademicPage(
+   9:     path: '/semesters',
+  10:     builder: (s) {
+  11:       final vm = ref.read(academicViewModelProvider.notifier);
+  12:       final list = [...s.semesters];
+  13:       const rank = {
+  14:         'Đang diễn ra': 0,
+  15:         'Sắp diễn ra': 1,
+  16:         'Đã kết thúc': 2,
+  17:         'Lưu trữ': 3,
+  18:       };
+  19:       list.sort((a, b) {
+  20:         final n = rank[semesterPhase(a, s.integer('now'))]!.compareTo(
+  21:           rank[semesterPhase(b, s.integer('now'))]!,
+  22:         );
+  23:         return n != 0 ? n : b.startDate.compareTo(a.startDate);
+  24:       });
+  25:       Future<void> action(Future<void> Function() f, String label) async {
+  26:         await academicAction(context, () async {
+  27:           await f();
+  28:           if (context.mounted) {
+  29:             ScaffoldMessenger.of(context)
+  30:                 .showSnackBar(SnackBar(content: Text(label)));
+  31:           }
+  32:         });
+  33:       }
+  34: 
+  35:       return [
+  36:         const AppPageHeading(title: 'Học kỳ', eyebrow: 'QUẢN LÝ'),
+  37:         AppButton(
+  38:           label: 'Tạo học kỳ',
+  39:           icon: const AppIcon('plus'),
+  40:           onPressed: () =>
+  41:               showManagementForm(context, const AcademicFormSpec('semester')),
+  42:         ),
+  43:         if (list.isEmpty)
+  44:           const AppEmptyState(
+  45:             title: 'Chưa có học kỳ',
+  46:             description:
+  47:                 'Tạo học kỳ đầu tiên để bắt đầu thiết lập môn học và lớp.',
+  48:           ),
+  49:         for (final sem in list)
+  50:           AppCard(
+  51:             tinted: semesterPhase(sem, s.integer('now')) == 'Đang diễn ra',
+  52:             child: Column(
+  53:               crossAxisAlignment: CrossAxisAlignment.stretch,
+  54:               spacing: AppSpacing.s,
+  55:               children: [
+  56:                 Row(
+  57:                   crossAxisAlignment: CrossAxisAlignment.start,
+  58:                   spacing: AppSpacing.s,
+  59:                   children: [
+  60:                     Expanded(
+  61:                       child: Column(
+  62:                         crossAxisAlignment: CrossAxisAlignment.start,
+  63:                         children: [
+  64:                           Text(sem.name, style: AppTypography.header),
+  65:                           Text(
+  66:                             'Năm học ${sem.text('academicYear')}',
+  67:                             style: AppTypography.muted,
+  68:                           ),
+  69:                         ],
+  70:                       ),
+  71:                     ),
+  72:                     AppMoreMenu(
+  73:                       actions: {
+  74:                         'Chỉnh sửa': () => showManagementForm(
+  75:                           context,
+  76:                           AcademicFormSpec('semester', data: sem.toJson()),
+  77:                         ),
+  78:                         sem.archived ? 'Khôi phục' : 'Lưu trữ học kỳ': () =>
+  79:                             action(
+  80:                               () => vm.archiveSemester(sem.id, !sem.archived),
+  81:                               sem.archived
+  82:                                   ? 'Đã khôi phục học kỳ'
+  83:                                   : 'Đã lưu trữ học kỳ',
+  84:                             ),
+  85:                         if (!s.classes.any((c) => c.semesterId == sem.id) &&
+  86:                             !s.offerings.any((o) => o.semesterId == sem.id))
+  87:                           'Xóa học kỳ': () async {
+  88:                             if (await appConfirm(
+  89:                                   context,
+  90:                                   'Xóa học kỳ',
+  91:                                   '${sem.name} chưa có lớp hoặc đợt học nên có thể xóa.',
+  92:                                 ) &&
+  93:                                 context.mounted) {
+  94:                               await action(
+  95:                                 () => vm.deleteSemester(sem.id),
+  96:                                 'Đã xóa học kỳ',
+  97:                               );
+  98:                             }
+  99:                           },
+ 100:                       },
+ 101:                     ),
+ 102:                   ],
+ 103:                 ),
+ 104:                 Align(
+ 105:                   alignment: Alignment.centerLeft,
+ 106:                   child: AppBadge(
+ 107:                     semesterPhase(sem, s.integer('now')),
+ 108:                     tone: semesterPhase(sem, s.integer('now')) == 'Đang diễn ra'
+ 109:                         ? 'brand'
+ 110:                         : 'neutral',
+ 111:                   ),
+ 112:                 ),
+ 113:                 AppDisclosure(
+ 114:                   title:
+ 115:                       '${AcademicPresentation.date(sem.startDate)} – ${AcademicPresentation.date(sem.endDate)} · ${s.classes.where((c) => c.semesterId == sem.id).length} lớp',
+ 116:                   child: AppMetaGrid(
+ 117:                     items: [
+ 118:                       ('Bắt đầu', AcademicPresentation.date(sem.startDate)),
+ 119:                       ('Kết thúc', AcademicPresentation.date(sem.endDate)),
+ 120:                       (
+ 121:                         'Lớp',
+ 122:                         '${s.classes.where((c) => c.semesterId == sem.id).length} lớp',
+ 123:                       ),
+ 124:                       (
+ 125:                         'Môn học',
+ 126:                         s.offerings
+ 127:                             .where((o) => o.semesterId == sem.id)
+ 128:                             .map(
+ 129:                               (o) => s.course(o.courseId)?.code ?? o.courseId,
+ 130:                             )
+ 131:                             .join(', '),
+ 132:                       ),
+ 133:                     ],
+ 134:                   ),
+ 135:                 ),
+ 136:               ],
+ 137:             ),
+ 138:           ),
+ 139:         const AppNotice(
+ 140:           'Học kỳ đã có lớp chỉ có thể lưu trữ để giữ nguyên lịch sử dự án và đánh giá.',
+ 141:         ),
+ 142:       ];
+ 143:     },
+ 144:   );
+ 145: }
+ 146: 
+ 147: class StudentDirectoryScreen extends ConsumerWidget {
+ 148:   const StudentDirectoryScreen({super.key});
+ 149:   @override
+ 150:   Widget build(BuildContext context, WidgetRef ref) => AcademicPage(
+ 151:     path: '/students',
+ 152:     builder: (s) {
+ 153:       final state = ref.watch(studentDirectoryProvider),
+ 154:           vm = ref.read(studentDirectoryProvider.notifier);
+ 155:       final visible = vm.visible;
+ 156:       final grouped = visible
+ 157:           .where((st) => s.groups.any((g) => g.memberIds.contains(st.id)))
+ 158:           .length;
+ 159:       Widget filter(String key, String label, Map<String, String> options) =>
+ 160:           DropdownButtonFormField<String>(
+ 161:             key: ValueKey('$key:${state.text(key)}:${options.keys.join(',')}'),
+ 162:             initialValue: options.containsKey(state.text(key))
+ 163:                 ? state.text(key)
+ 164:                 : '',
+ 165:             isExpanded: true,
+ 166:             decoration: InputDecoration(labelText: label),
+ 167:             items: [
+ 168:               DropdownMenuItem(
+ 169:                 value: '',
+ 170:                 child: Text('Tất cả ${label.toLowerCase()}'),
+ 171:               ),
+ 172:               for (final entry in options.entries)
+ 173:                 DropdownMenuItem(
+ 174:                   value: entry.key,
+ 175:                   child: Text(entry.value, overflow: TextOverflow.ellipsis),
+ 176:                 ),
+ 177:             ],
+ 178:             onChanged: (v) => vm.set(key, v ?? ''),
+ 179:           );
+ 180:       return [
+ 181:         const AppPageHeading(title: 'Sinh viên', eyebrow: 'QUẢN LÝ HỌC VỤ'),
+ 182:         AppButton(
+ 183:           label: 'Thêm sinh viên',
+ 184:           icon: const AppIcon('plus'),
+ 185:           onPressed: () => showAppSheet(
+ 186:             context,
+ 187:             _EnrollmentClassPicker(initialClassId: state.text('class')),
+ 188:           ),
+ 189:         ),
+ 190:         AcademicFieldView(
+ 191:           field: const AcademicField(
+ 192:             'query',
+ 193:             'Tìm sinh viên',
+ 194:             placeholder: 'Tên, MSSV hoặc email',
+ 195:           ),
+ 196:           value: state.text('query'),
+ 197:           onChanged: (q) => vm.set('query', q.toString()),
+ 198:         ),
+ 199:         Text(
+ 200:           '${visible.length} sinh viên · $grouped có nhóm · ${visible.length - grouped} chưa có nhóm',
+ 201:           style: AppTypography.muted,
+ 202:         ),
+ 203:         AppDisclosure(
+ 204:           title: 'Bộ lọc học vụ',
+ 205:           child: Column(
+ 206:             spacing: AppSpacing.m,
+ 207:             children: [
+ 208:               filter('semester', 'Học kỳ', {
+ 209:                 for (final sem in s.semesters)
+ 210:                   sem.id: '${sem.name} (${sem.text('academicYear')})',
+ 211:               }),
+ 212:               filter('course', 'Môn học', {
+ 213:                 for (final c in vm.courses) c.id: '${c.code} - ${c.name}',
+ 214:               }),
+ 215:               filter('class', 'Lớp học', {
+ 216:                 for (final c in vm.classes) c.id: c.code,
+ 217:               }),
+ 218:               AppButton(
+ 219:                 label: 'Xóa bộ lọc',
+ 220:                 variant: AppButtonVariant.secondary,
+ 221:                 onPressed: vm.clear,
+ 222:               ),
+ 223:             ],
+ 224:           ),
+ 225:         ),
+ 226:         if (visible.isEmpty)
+ 227:           const AppEmptyState(
+ 228:             title: 'Không tìm thấy sinh viên',
+ 229:             description: 'Không có sinh viên nào khớp với bộ lọc hiện tại.',
+ 230:           ),
+ 231:         for (final st in visible)
+ 232:           Builder(
+ 233:             builder: (_) {
+ 234:               final cls = s.classRoom(st.text('classId'));
+ 235:               final group = s
+ 236:                   .classGroups(st.text('classId'))
+ 237:                   .where((g) => g.memberIds.contains(st.id))
+ 238:                   .firstOrNull;
+ 239:               return AppCard(
+ 240:                 child: AppDisclosure(
+ 241:                   title: st.name,
+ 242:                   titleWidget: Column(
+ 243:                     crossAxisAlignment: CrossAxisAlignment.start,
+ 244:                     children: [
+ 245:                       Text(st.name, style: AppTypography.strong),
+ 246:                       Text(
+ 247:                         '${st.studentCode} · ${cls?.code ?? '—'}\n${group?.name ?? 'Chưa vào nhóm'}',
+ 248:                         style: AppTypography.muted,
+ 249:                       ),
+ 250:                     ],
+ 251:                   ),
+ 252:                   child: Column(
+ 253:                     crossAxisAlignment: CrossAxisAlignment.stretch,
+ 254:                     spacing: AppSpacing.s,
+ 255:                     children: [
+ 256:                       Text(st.text('email'), style: AppTypography.muted),
+ 257:                       if (cls != null)
+ 258:                         AppButton(
+ 259:                           label: 'Mở lớp ${cls.code}',
+ 260:                           variant: AppButtonVariant.secondary,
+ 261:                           onPressed: () =>
+ 262:                               AppNavigation.open(context, '/classes/${cls.id}'),
+ 263:                         ),
+ 264:                       if (group != null)
+ 265:                         AppButton(
+ 266:                           label: 'Mở ${group.name}',
+ 267:                           variant: AppButtonVariant.secondary,
+ 268:                           onPressed: () => AppNavigation.open(
+ 269:                             context,
+ 270:                             '/groups/${group.id}',
+ 271:                           ),
+ 272:                         ),
+ 273:                     ],
+ 274:                   ),
+ 275:                 ),
+ 276:               );
+ 277:             },
+ 278:           ),
+ 279:       ];
+ 280:     },
+ 281:   );
+ 282: }
+ 283: 
+ 284: class _EnrollmentClassPicker extends ConsumerStatefulWidget {
+ 285:   const _EnrollmentClassPicker({required this.initialClassId});
+ 286:   final String initialClassId;
+ 287:   @override
+ 288:   ConsumerState<_EnrollmentClassPicker> createState() => _ClassPickerState();
+ 289: }
+ 290: 
+ 291: class _ClassPickerState extends ConsumerState<_EnrollmentClassPicker> {
+ 292:   String? selected;
+ 293:   @override
+ 294:   Widget build(BuildContext context) {
+ 295:     final classes = ref
+ 296:         .watch(academicViewModelProvider)
+ 297:         .requireValue
+ 298:         .classes
+ 299:         .where((c) => !c.archived)
+ 300:         .toList();
+ 301:     final id =
+ 302:         selected ??
+ 303:         (classes.any((c) => c.id == widget.initialClassId)
+ 304:             ? widget.initialClassId
+ 305:             : classes.firstOrNull?.id);
+ 306:     return AppSheetLayout(
+ 307:       title: 'Thêm sinh viên',
+ 308:       footer: AppButton(
+ 309:         label: 'Tiếp tục',
+ 310:         onPressed: id == null
+ 311:             ? null
+ 312:             : () {
+ 313:                 final parent = Navigator.of(context);
+ 314:                 parent.pop();
+ 315:                 showAppSheet(
+ 316:                   parent.context,
+ 317:                   StudentEnrollmentSheet(classId: id),
+ 318:                 );
+ 319:               },
+ 320:       ),
+ 321:       children: [
+ 322:         if (classes.isEmpty) const AppNotice('Chưa có lớp đang hoạt động.'),
+ 323:         DropdownButtonFormField<String>(
+ 324:           initialValue: id,
+ 325:           isExpanded: true,
+ 326:           decoration: const InputDecoration(labelText: 'Lớp học'),
+ 327:           items: [
+ 328:             for (final c in classes)
+ 329:               DropdownMenuItem(value: c.id, child: Text(c.code)),
+ 330:           ],
+ 331:           onChanged: (v) => setState(() => selected = v),
+ 332:         ),
+ 333:       ],
+ 334:     );
+ 335:   }
+ 336: }
+
+===== lib/screens/management/document_screens.dart =====
+
+   1: import 'widgets/management_shared.dart';
+   2: import 'widgets/document_card.dart';
+   3: import 'widgets/management_filter_bar.dart';
+   4: import '../../viewmodels/academic/management_list_view_model.dart';
+   5: 
+   6: /// Danh mục logical document toàn dự án, chỉ hiện mục đã có bản nộp hoặc nháp như React.
+   7: class DocumentListScreen extends ConsumerWidget {
+   8:   const DocumentListScreen({super.key});
+   9:   @override
+  10:   Widget build(BuildContext context, WidgetRef ref) => AcademicPage(
+  11:     path: '/documents',
+  12:     builder: (s) {
+  13:       ref.watch(managementListProvider('documents'));
+  14:       final vm = ref.read(managementListProvider('documents').notifier);
+  15:       return [
+  16:         const AppPageHeading(eyebrow: 'KHÔNG GIAN LÀM VIỆC', title: 'Tài liệu'),
+  17:         const ManagementFilterBar(
+  18:           kind: 'documents',
+  19:           noun: 'tài liệu',
+  20:           hint: 'Tìm tài liệu hoặc dự án...',
+  21:         ),
+  22:         AppCard(
+  23:           child: Column(
+  24:             children: [
+  25:               for (final d in vm.visible) ...[
+  26:                 InkWell(
+  27:                   onTap: () => AppNavigation.open(
+  28:                     context,
+  29:                     d.text('reviewId').isEmpty
+  30:                         ? '/projects/${d.text('projectId')}/documents'
+  31:                         : '/reviews/${d.text('reviewId')}',
+  32:                   ),
+  33:                   child: Padding(
+  34:                     padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
+  35:                     child: Row(
+  36:                       spacing: AppSpacing.m,
+  37:                       children: [
+  38:                         const AppIcon('file-text', size: AppMetrics.iconSmall),
+  39:                         Expanded(
+  40:                           child: Column(
+  41:                             crossAxisAlignment: CrossAxisAlignment.start,
+  42:                             spacing: AppSpacing.xs,
+  43:                             children: [
+  44:                               Wrap(
+  45:                                 spacing: AppSpacing.s,
+  46:                                 runSpacing: AppSpacing.s,
+  47:                                 children: [
+  48:                                   Text(
+  49:                                     d.text('title'),
+  50:                                     style: AppTypography.strong,
+  51:                                   ),
+  52:                                   if (d.text('latestVersion').isNotEmpty)
+  53:                                     AppBadge(d.text('latestVersion')),
+  54:                                 ],
+  55:                               ),
+  56:                               Text(
+  57:                                 '${vm.label(d.text('course'))} · ${vm.label(d.text('class'))} · ${vm.label(d.text('group'))} · ${s.project(d.text('projectId'))?.name ?? '—'}',
+  58:                                 style: AppTypography.muted,
+  59:                                 maxLines: 1,
+  60:                                 overflow: TextOverflow.ellipsis,
+  61:                               ),
+  62:                             ],
+  63:                           ),
+  64:                         ),
+  65:                         Flexible(
+  66:                           child: AppStatusBadge(d.text('status'), snapshot: s),
+  67:                         ),
+  68:                       ],
+  69:                     ),
+  70:                   ),
+  71:                 ),
+  72:                 if (d != vm.visible.last)
+  73:                   const Divider(
+  74:                     height: AppMetrics.border,
+  75:                     color: AppColors.line,
+  76:                   ),
+  77:               ],
+  78:               if (vm.visible.isEmpty)
+  79:                 const AppEmptyState(title: 'Không có tài liệu phù hợp'),
+  80:             ],
+  81:           ),
+  82:         ),
+  83:       ];
+  84:     },
+  85:   );
+  86: }
+  87: 
+  88: /// Danh sách tài liệu theo dự án với bốn phạm vi và thứ tự ưu tiên xử lý từ React.
+  89: class ProjectDocumentsScreen extends ConsumerWidget {
+  90:   const ProjectDocumentsScreen({required this.projectId, super.key});
+  91:   final String projectId;
+  92:   @override
+  93:   Widget build(BuildContext context, WidgetRef ref) => AcademicPage(
+  94:     path: '/projects/$projectId/documents',
+  95:     builder: (s) {
+  96:       final p = s.project(projectId);
+  97:       if (p == null) {
+  98:         return [const AppEmptyState(title: 'Không tìm thấy dự án')];
+  99:       }
+ 100:       final docs = s.projectDocuments(p);
+ 101:       final key = 'documents:$projectId';
+ 102:       final tab = ref.watch(managementListProvider(key)).tab;
+ 103:       final vm = ref.read(managementListProvider(key).notifier);
+ 104:       bool match(AcademicRecord d, int tab) => switch (tab) {
+ 105:         1 => ['waiting', 'inReview'].contains(d.text('supervisorStatus')),
+ 106:         2 => d.text('supervisorStatus') == 'needsRevision',
+ 107:         3 => d.flag('submissionLocked'),
+ 108:         _ => true,
+ 109:       };
+ 110:       int priority(AcademicRecord d) =>
+ 111:           const {'inReview': 0, 'waiting': 1, 'needsRevision': 2}[d.text(
+ 112:             'supervisorStatus',
+ 113:           )] ??
+ 114:           3;
+ 115:       final visible = docs.where((d) => match(d, tab)).toList()
+ 116:         ..sort((a, b) {
+ 117:           final cmp = priority(a).compareTo(priority(b));
+ 118:           return cmp != 0
+ 119:               ? cmp
+ 120:               : a.integer('order').compareTo(b.integer('order'));
+ 121:         });
+ 122:       return [
+ 123:         AcademicBackLink.to(label: p.name, fallback: '/projects/${p.id}'),
+ 124:         const AppPageHeading(title: 'Tài liệu dự án'),
+ 125:         Row(
+ 126:           children: [
+ 127:             Expanded(
+ 128:               child: Text(
+ 129:                 '${s.projectClass(p)?.code ?? '—'} · ${s.group(p.text('groupId'))?.name ?? '—'}',
+ 130:                 style: AppTypography.muted,
+ 131:               ),
+ 132:             ),
+ 133:             AppStatusBadge(p.text('state'), snapshot: s),
+ 134:           ],
+ 135:         ),
+ 136:         AppTabs(
+ 137:           labels: [
+ 138:             for (final (i, name) in const [
+ 139:               'Tất cả',
+ 140:               'Chờ đánh giá',
+ 141:               'Cần chỉnh sửa',
+ 142:               'Khóa gửi đánh giá',
+ 143:             ].indexed)
+ 144:               '$name (${docs.where((d) => match(d, i)).length})',
+ 145:           ],
+ 146:           selected: tab,
+ 147:           onChanged: vm.tab,
+ 148:           segmented: true,
+ 149:         ),
+ 150:         if (visible.isEmpty)
+ 151:           const AppEmptyState(title: 'Không có tài liệu')
+ 152:         else
+ 153:           AppCard(
+ 154:             padding: EdgeInsets.zero,
+ 155:             child: Column(
+ 156:               children: [
+ 157:                 for (final d in visible) ...[
+ 158:                   ManagementDocumentCard(
+ 159:                     document: d,
+ 160:                     snapshot: s,
+ 161:                     compact: true,
+ 162:                   ),
+ 163:                   if (d != visible.last)
+ 164:                     const Divider(
+ 165:                       height: AppMetrics.border,
+ 166:                       color: AppColors.line,
+ 167:                     ),
+ 168:                 ],
+ 169:               ],
+ 170:             ),
+ 171:           ),
+ 172:       ];
+ 173:     },
+ 174:   );
+ 175: }
+
+===== lib/screens/account/account_screens.dart =====
+
+   1: import '../management/widgets/management_shared.dart';
+   2: import '../../app/session.dart';
+   3: import '../../repositories/notification_repository.dart';
+   4: 
+   5: class ProfileScreen extends ConsumerWidget {
+   6:   const ProfileScreen({super.key});
+   7:   @override
+   8:   Widget build(BuildContext context, WidgetRef ref) => AcademicPage(
+   9:     path: '/profile',
+  10:     builder: (s) {
+  11:       final user = AcademicRecord(
+  12:         Map<String, dynamic>.from(s.data['currentUser'] as Map),
+  13:       );
+  14:       return [
+  15:         const AppPageHeading(title: 'Tài khoản', eyebrow: 'TÀI KHOẢN'),
+  16:         AppCard(
+  17:           child: Column(
+  18:             crossAxisAlignment: CrossAxisAlignment.stretch,
+  19:             spacing: AppSpacing.m,
+  20:             children: [
+  21:               Row(
+  22:                 spacing: AppSpacing.m,
+  23:                 children: [
+  24:                   CircleAvatar(radius: 26, child: Text(user.text('initials'))),
+  25:                   Expanded(
+  26:                     child: Column(
+  27:                       crossAxisAlignment: CrossAxisAlignment.start,
+  28:                       children: [
+  29:                         Text(user.name, style: AppTypography.header),
+  30:                         Text(
+  31:                           user.text('email'),
+  32:                           overflow: TextOverflow.ellipsis,
+  33:                           style: AppTypography.muted,
+  34:                         ),
+  35:                       ],
+  36:                     ),
+  37:                   ),
+  38:                 ],
+  39:               ),
+  40:               Wrap(
+  41:                 spacing: AppSpacing.s,
+  42:                 runSpacing: AppSpacing.s,
+  43:                 children: [
+  44:                   AppBadge(user.text('role'), tone: 'brand'),
+  45:                   AppBadge(user.text('semester')),
+  46:                 ],
+  47:               ),
+  48:               AppMetaGrid(
+  49:                 items: [
+  50:                   ('Lớp phụ trách', '${s.classes.length} lớp'),
+  51:                   ('Sinh viên', '${s.students.length} sinh viên'),
+  52:                 ],
+  53:               ),
+  54:             ],
+  55:           ),
+  56:         ),
+  57:         Column(
+  58:           crossAxisAlignment: CrossAxisAlignment.start,
+  59:           spacing: AppSpacing.s,
+  60:           children: [
+  61:             Text('QUẢN LÝ HỌC VỤ', style: AppTypography.strong),
+  62:             Text(
+  63:               'Lối tắt truy cập các danh mục dữ liệu đào tạo',
+  64:               style: AppTypography.muted,
+  65:             ),
+  66:           ],
+  67:         ),
+  68:         AppCard(
+  69:           child: Column(
+  70:             children: [
+  71:               for (final item in [
+  72:                 (
+  73:                   'Học kỳ',
+  74:                   '${s.semesters.length} học kỳ',
+  75:                   '/semesters',
+  76:                   'calendar',
+  77:                 ),
+  78:                 (
+  79:                   'Môn học & Đợt học',
+  80:                   '${s.courses.length} môn',
+  81:                   '/courses',
+  82:                   'book-open',
+  83:                 ),
+  84:                 ('Lớp học', '${s.classes.length} lớp', '/classes', 'school'),
+  85:                 (
+  86:                   'Sinh viên',
+  87:                   '${s.students.length} sinh viên',
+  88:                   '/students',
+  89:                   'graduation-cap',
+  90:                 ),
+  91:                 (
+  92:                   'Nhóm sinh viên',
+  93:                   '${s.groups.length} nhóm',
+  94:                   '/groups',
+  95:                   'users',
+  96:                 ),
+  97:               ])
+  98:                 Material(
+  99:                   type: MaterialType.transparency,
+ 100:                   child: ListTile(
+ 101:                     contentPadding: EdgeInsets.zero,
+ 102:                     leading: AppIcon(item.$4, color: AppColors.brand),
+ 103:                     title: Text(item.$1),
+ 104:                     subtitle: Text(item.$2),
+ 105:                     trailing: const AppIcon('chevron-right'),
+ 106:                     onTap: () => AppNavigation.open(context, item.$3),
+ 107:                   ),
+ 108:                 ),
+ 109:             ],
+ 110:           ),
+ 111:         ),
+ 112:         AppButton(
+ 113:           label: 'Đăng xuất',
+ 114:           variant: AppButtonVariant.danger,
+ 115:           icon: const AppIcon('log-out'),
+ 116:           onPressed: () => ref.read(sessionProvider.notifier).signOut(),
+ 117:         ),
+ 118:       ];
+ 119:     },
+ 120:   );
+ 121: }
+ 122: 
+ 123: class NotificationsScreen extends ConsumerStatefulWidget {
+ 124:   const NotificationsScreen({super.key});
+ 125:   @override
+ 126:   ConsumerState<NotificationsScreen> createState() => _NotificationsState();
+ 127: }
+ 128: 
+ 129: class _NotificationsState extends ConsumerState<NotificationsScreen> {
+ 130:   int tab = 0;
+ 131:   @override
+ 132:   Widget build(BuildContext context) => AcademicPage(
+ 133:     path: '/notifications',
+ 134:     builder: (_) => ref
+ 135:         .watch(notificationsProvider)
+ 136:         .when(
+ 137:           loading: () => [const AppLoadingState()],
+ 138:           error: (e, stack) => [
+ 139:             AppErrorState(onRetry: () => ref.invalidate(notificationsProvider)),
+ 140:           ],
+ 141:           data: (all) {
+ 142:             final visible = all
+ 143:                 .where((n) => notificationMatches(n, tab))
+ 144:                 .toList();
+ 145:             return [
+ 146:               AppPageHeading(
+ 147:                 title: 'Thông báo',
+ 148:                 eyebrow: 'CẬP NHẬT',
+ 149:                 description:
+ 150:                     '${all.where((n) => n.flag('unread')).length} thông báo chưa đọc',
+ 151:               ),
+ 152:               AppTabs(
+ 153:                 labels: const [
+ 154:                   'Tất cả',
+ 155:                   'Chưa đọc',
+ 156:                   'Đánh giá',
+ 157:                   'Hạn nộp',
+ 158:                   'Đánh giá AI',
+ 159:                 ],
+ 160:                 selected: tab,
+ 161:                 onChanged: (i) => setState(() => tab = i),
+ 162:                 segmented: true,
+ 163:               ),
+ 164:               for (final section
+ 165:                   in visible.map((n) => n.text('section')).toSet()) ...[
+ 166:                 Text(section, style: AppTypography.sectionHeading),
+ 167:                 for (final n in visible.where(
+ 168:                   (n) => n.text('section') == section,
+ 169:                 ))
+ 170:                   AppCard(
+ 171:                     tinted: n.flag('unread'),
+ 172:                     child: InkWell(
+ 173:                       onTap: () => AppNavigation.open(
+ 174:                         context,
+ 175:                         n.text('link', '/dashboard'),
+ 176:                       ),
+ 177:                       child: Row(
+ 178:                         crossAxisAlignment: CrossAxisAlignment.start,
+ 179:                         spacing: AppSpacing.m,
+ 180:                         children: [
+ 181:                           AppIcon(n.text('kind'), color: AppColors.brand),
+ 182:                           Expanded(
+ 183:                             child: Column(
+ 184:                               crossAxisAlignment: CrossAxisAlignment.start,
+ 185:                               spacing: AppSpacing.s,
+ 186:                               children: [
+ 187:                                 Text(
+ 188:                                   AcademicPresentation.content(n.text('title')),
+ 189:                                   style: n.flag('unread')
+ 190:                                       ? AppTypography.strong
+ 191:                                       : AppTypography.body,
+ 192:                                 ),
+ 193:                                 Text(
+ 194:                                   AcademicPresentation.content(n.text('meta')),
+ 195:                                   style: AppTypography.muted,
+ 196:                                 ),
+ 197:                                 Text(
+ 198:                                   'Xem chi tiết →',
+ 199:                                   style: AppTypography.strong.copyWith(
+ 200:                                     color: AppColors.brand,
+ 201:                                   ),
+ 202:                                 ),
+ 203:                               ],
+ 204:                             ),
+ 205:                           ),
+ 206:                         ],
+ 207:                       ),
+ 208:                     ),
+ 209:                   ),
+ 210:               ],
+ 211:             ];
+ 212:           },
+ 213:         ),
+ 214:   );
+ 215: }
+
+===== lib/viewmodels/academic/academic_view_model.dart =====
+
+   1: import 'package:flutter_riverpod/flutter_riverpod.dart';
+   2: 
+   3: import '../../app/providers.dart';
+   4: import '../../models/academic/academic_models.dart';
+   5: import '../../models/academic/academic_policy.dart';
+   6: import '../dashboard/dashboard_view_model.dart';
+   7: import 'management_actions.dart';
+   8: 
+   9: final academicViewModelProvider =
+  10:     AsyncNotifierProvider<AcademicViewModel, AcademicSnapshot>(
+  11:       AcademicViewModel.new,
+  12:       retry: (n, e) => null,
+  13:     );
+  14: 
+  15: /// State học vụ chung; lệnh ghi kiểm tra phạm vi trước khi commit toàn snapshot.
+  16: class AcademicViewModel extends AsyncNotifier<AcademicSnapshot> {
+  17:   AcademicSnapshot get snapshot => state.requireValue;
+  18: 
+  19:   /// Phân biệt tác vụ AI đang chạy với bản loading bị gián đoạn để cho phép retry.
+  20:   final Set<String> activeEvaluationIds = {};
+  21:   bool _writing = false;
+  22:   int _sequence = 0;
+  23:   @override
+  24:   Future<AcademicSnapshot> build() =>
+  25:       ref.watch(academicRepositoryProvider).load();
+  26:   String nextId(String prefix) =>
+  27:       '$prefix-${DateTime.now().microsecondsSinceEpoch}-${_sequence++}';
+  28:   void retry() => ref.invalidateSelf();
+  29: 
+  30:   /// Nhân bản chỉ tạo bản nháp để chỉnh; hủy editor không thêm rule vào thư viện.
+  31:   AcademicJson cloneRuleDraft(RuleSet rule) => {
+  32:     ...rule.toJson(),
+  33:     'id': nextId('rule'),
+  34:     'name': '${rule.name} (bản sao)',
+  35:     'status': 'draft',
+  36:     'version': 1,
+  37:   };
+  38: 
+  39:   /// Mutation lỗi giữ nguyên dữ liệu đang xem; chặn double-submit và state sau dispose.
+  40:   Future<void> mutate(
+  41:     AcademicSnapshot Function(AcademicSnapshot) change,
+  42:   ) async {
+  43:     if (_writing) {
+  44:       throw const AcademicFailure('Đang lưu dữ liệu. Vui lòng chờ.');
+  45:     }
+  46:     final old = state.requireValue;
+  47:     _writing = true;
+  48:     try {
+  49:       final next = await ref
+  50:           .read(academicRepositoryProvider)
+  51:           .commit(change(old), expectedRevision: old.revision);
+  52:       if (ref.mounted) {
+  53:         state = AsyncData(next);
+  54:         ref.invalidate(dashboardViewModelProvider);
+  55:       }
+  56:     } finally {
+  57:       _writing = false;
+  58:     }
+  59:   }
+  60: 
+  61:   List<AcademicJson> upsert(AcademicSnapshot s, String key, AcademicJson v) => [
+  62:     for (final r in s.records(key))
+  63:       if (r.id == v['id']) v else r.toJson(),
+  64:     if (!s.records(key).any((r) => r.id == v['id'])) v,
+  65:   ];
+  66:   ClassRoom activeClass(AcademicSnapshot s, String id) {
+  67:     final cls = s.classRoom(id);
+  68:     if (cls == null) throw const AcademicFailure('Không tìm thấy lớp.');
+  69:     if (cls.archived) {
+  70:       throw const AcademicFailure(
+  71:         'Lớp đã lưu trữ. Khôi phục lớp trước khi chỉnh sửa.',
+  72:       );
+  73:     }
+  74:     return cls;
+  75:   }
+  76: 
+  77:   Future<void> saveCourse(AcademicJson input) => mutate((s) {
+  78:     final code = input['code'].toString().trim().toUpperCase();
+  79:     if (code.isEmpty || input['name'].toString().trim().isEmpty) {
+  80:       throw const AcademicFailure('Nhập mã và tên môn học.');
+  81:     }
+  82:     if (s.courses.any((c) => c.code == code && c.id != input['id'])) {
+  83:       throw const AcademicFailure('Mã môn đã tồn tại.');
+  84:     }
+  85:     final v = {
+  86:       ...input,
+  87:       'id':
+  88:           input['id'] ??
+  89:           code.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-'),
+  90:       'code': code,
+  91:       'name': input['name'].toString().trim(),
+  92:     };
+  93:     return s.replaceCollection('courses', upsert(s, 'courses', v));
+  94:   });
+  95: 
+  96:   /// Đợt mới dùng rule active và bản sao Lab đợt trước; sửa đợt không đổi override lớp.
+  97:   Future<void> saveOffering(AcademicJson input) => mutate((s) {
+  98:     final course = s.course(input['courseId'] as String);
+  99:     final sem = s.semester(input['semesterId'] as String);
+ 100:     if (course == null || sem == null) {
+ 101:       throw const AcademicFailure('Chọn môn học và học kỳ hợp lệ.');
+ 102:     }
+ 103:     if (s.rule(input['ruleSetId'] as String)?.active != true) {
+ 104:       throw const AcademicFailure(
+ 105:         'Chọn bộ quy tắc Đang áp dụng trước khi lưu.',
+ 106:       );
+ 107:     }
+ 108:     final old = s.offering(input['id'] as String? ?? '');
+ 109:     final v = {
+ 110:       ...?old?.toJson(),
+ 111:       ...input,
+ 112:       'id': old?.id ?? nextId('off'),
+ 113:       'defaultDeadline': input['defaultDeadline']?.toString().isNotEmpty == true
+ 114:           ? input['defaultDeadline']
+ 115:           : old?.deadline ?? '${sem.endDate}T23:59',
+ 116:       'labs':
+ 117:           old?.data['labs'] ??
+ 118:           s.courseOfferings(course.id).firstOrNull?.toJson()['labs'] ??
+ 119:           <AcademicJson>[],
+ 120:     };
+ 121:     return s.replaceCollection('offerings', upsert(s, 'offerings', v));
+ 122:   });
+ 123: 
+ 124:   /// Giữ override và người cũ khi hạ giới hạn; khóa chuyển đợt nếu đã có nhóm.
+ 125:   Future<void> saveClass(AcademicJson input) => mutate((s) {
+ 126:     final old = s.classRoom(input['id'] as String? ?? '');
+ 127:     if (old != null) activeClass(s, old.id);
+ 128:     final invalid = AcademicPolicy.validateClass(input, s, old);
+ 129:     if (invalid != null) throw AcademicFailure(invalid);
+ 130:     final off = s.offering(input['offeringId'] as String)!;
+ 131:     final code = input['code'].toString().trim().toUpperCase();
+ 132:     final v = {
+ 133:       ...?old?.toJson(),
+ 134:       ...input,
+ 135:       'id': old?.id ?? nextId('class'),
+ 136:       'code': code,
+ 137:       'courseId': off.courseId,
+ 138:       'semesterId': off.semesterId,
+ 139:       if (old == null) ...{
+ 140:         'state': 'active',
+ 141:         'joinCode': '$code-${nextId('join').split('-').last}',
+ 142:         'requireApproval': false,
+ 143:         'qrExpiresAt': '${input['endDate']}T23:59',
+ 144:         'lecturer': (s.data['currentUser'] as AcademicJson)['name'],
+ 145:         'groupCount': 0,
+ 146:         'studentCount': 0,
+ 147:         'projectCount': 0,
+ 148:         'pendingReviews': 0,
+ 149:       },
+ 150:     };
+ 151:     return s.replaceCollection('classes', upsert(s, 'classes', v));
+ 152:   });
+ 153: 
+ 154:   /// Tạo phiên bản rule mới; reviewState, phiên bản và kết quả lịch sử không bị sửa.
+ 155:   Future<void> saveRule(AcademicJson input) => mutate((s) {
+ 156:     final error = AcademicPolicy.validateRule(input);
+ 157:     if (error != null) throw AcademicFailure(error);
+ 158:     final old = s.rule(input['id'] as String);
+ 159:     if (old != null && old.version != input['version']) {
+ 160:       throw const AcademicFailure(
+ 161:         'Bộ quy tắc đã thay đổi. Mở lại cấu hình trước khi lưu.',
+ 162:       );
+ 163:     }
+ 164:     return s.replaceCollection(
+ 165:       'ruleSets',
+ 166:       upsert(s, 'ruleSets', {
+ 167:         ...input,
+ 168:         'version': old == null ? 1 : old.version + 1,
+ 169:       }),
+ 170:     );
+ 171:   });
+ 172: 
+ 173:   /// Chỉ gán trong Course đang mở; ghi mục cấp lớp phải clone cấu trúc kế thừa.
+ 174:   Future<void> assignRule({
+ 175:     required String courseId,
+ 176:     required String ruleId,
+ 177:     required String offeringId,
+ 178:     String classId = '',
+ 179:     String itemId = '',
+ 180:   }) => mutate((s) {
+ 181:     final off = s.offering(offeringId);
+ 182:     if (off == null ||
+ 183:         off.courseId != courseId ||
+ 184:         s.rule(ruleId)?.active != true) {
+ 185:       throw const AcademicFailure('Phạm vi hoặc bộ quy tắc không hợp lệ.');
+ 186:     }
+ 187:     final cls = classId.isEmpty ? null : activeClass(s, classId);
+ 188:     if (cls != null &&
+ 189:         (cls.courseId != courseId ||
+ 190:             (cls.offeringId != off.id &&
+ 191:                 !(cls.offeringId.isEmpty &&
+ 192:                     cls.semesterId == off.semesterId)))) {
+ 193:       throw const AcademicFailure('Lớp không thuộc đợt học đã chọn.');
+ 194:     }
+ 195:     final labs = cls == null ? off.labs : s.effectiveLabs(cls);
+ 196:     if (itemId.isNotEmpty &&
+ 197:         !labs.expand((l) => l.items).any((i) => i.id == itemId)) {
+ 198:       throw const AcademicFailure('Mục tài liệu không thuộc phạm vi đã chọn.');
+ 199:     }
+ 200:     final changed = [
+ 201:       for (final l in labs)
+ 202:         {
+ 203:           ...l.toJson(),
+ 204:           'items': [
+ 205:             for (final i in l.items)
+ 206:               {...i.toJson(), if (i.id == itemId) 'ruleSetId': ruleId},
+ 207:           ],
+ 208:         },
+ 209:     ];
+ 210:     final key = cls == null ? 'offerings' : 'classes';
+ 211:     final v = {
+ 212:       ...(cls?.toJson() ?? off.toJson()),
+ 213:       if (itemId.isNotEmpty)
+ 214:         (cls == null ? 'labs' : 'labOverride'): changed
+ 215:       else
+ 216:         (cls == null ? 'ruleSetId' : 'ruleSetOverride'): ruleId,
+ 217:     };
+ 218:     return s.replaceCollection(key, upsert(s, key, v));
+ 219:   });
+ 220:   Future<void> setClassState(String id, String status) => mutate((s) {
+ 221:     final cls = s.classRoom(id);
+ 222:     if (cls == null || !['active', 'archived'].contains(status)) {
+ 223:       throw const AcademicFailure(
+ 224:         'Không tìm thấy lớp hoặc trạng thái không hợp lệ.',
+ 225:       );
+ 226:     }
+ 227:     return s.replaceCollection(
+ 228:       'classes',
+ 229:       upsert(s, 'classes', {...cls.toJson(), 'state': status}),
+ 230:     );
+ 231:   });
+ 232: 
+ 233:   /// Không xóa lớp có người/nhóm/dự án/lịch sử; lưu trữ thay vì mất liên kết.
+ 234:   Future<void> deleteClass(String id) => mutate((s) {
+ 235:     final cls = s.classRoom(id);
+ 236:     if (cls == null) throw const AcademicFailure('Không tìm thấy lớp.');
+ 237:     if (cls.studentCount > 0 ||
+ 238:         cls.projectCount > 0 ||
+ 239:         s.classStudents(id).isNotEmpty ||
+ 240:         s.classGroups(id).isNotEmpty ||
+ 241:         ((s.data['reviewState'] as AcademicJson)['requests'] as List).any(
+ 242:           (r) => r['classCode'] == cls.code || r['classId'] == cls.id,
+ 243:         )) {
+ 244:       throw const AcademicFailure(
+ 245:         'Lớp có dữ liệu. Hãy lưu trữ để giữ lịch sử.',
+ 246:       );
+ 247:     }
+ 248:     return s.replaceCollection('classes', [
+ 249:       for (final c in s.classes)
+ 250:         if (c.id != id) c.toJson(),
+ 251:     ]);
+ 252:   });
+ 253:   Future<void> createGroup(String classId, String name) => mutate((s) {
+ 254:     final cls = activeClass(s, classId);
+ 255:     final n = name.trim();
+ 256:     if (n.isEmpty ||
+ 257:         s
+ 258:             .classGroups(classId)
+ 259:             .any((g) => g.name.trim().toLowerCase() == n.toLowerCase())) {
+ 260:       throw const AcademicFailure(
+ 261:         'Tên nhóm đã tồn tại trong lớp hoặc đang trống.',
+ 262:       );
+ 263:     }
+ 264:     final next = s.replaceCollection('groups', [
+ 265:       ...s.values('groups').cast<AcademicJson>(),
+ 266:       {
+ 267:         'id': nextId('group'),
+ 268:         'classId': classId,
+ 269:         'name': n,
+ 270:         'health': 'notSubmitted',
+ 271:         'memberIds': <String>[],
+ 272:         'progress': 0,
+ 273:         'pendingReviews': 0,
+ 274:         'lastActivity': 'Vừa tạo',
+ 275:       },
+ 276:     ]);
+ 277:     return next.replaceCollection(
+ 278:       'classes',
+ 279:       upsert(next, 'classes', {
+ 280:         ...cls.toJson(),
+ 281:         'groupCount': s.classGroups(classId).length + 1,
+ 282:       }),
+ 283:     );
+ 284:   });
+ 285:   Future<void> addGroupMember(String groupId, String studentId) => mutate((s) {
+ 286:     final group = s.groups.where((g) => g.id == groupId).firstOrNull;
+ 287:     if (group == null) throw const AcademicFailure('Không tìm thấy nhóm.');
+ 288:     AcademicPolicy.checkMember(s, group, studentId);
+ 289:     activeClass(s, group.classId);
+ 290:     return syncGroupMembers(s, group, [...group.memberIds, studentId]);
+ 291:   });
+ 292: 
+ 293:   /// Lọc trùng trong batch/lớp; lỗi định dạng hoặc vượt sĩ số không ghi dở dang.
+ 294:   Future<void> enrollStudents(String classId, List<AcademicJson> rows) =>
+ 295:       mutate((s) {
+ 296:         final cls = activeClass(s, classId);
+ 297:         final existing = s.classStudents(classId);
+ 298:         final codes = existing.map((v) => v.studentCode).toSet();
+ 299:         final added = <AcademicJson>[];
+ 300:         for (final r in rows) {
+ 301:           final code = r['studentCode'].toString().trim().toUpperCase();
+ 302:           if (!RegExp(r'^[A-Z]{2}\d{6}$').hasMatch(code) ||
+ 303:               r['name'].toString().trim().isEmpty ||
+ 304:               !r['email'].toString().contains('@')) {
+ 305:             throw const AcademicFailure('Thông tin sinh viên không hợp lệ.');
+ 306:           }
+ 307:           if (codes.add(code)) {
+ 308:             added.add({
+ 309:               ...r,
+ 310:               'id': nextId('student'),
+ 311:               'studentCode': code,
+ 312:               'classId': classId,
+ 313:               'initials': r['name']
+ 314:                   .toString()
+ 315:                   .split(' ')
+ 316:                   .where((p) => p.isNotEmpty)
+ 317:                   .take(2)
+ 318:                   .map((p) => p[0])
+ 319:                   .join(),
+ 320:             });
+ 321:           }
+ 322:         }
+ 323:         if (existing.length + added.length > cls.capacity) {
+ 324:           throw const AcademicFailure(
+ 325:             'Số sinh viên vượt sĩ số tối đa của lớp.',
+ 326:           );
+ 327:         }
+ 328:         final next = s.replaceCollection('students', [
+ 329:           ...s.values('students').cast<AcademicJson>(),
+ 330:           ...added,
+ 331:         ]);
+ 332:         return next.replaceCollection(
+ 333:           'classes',
+ 334:           upsert(next, 'classes', {
+ 335:             ...cls.toJson(),
+ 336:             'studentCount': existing.length + added.length,
+ 337:           }),
+ 338:         );
+ 339:       });
+ 340:   Future<void> regenerateQr(String classId) => mutate((s) {
+ 341:     final cls = activeClass(s, classId);
+ 342:     final suffix = DateTime.now().microsecondsSinceEpoch
+ 343:         .toRadixString(36)
+ 344:         .toUpperCase()
+ 345:         .substring(4, 8);
+ 346:     return s.replaceCollection(
+ 347:       'classes',
+ 348:       upsert(s, 'classes', {
+ 349:         ...cls.toJson(),
+ 350:         'joinCode': cls
+ 351:             .text('joinCode')
+ 352:             .replaceFirst(RegExp(r'[^-]+$'), suffix),
+ 353:         'qrExpiresAt': '2026-11-30T23:59',
+ 354:       }),
+ 355:     );
+ 356:   });
+ 357: 
+ 358:   /// Thay cấu trúc đúng một phạm vi, không lan sửa đổi sang lớp đang có override.
+ 359:   Future<void> saveLabs(
+ 360:     String offeringId,
+ 361:     List<AcademicJson> labs, {
+ 362:     String classId = '',
+ 363:   }) => mutate((s) {
+ 364:     final off = s.offering(offeringId);
+ 365:     if (off == null) throw const AcademicFailure('Không tìm thấy đợt môn học.');
+ 366:     final cls = classId.isEmpty ? null : activeClass(s, classId);
+ 367:     if (cls != null && cls.offeringId != off.id) {
+ 368:       throw const AcademicFailure('Lớp không thuộc đợt môn học.');
+ 369:     }
+ 370:     final key = cls == null ? 'offerings' : 'classes';
+ 371:     return s.replaceCollection(
+ 372:       key,
+ 373:       upsert(s, key, {
+ 374:         ...(cls?.toJson() ?? off.toJson()),
+ 375:         (cls == null ? 'labs' : 'labOverride'): labs,
+ 376:       }),
+ 377:     );
+ 378:   });
+ 379:   Future<void> saveTemplate(AcademicLab lab, String scope) => mutate(
+ 380:     (s) => s.replaceCollection('labTemplates', [
+ 381:       ...s.values('labTemplates').cast<AcademicJson>(),
+ 382:       {
+ 383:         'id': nextId('template'),
+ 384:         'name': lab.title,
+ 385:         'lab': AcademicPolicy.cloneLabs([lab], nextId).single,
+ 386:         'savedFrom': scope,
+ 387:       },
+ 388:     ]),
+ 389:   );
+ 390: 
+ 391:   /// Thao tác cấu trúc Lab là một lần ghi; xóa mục đồng thời gỡ cạnh phụ thuộc.
+ 392:   Future<void> editLabStructure(
+ 393:     String offeringId,
+ 394:     String action, {
+ 395:     String labId = '',
+ 396:     String itemId = '',
+ 397:     String templateId = '',
+ 398:   }) => mutate((s) {
+ 399:     final off = s.offering(offeringId);
+ 400:     if (off == null) throw const AcademicFailure('Không tìm thấy đợt môn học.');
+ 401:     final labs = off.labs.map((l) => l.toJson()).toList();
+ 402:     final li = labs.indexWhere((l) => l['id'] == labId);
+ 403:     void move(List<dynamic> list, int index, int delta) {
+ 404:       final target = index + delta;
+ 405:       if (index >= 0 && target >= 0 && target < list.length) {
+ 406:         final old = list[index];
+ 407:         list[index] = list[target];
+ 408:         list[target] = old;
+ 409:       }
+ 410:     }
+ 411: 
+ 412:     if (action == 'template') {
+ 413:       final t = s
+ 414:           .records('labTemplates')
+ 415:           .where((t) => t.id == templateId)
+ 416:           .firstOrNull;
+ 417:       if (t == null) throw const AcademicFailure('Không tìm thấy mẫu Lab.');
+ 418:       labs.add({
+ 419:         ...AcademicPolicy.cloneLabs([
+ 420:           AcademicLab(t.data['lab'] as AcademicJson),
+ 421:         ], nextId).single,
+ 422:         'code': _nextLabCode(off.labs),
+ 423:       });
+ 424:     } else {
+ 425:       if (li < 0) throw const AcademicFailure('Không tìm thấy Lab.');
+ 426:       final items = (labs[li]['items'] as List).cast<AcademicJson>();
+ 427:       final ii = items.indexWhere((i) => i['id'] == itemId);
+ 428:       if (action == 'clone') {
+ 429:         labs.insert(li + 1, {
+ 430:           ...AcademicPolicy.cloneLabs([off.labs[li]], nextId).single,
+ 431:           'code': _nextLabCode(off.labs),
+ 432:         });
+ 433:       }
+ 434:       if (action == 'up' || action == 'down') {
+ 435:         final delta = action == 'up' ? -1 : 1;
+ 436:         itemId.isEmpty ? move(labs, li, delta) : move(items, ii, delta);
+ 437:       }
+ 438:       if (action == 'delete') {
+ 439:         final ids = itemId.isEmpty
+ 440:             ? items.map((i) => i['id']).toSet()
+ 441:             : {itemId};
+ 442:         if (itemId.isEmpty) {
+ 443:           labs.removeAt(li);
+ 444:         } else {
+ 445:           items.removeWhere((i) => i['id'] == itemId);
+ 446:         }
+ 447:         for (final l in labs) {
+ 448:           for (final i in l['items'] as List) {
+ 449:             i['dependsOn'] = (i['dependsOn'] as List? ?? [])
+ 450:                 .where((d) => !ids.contains(d))
+ 451:                 .toList();
+ 452:           }
+ 453:         }
+ 454:       }
+ 455:     }
+ 456:     return s.replaceCollection(
+ 457:       'offerings',
+ 458:       upsert(s, 'offerings', {...off.toJson(), 'labs': labs}),
+ 459:     );
+ 460:   });
+ 461:   String _nextLabCode(List<AcademicLab> labs) {
+ 462:     final nums = labs
+ 463:         .map(
+ 464:           (l) => int.tryParse(
+ 465:             RegExp(r'(\d+)\s*$').firstMatch(l.code)?.group(1) ?? '',
+ 466:           ),
+ 467:         )
+ 468:         .whereType<int>();
+ 469:     return 'Lab ${nums.isEmpty ? labs.length + 1 : nums.reduce((a, b) => a > b ? a : b) + 1}';
+ 470:   }
+ 471: }
+
+===== lib/viewmodels/academic/management_actions.dart =====
+
+   1: import '../../models/academic/academic_models.dart';
+   2: import '../../models/academic/management_queries.dart';
+   3: import 'academic_view_model.dart';
+   4: 
+   5: /// Các lệnh quản trị vẫn commit qua AcademicViewModel và revision của Phase 2.
+   6: extension ManagementActions on AcademicViewModel {
+   7:   /// Trưởng nhóm là thành viên đầu tiên như React; đồng bộ ba phía, giữ lịch sử nguyên vẹn.
+   8:   AcademicSnapshot syncGroupMembers(
+   9:     AcademicSnapshot s,
+  10:     StudentGroup g,
+  11:     List<String> ids,
+  12:   ) {
+  13:     final members = ids
+  14:         .map((id) => s.students.where((st) => st.id == id).first)
+  15:         .toList();
+  16:     return AcademicSnapshot({
+  17:       ...s.toJson(),
+  18:       'groups': upsert(s, 'groups', {...g.toJson(), 'memberIds': ids}),
+  19:       'students': s.students
+  20:           .map(
+  21:             (st) => {
+  22:               ...st.toJson(),
+  23:               if (st.text('classId') == g.classId &&
+  24:                   (ids.contains(st.id) || st.text('groupId') == g.id))
+  25:                 'groupId': ids.contains(st.id) ? g.id : null,
+  26:             },
+  27:           )
+  28:           .toList(),
+  29:       'projects': s
+  30:           .records('projects')
+  31:           .map(
+  32:             (p) => {
+  33:               ...p.toJson(),
+  34:               if (p.text('groupId') == g.id)
+  35:                 'members': [
+  36:                   for (var i = 0; i < members.length; i++)
+  37:                     {
+  38:                       'initials': members[i].text('initials'),
+  39:                       'name': members[i].name,
+  40:                       'role': i == 0 ? 'Trưởng nhóm' : 'Thành viên',
+  41:                     },
+  42:                 ],
+  43:             },
+  44:           )
+  45:           .toList(),
+  46:     });
+  47:   }
+  48: 
+  49:   Future<void> renameGroup(String id, String name) => mutate((s) {
+  50:     final g = s.group(id);
+  51:     if (g == null) throw const AcademicFailure('Không tìm thấy nhóm.');
+  52:     activeClass(s, g.classId);
+  53:     if (name.trim().isEmpty ||
+  54:         s
+  55:             .classGroups(g.classId)
+  56:             .any(
+  57:               (v) =>
+  58:                   v.id != id &&
+  59:                   v.name.trim().toLowerCase() == name.trim().toLowerCase(),
+  60:             )) {
+  61:       throw const AcademicFailure(
+  62:         'Tên nhóm đã tồn tại trong lớp hoặc đang trống.',
+  63:       );
+  64:     }
+  65:     return s.replaceCollection(
+  66:       'groups',
+  67:       upsert(s, 'groups', {...g.toJson(), 'name': name.trim()}),
+  68:     );
+  69:   });
+  70:   Future<void> removeMember(String groupId, String studentId) => mutate((s) {
+  71:     final g = s.group(groupId);
+  72:     if (g == null) throw const AcademicFailure('Không tìm thấy nhóm.');
+  73:     activeClass(s, g.classId);
+  74:     return syncGroupMembers(
+  75:       s,
+  76:       g,
+  77:       g.memberIds.where((id) => id != studentId).toList(),
+  78:     );
+  79:   });
+  80:   Future<void> deleteGroup(String id) => mutate((s) {
+  81:     final g = s.group(id);
+  82:     if (g == null) throw const AcademicFailure('Không tìm thấy nhóm.');
+  83:     activeClass(s, g.classId);
+  84:     if (!s.canDeleteGroup(g)) {
+  85:       throw const AcademicFailure(
+  86:         'Chỉ xóa nhóm rỗng chưa có lịch sử đánh giá.',
+  87:       );
+  88:     }
+  89:     // Nhóm có dự án rỗng vẫn không được để lại liên kết mồ côi khi xóa.
+  90:     final next = AcademicSnapshot({
+  91:       ...s.toJson(),
+  92:       'groups': s.groups
+  93:           .where((v) => v.id != id)
+  94:           .map((v) => v.toJson())
+  95:           .toList(),
+  96:       'projects': s
+  97:           .records('projects')
+  98:           .map(
+  99:             (p) => {
+ 100:               ...p.toJson(),
+ 101:               if (p.text('groupId') == id) ...{
+ 102:                 'groupId': '',
+ 103:                 'classId': g.classId,
+ 104:               },
+ 105:             },
+ 106:           )
+ 107:           .toList(),
+ 108:     });
+ 109:     return recountClasses(next);
+ 110:   });
+ 111:   AcademicSnapshot recountClasses(AcademicSnapshot s) => s.replaceCollection(
+ 112:     'classes',
+ 113:     s.classes
+ 114:         .map(
+ 115:           (c) => {
+ 116:             ...c.toJson(),
+ 117:             'groupCount': s.classGroups(c.id).length,
+ 118:             'projectCount': s.classProjects(c.id).length,
+ 119:             'pendingReviews': s.classReviews(c).length,
+ 120:           },
+ 121:         )
+ 122:         .toList(),
+ 123:   );
+ 124: 
+ 125:   Future<void> saveProject(AcademicJson input) =>
+ 126:       mutate((s) => saveProjectIn(s, input));
+ 127: 
+ 128:   /// Một nhóm chỉ gắn một dự án; lớp/môn/học kỳ luôn suy ra từ nhóm, không nhập lại.
+ 129:   AcademicSnapshot saveProjectIn(
+ 130:     AcademicSnapshot s,
+ 131:     AcademicJson input, {
+ 132:     bool allowArchivedOwner = false,
+ 133:   }) {
+ 134:     final old = s.project(input['id']?.toString() ?? '');
+ 135:     if (old?.text('state') == 'archived') {
+ 136:       throw const AcademicFailure('Dự án đã lưu trữ, chỉ được xem.');
+ 137:     }
+ 138:     final g = s.group(input['groupId']?.toString() ?? '');
+ 139:     if (g == null) throw const AcademicFailure('Chọn nhóm hợp lệ.');
+ 140:     final cls = activeClass(s, g.classId);
+ 141:     if (s.offering(cls.offeringId) == null ||
+ 142:         s.semester(cls.semesterId)?.archived == true) {
+ 143:       throw const AcademicFailure('Đợt học không còn hoạt động.');
+ 144:     }
+ 145:     if (s
+ 146:         .records('projects')
+ 147:         .any(
+ 148:           (p) =>
+ 149:               p.id != old?.id &&
+ 150:               p.text('groupId') == g.id &&
+ 151:               (!allowArchivedOwner || p.text('state') == 'active'),
+ 152:         )) {
+ 153:       throw const AcademicFailure('Nhóm đã có dự án.');
+ 154:     }
+ 155:     if (old != null) {
+ 156:       final prev = s.projectClass(old);
+ 157:       if (prev != null) activeClass(s, prev.id);
+ 158:     }
+ 159:     final name = input['name']?.toString().trim() ?? '';
+ 160:     final start = DateTime.tryParse(input['startDate']?.toString() ?? '');
+ 161:     final end = DateTime.tryParse(input['deadline']?.toString() ?? '');
+ 162:     if (name.isEmpty || start == null || end == null || end.isBefore(start)) {
+ 163:       throw const AcademicFailure('Nhập tên và khoảng thời gian dự án hợp lệ.');
+ 164:     }
+ 165:     final id = old?.id ?? nextId('project');
+ 166:     var next = AcademicSnapshot({
+ 167:       ...s.toJson(),
+ 168:       'projects': upsert(s, 'projects', {
+ 169:         ...?old?.toJson(),
+ 170:         for (final key in [
+ 171:           'groupId',
+ 172:           'name',
+ 173:           'description',
+ 174:           'startDate',
+ 175:           'deadline',
+ 176:           'reviewCutoff',
+ 177:           'teachingMethodOverride',
+ 178:           'registrationId',
+ 179:         ])
+ 180:           if (input.containsKey(key)) key: input[key],
+ 181:         'id': id,
+ 182:         'name': name,
+ 183:         'lecturer':
+ 184:             old?.text('lecturer') ?? (s.data['currentUser'] as Map)['name'],
+ 185:         'state': old?.text('state') ?? 'active',
+ 186:         'hasHistory': old?.flag('hasHistory') ?? false,
+ 187:         'progress': old?.integer('progress') ?? 0,
+ 188:       }),
+ 189:       'groups': s.groups
+ 190:           .map(
+ 191:             (v) => {
+ 192:               ...v.toJson(),
+ 193:               if (v.id == g.id)
+ 194:                 'projectId': id
+ 195:               else if (v.projectId == id)
+ 196:                 'projectId': null,
+ 197:             },
+ 198:           )
+ 199:           .toList(),
+ 200:     });
+ 201:     next = syncGroupMembers(next, next.group(g.id)!, g.memberIds);
+ 202:     return recountClasses(next);
+ 203:   }
+ 204: 
+ 205:   Future<void> assignProject(String groupId, String projectId) => mutate((s) {
+ 206:     final g = s.group(groupId);
+ 207:     final p = s.project(projectId);
+ 208:     if (g == null || p == null) {
+ 209:       throw const AcademicFailure('Không tìm thấy nhóm hoặc dự án.');
+ 210:     }
+ 211:     activeClass(s, g.classId);
+ 212:     if (g.projectId.isNotEmpty ||
+ 213:         s.groups.any((v) => v.projectId == p.id) ||
+ 214:         s.projectClass(p)?.id != g.classId) {
+ 215:       throw const AcademicFailure(
+ 216:         'Dự án không thuộc danh sách chưa gán của lớp.',
+ 217:       );
+ 218:     }
+ 219:     final next = AcademicSnapshot({
+ 220:       ...s.toJson(),
+ 221:       'groups': upsert(s, 'groups', {...g.toJson(), 'projectId': p.id}),
+ 222:       'projects': upsert(s, 'projects', {...p.toJson(), 'groupId': g.id}),
+ 223:     });
+ 224:     return recountClasses(
+ 225:       syncGroupMembers(next, next.group(g.id)!, g.memberIds),
+ 226:     );
+ 227:   });
+ 228:   Future<void> setProjectState(String id, String value) => mutate((s) {
+ 229:     final p = s.project(id);
+ 230:     if (p == null) throw const AcademicFailure('Không tìm thấy dự án.');
+ 231:     final cls = s.projectClass(p);
+ 232:     if (cls != null) activeClass(s, cls.id);
+ 233:     if (!['active', 'archived'].contains(value)) {
+ 234:       throw const AcademicFailure('Trạng thái dự án không hợp lệ.');
+ 235:     }
+ 236:     return s.replaceCollection(
+ 237:       'projects',
+ 238:       upsert(s, 'projects', {...p.toJson(), 'state': value}),
+ 239:     );
+ 240:   });
+ 241:   Future<void> deleteProject(String id) => mutate((s) {
+ 242:     final p = s.project(id);
+ 243:     if (p == null) throw const AcademicFailure('Không tìm thấy dự án.');
+ 244:     final cls = s.projectClass(p);
+ 245:     if (cls != null) activeClass(s, cls.id);
+ 246:     if (s.hasProjectHistory(id)) {
+ 247:       throw const AcademicFailure('Dự án đã có lịch sử, không thể xóa.');
+ 248:     }
+ 249:     return recountClasses(
+ 250:       AcademicSnapshot({
+ 251:         ...s.toJson(),
+ 252:         'projects': s
+ 253:             .records('projects')
+ 254:             .where((v) => v.id != id)
+ 255:             .map((v) => v.toJson())
+ 256:             .toList(),
+ 257:         'groups': s.groups
+ 258:             .map(
+ 259:               (g) => {...g.toJson(), if (g.projectId == id) 'projectId': null},
+ 260:             )
+ 261:             .toList(),
+ 262:       }),
+ 263:     );
+ 264:   });
+ 265: 
+ 266:   Future<void> decideRegistration(String id, String status, String feedback) =>
+ 267:       mutate((s) {
+ 268:         final r = s
+ 269:             .records('registrations')
+ 270:             .where((v) => v.id == id)
+ 271:             .firstOrNull;
+ 272:         if (r == null || r.text('status') != 'pending') {
+ 273:           throw const AcademicFailure('Yêu cầu không còn chờ duyệt.');
+ 274:         }
+ 275:         if (!['approved', 'changesRequested', 'rejected'].contains(status)) {
+ 276:           throw const AcademicFailure('Quyết định không hợp lệ.');
+ 277:         }
+ 278:         if (status != 'approved' && feedback.trim().isEmpty) {
+ 279:           throw const AcademicFailure('Nhập lý do hoặc nội dung cần sửa.');
+ 280:         }
+ 281:         final g = s.group(r.text('groupId'));
+ 282:         if (g == null || !g.memberIds.contains(r.text('submittedBy'))) {
+ 283:           throw const AcademicFailure('Nhóm/người đăng ký không còn hợp lệ.');
+ 284:         }
+ 285:         final cls = activeClass(s, g.classId);
+ 286:         final off = s.offering(cls.offeringId);
+ 287:         if (off == null ||
+ 288:             off.labs.isEmpty ||
+ 289:             s.effectiveRule(cls)?.active != true) {
+ 290:           throw const AcademicFailure(
+ 291:             'Cần cấu hình Lab Structure và Bộ quy tắc Đang áp dụng trước khi duyệt.',
+ 292:           );
+ 293:         }
+ 294:         var next = s;
+ 295:         String? projectId;
+ 296:         if (status == 'approved') {
+ 297:           next = saveProjectIn(s, {
+ 298:             'groupId': g.id,
+ 299:             'name': r.name,
+ 300:             'description': r.text('description'),
+ 301:             'registrationId': id,
+ 302:             'startDate': cls.startDate,
+ 303:             'deadline': cls.text('deadline', off.deadline),
+ 304:           }, allowArchivedOwner: true);
+ 305:           projectId = next.group(g.id)!.projectId;
+ 306:         }
+ 307:         return next.replaceCollection(
+ 308:           'registrations',
+ 309:           upsert(next, 'registrations', {
+ 310:             ...r.toJson(),
+ 311:             'status': status,
+ 312:             'feedback': feedback.trim(),
+ 313:             'projectId': projectId,
+ 314:             'decisions': [
+ 315:               ...r.values('decisions'),
+ 316:               {
+ 317:                 'status': status,
+ 318:                 'feedback': feedback.trim(),
+ 319:                 'at': DateTime.now().toIso8601String(),
+ 320:               },
+ 321:             ],
+ 322:           }),
+ 323:         );
+ 324:       });
+ 325: }
+
+===== lib/viewmodels/academic/review_actions.dart =====
+
+   1: import '../../models/academic/academic_models.dart';
+   2: import '../../models/academic/management_queries.dart';
+   3: import '../../models/academic/review_policy.dart';
+   4: import '../../models/academic/academic_policy.dart';
+   5: import 'academic_view_model.dart';
+   6: import 'management_actions.dart';
+   7: 
+   8: /// Lượt đánh giá, phản hồi và nhật ký ghi cùng transaction fake có kiểm tra revision.
+   9: extension ReviewActions on AcademicViewModel {
+  10:   AcademicJson reviewData(AcademicSnapshot s) =>
+  11:       AcademicRecord(s.data['reviewState'] as AcademicJson).toJson();
+  12:   String actor(AcademicSnapshot s) =>
+  13:       (s.data['currentUser'] as Map)['name'].toString();
+  14:   String timestamp() {
+  15:     final d = DateTime.now();
+  16:     String p(int n) => n.toString().padLeft(2, '0');
+  17:     return '${p(d.day)}/${p(d.month)}/${d.year} · ${p(d.hour)}:${p(d.minute)}';
+  18:   }
+  19: 
+  20:   AcademicJson event(
+  21:     AcademicSnapshot s,
+  22:     String id,
+  23:     String title, {
+  24:     String tone = 'brand',
+  25:     String? quote,
+  26:     String? version,
+  27:     List<String>? selected,
+  28:   }) => {
+  29:     'id': nextId('evt'),
+  30:     'reviewId': id,
+  31:     'time': timestamp(),
+  32:     'actor': actor(s),
+  33:     'title': title,
+  34:     'tone': tone,
+  35:     'quote': ?quote,
+  36:     'documentVersion': ?version,
+  37:     'selectedFeedbackIds': ?selected,
+  38:   };
+  39:   AcademicRecord writableReview(
+  40:     AcademicSnapshot s,
+  41:     String id, {
+  42:     bool ai = false,
+  43:   }) {
+  44:     final r = s.review(id);
+  45:     if (r == null) {
+  46:       throw const AcademicFailure('Không tìm thấy yêu cầu đánh giá.');
+  47:     }
+  48:     if (s.completed(r)) {
+  49:       throw const AcademicFailure(
+  50:         'Đánh giá đã hoàn tất; lịch sử được giữ nguyên.',
+  51:       );
+  52:     }
+  53:     final p = s.project(r.text('projectId'));
+  54:     if (p == null || p.text('state') == 'archived') {
+  55:       throw const AcademicFailure(
+  56:         'Dự án đã lưu trữ hoặc không còn tồn tại, chỉ được xem.',
+  57:       );
+  58:     }
+  59:     final cls = s.projectClass(p);
+  60:     if (cls != null) activeClass(s, cls.id);
+  61:     final block = s.supervisorBlock(r);
+  62:     if (!ai && block != null) throw AcademicFailure(block);
+  63:     return r;
+  64:   }
+  65: 
+  66:   AcademicSnapshot withReview(AcademicSnapshot s, AcademicJson data) {
+  67:     var next = AcademicSnapshot({...s.toJson(), 'reviewState': data});
+  68:     next = next.replaceCollection(
+  69:       'groups',
+  70:       next.groups
+  71:           .map(
+  72:             (g) => {
+  73:               ...g.toJson(),
+  74:               'pendingReviews': next
+  75:                   .reviewRows('requests')
+  76:                   .where(
+  77:                     (r) =>
+  78:                         !next.completed(r) &&
+  79:                         next.project(r.text('projectId'))?.text('groupId') ==
+  80:                             g.id,
+  81:                   )
+  82:                   .length,
+  83:             },
+  84:           )
+  85:           .toList(),
+  86:     );
+  87:     return recountClasses(next);
+  88:   }
+  89: 
+  90:   Future<void> startReview(String id) => mutate((s) {
+  91:     final r = writableReview(s, id);
+  92:     if (r.text('supervisorStatus') != 'waiting') return s;
+  93:     final d = reviewData(s);
+  94:     d['requests'] = [
+  95:       for (final v in s.reviewRows('requests'))
+  96:         if (v.id == id)
+  97:           {
+  98:             ...v.toJson(),
+  99:             'supervisorStatus': 'inReview',
+ 100:             'ruleSnapshot': v.data['ruleSnapshot'] ?? s.reviewRule(r)?.toJson(),
+ 101:           }
+ 102:         else
+ 103:           v.toJson(),
+ 104:     ];
+ 105:     d['audit'] = [
+ 106:       ...s.valuesOfReview('audit'),
+ 107:       event(s, id, '${actor(s)} bắt đầu đánh giá.'),
+ 108:     ];
+ 109:     return withReview(s, d);
+ 110:   });
+ 111: 
+ 112:   Future<void> addFeedback(String id, AcademicJson input) => mutate((s) {
+ 113:     final r = writableReview(s, id);
+ 114:     final message = input['message']?.toString().trim() ?? '';
+ 115:     if (message.isEmpty) throw const AcademicFailure('Nhập nội dung phản hồi.');
+ 116:     final d = reviewData(s);
+ 117:     if (r.text('supervisorStatus') == 'waiting') {
+ 118:       d['requests'] = [
+ 119:         for (final v in s.reviewRows('requests'))
+ 120:           if (v.id == id)
+ 121:             {
+ 122:               ...v.toJson(),
+ 123:               'supervisorStatus': 'inReview',
+ 124:               'ruleSnapshot':
+ 125:                   v.data['ruleSnapshot'] ?? s.reviewRule(r)?.toJson(),
+ 126:             }
+ 127:           else
+ 128:             v.toJson(),
+ 129:       ];
+ 130:     }
+ 131:     d['feedback'] = [
+ 132:       ...s.valuesOfReview('feedback'),
+ 133:       {
+ 134:         if (input['pageRef'] != null) 'pageRef': input['pageRef'],
+ 135:         'id': nextId('fb'),
+ 136:         'reviewId': id,
+ 137:         'version': r.text('version'),
+ 138:         'message': message,
+ 139:         'severity': input['severity'] ?? 'Major',
+ 140:         'category': input['category'] ?? s.strings('feedbackCategories').first,
+ 141:         'author': actor(s),
+ 142:         'createdAt': timestamp(),
+ 143:         'official': false,
+ 144:       },
+ 145:     ];
+ 146:     d['audit'] = [
+ 147:       ...s.valuesOfReview('audit'),
+ 148:       if (r.text('supervisorStatus') == 'waiting')
+ 149:         event(s, id, '${actor(s)} bắt đầu đánh giá.'),
+ 150:       event(
+ 151:         s,
+ 152:         id,
+ 153:         'Giảng viên thêm phản hồi.',
+ 154:         tone: 'amber',
+ 155:         quote: '“$message”',
+ 156:       ),
+ 157:     ];
+ 158:     return withReview(s, d);
+ 159:   });
+ 160:   Future<void> updateFeedback(
+ 161:     String id, {
+ 162:     String? message,
+ 163:     bool remove = false,
+ 164:   }) => mutate((s) {
+ 165:     final f = s.reviewRows('feedback').where((f) => f.id == id).firstOrNull;
+ 166:     if (f == null || f.flag('official') || f.text('author') != actor(s)) {
+ 167:       throw const AcademicFailure(
+ 168:         'Phản hồi thuộc lịch sử hoặc không thuộc giảng viên hiện tại.',
+ 169:       );
+ 170:     }
+ 171:     final r = s.review(f.text('reviewId'));
+ 172:     final p = r == null ? null : s.project(r.text('projectId'));
+ 173:     if (p == null || p.text('state') == 'archived') {
+ 174:       throw const AcademicFailure('Dự án chỉ đọc.');
+ 175:     }
+ 176:     final cls = s.projectClass(p);
+ 177:     if (cls != null) activeClass(s, cls.id);
+ 178:     if (!remove && (message == null || message.trim().isEmpty)) {
+ 179:       throw const AcademicFailure('Nhập nội dung phản hồi.');
+ 180:     }
+ 181:     final d = reviewData(s);
+ 182:     d['feedback'] = [
+ 183:       for (final v in s.reviewRows('feedback'))
+ 184:         if (v.id != id)
+ 185:           v.toJson()
+ 186:         else if (!remove)
+ 187:           {...v.toJson(), 'message': message!.trim()},
+ 188:     ];
+ 189:     return withReview(s, d);
+ 190:   });
+ 191: 
+ 192:   /// Chỉ phản hồi được chọn của phiên bản hiện tại trở thành chính thức; quyết định không thể sửa.
+ 193:   Future<void> decideReview(
+ 194:     String id,
+ 195:     String decision, {
+ 196:     String note = '',
+ 197:     List<String> included = const [],
+ 198:     String severity = 'Major',
+ 199:     String? category,
+ 200:   }) => mutate((s) {
+ 201:     final r = writableReview(s, id);
+ 202:     if (!['approved', 'needsRevision', 'notAccepted'].contains(decision)) {
+ 203:       throw const AcademicFailure('Quyết định không hợp lệ.');
+ 204:     }
+ 205:     if (decision != 'approved' && note.trim().isEmpty) {
+ 206:       throw const AcademicFailure('Cần lý do/phản hồi cho quyết định này.');
+ 207:     }
+ 208:     final d = reviewData(s);
+ 209:     final selected = included.toSet();
+ 210:     final feedback = s.reviewRows('feedback').map((v) => v.toJson()).toList();
+ 211:     if (decision == 'needsRevision') {
+ 212:       final fid = nextId('fb');
+ 213:       selected.add(fid);
+ 214:       feedback.add({
+ 215:         'id': fid,
+ 216:         'reviewId': id,
+ 217:         'version': r.text('version'),
+ 218:         'message': note.trim(),
+ 219:         'severity': severity,
+ 220:         'category': category ?? s.strings('feedbackCategories')[1],
+ 221:         'author': actor(s),
+ 222:         'createdAt': timestamp(),
+ 223:         'official': false,
+ 224:       });
+ 225:     }
+ 226:     final validIds = feedback
+ 227:         .where(
+ 228:           (f) =>
+ 229:               f['reviewId'] == id &&
+ 230:               f['version'] == r.text('version') &&
+ 231:               selected.contains(f['id']),
+ 232:         )
+ 233:         .map((f) => f['id'] as String)
+ 234:         .toList();
+ 235:     d['requests'] = [
+ 236:       for (final v in s.reviewRows('requests'))
+ 237:         if (v.id == id)
+ 238:           {
+ 239:             ...v.toJson(),
+ 240:             'supervisorStatus': decision,
+ 241:             'ruleSnapshot': v.data['ruleSnapshot'] ?? s.reviewRule(r)?.toJson(),
+ 242:           }
+ 243:         else
+ 244:           v.toJson(),
+ 245:     ];
+ 246:     d['feedback'] = [
+ 247:       for (final f in feedback)
+ 248:         {...f, if (validIds.contains(f['id'])) 'official': true},
+ 249:     ];
+ 250:     final label = '${r.text('documentTitle')} ${r.text('version')}';
+ 251:     final title = decision == 'approved'
+ 252:         ? 'Giảng viên phê duyệt $label.'
+ 253:         : decision == 'needsRevision'
+ 254:         ? 'Giảng viên yêu cầu chỉnh sửa $label.'
+ 255:         : 'Giảng viên đánh dấu $label không đạt.';
+ 256:     d['audit'] = [
+ 257:       ...s.valuesOfReview('audit'),
+ 258:       event(
+ 259:         s,
+ 260:         id,
+ 261:         title,
+ 262:         tone: decision == 'approved'
+ 263:             ? 'brand'
+ 264:             : decision == 'needsRevision'
+ 265:             ? 'rust'
+ 266:             : 'danger',
+ 267:         quote: note.trim().isEmpty ? null : '“${note.trim()}”',
+ 268:         version: r.text('version'),
+ 269:         selected: validIds,
+ 270:       ),
+ 271:     ];
+ 272:     return withReview(s, d);
+ 273:   });
+ 274: 
+ 275:   /// Hai commit theo loading/kết quả; token và phiên bản chặn kết quả trễ ghi vào bản nộp khác.
+ 276:   Future<void> runEvaluation(String id, {bool simulateError = false}) async {
+ 277:     if (!activeEvaluationIds.add(id)) {
+ 278:       throw const AcademicFailure('AI đang xử lý.');
+ 279:     }
+ 280:     final token = nextId('eval');
+ 281:     late String documentTitle;
+ 282:     try {
+ 283:       await mutate((s) {
+ 284:         final r = writableReview(s, id, ai: true);
+ 285:         documentTitle = r.text('documentTitle');
+ 286:         final rule = s.reviewRule(r);
+ 287:         if (rule == null || !rule.active || !rule.flag('aiEnabled')) {
+ 288:           throw const AcademicFailure(
+ 289:             'AI chưa được bật trong bộ quy tắc Đang áp dụng.',
+ 290:           );
+ 291:         }
+ 292:         final invalid = AcademicPolicy.validateRule(rule.toJson());
+ 293:         if (invalid != null) throw AcademicFailure(invalid);
+ 294:         final d = reviewData(s);
+ 295:         final version = s
+ 296:             .versionsFor(r)
+ 297:             .where((v) => v.text('version') == r.text('version'))
+ 298:             .first;
+ 299:         final run = {
+ 300:           'id': token,
+ 301:           'reviewId': id,
+ 302:           'documentId': r.text('documentId', r.text('documentTitle')),
+ 303:           'documentVersionId': version.id,
+ 304:           'documentVersion': r.text('version'),
+ 305:           'ruleSetId': rule.id,
+ 306:           'ruleSetVersion': rule.version,
+ 307:           'ruleSnapshot': rule.toJson(),
+ 308:           'criterionResults': <dynamic>[],
+ 309:           'overallScore': null,
+ 310:           'maxScore': 0,
+ 311:           'findings': <dynamic>[],
+ 312:           'evaluationStatus': 'loading',
+ 313:           'createdAt': timestamp(),
+ 314:         };
+ 315:         d['evaluations'] = [
+ 316:           for (final e in s.reviewRows('evaluations'))
+ 317:             if (e.text('reviewId') == id &&
+ 318:                 e.text('evaluationStatus') == 'loading')
+ 319:               {
+ 320:                 ...e.toJson(),
+ 321:                 'evaluationStatus': 'error',
+ 322:                 'error': 'Lần chạy trước bị gián đoạn. Đã tạo lần thử mới.',
+ 323:               }
+ 324:             else
+ 325:               e.toJson(),
+ 326:           run,
+ 327:         ];
+ 328:         if (!s.reviewRows('versions').any((v) => v.id == version.id)) {
+ 329:           d['versions'] = [...s.valuesOfReview('versions'), version.toJson()];
+ 330:         }
+ 331:         d['requests'] = [
+ 332:           for (final v in s.reviewRows('requests'))
+ 333:             if (v.id == id)
+ 334:               {
+ 335:                 ...v.toJson(),
+ 336:                 'ruleSnapshot': rule.toJson(),
+ 337:                 'aiStatus': 'aiReviewing',
+ 338:               }
+ 339:             else
+ 340:               v.toJson(),
+ 341:         ];
+ 342:         return withReview(s, d);
+ 343:       });
+ 344:       await Future<void>.delayed(const Duration(milliseconds: 1200));
+ 345:       await mutate((s) {
+ 346:         final run = s
+ 347:             .reviewRows('evaluations')
+ 348:             .where((v) => v.id == token)
+ 349:             .firstOrNull;
+ 350:         if (run == null) {
+ 351:           return s;
+ 352:         }
+ 353:         final result = simulateError
+ 354:             ? AcademicRecord({
+ 355:                 ...run.toJson(),
+ 356:                 'evaluationStatus': 'error',
+ 357:                 'error': 'Không thể tạo kết quả. Chọn Thử lại để tiếp tục.',
+ 358:               })
+ 359:             : ReviewPolicy.illustration(s, run, documentTitle);
+ 360:         final d = reviewData(s);
+ 361:         d['evaluations'] = [
+ 362:           for (final e in s.reviewRows('evaluations'))
+ 363:             e.id == token ? result.toJson() : e.toJson(),
+ 364:         ];
+ 365:         d['requests'] = [
+ 366:           for (final v in s.reviewRows('requests'))
+ 367:             if (v.id == id && v.text('version') == run.text('documentVersion'))
+ 368:               {
+ 369:                 ...v.toJson(),
+ 370:                 'aiStatus': simulateError ? 'notRun' : 'aiReviewed',
+ 371:                 'ai': {
+ 372:                   'errors': result
+ 373:                       .values('findings')
+ 374:                       .where((f) => f['level'] == 'error')
+ 375:                       .length,
+ 376:                   'warnings': result
+ 377:                       .values('findings')
+ 378:                       .where((f) => f['level'] == 'warning')
+ 379:                       .length,
+ 380:                   'suggestions': result
+ 381:                       .values('criterionResults')
+ 382:                       .fold<int>(
+ 383:                         0,
+ 384:                         (n, c) => n + (c['suggestions'] as List).length,
+ 385:                       ),
+ 386:                 },
+ 387:               }
+ 388:             else
+ 389:               v.toJson(),
+ 390:         ];
+ 391:         d['audit'] = [
+ 392:           ...s.valuesOfReview('audit'),
+ 393:           event(
+ 394:             s,
+ 395:             id,
+ 396:             'Đánh giá AI ${simulateError ? 'gặp lỗi' : 'hoàn tất'} · ${run.text('documentVersion')} · ${(run.data['ruleSnapshot'] as Map)['name']} v${run.integer('ruleSetVersion')}',
+ 397:             tone: simulateError ? 'rust' : 'olive',
+ 398:           ),
+ 399:         ];
+ 400:         return withReview(s, d);
+ 401:       });
+ 402:     } finally {
+ 403:       activeEvaluationIds.remove(id);
+ 404:     }
+ 405:   }
+ 406: }
+ 407: 
+ 408: extension ReviewValues on AcademicSnapshot {
+ 409:   List<dynamic> valuesOfReview(String key) =>
+ 410:       (data['reviewState'] as Map)[key] as List? ?? [];
+ 411: }
+
+===== lib/viewmodels/dashboard/dashboard_view_model.dart =====
+
+   1: import 'package:flutter_riverpod/flutter_riverpod.dart';
+   2: 
+   3: import '../../app/providers.dart';
+   4: import '../../models/dashboard/dashboard_snapshot.dart';
+   5: import '../../models/dashboard/dashboard_state.dart';
+   6: 
+   7: final dashboardViewModelProvider =
+   8:     AsyncNotifierProvider<DashboardViewModel, DashboardState>(
+   9:       DashboardViewModel.new,
+  10:       // Giữ màn lỗi ổn định cho đến khi người dùng chủ động chọn Thử lại.
+  11:       retry: (retryCount, error) => null,
+  12:     );
+  13: 
+  14: /// Tải dữ liệu và tính thống kê đúng quan hệ học kỳ → lớp → nhóm → dự án.
+  15: class DashboardViewModel extends AsyncNotifier<DashboardState> {
+  16:   @override
+  17:   Future<DashboardState> build() async {
+  18:     final snapshot = await ref.watch(dashboardRepositoryProvider).load();
+  19:     return _present(snapshot, snapshot.semesters.firstOrNull?.id ?? '');
+  20:   }
+  21: 
+  22:   /// Bỏ qua ID lạ; chọn tất cả bằng chuỗi rỗng. Lọc cục bộ không gọi lại nguồn dữ liệu.
+  23:   void selectSemester(String id) {
+  24:     final current = state.asData?.value;
+  25:     if (current == null ||
+  26:         (id.isNotEmpty && !current.snapshot.semesters.any((s) => s.id == id))) {
+  27:       return;
+  28:     }
+  29:     state = AsyncData(_present(current.snapshot, id));
+  30:   }
+  31: 
+  32:   /// Khởi tạo lại vòng tải; AsyncNotifier bỏ qua kết quả cũ sau khi bị hủy.
+  33:   void retry() => ref.invalidateSelf();
+  34: 
+  35:   DashboardState _present(DashboardSnapshot data, String semesterId) {
+  36:     final classes = data.classes
+  37:         .where((c) => semesterId.isEmpty || c.semesterId == semesterId)
+  38:         .toList();
+  39:     final classIds = classes.map((c) => c.id).toSet();
+  40:     final projects = data.projects
+  41:         .where((p) => classIds.contains(data.groupClasses[p.groupId]))
+  42:         .toList();
+  43:     final activeIds = projects
+  44:         .where((p) => p.isActive)
+  45:         .map((p) => p.id)
+  46:         .toSet();
+  47:     final requests = data.requests
+  48:         .where((r) => semesterId.isEmpty || r.semesterId == semesterId)
+  49:         .toList();
+  50:     final waiting = requests
+  51:         .where((r) => r.supervisorStatus == 'waiting')
+  52:         .toList();
+  53:     final inReview = requests
+  54:         .where((r) => r.supervisorStatus == 'inReview')
+  55:         .toList();
+  56:     final attention = data.attention
+  57:         .where((a) => activeIds.contains(a.projectId))
+  58:         .toList();
+  59:     final tracked = classes.where((c) => c.isActive).toList();
+  60:     final pending = data.pendingGroupIds
+  61:         .where((id) => classIds.contains(data.groupClasses[id]))
+  62:         .length;
+  63:     // Dùng tập ID để một dự án có nhiều tài liệu/nhắc việc chỉ được tính một lần.
+  64:     final toHandle = {
+  65:       ...waiting.map((r) => r.projectId),
+  66:       ...inReview.map((r) => r.projectId),
+  67:       ...attention.map((a) => a.projectId),
+  68:     }.where(activeIds.contains).length;
+  69:     return DashboardState(
+  70:       snapshot: data,
+  71:       semesterId: semesterId,
+  72:       waiting: waiting,
+  73:       inReview: inReview,
+  74:       attention: attention,
+  75:       pendingRegistrations: pending,
+  76:       activeProjects: activeIds.length,
+  77:       archivedProjects: projects.where((p) => !p.isActive).length,
+  78:       needsRevision: requests
+  79:           .where((r) => r.supervisorStatus == 'needsRevision')
+  80:           .length,
+  81:       trackedClasses: tracked.length,
+  82:       dueSoon: attention
+  83:           .where((a) => a.label == 'Sắp đến hạn' || a.label == 'Quá hạn')
+  84:           .length,
+  85:       stats: [
+  86:         DashboardStat(
+  87:           'Môn học quản lý',
+  88:           tracked.map((c) => c.courseId).toSet().length,
+  89:         ),
+  90:         DashboardStat('Lớp đang theo dõi', tracked.length),
+  91:         DashboardStat('Tài liệu chờ đánh giá', waiting.length),
+  92:         DashboardStat('Tài liệu đang đánh giá', inReview.length),
+  93:         DashboardStat('Đăng ký chờ phản hồi', pending),
+  94:         DashboardStat('Dự án cần xử lý', toHandle),
+  95:       ],
+  96:     );
+  97:   }
+  98: }
+
+===== lib/repositories/notification_repository.dart =====
+
+   1: import 'dart:convert';
+   2: 
+   3: import 'package:flutter/services.dart';
+   4: import 'package:flutter_riverpod/flutter_riverpod.dart';
+   5: 
+   6: import '../models/academic/academic_models.dart';
+   7: 
+   8: abstract interface class NotificationRepository {
+   9:   Future<List<AcademicRecord>> load();
+  10: }
+  11: 
+  12: class FakeNotificationRepository implements NotificationRepository {
+  13:   FakeNotificationRepository(this.bundle);
+  14:   final AssetBundle bundle;
+  15:   @override
+  16:   Future<List<AcademicRecord>> load() async =>
+  17:       (jsonDecode(await bundle.loadString('assets/fixtures/notifications.json'))
+  18:               as List)
+  19:           .map((v) => AcademicRecord(v as AcademicJson))
+  20:           .where(
+  21:             (n) =>
+  22:                 !RegExp(
+  23:                   r'(?:yêu cầu|đề nghị) tham gia (?:lớp|nhóm)|join (?:class|group) request',
+  24:                   caseSensitive: false,
+  25:                 ).hasMatch(n.text('title')) &&
+  26:                 !(RegExp(
+  27:                       r'tham gia|join',
+  28:                       caseSensitive: false,
+  29:                     ).hasMatch(n.text('title')) &&
+  30:                     RegExp(
+  31:                       r'lớp|nhóm|class|group',
+  32:                       caseSensitive: false,
+  33:                     ).hasMatch(n.text('title')) &&
+  34:                     RegExp(
+  35:                       r'chờ.*duyệt|chờ.*phê duyệt|yêu cầu.*duyệt|pending|awaiting approval',
+  36:                       caseSensitive: false,
+  37:                     ).hasMatch(n.text('title'))),
+  38:           )
+  39:           .toList(growable: false);
+  40: }
+  41: 
+  42: final notificationRepositoryProvider = Provider<NotificationRepository>(
+  43:   (ref) => FakeNotificationRepository(rootBundle),
+  44: );
+  45: final notificationsProvider = FutureProvider<List<AcademicRecord>>(
+  46:   (ref) => ref.watch(notificationRepositoryProvider).load(),
+  47: );
+  48: 
+  49: bool notificationMatches(AcademicRecord n, int tab) => switch (tab) {
+  50:   1 => n.flag('unread'),
+  51:   2 => ['file-up', 'badge-check'].contains(n.text('kind')),
+  52:   3 => n.text('kind') == 'clock',
+  53:   4 => n.text('title').contains('Đánh giá AI'),
+  54:   _ => true,
+  55: };
+
+===== lib/models/academic/academic_models.dart =====
+
+   1: import 'dart:convert';
+   2: 
+   3: import 'management_queries.dart';
+   4: import 'review_policy.dart';
+   5: 
+   6: typedef AcademicJson = Map<String, dynamic>;
+   7: 
+   8: dynamic _freeze(dynamic value) {
+   9:   if (value is Map) {
+  10:     return Map<String, dynamic>.unmodifiable(
+  11:       value.map((k, v) => MapEntry(k.toString(), _freeze(v))),
+  12:     );
+  13:   }
+  14:   if (value is List) return List<dynamic>.unmodifiable(value.map(_freeze));
+  15:   return value;
+  16: }
+  17: 
+  18: /// Bản ghi bất biến; giữ các trường chưa chuyển để không làm mất cấu hình/lịch sử.
+  19: class AcademicRecord {
+  20:   AcademicRecord(AcademicJson json) : data = _freeze(json) as AcademicJson;
+  21:   final AcademicJson data;
+  22:   String text(String key, [String fallback = '']) =>
+  23:       data[key]?.toString() ?? fallback;
+  24:   int integer(String key, [int fallback = 0]) =>
+  25:       (data[key] as num?)?.toInt() ?? fallback;
+  26:   bool flag(String key, [bool fallback = false]) =>
+  27:       data[key] as bool? ?? fallback;
+  28:   List<dynamic> values(String key) => data[key] as List<dynamic>? ?? const [];
+  29:   List<String> strings(String key) => values(key).cast<String>();
+  30:   String get id => text('id');
+  31:   String get name => text('name');
+  32:   AcademicJson toJson() => jsonDecode(jsonEncode(data)) as AcademicJson;
+  33: }
+  34: 
+  35: /// Môn học gốc được dùng xuyên học kỳ, không chứa cấu hình đợt học.
+  36: class Course extends AcademicRecord {
+  37:   Course(super.json);
+  38:   String get code => text('code');
+  39:   String get description => text('description');
+  40: }
+  41: 
+  42: /// Học kỳ dùng ngày ISO để xác định lựa chọn tạo lớp theo đồng hồ fixture.
+  43: class AcademicSemester extends AcademicRecord {
+  44:   AcademicSemester(super.json);
+  45:   String get startDate => text('startDate');
+  46:   String get endDate => text('endDate');
+  47:   bool get archived => flag('archived');
+  48: }
+  49: 
+  50: /// Đợt môn học sở hữu bản cấu trúc Lab riêng của một Course trong một học kỳ.
+  51: class CourseOffering extends AcademicRecord {
+  52:   CourseOffering(super.json);
+  53:   String get courseId => text('courseId');
+  54:   String get semesterId => text('semesterId');
+  55:   String get ruleSetId => text('ruleSetId');
+  56:   String get teachingMethod => text('teachingMethod');
+  57:   String get deadline => text('defaultDeadline');
+  58:   List<AcademicLab> get labs =>
+  59:       values('labs')
+  60:           .map((v) => AcademicLab(v as AcademicJson))
+  61:           .toList(growable: false);
+  62: }
+  63: 
+  64: /// Lớp lưu override độc lập; null kế thừa khác với một danh sách Lab rỗng có chủ ý.
+  65: class ClassRoom extends AcademicRecord {
+  66:   ClassRoom(super.json);
+  67:   String get code => text('code');
+  68:   String get courseId => text('courseId');
+  69:   String get semesterId => text('semesterId');
+  70:   String get offeringId => text('offeringId');
+  71:   String get state => text('state', 'active');
+  72:   bool get archived => state == 'archived';
+  73:   int get capacity => integer('capacity');
+  74:   int get groupCount => integer('groupCount');
+  75:   int get studentCount => integer('studentCount');
+  76:   int get projectCount => integer('projectCount');
+  77:   int get pendingReviews => integer('pendingReviews');
+  78:   int get memberLimit {
+  79:     final value = data['maxGroupMembers'];
+  80:     return value is int && value > 0 ? value : 5;
+  81:   }
+  82: 
+  83:   String get startDate => text('startDate');
+  84:   String get endDate => text('endDate');
+  85:   String get schedule => text('schedule', '25');
+  86:   String get session => text('session', 'morning');
+  87:   String get ruleOverride => text('ruleSetOverride');
+  88:   String get methodOverride => text('teachingMethodOverride');
+  89:   bool get hasLabOverride => data['labOverride'] != null;
+  90:   List<AcademicLab>? get labOverride => hasLabOverride
+  91:       ? values('labOverride')
+  92:             .map((v) => AcademicLab(v as AcademicJson))
+  93:             .toList(growable: false)
+  94:       : null;
+  95: }
+  96: 
+  97: /// Một tiêu chí giữ đủ cờ AI/bằng chứng; điểm đề xuất không phải quyền phê duyệt.
+  98: class RubricCriterion extends AcademicRecord {
+  99:   RubricCriterion(super.json);
+ 100:   num get maxScore => data['maxScore'] as num? ?? 0;
+ 101:   bool get enabled => flag('enabled');
+ 102: }
+ 103: 
+ 104: /// Rule Set dùng chung, được gắn vào Course qua đợt/lớp/mục, không tự đổi ownership.
+ 105: class RuleSet extends AcademicRecord {
+ 106:   RuleSet(super.json);
+ 107:   int get version => integer('version', 1);
+ 108:   bool get active => text('status', 'active') == 'active';
+ 109:   num get passThreshold => data['passThreshold'] as num? ?? 80;
+ 110:   num get improveThreshold => data['improveThreshold'] as num? ?? 70;
+ 111:   String get documentType => text('documentType', 'Tất cả');
+ 112:   List<String> get formats => strings('allowedFormats');
+ 113:   List<RubricCriterion> get criteria =>
+ 114:       values('criteria')
+ 115:           .map((v) => RubricCriterion(v as AcademicJson))
+ 116:           .toList(growable: false);
+ 117:   num get totalScore => criteria
+ 118:       .where((c) => c.enabled)
+ 119:       .fold<num>(0, (sum, c) => sum + c.maxScore);
+ 120: }
+ 121: 
+ 122: /// Lab và mục tài liệu giữ ID phụ thuộc; nhân bản phải đổi ID và ánh xạ lại cạnh.
+ 123: class AcademicLab extends AcademicRecord {
+ 124:   AcademicLab(super.json);
+ 125:   String get code => text('code');
+ 126:   String get title => text('title');
+ 127:   List<LabItem> get items =>
+ 128:       values('items')
+ 129:           .map((v) => LabItem(v as AcademicJson))
+ 130:           .toList(growable: false);
+ 131: }
+ 132: 
+ 133: /// Cấu hình cụ thể nhất của tài liệu, ưu tiên trước cấu hình lớp/đợt.
+ 134: class LabItem extends AcademicRecord {
+ 135:   LabItem(super.json);
+ 136:   String get code => text('code');
+ 137:   String get title => text('title');
+ 138:   String get ruleSetId => text('ruleSetId');
+ 139:   List<String> get dependencies => strings('dependsOn');
+ 140: }
+ 141: 
+ 142: /// Nhóm chỉ chứa sinh viên của lớp; giới hạn lấy động từ cấu hình Class.
+ 143: class StudentGroup extends AcademicRecord {
+ 144:   StudentGroup(super.json);
+ 145:   String get classId => text('classId');
+ 146:   List<String> get memberIds => strings('memberIds');
+ 147:   String get projectId => text('projectId');
+ 148: }
+ 149: 
+ 150: /// Sinh viên có thể ghi danh nhiều lớp; classId cũ vẫn được bảo toàn khi đọc fixture.
+ 151: class AcademicStudent extends AcademicRecord {
+ 152:   AcademicStudent(super.json);
+ 153:   String get studentCode => text('studentCode');
+ 154:   bool belongsTo(String classId) =>
+ 155:       text('classId') == classId ||
+ 156:       strings('enrolledClassIds').contains(classId);
+ 157: }
+ 158: 
+ 159: /// Snapshot liên kết học vụ và lịch sử chỉ đọc, dùng chung giữa sáu route phase 2.
+ 160: class AcademicSnapshot extends AcademicRecord {
+ 161:   AcademicSnapshot(super.json);
+ 162:   int get revision => integer('revision');
+ 163:   String get currentSemesterId => text('currentSemesterId');
+ 164:   List<Course> get courses =>
+ 165:       values('courses')
+ 166:           .map((v) => Course(v as AcademicJson))
+ 167:           .toList(growable: false);
+ 168:   List<AcademicSemester> get semesters =>
+ 169:       values('semesters')
+ 170:           .map((v) => AcademicSemester(v as AcademicJson))
+ 171:           .toList(growable: false);
+ 172:   List<CourseOffering> get offerings =>
+ 173:       values('offerings')
+ 174:           .map((v) => CourseOffering(v as AcademicJson))
+ 175:           .toList(growable: false);
+ 176:   List<ClassRoom> get classes =>
+ 177:       values('classes')
+ 178:           .map((v) => ClassRoom(v as AcademicJson))
+ 179:           .toList(growable: false);
+ 180:   List<RuleSet> get rules =>
+ 181:       values('ruleSets')
+ 182:           .map((v) => RuleSet(v as AcademicJson))
+ 183:           .toList(growable: false);
+ 184:   List<StudentGroup> get groups =>
+ 185:       values('groups')
+ 186:           .map((v) => StudentGroup(v as AcademicJson))
+ 187:           .toList(growable: false);
+ 188:   List<AcademicStudent> get students =>
+ 189:       values('students')
+ 190:           .map((v) => AcademicStudent(v as AcademicJson))
+ 191:           .toList(growable: false);
+ 192:   List<AcademicRecord> records(String key) =>
+ 193:       values(key)
+ 194:           .map((v) => AcademicRecord(v as AcademicJson))
+ 195:           .toList(growable: false);
+ 196:   Course? course(String id) => courses.where((v) => v.id == id).firstOrNull;
+ 197:   CourseOffering? offering(String id) =>
+ 198:       offerings.where((v) => v.id == id).firstOrNull;
+ 199:   ClassRoom? classRoom(String id) =>
+ 200:       classes.where((v) => v.id == id).firstOrNull;
+ 201:   RuleSet? rule(String id) => rules.where((v) => v.id == id).firstOrNull;
+ 202:   AcademicSemester? semester(String id) =>
+ 203:       semesters.where((v) => v.id == id).firstOrNull;
+ 204:   List<CourseOffering> courseOfferings(String id) =>
+ 205:       offerings.where((v) => v.courseId == id).toList();
+ 206:   List<ClassRoom> offeringClasses(CourseOffering off) => classes
+ 207:       .where(
+ 208:         (v) =>
+ 209:             v.offeringId == off.id ||
+ 210:             (v.semesterId == off.semesterId && v.courseId == off.courseId),
+ 211:       )
+ 212:       .toList();
+ 213:   List<StudentGroup> classGroups(String id) =>
+ 214:       groups.where((v) => v.classId == id).toList();
+ 215:   List<AcademicStudent> classStudents(String id) =>
+ 216:       students.where((v) => v.belongsTo(id)).toList();
+ 217:   List<AcademicRecord> classProjects(String id) {
+ 218:     final groupIds = classGroups(id).map((g) => g.id).toSet();
+ 219:     return records('projects')
+ 220:         .where(
+ 221:           (p) =>
+ 222:               groupIds.contains(p.text('groupId')) ||
+ 223:               (p.text('groupId').isEmpty && p.text('classId') == id),
+ 224:         )
+ 225:         .toList();
+ 226:   }
+ 227: 
+ 228:   /// Cần chỉnh sửa đã là một quyết định của lượt đánh giá, không còn ở tập đang mở.
+ 229:   List<AcademicRecord> classReviews(ClassRoom cls) =>
+ 230:       ((data['reviewState'] as AcademicJson)['requests'] as List)
+ 231:           .map((v) => AcademicRecord(v as AcademicJson))
+ 232:           .where(
+ 233:             (r) =>
+ 234:                 r.text('classCode') == cls.code &&
+ 235:                 ![
+ 236:                   'approved',
+ 237:                   'needsRevision',
+ 238:                   'notAccepted',
+ 239:                 ].contains(r.text('supervisorStatus')),
+ 240:           )
+ 241:           .toList();
+ 242:   List<AcademicLab> effectiveLabs(ClassRoom cls) =>
+ 243:       cls.labOverride ?? offering(cls.offeringId)?.labs ?? [];
+ 244:   RuleSet? effectiveRule(ClassRoom cls, [LabItem? item]) => rule(
+ 245:     item?.ruleSetId.isNotEmpty == true
+ 246:         ? item!.ruleSetId
+ 247:         : cls.ruleOverride.isNotEmpty
+ 248:         ? cls.ruleOverride
+ 249:         : offering(cls.offeringId)?.ruleSetId ?? '',
+ 250:   );
+ 251:   Set<String> courseRuleIds(String courseId) {
+ 252:     final offs = courseOfferings(courseId);
+ 253:     final offIds = offs.map((o) => o.id).toSet();
+ 254:     final cls = classes.where(
+ 255:       (c) => c.courseId == courseId || offIds.contains(c.offeringId),
+ 256:     );
+ 257:     return {
+ 258:       ...offs.map((o) => o.ruleSetId),
+ 259:       ...offs
+ 260:           .expand((o) => o.labs)
+ 261:           .expand((l) => l.items)
+ 262:           .map((i) => i.ruleSetId),
+ 263:       ...cls.map((c) => c.ruleOverride),
+ 264:       ...cls
+ 265:           .expand((c) => c.labOverride ?? <AcademicLab>[])
+ 266:           .expand((l) => l.items)
+ 267:           .map((i) => i.ruleSetId),
+ 268:     }..remove('');
+ 269:   }
+ 270: 
+ 271:   AcademicSnapshot replaceCollection(String key, List<AcademicJson> rows) =>
+ 272:       AcademicSnapshot({...toJson(), key: rows});
+ 273: 
+ 274:   /// Đồng bộ số liệu Dashboard từ cùng kho fake, không giữ một bản học vụ tách rời.
+ 275:   AcademicJson get dashboardJson {
+ 276:     final result = AcademicRecord(data['dashboard'] as AcademicJson).toJson();
+ 277:     for (final key in [
+ 278:       'courses',
+ 279:       'classes',
+ 280:       'semesters',
+ 281:       'groups',
+ 282:       'projects',
+ 283:       'registrations',
+ 284:     ]) {
+ 285:       result[key] = values(key);
+ 286:     }
+ 287:     result['academic'] = {
+ 288:       'courses': courses.length,
+ 289:       'students': students.length,
+ 290:     };
+ 291:     if (data['reviewState'] is Map) {
+ 292:       result['requests'] = [
+ 293:         for (final r in reviewRows('requests'))
+ 294:           (() {
+ 295:             final raw = evaluation(r);
+ 296:             final e = raw == null
+ 297:                 ? null
+ 298:                 : ReviewPolicy.currentIllustration(
+ 299:                     this,
+ 300:                     raw,
+ 301:                     r.text('documentTitle'),
+ 302:                   );
+ 303:             return {
+ 304:               ...r.toJson(),
+ 305:               'ai': {
+ 306:                 'status': raw?.text('evaluationStatus') ?? 'notRun',
+ 307:                 'counts': e?.text('evaluationStatus') == 'completed'
+ 308:                     ? {
+ 309:                         'errors': e!
+ 310:                             .values('findings')
+ 311:                             .where((f) => f['level'] == 'error')
+ 312:                             .length,
+ 313:                         'warnings': e
+ 314:                             .values('findings')
+ 315:                             .where((f) => f['level'] == 'warning')
+ 316:                             .length,
+ 317:                         'suggestions': e
+ 318:                             .values('criterionResults')
+ 319:                             .fold<int>(
+ 320:                               0,
+ 321:                               (n, c) => n + (c['suggestions'] as List).length,
+ 322:                             ),
+ 323:                       }
+ 324:                     : null,
+ 325:               },
+ 326:               'relativeTime':
+ 327:                   ((data['presentation'] as Map)['reviews']
+ 328:                       as Map)[r.id]?['relativeTime'] ??
+ 329:                   'Vừa xong',
+ 330:             };
+ 331:           })(),
+ 332:       ];
+ 333:     }
+ 334:     return result;
+ 335:   }
+ 336: }
+ 337: 
+ 338: /// Thông điệp nghiệp vụ an toàn để hiển thị; không lộ lỗi kỹ thuật của nguồn dữ liệu.
+ 339: class AcademicFailure implements Exception {
+ 340:   const AcademicFailure(this.message);
+ 341:   final String message;
+ 342:   @override
+ 343:   String toString() => message;
+ 344: }

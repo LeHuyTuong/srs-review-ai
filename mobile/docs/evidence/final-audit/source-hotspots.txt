@@ -1,0 +1,657 @@
+lib/app/providers.dart:27: rootBundle,
+lib/app/providers.dart:29: (await ref.read(academicRepositoryProvider).load()).dashboardJson,
+lib/app/providers.dart:38: (ref) => FakeAcademicService(rootBundle),
+lib/models/academic/academic_models.dart:118: .where((c) => c.enabled)
+lib/models/academic/academic_models.dart:119: .fold<num>(0, (sum, c) => sum + c.maxScore);
+lib/models/academic/academic_models.dart:196: Course? course(String id) => courses.where((v) => v.id == id).firstOrNull;
+lib/models/academic/academic_models.dart:198: offerings.where((v) => v.id == id).firstOrNull;
+lib/models/academic/academic_models.dart:200: classes.where((v) => v.id == id).firstOrNull;
+lib/models/academic/academic_models.dart:201: RuleSet? rule(String id) => rules.where((v) => v.id == id).firstOrNull;
+lib/models/academic/academic_models.dart:203: semesters.where((v) => v.id == id).firstOrNull;
+lib/models/academic/academic_models.dart:205: offerings.where((v) => v.courseId == id).toList();
+lib/models/academic/academic_models.dart:207: .where(
+lib/models/academic/academic_models.dart:214: groups.where((v) => v.classId == id).toList();
+lib/models/academic/academic_models.dart:216: students.where((v) => v.belongsTo(id)).toList();
+lib/models/academic/academic_models.dart:220: .where(
+lib/models/academic/academic_models.dart:232: .where(
+lib/models/academic/academic_models.dart:254: final cls = classes.where(
+lib/models/academic/academic_models.dart:288: 'courses': courses.length,
+lib/models/academic/academic_models.dart:289: 'students': students.length,
+lib/models/academic/academic_models.dart:311: .where((f) => f['level'] == 'error')
+lib/models/academic/academic_models.dart:312: .length,
+lib/models/academic/academic_models.dart:315: .where((f) => f['level'] == 'warning')
+lib/models/academic/academic_models.dart:316: .length,
+lib/models/academic/academic_models.dart:319: .fold<int>(
+lib/models/academic/academic_models.dart:321: (n, c) => n + (c['suggestions'] as List).length,
+lib/models/academic/academic_policy.dart:34: if (cs.map((c) => c['id']).toSet().length != cs.length ||
+lib/models/academic/academic_policy.dart:142: final student = s.students.where((v) => v.id == studentId).firstOrNull;
+lib/models/academic/academic_policy.dart:149: if (group.memberIds.length >= cls.memberLimit) {
+lib/models/academic/academic_presentation.dart:54: return name.length > 64
+lib/models/academic/management_queries.dart:5: StudentGroup? group(String id) => groups.where((g) => g.id == id).firstOrNull;
+lib/models/academic/management_queries.dart:7: records('projects').where((p) => p.id == id).firstOrNull;
+lib/models/academic/management_queries.dart:13: reviewRows('requests').where((r) => r.id == id).firstOrNull;
+lib/models/academic/management_queries.dart:33: .where((p) => p.id == g.projectId || p.text('groupId') == g.id)
+lib/models/academic/management_queries.dart:36: reviewRows('feedback').where((r) => r.text('reviewId') == id).toList();
+lib/models/academic/management_queries.dart:38: reviewRows('audit').where((r) => r.text('reviewId') == id).toList();
+lib/models/academic/management_queries.dart:41: .where(
+lib/models/academic/management_queries.dart:59: .where(
+lib/models/academic/management_queries.dart:108: .where((d) => d.text('supervisorStatus') == 'needsRevision')
+lib/models/academic/management_queries.dart:111: .where(
+lib/models/academic/management_queries.dart:117: .where(
+lib/models/academic/management_queries.dart:156: .where(
+lib/models/academic/management_queries.dart:165: .where(
+lib/models/academic/management_queries.dart:176: 'order': base.length + 1,
+lib/models/academic/management_queries.dart:208: .where(
+lib/models/academic/management_queries.dart:211: .where((b) => b.id == id)
+lib/models/academic/management_queries.dart:223: final b = base.where((b) => b.id == id).firstOrNull;
+lib/models/academic/management_queries.dart:235: .where((v) => v.text('reviewId') == r.id)
+lib/models/academic/review_policy.dart:32: for (final c in rule.criteria.where((c) => c.enabled)) {
+lib/models/academic/review_policy.dart:35: final i = int.parse(c.id.substring(c.id.length - 1)) - 1;
+lib/models/academic/review_policy.dart:36: if (i < checks.length) scenario = checks[i];
+lib/models/academic/review_policy.dart:39: .where(
+lib/models/academic/review_policy.dart:100: 'maxScore': results.fold<num>(0, (n, c) => n + (c['maxScore'] as num)),
+lib/models/academic/review_policy.dart:103: ? (results.fold<num>(0, (n, c) => n + (c['score'] as num)) * 100)
+lib/models/academic/review_policy.dart:145: (fs.where((f) => f['level'] == 'error').length, 'lỗi'),
+lib/models/academic/review_policy.dart:146: (fs.where((f) => f['level'] == 'warning').length, 'cảnh báo'),
+lib/models/academic/review_policy.dart:150: .fold<int>(0, (n, c) => n + (c['suggestions'] as List).length),
+lib/models/academic/review_policy.dart:154: final parts = counts.where((p) => p.$1 > 0).map((p) => '${p.$1} ${p.$2}');
+lib/models/dashboard/dashboard_snapshot.dart:40: .where((r) => r['status'] == 'pending')
+lib/repositories/counter_repository.dart:21: _service.write(_service.read() + 1);
+lib/repositories/notification_repository.dart:17: (jsonDecode(await bundle.loadString('assets/fixtures/notifications.json'))
+lib/repositories/notification_repository.dart:20: .where(
+lib/repositories/notification_repository.dart:43: (ref) => FakeNotificationRepository(rootBundle),
+lib/repositories/notification_repository.dart:46: (ref) => ref.watch(notificationRepositoryProvider).load(),
+lib/screens/academic/class_screens.dart:176: AcademicSectionTitle('Nhóm sinh viên', '${groups.length} nhóm'),
+lib/screens/academic/class_screens.dart:190: AcademicSectionTitle('Sinh viên', '${students.length} sinh viên'),
+lib/screens/academic/class_screens.dart:198: padding: const EdgeInsets.symmetric(
+lib/screens/academic/class_screens.dart:210: bottom: BorderSide(color: AppColors.line),
+lib/screens/academic/class_screens.dart:213: padding: const EdgeInsets.symmetric(
+lib/screens/academic/class_screens.dart:221: backgroundColor: AppColors.brandSoft,
+lib/screens/academic/class_screens.dart:222: foregroundColor: AppColors.brand,
+lib/screens/academic/class_screens.dart:226: color: AppColors.brand,
+lib/screens/academic/class_screens.dart:248: .where(
+lib/screens/academic/class_screens.dart:277: AcademicSectionTitle('Dự án', '${projects.length} dự án'),
+lib/screens/academic/class_screens.dart:292: .where((g) => g.id == p.text('groupId'))
+lib/screens/academic/class_screens.dart:321: '${reviews.length} yêu cầu',
+lib/screens/academic/course_screens.dart:44: padding: const EdgeInsets.only(bottom: AppSpacing.m),
+lib/screens/academic/course_screens.dart:46: border: Border(bottom: BorderSide(color: AppColors.line)),
+lib/screens/academic/course_screens.dart:57: padding: const EdgeInsets.all(AppSpacing.s),
+lib/screens/academic/course_screens.dart:59: color: AppColors.brandSoft,
+lib/screens/academic/course_screens.dart:60: borderRadius: BorderRadius.circular(AppSpacing.s),
+lib/screens/academic/course_screens.dart:64: color: AppColors.brand,
+lib/screens/academic/course_screens.dart:117: title: 'Đợt giảng dạy (${s.courseOfferings(c.id).length})',
+lib/screens/academic/course_screens.dart:125: 'CÁC ĐỢT GIẢNG DẠY (${s.courseOfferings(c.id).length})',
+lib/screens/academic/course_screens.dart:132: padding: const EdgeInsets.symmetric(
+lib/screens/academic/course_screens.dart:151: '${off.labs.length} Labs',
+lib/screens/academic/course_screens.dart:157: '${s.offeringClasses(off).length} lớp · ${off.labs.length} Lab',
+lib/screens/academic/course_screens.dart:199: 'Đợt học, lớp và nội dung riêng (${s.courseOfferings(courseId).length})',
+lib/screens/academic/course_screens.dart:257: padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
+lib/screens/academic/course_screens.dart:268: color: AppColors.brand,
+lib/screens/academic/course_screens.dart:307: style: AppTypography.effectiveSmall.copyWith(color: AppColors.muted),
+lib/screens/academic/course_screens.dart:310: foregroundColor: AppColors.muted,
+lib/screens/academic/directory_screens.dart:19: list.sort((a, b) {
+lib/screens/academic/directory_screens.dart:115: '${AcademicPresentation.date(sem.startDate)} – ${AcademicPresentation.date(sem.endDate)} · ${s.classes.where((c) => c.semesterId == sem.id).length} lớp',
+lib/screens/academic/directory_screens.dart:122: '${s.classes.where((c) => c.semesterId == sem.id).length} lớp',
+lib/screens/academic/directory_screens.dart:127: .where((o) => o.semesterId == sem.id)
+lib/screens/academic/directory_screens.dart:157: .where((st) => s.groups.any((g) => g.memberIds.contains(st.id)))
+lib/screens/academic/directory_screens.dart:158: .length;
+lib/screens/academic/directory_screens.dart:200: '${visible.length} sinh viên · $grouped có nhóm · ${visible.length - grouped} chưa có nhóm',
+lib/screens/academic/directory_screens.dart:237: .where((g) => g.memberIds.contains(st.id))
+lib/screens/academic/directory_screens.dart:299: .where((c) => !c.archived)
+lib/screens/academic/offering_detail_screen.dart:52: '${s.offeringClasses(o).length} lớp đang học',
+lib/screens/academic/offering_detail_screen.dart:69: padding: const EdgeInsets.only(top: AppSpacing.s),
+lib/screens/academic/offering_detail_screen.dart:94: padding: const EdgeInsets.only(top: AppSpacing.l),
+lib/screens/academic/offering_detail_screen.dart:122: padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+lib/screens/academic/offering_detail_screen.dart:164: padding: const EdgeInsets.only(bottom: AppSpacing.m),
+lib/screens/academic/offering_detail_screen.dart:166: border: Border(bottom: BorderSide(color: AppColors.line)),
+lib/screens/academic/offering_detail_screen.dart:170: const AppIcon('school', color: AppColors.brand),
+lib/screens/academic/widgets/academic_form_sheet.dart:57: padding: EdgeInsets.only(bottom: AppSpacing.xs),
+lib/screens/academic/widgets/academic_form_sheet.dart:63: padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+lib/screens/academic/widgets/academic_form_sheet.dart:82: for (final date in vm.fields.where((v) => v.type == 'date'))
+lib/screens/academic/widgets/academic_form_sheet.dart:103: padding: const EdgeInsets.all(AppSpacing.m),
+lib/screens/academic/widgets/academic_form_sheet.dart:105: color: AppColors.subtle,
+lib/screens/academic/widgets/academic_form_sheet.dart:106: borderRadius: BorderRadius.circular(AppSpacing.s),
+lib/screens/academic/widgets/academic_form_sheet.dart:121: style: AppTypography.body.copyWith(color: AppColors.amber),
+lib/screens/academic/widgets/academic_form_sheet.dart:126: 'Tổng điểm: ${state.draft.values('criteria').where((c) => c['enabled'] == true).fold<num>(0, (n, c) => n + (c['maxScore'] is num ? c['maxScore'] as num : 0))}',
+lib/screens/academic/widgets/academic_form_sheet.dart:129: for (var i = 0; i < state.draft.values('criteria').length; i++)
+lib/screens/academic/widgets/academic_form_sheet.dart:211: fillColor: AppColors.white,
+lib/screens/academic/widgets/academic_form_sheet.dart:212: contentPadding: const EdgeInsets.all(AppSpacing.m),
+lib/screens/academic/widgets/academic_form_sheet.dart:214: borderRadius: BorderRadius.circular(AppSpacing.s),
+lib/screens/academic/widgets/academic_form_sheet.dart:215: borderSide: const BorderSide(color: AppColors.borderMuted),
+lib/screens/academic/widgets/academic_form_sheet.dart:218: borderRadius: BorderRadius.circular(AppSpacing.s),
+lib/screens/academic/widgets/academic_form_sheet.dart:219: borderSide: const BorderSide(color: AppColors.borderMuted),
+lib/screens/academic/widgets/academic_form_sheet.dart:404: style: TextStyle(color: AppColors.danger),
+lib/screens/academic/widgets/class_card.dart:66: color: AppColors.brand,
+lib/screens/academic/widgets/class_card.dart:128: margin: const EdgeInsets.only(top: AppSpacing.s),
+lib/screens/academic/widgets/class_card.dart:129: padding: const EdgeInsets.only(top: AppSpacing.s),
+lib/screens/academic/widgets/class_card.dart:131: border: Border(top: BorderSide(color: AppColors.line)),
+lib/screens/academic/widgets/class_card.dart:190: padding: const EdgeInsets.only(top: AppSpacing.s),
+lib/screens/academic/widgets/class_filter_bar.dart:25: .where((e) => e.key != 'semester')
+lib/screens/academic/widgets/class_filter_bar.dart:26: .fold<int>(0, (n, e) => n + e.value.length);
+lib/screens/academic/widgets/class_filter_bar.dart:58: fillColor: AppColors.subtle,
+lib/screens/academic/widgets/class_filter_bar.dart:61: padding: EdgeInsets.all(AppSpacing.m),
+lib/screens/academic/widgets/class_filter_bar.dart:150: e.value.where((v) => v != value).toList(),
+lib/screens/academic/widgets/class_filter_bar.dart:161: Text('${vm.visible(snapshot).length} lớp', style: AppTypography.strong),
+lib/screens/academic/widgets/class_filter_bar.dart:185: .where(
+lib/screens/academic/widgets/class_filter_bar.dart:224: for (final c in widget.snapshot.courses.where(
+lib/screens/academic/widgets/class_overview.dart:31: (students.isEmpty ? room.studentCount : students.length, 'Sinh viên'),
+lib/screens/academic/widgets/class_overview.dart:32: (groups.length, 'Nhóm'),
+lib/screens/academic/widgets/class_overview.dart:33: (snapshot.classProjects(room.id).length, 'Dự án'),
+lib/screens/academic/widgets/class_overview.dart:34: (snapshot.classReviews(room).length, 'Chờ / đang đánh giá'),
+lib/screens/academic/widgets/class_overview.dart:42: for (var i = 0; i < stats.length; i += 2)
+lib/screens/academic/widgets/class_overview.dart:63: padding: const EdgeInsets.symmetric(
+lib/screens/academic/widgets/class_overview.dart:73: padding: const EdgeInsets.symmetric(
+lib/screens/academic/widgets/class_overview.dart:80: bottom: BorderSide(color: AppColors.line),
+lib/screens/academic/widgets/class_review_preview.dart:137: padding: const EdgeInsets.all(AppMetrics.gridGap),
+lib/screens/academic/widgets/class_review_preview.dart:139: color: AppColors.subtle,
+lib/screens/academic/widgets/class_review_preview.dart:140: borderRadius: BorderRadius.circular(AppSpacing.s),
+lib/screens/academic/widgets/group_summary_card.dart:31: .where((p) => p.id == g.projectId)
+lib/screens/academic/widgets/group_summary_card.dart:38: padding: const EdgeInsets.symmetric(
+lib/screens/academic/widgets/group_summary_card.dart:60: color: AppColors.brand,
+lib/screens/academic/widgets/group_summary_card.dart:93: '${g.memberIds.length}/$limit thành viên · ${g.integer('pendingReviews')} chờ đánh giá',
+lib/screens/academic/widgets/group_summary_card.dart:96: if (g.memberIds.length > limit)
+lib/screens/academic/widgets/group_summary_card.dart:106: color: AppColors.muted,
+lib/screens/academic/widgets/group_summary_card.dart:170: if (g.memberIds.length > limit)
+lib/screens/academic/widgets/group_summary_card.dart:173: style: AppTypography.body.copyWith(color: AppColors.amber),
+lib/screens/academic/widgets/group_summary_card.dart:177: ('Thành viên', '${g.memberIds.length}/$limit'),
+lib/screens/academic/widgets/group_summary_card.dart:235: color: AppColors.brand,
+lib/screens/academic/widgets/group_summary_card.dart:236: backgroundColor: AppColors.brandSoft,
+lib/screens/academic/widgets/group_summary_card.dart:238: borderRadius: BorderRadius.circular(AppSpacing.s),
+lib/screens/academic/widgets/lab_editor.dart:98: for (var li = 0; li < labs.length; li++)
+lib/screens/academic/widgets/lab_editor.dart:115: color: AppColors.brand,
+lib/screens/academic/widgets/lab_editor.dart:125: padding: const EdgeInsets.only(
+lib/screens/academic/widgets/lab_editor.dart:149: if (li < labs.length - 1)
+lib/screens/academic/widgets/lab_editor.dart:159: for (var ii = 0; ii < labs[li].items.length; ii++)
+lib/screens/academic/widgets/lab_editor.dart:161: padding: const EdgeInsets.symmetric(
+lib/screens/academic/widgets/lab_editor.dart:166: border: ii < labs[li].items.length - 1
+lib/screens/academic/widgets/lab_editor.dart:168: bottom: BorderSide(color: AppColors.line),
+lib/screens/academic/widgets/lab_editor.dart:230: 'Phụ thuộc: ${labs[li].items[ii].dependencies.map((id) => labs.expand((l) => l.items).where((i) => i.id == id).firstOrNull?.code ?? '?').join(', ')}',
+lib/screens/academic/widgets/lab_editor.dart:257: if (ii < labs[li].items.length - 1)
+lib/screens/academic/widgets/lab_editor.dart:278: color: AppColors.brand,
+lib/screens/academic/widgets/rule_set_panel.dart:37: final rules = s.rules.where((r) => library || ids.contains(r.id));
+lib/screens/academic/widgets/rule_set_panel.dart:43: padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+lib/screens/academic/widgets/rule_set_panel.dart:47: padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+lib/screens/academic/widgets/rule_set_panel.dart:116: : '${r.criteria.where((c) => c.enabled).length} tiêu chí bật · ${r.totalScore} điểm · ${r.documentType}',
+lib/screens/academic/widgets/student_enrollment_sheet.dart:25: final valid = state.rows.where((r) => r['status'] == 'valid').length;
+lib/screens/academic/widgets/student_enrollment_sheet.dart:34: : 'Thêm ${state.selected.length} sinh viên',
+lib/screens/academic/widgets/student_enrollment_sheet.dart:136: '$valid hợp lệ · ${state.rows.where((r) => r['status'] == 'exists').length} đã tồn tại · ${state.rows.where((r) => !['valid', 'exists'].contains(r['status'])).length} lỗi',
+lib/screens/account/account_screens.dart:50: ('Lớp phụ trách', '${s.classes.length} lớp'),
+lib/screens/account/account_screens.dart:51: ('Sinh viên', '${s.students.length} sinh viên'),
+lib/screens/account/account_screens.dart:74: '${s.semesters.length} học kỳ',
+lib/screens/account/account_screens.dart:80: '${s.courses.length} môn',
+lib/screens/account/account_screens.dart:84: ('Lớp học', '${s.classes.length} lớp', '/classes', 'school'),
+lib/screens/account/account_screens.dart:87: '${s.students.length} sinh viên',
+lib/screens/account/account_screens.dart:93: '${s.groups.length} nhóm',
+lib/screens/account/account_screens.dart:102: leading: AppIcon(item.$4, color: AppColors.brand),
+lib/screens/account/account_screens.dart:143: .where((n) => notificationMatches(n, tab))
+lib/screens/account/account_screens.dart:150: '${all.where((n) => n.flag('unread')).length} thông báo chưa đọc',
+lib/screens/account/account_screens.dart:167: for (final n in visible.where(
+lib/screens/account/account_screens.dart:181: AppIcon(n.text('kind'), color: AppColors.brand),
+lib/screens/account/account_screens.dart:200: color: AppColors.brand,
+lib/screens/account/login_screen.dart:38: .where(
+lib/screens/account/login_screen.dart:59: padding: const EdgeInsets.all(AppSpacing.pagePadding),
+lib/screens/account/login_screen.dart:74: color: AppColors.brand,
+lib/screens/account/login_screen.dart:104: child: Semantics(
+lib/screens/account/login_screen.dart:109: ? AppColors.brandSoft
+lib/screens/account/login_screen.dart:110: : AppColors.white,
+lib/screens/account/login_screen.dart:112: borderRadius: BorderRadius.circular(
+lib/screens/account/login_screen.dart:117: ? AppColors.brand
+lib/screens/account/login_screen.dart:118: : AppColors.line,
+lib/screens/account/login_screen.dart:122: borderRadius: BorderRadius.circular(
+lib/screens/account/login_screen.dart:135: padding: const EdgeInsets.all(AppSpacing.m),
+lib/screens/account/login_screen.dart:148: ? AppColors.brand
+lib/screens/account/login_screen.dart:149: : AppColors.ink,
+lib/screens/account/login_screen.dart:266: padding: const EdgeInsets.all(AppSpacing.pagePadding),
+lib/screens/dashboard/dashboard_screen.dart:35: padding: const EdgeInsets.all(AppSpacing.pagePadding),
+lib/screens/dashboard/widgets/dashboard_heading.dart:45: child: Semantics(
+lib/screens/dashboard/widgets/dashboard_heading.dart:54: color: AppColors.ink,
+lib/screens/dashboard/widgets/dashboard_heading.dart:59: contentPadding: EdgeInsets.symmetric(
+lib/screens/dashboard/widgets/dashboard_review_row.dart:24: padding: const EdgeInsets.symmetric(vertical: AppSpacing.l),
+lib/screens/dashboard/widgets/dashboard_secondary_sections.dart:26: padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
+lib/screens/dashboard/widgets/dashboard_secondary_sections.dart:48: horizontal: BorderSide(color: AppColors.line),
+lib/screens/dashboard/widgets/dashboard_secondary_sections.dart:61: title: 'Đang đánh giá (${state.inReview.length})',
+lib/screens/dashboard/widgets/dashboard_secondary_sections.dart:66: padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
+lib/screens/dashboard/widgets/dashboard_secondary_sections.dart:85: padding: const EdgeInsets.symmetric(vertical: AppSpacing.l),
+lib/screens/dashboard/widgets/dashboard_secondary_sections.dart:111: ('Học kỳ', '/semesters', '${state.snapshot.semesters.length}'),
+lib/screens/dashboard/widgets/dashboard_secondary_sections.dart:113: ('Lớp', '/classes', '${state.snapshot.classes.length}'),
+lib/screens/dashboard/widgets/dashboard_secondary_sections.dart:115: ('Nhóm', '/groups', '${state.snapshot.groupClasses.length}'),
+lib/screens/dashboard/widgets/dashboard_secondary_sections.dart:129: title: 'Dự án cần chú ý (${state.attention.length})',
+lib/screens/dashboard/widgets/dashboard_secondary_sections.dart:136: padding: const EdgeInsets.symmetric(vertical: AppSpacing.l),
+lib/screens/dashboard/widgets/dashboard_stats.dart:13: Widget build(BuildContext context) => Semantics(
+lib/screens/dashboard/widgets/dashboard_stats.dart:24: for (var offset = 0; offset < stats.length; offset += columns)
+lib/screens/dashboard/widgets/dashboard_stats.dart:32: child: index < stats.length
+lib/screens/dashboard/widgets/dashboard_tasks.dart:27: for (var i = 0; i < requests.length; i++) ...[
+lib/screens/dashboard/widgets/dashboard_tasks.dart:47: padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+lib/screens/dashboard/widgets/dashboard_tasks.dart:58: 'Xem ${state.waiting.length} yêu cầu',
+lib/screens/dashboard/widgets/dashboard_tasks.dart:59: style: AppTypography.strong.copyWith(color: AppColors.brand),
+lib/screens/dashboard/widgets/dashboard_tasks.dart:64: color: AppColors.brand,
+lib/screens/dashboard/widgets/dashboard_tasks.dart:70: if (state.waiting.length > 3)
+lib/screens/dashboard/widgets/dashboard_tasks.dart:72: title: 'Yêu cầu khác (${state.waiting.length - 3})',
+lib/screens/management/document_screens.dart:34: padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
+lib/screens/management/document_screens.dart:75: color: AppColors.line,
+lib/screens/management/document_screens.dart:115: final visible = docs.where((d) => match(d, tab)).toList()
+lib/screens/management/document_screens.dart:116: ..sort((a, b) {
+lib/screens/management/document_screens.dart:144: '$name (${docs.where((d) => match(d, i)).length})',
+lib/screens/management/document_screens.dart:166: color: AppColors.line,
+lib/screens/management/group_screens.dart:11: if (s.classes.where((c) => !c.archived).isEmpty)
+lib/screens/management/group_screens.dart:13: for (final cls in s.classes.where((c) => !c.archived))
+lib/screens/management/group_screens.dart:25: '${s.classGroups(cls.id).length} nhóm',
+lib/screens/management/group_screens.dart:61: color: AppColors.line,
+lib/screens/management/group_screens.dart:87: .map((id) => s.students.where((st) => st.id == id).firstOrNull)
+lib/screens/management/group_screens.dart:143: '${members.length}/$limit thành viên · Hoạt động ${((s.data['presentation'] as Map)['activities'] as Map)[g.id] ?? g.text('lastActivity')}',
+lib/screens/management/group_screens.dart:169: if (members.length > limit)
+lib/screens/management/group_screens.dart:171: 'Nhóm có ${members.length}/$limit thành viên. Giữ nguyên thành viên; không thể thêm người mới.',
+lib/screens/management/group_screens.dart:172: style: AppTypography.body.copyWith(color: AppColors.amber),
+lib/screens/management/group_screens.dart:246: '${members.length}/$limit thành viên',
+lib/screens/management/group_screens.dart:257: for (var i = 0; i < members.length; i++) ...[
+lib/screens/management/group_screens.dart:259: padding: const EdgeInsets.symmetric(vertical: AppSpacing.s),
+lib/screens/management/group_screens.dart:265: backgroundColor: AppColors.brandSoft,
+lib/screens/management/group_screens.dart:306: if (i < members.length - 1)
+lib/screens/management/group_screens.dart:309: color: AppColors.line,
+lib/screens/management/project_registrations_screen.dart:17: .where((r) => state.tab == 1 || r.text('status') == 'pending')
+lib/screens/management/project_registrations_screen.dart:85: '${AcademicPresentation.date(r.text('submittedAt'), time: true)} · ${cls == null ? 0 : s.effectiveLabs(cls).length} Lab',
+lib/screens/management/project_screens.dart:122: .where((r) => r.text('projectId') == p.id)
+lib/screens/management/project_screens.dart:126: .where((e) => reviews.any((r) => r.id == e.text('reviewId')))
+lib/screens/management/project_screens.dart:198: 'Tài liệu được duyệt: ${docs.where((d) => d.text('supervisorStatus') == 'approved').length}/${docs.length}',
+lib/screens/management/project_screens.dart:241: color: AppColors.line,
+lib/screens/management/project_screens.dart:261: 'Tài liệu (${docs.length})',
+lib/screens/management/project_screens.dart:366: backgroundColor: AppColors.brandSoft,
+lib/screens/management/review_history_screens.dart:96: ? list.length - 1
+lib/screens/management/review_history_screens.dart:97: : state.tab.clamp(0, list.length - 1);
+lib/screens/management/review_history_screens.dart:116: Text('${list.length} phiên bản', style: AppTypography.muted),
+lib/screens/management/review_history_screens.dart:294: Text('${events.length} sự kiện', style: AppTypography.muted),
+lib/screens/management/review_history_screens.dart:306: style: TextStyle(color: AppColors.muted),
+lib/screens/management/review_history_screens.dart:311: for (final e in events.where(
+lib/screens/management/review_history_screens.dart:330: .where((f) => f.id == id)
+lib/screens/management/review_history_screens.dart:410: .skip((s.eventsFor(r.id).length - 3).clamp(0, 100000))
+lib/screens/management/review_screens.dart:85: .where((f) => f.text('version') == r.text('version'))
+lib/screens/management/review_screens.dart:89: .where((f) => f.text('version') != r.text('version'))
+lib/screens/management/review_screens.dart:145: style: TextStyle(color: AppColors.muted),
+lib/screens/management/review_screens.dart:185: title: 'Phiên bản trước (${previous.length} phản hồi)',
+lib/screens/management/review_screens.dart:248: padding: const EdgeInsets.symmetric(
+lib/screens/management/review_screens.dart:253: color: AppColors.white,
+lib/screens/management/review_screens.dart:254: border: Border(top: BorderSide(color: AppColors.line)),
+lib/screens/management/widgets/ai_review_panel.dart:37: .where((v) => v.text('reviewId') == r.id)
+lib/screens/management/widgets/ai_review_panel.dart:46: .where(
+lib/screens/management/widgets/ai_review_panel.dart:113: color: AppColors.ink,
+lib/screens/management/widgets/ai_review_panel.dart:119: color: AppColors.muted,
+lib/screens/management/widgets/ai_review_panel.dart:129: '${results.where((c) => c.data['score'] == c.data['maxScore']).length} đạt · ${attention.where((c) => c.data['score'] != null).length} cần cải thiện · ${results.where((c) => c.data['score'] == null).length} chưa chấm',
+lib/screens/management/widgets/ai_review_panel.dart:138: color: AppColors.line,
+lib/screens/management/widgets/ai_review_panel.dart:153: color: AppColors.brand,
+lib/screens/management/widgets/ai_review_panel.dart:205: 'Cần chú ý (${attention.length})',
+lib/screens/management/widgets/ai_review_panel.dart:206: 'Tất cả (${results.length})',
+lib/screens/management/widgets/ai_review_panel.dart:224: headerPadding: const EdgeInsets.symmetric(
+lib/screens/management/widgets/ai_review_panel.dart:250: .where((id) => id != c.text('criterionId'))
+lib/screens/management/widgets/ai_review_panel.dart:254: padding: const EdgeInsets.symmetric(
+lib/screens/management/widgets/ai_review_panel.dart:258: border: Border(top: BorderSide(color: AppColors.line)),
+lib/screens/management/widgets/ai_review_panel.dart:267: for (final f in findings.where(
+lib/screens/management/widgets/ai_review_panel.dart:289: for (final f in findings.where(
+lib/screens/management/widgets/ai_review_panel.dart:343: 'Cấu hình đánh giá · ${rule?.criteria.where((c) => c.enabled).length ?? 0} tiêu chí bật',
+lib/screens/management/widgets/ai_review_panel.dart:411: title: 'Lịch sử AI (${runs.length} lần)',
+lib/screens/management/widgets/document_card.dart:69: padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
+lib/screens/management/widgets/document_card.dart:126: padding: const EdgeInsets.all(AppSpacing.l),
+lib/screens/management/widgets/document_card.dart:194: padding: const EdgeInsets.all(AppMetrics.gridGap),
+lib/screens/management/widgets/document_card.dart:196: color: AppColors.subtle,
+lib/screens/management/widgets/document_card.dart:197: borderRadius: BorderRadius.circular(AppSpacing.s),
+lib/screens/management/widgets/document_card.dart:247: if (i < events.length - 1)
+lib/screens/management/widgets/document_card.dart:254: color: AppColors.line,
+lib/screens/management/widgets/document_card.dart:267: 'brand': AppColors.brand,
+lib/screens/management/widgets/document_card.dart:268: 'amber': AppColors.amber,
+lib/screens/management/widgets/document_card.dart:269: 'rust': AppColors.rust,
+lib/screens/management/widgets/document_card.dart:270: 'danger': AppColors.danger,
+lib/screens/management/widgets/document_card.dart:271: 'olive': AppColors.olive,
+lib/screens/management/widgets/document_card.dart:273: AppColors.muted,
+lib/screens/management/widgets/document_card.dart:275: color: AppColors.white,
+lib/screens/management/widgets/document_card.dart:280: color: AppColors.line,
+lib/screens/management/widgets/document_card.dart:292: padding: EdgeInsets.only(
+lib/screens/management/widgets/document_card.dart:293: bottom: i == events.length - 1 ? 0 : AppSpacing.pagePadding,
+lib/screens/management/widgets/document_card.dart:309: padding: const EdgeInsets.only(top: AppSpacing.s),
+lib/screens/management/widgets/document_card.dart:311: padding: const EdgeInsets.all(AppMetrics.gridGap),
+lib/screens/management/widgets/document_card.dart:313: color: AppColors.subtle,
+lib/screens/management/widgets/document_card.dart:314: borderRadius: BorderRadius.circular(AppSpacing.s),
+lib/screens/management/widgets/management_filter_bar.dart:21: .where(
+lib/screens/management/widgets/management_filter_bar.dart:25: .length;
+lib/screens/management/widgets/management_filter_bar.dart:41: fillColor: AppColors.subtle,
+lib/screens/management/widgets/management_filter_bar.dart:43: borderRadius: BorderRadius.circular(AppSpacing.s),
+lib/screens/management/widgets/management_filter_bar.dart:44: borderSide: const BorderSide(color: AppColors.borderMuted),
+lib/screens/management/widgets/management_filter_bar.dart:154: color: AppColors.muted,
+lib/screens/management/widgets/management_filter_bar.dart:166: '${vm.visible.length} $noun',
+lib/screens/management/widgets/management_form_sheet.dart:83: 'Phản hồi đưa vào quyết định (${state.draft.strings('included').length})',
+lib/screens/management/widgets/management_form_sheet.dart:89: .where(
+lib/screens/management/widgets/management_form_sheet.dart:104: padding: const EdgeInsets.all(AppSpacing.m),
+lib/screens/management/widgets/project_form_fields.dart:24: style: AppTypography.strong.copyWith(color: AppColors.brand),
+lib/screens/management/widgets/project_form_fields.dart:48: padding: const EdgeInsets.all(AppSpacing.m),
+lib/screens/management/widgets/review_feedback.dart:24: padding: const EdgeInsets.all(AppSpacing.m),
+lib/screens/management/widgets/review_feedback.dart:105: padding: const EdgeInsets.all(AppSpacing.m),
+lib/screens/management/widgets/review_feedback.dart:117: for (final f in vm.fields.where(
+lib/screens/management/widgets/sample_document_reader.dart:27: borderRadius: BorderRadius.circular(AppSpacing.s),
+lib/screens/management/widgets/sample_document_reader.dart:29: side: const BorderSide(color: AppColors.line),
+lib/screens/management/widgets/sample_document_reader.dart:37: padding: const EdgeInsets.all(AppSpacing.m),
+lib/screens/management/widgets/sample_document_reader.dart:70: const Divider(height: AppMetrics.border, color: AppColors.line),
+lib/screens/management/widgets/sample_document_reader.dart:72: padding: const EdgeInsets.all(AppSpacing.m),
+lib/screens/management/widgets/sample_document_reader.dart:125: color: AppColors.subtle,
+lib/screens/management/widgets/sample_document_reader.dart:126: padding: const EdgeInsets.all(AppSpacing.m),
+lib/screens/management/widgets/sample_document_reader.dart:165: WidgetsBinding.instance.addPostFrameCallback((_) {
+lib/screens/management/widgets/sample_document_reader.dart:184: padding: const EdgeInsets.all(AppSpacing.m),
+lib/screens/management/widgets/sample_document_reader.dart:202: padding: const EdgeInsets.all(AppSpacing.m),
+lib/screens/management/widgets/sample_document_reader.dart:246: (checks.length / (r.integer('pageCount', 1) - 1).clamp(1, 10000))
+lib/screens/management/widgets/sample_document_reader.dart:253: style: AppTypography.strong.copyWith(color: AppColors.muted),
+lib/screens/management/widgets/sample_document_reader.dart:303: padding: const EdgeInsets.all(AppSpacing.l),
+lib/screens/management/widgets/sample_document_reader.dart:305: color: AppColors.white,
+lib/screens/management/widgets/sample_document_reader.dart:306: border: Border.all(color: AppColors.line),
+lib/screens/management/widgets/sample_document_reader.dart:307: borderRadius: BorderRadius.circular(AppSpacing.xs),
+lib/screens/management/widgets/sample_document_reader.dart:315: padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+lib/screens/management/widgets/sample_document_reader.dart:321: padding: const EdgeInsets.only(top: AppSpacing.l),
+lib/screens/management/widgets/sample_document_reader.dart:352: ..color = AppColors.ink
+lib/screens/management/widgets/sample_document_reader.dart:361: style: AppTypography.body.copyWith(fontSize: 8, height: 1),
+lib/screens/management/widgets/sample_document_reader.dart:395: for (var i = 0; i < cases.length; i++) {
+lib/screens/management/widgets/sample_document_reader.dart:400: Paint()..color = AppColors.subtle,
+lib/screens/navigation_destination_screen.dart:46: padding: const EdgeInsets.all(AppSpacing.pagePadding),
+lib/services/academic/fake_academic_service.dart:18: jsonDecode(await _bundle.loadString('assets/fixtures/academic.json'))
+lib/services/dashboard/fake_dashboard_service.dart:14: : jsonDecode(await _bundle.loadString('assets/fixtures/dashboard.json'))
+lib/theme/app_shadows.dart:9: color: AppColors.ink.withValues(alpha: 0.06),
+lib/theme/app_shadows.dart:16: color: AppColors.ink.withValues(alpha: 0.08),
+lib/theme/app_shadows.dart:23: color: AppColors.ink.withValues(alpha: 0.12),
+lib/theme/app_theme.dart:11: borderRadius: BorderRadius.circular(AppRadius.button),
+lib/theme/app_theme.dart:13: static const _buttonPadding = EdgeInsets.symmetric(
+lib/theme/app_theme.dart:20: scaffoldBackgroundColor: AppColors.canvas,
+lib/theme/app_theme.dart:22: primary: AppColors.brand,
+lib/theme/app_theme.dart:23: onPrimary: AppColors.white,
+lib/theme/app_theme.dart:24: primaryContainer: AppColors.brandSoft,
+lib/theme/app_theme.dart:25: onPrimaryContainer: AppColors.brand,
+lib/theme/app_theme.dart:26: secondary: AppColors.olive,
+lib/theme/app_theme.dart:27: onSecondary: AppColors.white,
+lib/theme/app_theme.dart:28: secondaryContainer: AppColors.oliveSoft,
+lib/theme/app_theme.dart:29: onSecondaryContainer: AppColors.olive,
+lib/theme/app_theme.dart:30: tertiary: AppColors.amber,
+lib/theme/app_theme.dart:31: onTertiary: AppColors.white,
+lib/theme/app_theme.dart:32: tertiaryContainer: AppColors.amberSoft,
+lib/theme/app_theme.dart:33: onTertiaryContainer: AppColors.amber,
+lib/theme/app_theme.dart:34: error: AppColors.danger,
+lib/theme/app_theme.dart:35: onError: AppColors.white,
+lib/theme/app_theme.dart:36: errorContainer: AppColors.dangerSoft,
+lib/theme/app_theme.dart:37: onErrorContainer: AppColors.danger,
+lib/theme/app_theme.dart:38: surface: AppColors.white,
+lib/theme/app_theme.dart:39: onSurface: AppColors.ink,
+lib/theme/app_theme.dart:40: onSurfaceVariant: AppColors.muted,
+lib/theme/app_theme.dart:41: outline: AppColors.line,
+lib/theme/app_theme.dart:42: outlineVariant: AppColors.line,
+lib/theme/app_theme.dart:43: surfaceTint: Colors.transparent,
+lib/theme/app_theme.dart:58: backgroundColor: AppColors.white,
+lib/theme/app_theme.dart:59: foregroundColor: AppColors.ink,
+lib/theme/app_theme.dart:60: surfaceTintColor: Colors.transparent,
+lib/theme/app_theme.dart:67: color: AppColors.white,
+lib/theme/app_theme.dart:68: surfaceTintColor: Colors.transparent,
+lib/theme/app_theme.dart:71: side: const BorderSide(color: AppColors.line),
+lib/theme/app_theme.dart:72: borderRadius: BorderRadius.circular(AppRadius.card),
+lib/theme/app_theme.dart:83: foregroundColor: const WidgetStatePropertyAll(AppColors.white),
+lib/theme/app_theme.dart:88: ? AppColors.brandHover
+lib/theme/app_theme.dart:89: : AppColors.brand,
+lib/theme/app_theme.dart:99: foregroundColor: AppColors.ink,
+lib/theme/app_theme.dart:100: backgroundColor: AppColors.white,
+lib/theme/app_theme.dart:101: side: const BorderSide(color: AppColors.line),
+lib/theme/app_theme.dart:107: fillColor: AppColors.white,
+lib/theme/app_theme.dart:108: contentPadding: const EdgeInsets.all(AppSpacing.m),
+lib/theme/app_theme.dart:110: borderRadius: BorderRadius.circular(AppRadius.button),
+lib/theme/app_theme.dart:111: borderSide: const BorderSide(color: AppColors.line),
+lib/theme/app_theme.dart:114: borderRadius: BorderRadius.circular(AppRadius.button),
+lib/theme/app_theme.dart:115: borderSide: const BorderSide(color: AppColors.line),
+lib/theme/app_theme.dart:118: borderRadius: BorderRadius.circular(AppRadius.button),
+lib/theme/app_theme.dart:119: borderSide: const BorderSide(color: AppColors.brand),
+lib/theme/app_theme.dart:122: borderRadius: BorderRadius.circular(AppRadius.button),
+lib/theme/app_theme.dart:123: borderSide: const BorderSide(color: AppColors.danger),
+lib/theme/app_theme.dart:127: color: AppColors.line,
+lib/theme/app_theme.dart:132: backgroundColor: AppColors.brand,
+lib/theme/app_theme.dart:133: foregroundColor: AppColors.white,
+lib/theme/app_typography.dart:10: fontSize: 14,
+lib/theme/app_typography.dart:15: color: AppColors.ink,
+lib/theme/app_typography.dart:19: fontSize: 26,
+lib/theme/app_typography.dart:27: fontSize: 17,
+lib/theme/app_typography.dart:31: fontSize: 16,
+lib/theme/app_typography.dart:35: static final role = body.copyWith(color: AppColors.muted, height: 1.375);
+lib/theme/app_typography.dart:38: fontSize: 28,
+lib/theme/app_typography.dart:41: color: AppColors.brand,
+lib/theme/app_typography.dart:43: static final muted = body.copyWith(color: AppColors.muted);
+lib/theme/app_typography.dart:44: static final input = body.copyWith(fontSize: 16);
+lib/theme/app_typography.dart:45: static final courseName = body.copyWith(fontSize: 15, color: AppColors.muted);
+lib/theme/app_typography.dart:48: color: AppColors.brand,
+lib/theme/app_typography.dart:51: fontSize: 18,
+lib/theme/app_typography.dart:55: static final disclosureArrow = strong.copyWith(fontSize: 22);
+lib/theme/app_typography.dart:60: fontSize: 15,
+lib/theme/app_typography.dart:66: fontSize: 22,
+lib/theme/app_typography.dart:70: fontSize: 20,
+lib/theme/app_typography.dart:74: fontSize: 16,
+lib/theme/app_typography.dart:78: fontSize: 13,
+lib/theme/app_typography.dart:82: fontSize: 12,
+lib/theme/app_typography.dart:86: fontSize: 11,
+lib/theme/app_typography.dart:88: color: AppColors.muted,
+lib/viewmodels/academic/academic_form_view_model.dart:75: final first = s.offerings.where((o) {
+lib/viewmodels/academic/academic_form_view_model.dart:85: final lab = labs.where((l) => l.id == spec.labId).firstOrNull;
+lib/viewmodels/academic/academic_form_view_model.dart:91: s.semesters.where((v) => !existing.contains(v.id)).firstOrNull ??
+lib/viewmodels/academic/academic_form_view_model.dart:119: 'Group ${(s.classGroups(spec.classId).length + 1).toString().padLeft(2, '0')}',
+lib/viewmodels/academic/academic_form_view_model.dart:182: if (parts.first == 'criteria' && parts.length == 3) {
+lib/viewmodels/academic/academic_form_view_model.dart:197: if (p.first == 'criteria' && p.length == 3) {
+lib/viewmodels/academic/academic_form_view_model.dart:235: for (var i = 0; i < state.draft.values('criteria').length; i++)
+lib/viewmodels/academic/academic_form_view_model.dart:282: .where(
+lib/viewmodels/academic/academic_form_view_model.dart:358: .where((r) => !r.active)
+lib/viewmodels/academic/academic_form_view_model.dart:382: for (final o in s.offerings.where((o) {
+lib/viewmodels/academic/academic_form_view_model.dart:568: }.where((v) => v.isNotEmpty))
+lib/viewmodels/academic/academic_form_view_model.dart:609: .where((i) => i.id != state.draft.id))
+lib/viewmodels/academic/academic_form_view_model.dart:679: '${labs.length} Lab · ${labs.expand((l) => l.items).length} mục',
+lib/viewmodels/academic/academic_form_view_model.dart:691: g.memberIds.length >
+lib/viewmodels/academic/academic_form_view_model.dart:780: return 'Lab ${nums.isEmpty ? labs.length + 1 : nums.reduce((a, b) => a > b ? a : b) + 1}';
+lib/viewmodels/academic/academic_form_view_model.dart:787: return '${m[1]}${(int.parse(m[2]!) + 1).toString().padLeft(m[2]!.length, '0')}';
+lib/viewmodels/academic/academic_view_model.dart:25: ref.watch(academicRepositoryProvider).load();
+lib/viewmodels/academic/academic_view_model.dart:281: 'groupCount': s.classGroups(classId).length + 1,
+lib/viewmodels/academic/academic_view_model.dart:286: final group = s.groups.where((g) => g.id == groupId).firstOrNull;
+lib/viewmodels/academic/academic_view_model.dart:316: .where((p) => p.isNotEmpty)
+lib/viewmodels/academic/academic_view_model.dart:323: if (existing.length + added.length > cls.capacity) {
+lib/viewmodels/academic/academic_view_model.dart:336: 'studentCount': existing.length + added.length,
+lib/viewmodels/academic/academic_view_model.dart:405: if (index >= 0 && target >= 0 && target < list.length) {
+lib/viewmodels/academic/academic_view_model.dart:415: .where((t) => t.id == templateId)
+lib/viewmodels/academic/academic_view_model.dart:450: .where((d) => !ids.contains(d))
+lib/viewmodels/academic/academic_view_model.dart:469: return 'Lab ${nums.isEmpty ? labs.length + 1 : nums.reduce((a, b) => a > b ? a : b) + 1}';
+lib/viewmodels/academic/class_filter_view_model.dart:45: List<ClassRoom> visible(AcademicSnapshot s) => s.classes.where((c) {
+lib/viewmodels/academic/directory_view_model.dart:25: .where(
+lib/viewmodels/academic/directory_view_model.dart:34: .where(
+lib/viewmodels/academic/directory_view_model.dart:46: .where(
+lib/viewmodels/academic/directory_view_model.dart:53: .where(
+lib/viewmodels/academic/management_actions.dart:14: .map((id) => s.students.where((st) => st.id == id).first)
+lib/viewmodels/academic/management_actions.dart:36: for (var i = 0; i < members.length; i++)
+lib/viewmodels/academic/management_actions.dart:77: g.memberIds.where((id) => id != studentId).toList(),
+lib/viewmodels/academic/management_actions.dart:93: .where((v) => v.id != id)
+lib/viewmodels/academic/management_actions.dart:117: 'groupCount': s.classGroups(c.id).length,
+lib/viewmodels/academic/management_actions.dart:118: 'projectCount': s.classProjects(c.id).length,
+lib/viewmodels/academic/management_actions.dart:119: 'pendingReviews': s.classReviews(c).length,
+lib/viewmodels/academic/management_actions.dart:254: .where((v) => v.id != id)
+lib/viewmodels/academic/management_actions.dart:270: .where((v) => v.id == id)
+lib/viewmodels/academic/management_form_view_model.dart:30: .where(
+lib/viewmodels/academic/management_form_view_model.dart:64: .where(
+lib/viewmodels/academic/management_form_view_model.dart:95: : draft.strings('included').where((v) => v != id).toList(),
+lib/viewmodels/academic/management_form_view_model.dart:103: .where(
+lib/viewmodels/academic/management_form_view_model.dart:116: .where(
+lib/viewmodels/academic/management_form_view_model.dart:151: ? '${snapshot.group(draft.id)?.memberIds.length ?? 0}/${snapshot.classRoom(snapshot.group(draft.id)?.classId ?? '')?.memberLimit ?? 5} thành viên · Sinh viên ${snapshot.classRoom(snapshot.group(draft.id)?.classId ?? '')?.code ?? '—'} chưa có nhóm'
+lib/viewmodels/academic/management_form_view_model.dart:229: final groups = s.groups.where(
+lib/viewmodels/academic/management_form_view_model.dart:245: .where(
+lib/viewmodels/academic/management_form_view_model.dart:424: g.memberIds.length >= snapshot.classRoom(g.classId)!.memberLimit) {
+lib/viewmodels/academic/management_form_view_model.dart:512: ].where((v) => v.isNotEmpty).join(' · ')
+lib/viewmodels/academic/management_list_view_model.dart:64: for (var i = 0; i < hierarchy.length; i++) {
+lib/viewmodels/academic/management_list_view_model.dart:68: .where(
+lib/viewmodels/academic/management_list_view_model.dart:77: next[key] = next[key]!.where(valid.contains).toList();
+lib/viewmodels/academic/management_list_view_model.dart:149: ? old.where((v) => v != value).toList()
+lib/viewmodels/academic/management_list_view_model.dart:155: .where(
+lib/viewmodels/academic/management_list_view_model.dart:163: .where((e) => e.key != key && e.value.isNotEmpty)
+lib/viewmodels/academic/management_list_view_model.dart:167: (v) => v.length == 1
+lib/viewmodels/academic/management_list_view_model.dart:174: .length;
+lib/viewmodels/academic/management_list_view_model.dart:258: .where(
+lib/viewmodels/academic/management_list_view_model.dart:286: .where((r) => kind != 'history' || s.eventsFor(r.id).isNotEmpty)
+lib/viewmodels/academic/management_list_view_model.dart:291: .where(
+lib/viewmodels/academic/management_list_view_model.dart:300: .where(
+lib/viewmodels/academic/management_list_view_model.dart:355: final list = rows.where((r) {
+lib/viewmodels/academic/management_list_view_model.dart:378: } else if (e.key == 'schedule' && e.value.any((v) => v.length == 1)) {
+lib/viewmodels/academic/management_list_view_model.dart:387: list.sort((a, b) {
+lib/viewmodels/academic/management_list_view_model.dart:418: ).values('findings').where((f) => f['level'] == level).length;
+lib/viewmodels/academic/management_list_view_model.dart:490: v: v.length == 1 ? 'T$v' : label(v),
+lib/viewmodels/academic/management_list_view_model.dart:500: .where(
+lib/viewmodels/academic/management_list_view_model.dart:507: .where((v) => v.isNotEmpty)
+lib/viewmodels/academic/management_list_view_model.dart:535: final r = rows.where((r) => r.id == value).firstOrNull;
+lib/viewmodels/academic/review_actions.dart:76: .where(
+lib/viewmodels/academic/review_actions.dart:82: .length,
+lib/viewmodels/academic/review_actions.dart:165: final f = s.reviewRows('feedback').where((f) => f.id == id).firstOrNull;
+lib/viewmodels/academic/review_actions.dart:227: .where(
+lib/viewmodels/academic/review_actions.dart:297: .where((v) => v.text('version') == r.text('version'))
+lib/viewmodels/academic/review_actions.dart:348: .where((v) => v.id == token)
+lib/viewmodels/academic/review_actions.dart:374: .where((f) => f['level'] == 'error')
+lib/viewmodels/academic/review_actions.dart:375: .length,
+lib/viewmodels/academic/review_actions.dart:378: .where((f) => f['level'] == 'warning')
+lib/viewmodels/academic/review_actions.dart:379: .length,
+lib/viewmodels/academic/review_actions.dart:382: .fold<int>(
+lib/viewmodels/academic/review_actions.dart:384: (n, c) => n + (c['suggestions'] as List).length,
+lib/viewmodels/academic/student_enrollment_view_model.dart:70: .where(
+lib/viewmodels/academic/student_enrollment_view_model.dart:111: .where((l) => l.isNotEmpty)
+lib/viewmodels/academic/student_enrollment_view_model.dart:127: 'name': parts.length > 1 ? parts[1] : '',
+lib/viewmodels/academic/student_enrollment_view_model.dart:128: 'email': parts.length > 2 ? parts[2] : '',
+lib/viewmodels/academic/student_enrollment_view_model.dart:164: ? state.rows.where((r) => r['status'] == 'valid').toList()
+lib/viewmodels/academic/student_enrollment_view_model.dart:167: .where(
+lib/viewmodels/counter_view_model.dart:12: CounterState build() => ref.watch(counterRepositoryProvider).load();
+lib/viewmodels/counter_view_model.dart:16: state = ref.read(counterRepositoryProvider).increment();
+lib/viewmodels/dashboard/dashboard_view_model.dart:18: final snapshot = await ref.watch(dashboardRepositoryProvider).load();
+lib/viewmodels/dashboard/dashboard_view_model.dart:37: .where((c) => semesterId.isEmpty || c.semesterId == semesterId)
+lib/viewmodels/dashboard/dashboard_view_model.dart:41: .where((p) => classIds.contains(data.groupClasses[p.groupId]))
+lib/viewmodels/dashboard/dashboard_view_model.dart:44: .where((p) => p.isActive)
+lib/viewmodels/dashboard/dashboard_view_model.dart:48: .where((r) => semesterId.isEmpty || r.semesterId == semesterId)
+lib/viewmodels/dashboard/dashboard_view_model.dart:51: .where((r) => r.supervisorStatus == 'waiting')
+lib/viewmodels/dashboard/dashboard_view_model.dart:54: .where((r) => r.supervisorStatus == 'inReview')
+lib/viewmodels/dashboard/dashboard_view_model.dart:57: .where((a) => activeIds.contains(a.projectId))
+lib/viewmodels/dashboard/dashboard_view_model.dart:59: final tracked = classes.where((c) => c.isActive).toList();
+lib/viewmodels/dashboard/dashboard_view_model.dart:61: .where((id) => classIds.contains(data.groupClasses[id]))
+lib/viewmodels/dashboard/dashboard_view_model.dart:62: .length;
+lib/viewmodels/dashboard/dashboard_view_model.dart:68: }.where(activeIds.contains).length;
+lib/viewmodels/dashboard/dashboard_view_model.dart:76: activeProjects: activeIds.length,
+lib/viewmodels/dashboard/dashboard_view_model.dart:77: archivedProjects: projects.where((p) => !p.isActive).length,
+lib/viewmodels/dashboard/dashboard_view_model.dart:79: .where((r) => r.supervisorStatus == 'needsRevision')
+lib/viewmodels/dashboard/dashboard_view_model.dart:80: .length,
+lib/viewmodels/dashboard/dashboard_view_model.dart:81: trackedClasses: tracked.length,
+lib/viewmodels/dashboard/dashboard_view_model.dart:83: .where((a) => a.label == 'Sắp đến hạn' || a.label == 'Quá hạn')
+lib/viewmodels/dashboard/dashboard_view_model.dart:84: .length,
+lib/viewmodels/dashboard/dashboard_view_model.dart:88: tracked.map((c) => c.courseId).toSet().length,
+lib/viewmodels/dashboard/dashboard_view_model.dart:90: DashboardStat('Lớp đang theo dõi', tracked.length),
+lib/viewmodels/dashboard/dashboard_view_model.dart:91: DashboardStat('Tài liệu chờ đánh giá', waiting.length),
+lib/viewmodels/dashboard/dashboard_view_model.dart:92: DashboardStat('Tài liệu đang đánh giá', inReview.length),
+lib/widgets/app_academic_layout.dart:29: style: AppTypography.strong.copyWith(color: AppColors.brand),
+lib/widgets/app_academic_layout.dart:67: padding: EdgeInsets.symmetric(
+lib/widgets/app_academic_layout.dart:77: color: segmented && selected == i ? AppColors.white : null,
+lib/widgets/app_academic_layout.dart:78: borderRadius: segmented ? BorderRadius.circular(AppSpacing.s) : null,
+lib/widgets/app_academic_layout.dart:84: color: i == selected ? AppColors.brand : Colors.transparent,
+lib/widgets/app_academic_layout.dart:92: color: i == selected ? AppColors.brand : AppColors.muted,
+lib/widgets/app_academic_layout.dart:99: padding: const EdgeInsets.all(AppSpacing.xs),
+lib/widgets/app_academic_layout.dart:101: color: AppColors.subtle,
+lib/widgets/app_academic_layout.dart:102: borderRadius: BorderRadius.circular(AppSpacing.s),
+lib/widgets/app_academic_layout.dart:107: for (var i = 0; i < labels.length; i++) Expanded(child: tab(i)),
+lib/widgets/app_academic_layout.dart:117: padding: const EdgeInsets.all(AppSpacing.xs),
+lib/widgets/app_academic_layout.dart:119: color: AppColors.subtle,
+lib/widgets/app_academic_layout.dart:120: borderRadius: BorderRadius.circular(AppSpacing.s),
+lib/widgets/app_academic_layout.dart:124: children: [for (var i = 0; i < labels.length; i++) tab(i)],
+lib/widgets/app_academic_layout.dart:134: for (var i = 0; i < labels.length; i++)
+lib/widgets/app_academic_layout.dart:141: color: AppColors.line,
+lib/widgets/app_academic_layout.dart:156: padding: const EdgeInsets.all(AppSpacing.m),
+lib/widgets/app_academic_layout.dart:158: color: error ? AppColors.rustSoft : AppColors.subtle,
+lib/widgets/app_academic_layout.dart:159: borderRadius: BorderRadius.circular(AppSpacing.s),
+lib/widgets/app_academic_layout.dart:168: color: error ? AppColors.danger : AppColors.brand,
+lib/widgets/app_academic_layout.dart:174: color: error ? AppColors.danger : AppColors.muted,
+lib/widgets/app_academic_layout.dart:199: color: AppColors.white,
+lib/widgets/app_academic_layout.dart:200: border: Border.all(color: AppColors.line),
+lib/widgets/app_academic_layout.dart:201: borderRadius: BorderRadius.circular(AppSpacing.s),
+lib/widgets/app_academic_layout.dart:220: barrierColor: AppColors.ink.withValues(alpha: .4),
+lib/widgets/app_academic_layout.dart:221: backgroundColor: AppColors.white,
+lib/widgets/app_academic_layout.dart:228: padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(sheet).bottom),
+lib/widgets/app_academic_layout.dart:264: border: Border(bottom: BorderSide(color: AppColors.line)),
+lib/widgets/app_academic_layout.dart:297: padding: const EdgeInsets.symmetric(
+lib/widgets/app_academic_layout.dart:311: border: Border(top: BorderSide(color: AppColors.line)),
+lib/widgets/app_academic_layout.dart:313: padding: const EdgeInsets.symmetric(
+lib/widgets/app_badge.dart:22: 'brand' => (AppColors.brandSoft, AppColors.brand),
+lib/widgets/app_badge.dart:23: 'olive' => (AppColors.oliveSoft, AppColors.olive),
+lib/widgets/app_badge.dart:24: 'amber' => (AppColors.amberSoft, AppColors.amber),
+lib/widgets/app_badge.dart:25: 'rust' => (AppColors.rustSoft, AppColors.rust),
+lib/widgets/app_badge.dart:26: 'danger' => (AppColors.dangerSoft, AppColors.danger),
+lib/widgets/app_badge.dart:27: _ => (AppColors.subtle, AppColors.muted),
+lib/widgets/app_badge.dart:33: padding: EdgeInsets.symmetric(
+lib/widgets/app_badge.dart:41: borderRadius: BorderRadius.circular(AppMetrics.badgeRadius),
+lib/widgets/app_bottom_navigation.dart:41: .where((d) => path.startsWith(d.path))
+lib/widgets/app_bottom_navigation.dart:50: color: AppColors.white,
+lib/widgets/app_bottom_navigation.dart:52: top: BorderSide(color: AppColors.line, width: AppMetrics.border),
+lib/widgets/app_bottom_navigation.dart:69: child: Semantics(
+lib/widgets/app_bottom_navigation.dart:74: ? AppColors.brandSoft
+lib/widgets/app_bottom_navigation.dart:75: : AppColors.white,
+lib/widgets/app_bottom_navigation.dart:76: borderRadius: BorderRadius.circular(AppRadius.button),
+lib/widgets/app_bottom_navigation.dart:78: borderRadius: BorderRadius.circular(AppRadius.button),
+lib/widgets/app_bottom_navigation.dart:85: padding: const EdgeInsets.symmetric(
+lib/widgets/app_bottom_navigation.dart:95: ? AppColors.brand
+lib/widgets/app_bottom_navigation.dart:96: : AppColors.muted,
+lib/widgets/app_bottom_navigation.dart:108: ? AppColors.brand
+lib/widgets/app_bottom_navigation.dart:109: : AppColors.muted,
+lib/widgets/app_button.dart:35: AppButtonVariant.primary => AppColors.white,
+lib/widgets/app_button.dart:36: AppButtonVariant.secondary => selected ? AppColors.brand : AppColors.ink,
+lib/widgets/app_button.dart:37: AppButtonVariant.danger => AppColors.danger,
+lib/widgets/app_button.dart:82: padding: const EdgeInsets.symmetric(
+lib/widgets/app_button.dart:95: EdgeInsets.symmetric(
+lib/widgets/app_button.dart:102: ? const WidgetStatePropertyAll(BorderSide(color: AppColors.brand))
+lib/widgets/app_button.dart:109: ? AppColors.subtle
+lib/widgets/app_button.dart:111: ? AppColors.brandSoft
+lib/widgets/app_button.dart:112: : AppColors.white,
+lib/widgets/app_button.dart:114: overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+lib/widgets/app_button.dart:121: foregroundColor: const WidgetStatePropertyAll(AppColors.danger),
+lib/widgets/app_button.dart:126: ? AppColors.rustSoft
+lib/widgets/app_button.dart:127: : AppColors.white,
+lib/widgets/app_button.dart:129: overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+lib/widgets/app_button.dart:134: return Semantics(
+lib/widgets/app_card.dart:13: this.padding = const EdgeInsets.all(AppSpacing.l),
+lib/widgets/app_card.dart:23: color: tinted ? AppColors.brandTint : AppColors.white,
+lib/widgets/app_card.dart:24: border: Border.all(color: AppColors.line, width: AppMetrics.border),
+lib/widgets/app_card.dart:25: borderRadius: BorderRadius.circular(AppRadius.card),
+lib/widgets/app_card.dart:28: padding: padding.add(const EdgeInsets.all(AppMetrics.border)),
+lib/widgets/app_disclosure.dart:49: padding: EdgeInsets.only(
+lib/widgets/app_disclosure.dart:54: border: Border(bottom: BorderSide(color: AppColors.line)),
+lib/widgets/app_disclosure.dart:59: Semantics(
+lib/widgets/app_disclosure.dart:85: ? AppColors.muted
+lib/widgets/app_disclosure.dart:86: : AppColors.ink,
+lib/widgets/app_disclosure.dart:104: color: AppColors.ink,
+lib/widgets/app_filter_controls.dart:33: padding: EdgeInsets.symmetric(
+lib/widgets/app_filter_controls.dart:37: color: selected ? AppColors.brandSoft : AppColors.white,
+lib/widgets/app_filter_controls.dart:38: border: Border.all(color: selected ? AppColors.brand : AppColors.line),
+lib/widgets/app_filter_controls.dart:39: borderRadius: BorderRadius.circular(AppSpacing.s),
+lib/widgets/app_filter_controls.dart:51: color: selected ? AppColors.brand : AppColors.ink,
+lib/widgets/app_filter_controls.dart:73: borderRadius: BorderRadius.circular(AppSpacing.huge),
+lib/widgets/app_filter_controls.dart:76: padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+lib/widgets/app_filter_controls.dart:78: color: AppColors.brandSoft,
+lib/widgets/app_filter_controls.dart:79: border: Border.all(color: AppColors.brand.withValues(alpha: .3)),
+lib/widgets/app_filter_controls.dart:80: borderRadius: BorderRadius.circular(AppSpacing.huge),
+lib/widgets/app_filter_controls.dart:88: style: AppTypography.body.copyWith(color: AppColors.brand),
+lib/widgets/app_filter_controls.dart:90: const AppIcon('x', color: AppColors.brand),
+lib/widgets/app_icon.dart:12: this.color = AppColors.muted,
+lib/widgets/app_icon.dart:20: Widget build(BuildContext context) => ExcludeSemantics(
+lib/widgets/app_meta_grid.dart:28: padding: const EdgeInsets.only(bottom: AppSpacing.s),
+lib/widgets/app_meta_grid.dart:30: border: Border(bottom: BorderSide(color: AppColors.line)),
+lib/widgets/app_meta_grid.dart:45: for (var i = 0; i < items.length; i += 2)
+lib/widgets/app_meta_grid.dart:55: child: j >= items.length
+lib/widgets/app_meta_grid.dart:59: ? const EdgeInsets.symmetric(
+lib/widgets/app_meta_grid.dart:66: color: AppColors.subtle,
+lib/widgets/app_meta_grid.dart:67: borderRadius: BorderRadius.circular(
+lib/widgets/app_states.dart:18: this.iconColor = AppColors.brand,
+lib/widgets/app_states.dart:19: this.iconBackground = AppColors.brandSoft,
+lib/widgets/app_states.dart:33: padding: const EdgeInsets.symmetric(
+lib/widgets/app_states.dart:38: color: AppColors.white,
+lib/widgets/app_states.dart:39: borderRadius: BorderRadius.circular(AppRadius.card),
+lib/widgets/app_states.dart:49: borderRadius: BorderRadius.circular(AppRadius.button),
+lib/widgets/app_states.dart:95: ..color = AppColors.line
+lib/widgets/app_states.dart:101: distance < metric.length;
+lib/widgets/app_states.dart:107: (distance + AppSpacing.xs).clamp(0, metric.length),
+lib/widgets/app_states.dart:125: padding: EdgeInsets.all(AppSpacing.xxl),
+lib/widgets/app_states.dart:146: iconColor: AppColors.danger,
+lib/widgets/app_states.dart:147: iconBackground: AppColors.dangerSoft,
+lib/widgets/mobile_header.dart:19: color: AppColors.white,
+lib/widgets/mobile_header.dart:28: padding: const EdgeInsets.symmetric(
+lib/widgets/mobile_header.dart:45: color: AppColors.brand,
+lib/widgets/mobile_header.dart:66: color: AppColors.line,
+lib/widgets/stat_card.dart:15: Widget build(BuildContext context) => Semantics(
+lib/widgets/stat_card.dart:19: padding: const EdgeInsets.all(AppSpacing.m),

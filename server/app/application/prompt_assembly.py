@@ -24,7 +24,12 @@ HARD RULES — a violation makes your answer useless:
 3. If a page image is attached, it is CONTEXT ONLY. Observations about diagrams go
    in `context_note` and must NOT create issues and must NOT change the score.
 4. No issues found => `issues: []` and a score of 8-10.
-5. Write all output in English (the SEP490 syllabus requires English documents).
+5. Write all output in English (the SEP490 syllabus requires English documents),
+   unless the unit sets `output_language`: then write `suggestion` and
+   `context_note` in that language. `quote` is ALWAYS verbatim, never translated.
+6. If the unit carries a `lecturer_criterion`, that criterion is THE question:
+   score how well the text meets it and report its gaps. The rubric above is
+   then only a lens for spotting defects, not the thing being scored.
 
 Few-shot:
   [BAD]  "The system shall load quickly and support Vietnamese and English"
@@ -164,21 +169,59 @@ def review_system_prompt(rubric: dict[str, Any], criteria_block: str | None = No
     )
 
 
+_LANGUAGE_NAMES = {"vi": "Vietnamese (tiếng Việt)", "en": "English"}
+
+# Score bands for a lecturer criterion. Without explicit bands the model parked
+# every criterion at 5/10 (measured 2026-11-10: five criteria, five 10/20).
+_CRITERION_BRIEF = """lecturer_criterion: {id} · {name}{description}{evidence}
+Judge ONLY whether the text above meets this criterion. Score bands:
+  9-10 fully met, with concrete evidence in the text;
+  6-8  mostly met, minor gaps;
+  3-5  partly met, a required element is missing or vague;
+  0-2  not addressed at all.
+For EVERY gap, one issue: `quote` = the verbatim passage closest to the gap
+(the heading or sentence where the content should be), `suggestion` = what is
+missing, why it matters for this criterion, and a short example of the fixed
+text. Never give generic writing advice that would fit any document."""
+
+
+def _criterion_brief(criterion: Any) -> str:
+    description = getattr(criterion, "description", None)
+    evidence = getattr(criterion, "evidence", None)
+    return _CRITERION_BRIEF.format(
+        id=criterion.id,
+        name=criterion.name,
+        description=f"\ncriterion_description: {description}" if description else "",
+        evidence=f"\nevidence_expected: {evidence}" if evidence else "",
+    )
+
+
 def _unit_body(
     requirement_id: str,
     text: str,
     section: str | None,
     page_index: int | None,
+    criterion: Any = None,
+    output_language: str | None = None,
 ) -> str:
     header = f"requirement_id: {requirement_id}"
     if section:
         header += f"\nsection: {section}"
     if page_index is not None:
         header += f"\npage_index: {page_index}"
+    if output_language:
+        header += f"\noutput_language: {_LANGUAGE_NAMES.get(output_language, output_language)}"
+    body = f'text:\n"""\n{text}\n"""'
+    if criterion is not None:
+        # A lecturer criterion replaces the unit-type briefing (that one asks "is
+        # this a good use case / NFR", this one asks the lecturer's question). It
+        # goes AFTER the text: the document can be 12 000 characters long and the
+        # question reads best right before the answer.
+        return f"{header}\n{body}\n\n{_criterion_brief(criterion)}"
     brief = _unit_brief(requirement_id, section)
     if brief:
         header += f"\n\n{brief}"
-    return f'{header}\ntext:\n"""\n{text}\n"""'
+    return f"{header}\n{body}"
 
 
 def review_user_prompt(
@@ -186,8 +229,10 @@ def review_user_prompt(
     text: str,
     section: str | None,
     page_index: int | None = None,
+    criterion: Any = None,
+    output_language: str | None = None,
 ) -> str:
-    return _unit_body(requirement_id, text, section, page_index)
+    return _unit_body(requirement_id, text, section, page_index, criterion, output_language)
 
 
 class PromptUnit(Protocol):
@@ -224,7 +269,16 @@ def review_batch_user_prompt(units: Sequence[tuple[int, PromptUnit]]) -> str:
     ]
     for index, unit in units:
         parts.append(f"{BATCH_UNIT_MARKER}{index}")
-        parts.append(_unit_body(unit.requirement_id, unit.text, unit.section, unit.page_index))
+        parts.append(
+            _unit_body(
+                unit.requirement_id,
+                unit.text,
+                unit.section,
+                unit.page_index,
+                getattr(unit, "criterion", None),
+                getattr(unit, "output_language", None),
+            )
+        )
     return "\n".join(parts)
 
 

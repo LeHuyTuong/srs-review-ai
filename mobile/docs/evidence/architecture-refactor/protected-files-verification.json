@@ -1,0 +1,102 @@
+[
+  {
+    "path": "test/academic_view_model_test.dart",
+    "identical": true
+  },
+  {
+    "path": "test/academic_widget_test.dart",
+    "identical": true
+  },
+  {
+    "path": "test/counter_view_model_test.dart",
+    "identical": true
+  },
+  {
+    "path": "test/dashboard_view_model_test.dart",
+    "identical": true
+  },
+  {
+    "path": "test/dashboard_widget_test.dart",
+    "identical": true
+  },
+  {
+    "path": "test/fixtures/react-review-oracle.json",
+    "identical": true
+  },
+  {
+    "path": "test/management_view_model_test.dart",
+    "identical": true
+  },
+  {
+    "path": "test/management_widget_test.dart",
+    "identical": true
+  },
+  {
+    "path": "test/phase4_test.dart",
+    "identical": true
+  },
+  {
+    "path": "test/pre_firebase_boundaries_test.dart",
+    "identical": true
+  },
+  {
+    "path": "test/pre_firebase_regression_test.dart",
+    "identical": true
+  },
+  {
+    "path": "test/support/academic_fixture.dart",
+    "identical": true
+  },
+  {
+    "path": "test/support/dashboard_fixture.dart",
+    "identical": true
+  },
+  {
+    "path": "test/widget_test.dart",
+    "identical": true
+  },
+  {
+    "path": "integration_test/academic_test.dart",
+    "identical": true
+  },
+  {
+    "path": "integration_test/dashboard_test.dart",
+    "identical": true
+  },
+  {
+    "path": "integration_test/management_test.dart",
+    "identical": true
+  },
+  {
+    "path": "integration_test/phase4_test.dart",
+    "identical": true
+  },
+  {
+    "path": "test_driver/academic_driver.dart",
+    "identical": true
+  },
+  {
+    "path": "test_driver/dashboard_driver.dart",
+    "identical": true
+  },
+  {
+    "path": "test_driver/management_driver.dart",
+    "identical": true
+  },
+  {
+    "path": "test_driver/phase4_driver.dart",
+    "identical": true
+  },
+  {
+    "path": "pubspec.yaml",
+    "identical": true
+  },
+  {
+    "path": "pubspec.lock",
+    "identical": true
+  },
+  {
+    "path": "analysis_options.yaml",
+    "identical": true
+  }
+]

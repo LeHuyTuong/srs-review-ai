@@ -1,0 +1,593 @@
+{
+  "source": "React initial stores, no saved user data; fixture for UI only",
+  "now": 1790997600000,
+  "user": {
+    "name": "Nguyễn Văn An",
+    "initials": "NA",
+    "role": "Giảng viên",
+    "email": "an.nguyen@university.edu.vn",
+    "semester": "Fall 2026"
+  },
+  "semesters": [
+    {
+      "id": "fall-2026",
+      "name": "Fall 2026",
+      "academicYear": "2026–2027",
+      "startDate": "2026-09-01",
+      "endDate": "2026-12-31",
+      "archived": false
+    },
+    {
+      "id": "summer-2026",
+      "name": "Summer 2026",
+      "academicYear": "2025–2026",
+      "startDate": "2026-05-01",
+      "endDate": "2026-08-31",
+      "archived": false
+    },
+    {
+      "id": "spring-2026",
+      "name": "Spring 2026",
+      "academicYear": "2025–2026",
+      "startDate": "2026-01-05",
+      "endDate": "2026-04-30",
+      "archived": true
+    },
+    {
+      "id": "spring-2027",
+      "name": "Spring 2027",
+      "academicYear": "2026–2027",
+      "startDate": "2027-01-05",
+      "endDate": "2027-04-30",
+      "archived": false
+    }
+  ],
+  "classes": [
+    {
+      "id": "se1701",
+      "semesterId": "fall-2026",
+      "courseId": "swp391",
+      "state": "active"
+    },
+    {
+      "id": "se1702",
+      "semesterId": "fall-2026",
+      "courseId": "swp391",
+      "state": "active"
+    },
+    {
+      "id": "se1703",
+      "semesterId": "fall-2026",
+      "courseId": "swp391",
+      "state": "active"
+    },
+    {
+      "id": "se1801",
+      "semesterId": "fall-2026",
+      "courseId": "swr302",
+      "state": "active"
+    },
+    {
+      "id": "se1650",
+      "semesterId": "summer-2026",
+      "courseId": "prn212",
+      "state": "active"
+    },
+    {
+      "id": "demo-ready-class",
+      "semesterId": "fall-2026",
+      "courseId": "demo-ready-course",
+      "state": "active"
+    },
+    {
+      "id": "self-service-class",
+      "semesterId": "fall-2026",
+      "courseId": "demo-ready-course",
+      "state": "active"
+    }
+  ],
+  "groups": [
+    {
+      "id": "se1701-group-01",
+      "classId": "se1701"
+    },
+    {
+      "id": "se1701-group-02",
+      "classId": "se1701"
+    },
+    {
+      "id": "se1701-group-03",
+      "classId": "se1701"
+    },
+    {
+      "id": "se1701-group-04",
+      "classId": "se1701"
+    },
+    {
+      "id": "se1701-group-05",
+      "classId": "se1701"
+    },
+    {
+      "id": "se1701-group-06",
+      "classId": "se1701"
+    },
+    {
+      "id": "se1701-group-07",
+      "classId": "se1701"
+    },
+    {
+      "id": "se1701-group-08",
+      "classId": "se1701"
+    },
+    {
+      "id": "se1702-group-01",
+      "classId": "se1702"
+    },
+    {
+      "id": "se1702-group-02",
+      "classId": "se1702"
+    },
+    {
+      "id": "se1703-group-01",
+      "classId": "se1703"
+    },
+    {
+      "id": "se1801-group-01",
+      "classId": "se1801"
+    },
+    {
+      "id": "se1801-group-02",
+      "classId": "se1801"
+    },
+    {
+      "id": "se1650-group-01",
+      "classId": "se1650"
+    },
+    {
+      "id": "demo-ready-group",
+      "classId": "demo-ready-class"
+    },
+    {
+      "id": "self-open-group",
+      "classId": "self-service-class"
+    }
+  ],
+  "projects": [
+    {
+      "id": "smart-campus-management",
+      "groupId": "se1701-group-01",
+      "state": "active"
+    },
+    {
+      "id": "hospital-management-system",
+      "groupId": "se1701-group-02",
+      "state": "active"
+    },
+    {
+      "id": "student-services-portal",
+      "groupId": "se1701-group-03",
+      "state": "active"
+    },
+    {
+      "id": "smart-attendance-system",
+      "groupId": "se1701-group-04",
+      "state": "active"
+    },
+    {
+      "id": "dormitory-management-platform",
+      "groupId": "se1701-group-05",
+      "state": "active"
+    },
+    {
+      "id": "ai-learning-assistant",
+      "groupId": "se1701-group-06",
+      "state": "active"
+    },
+    {
+      "id": "event-management-system",
+      "groupId": "se1701-group-07",
+      "state": "archived"
+    },
+    {
+      "id": "campus-service-portal",
+      "groupId": "se1701-group-08",
+      "state": "active"
+    },
+    {
+      "id": "library-booking-system",
+      "groupId": "se1702-group-01",
+      "state": "active"
+    },
+    {
+      "id": "clinic-appointment-app",
+      "groupId": "se1703-group-01",
+      "state": "active"
+    },
+    {
+      "id": "requirement-tracker",
+      "groupId": "se1801-group-01",
+      "state": "active"
+    },
+    {
+      "id": "elearning-platform-srs",
+      "groupId": "se1801-group-02",
+      "state": "active"
+    },
+    {
+      "id": "canteen-ordering-system",
+      "groupId": "se1650-group-01",
+      "state": "archived"
+    },
+    {
+      "id": "demo-ready-project",
+      "groupId": "demo-ready-group",
+      "state": "active"
+    }
+  ],
+  "registrations": [],
+  "requests": [
+    {
+      "id": "review-001",
+      "projectId": "smart-attendance-system",
+      "documentTitle": "Use Case Diagram",
+      "version": "v2",
+      "projectName": "Smart Attendance System",
+      "classCode": "SE1701",
+      "groupName": "Group 04",
+      "supervisorStatus": "waiting",
+      "semesterId": "fall-2026",
+      "courseId": "swp391",
+      "classId": "se1701",
+      "ai": {
+        "status": "notRun"
+      },
+      "relativeTime": "2 giờ trước"
+    },
+    {
+      "id": "review-008",
+      "projectId": "smart-campus-management",
+      "documentTitle": "Sequence Diagram",
+      "version": "v2",
+      "projectName": "Smart Campus Management",
+      "classCode": "SE1701",
+      "groupName": "Group 01",
+      "supervisorStatus": "waiting",
+      "semesterId": "fall-2026",
+      "courseId": "swp391",
+      "classId": "se1701",
+      "ai": {
+        "status": "notRun"
+      },
+      "relativeTime": "2 giờ trước"
+    },
+    {
+      "id": "review-005",
+      "projectId": "dormitory-management-platform",
+      "documentTitle": "Activity Diagram",
+      "version": "v1",
+      "projectName": "Dormitory Management Platform",
+      "classCode": "SE1701",
+      "groupName": "Group 05",
+      "supervisorStatus": "waiting",
+      "semesterId": "fall-2026",
+      "courseId": "swp391",
+      "classId": "se1701",
+      "ai": {
+        "status": "notRun"
+      },
+      "relativeTime": "Hôm qua · 09:00"
+    },
+    {
+      "id": "review-004",
+      "projectId": "campus-service-portal",
+      "documentTitle": "Sequence Diagram",
+      "version": "v2",
+      "projectName": "Campus Service Portal",
+      "classCode": "SE1701",
+      "groupName": "Group 08",
+      "supervisorStatus": "waiting",
+      "semesterId": "fall-2026",
+      "courseId": "swp391",
+      "classId": "se1701",
+      "ai": {
+        "status": "notRun"
+      },
+      "relativeTime": "29/09/2026 · 16:40"
+    },
+    {
+      "id": "review-002",
+      "projectId": "hospital-management-system",
+      "documentTitle": "Sequence Diagram",
+      "version": "v3",
+      "projectName": "Hospital Management System",
+      "classCode": "SE1701",
+      "groupName": "Group 02",
+      "supervisorStatus": "inReview",
+      "semesterId": "fall-2026",
+      "courseId": "swp391",
+      "classId": "se1701",
+      "ai": {
+        "status": "notRun"
+      },
+      "relativeTime": "3 giờ trước"
+    },
+    {
+      "id": "review-006",
+      "projectId": "student-services-portal",
+      "documentTitle": "State Diagram",
+      "version": "v2",
+      "projectName": "Student Services Portal",
+      "classCode": "SE1701",
+      "groupName": "Group 03",
+      "supervisorStatus": "inReview",
+      "semesterId": "fall-2026",
+      "courseId": "swp391",
+      "classId": "se1701",
+      "ai": {
+        "status": "notRun"
+      },
+      "relativeTime": "25 phút trước"
+    },
+    {
+      "id": "review-009",
+      "projectId": "student-services-portal",
+      "documentTitle": "Activity Diagram",
+      "version": "v2",
+      "projectName": "Student Services Portal",
+      "classCode": "SE1701",
+      "groupName": "Group 03",
+      "supervisorStatus": "needsRevision",
+      "semesterId": "fall-2026",
+      "courseId": "swp391",
+      "classId": "se1701",
+      "ai": {
+        "status": "notRun"
+      },
+      "relativeTime": "01/10/2026 · 10:05"
+    },
+    {
+      "id": "review-003",
+      "projectId": "smart-campus-management",
+      "documentTitle": "Use Case Diagram",
+      "version": "v3",
+      "projectName": "Smart Campus Management",
+      "classCode": "SE1701",
+      "groupName": "Group 01",
+      "supervisorStatus": "approved",
+      "semesterId": "fall-2026",
+      "courseId": "swp391",
+      "classId": "se1701",
+      "ai": {
+        "status": "notRun"
+      },
+      "relativeTime": "14/09/2026 · 10:32"
+    },
+    {
+      "id": "review-010",
+      "projectId": "event-management-system",
+      "documentTitle": "Activity Diagram",
+      "version": "v1",
+      "projectName": "Event Management System",
+      "classCode": "SE1701",
+      "groupName": "Group 07",
+      "supervisorStatus": "notAccepted",
+      "semesterId": "fall-2026",
+      "courseId": "swp391",
+      "classId": "se1701",
+      "ai": {
+        "status": "notRun"
+      },
+      "relativeTime": "28/09/2026 · 21:12"
+    },
+    {
+      "id": "review-011",
+      "projectId": "library-booking-system",
+      "documentTitle": "Use Case Diagram",
+      "version": "v1",
+      "projectName": "Library Booking System",
+      "classCode": "SE1702",
+      "groupName": "Group 01",
+      "supervisorStatus": "waiting",
+      "semesterId": "fall-2026",
+      "courseId": "swp391",
+      "classId": "se1702",
+      "ai": {
+        "status": "notRun"
+      },
+      "relativeTime": "Hôm qua · 14:30"
+    },
+    {
+      "id": "review-012",
+      "projectId": "requirement-tracker",
+      "documentTitle": "SRS",
+      "version": "v1",
+      "projectName": "Requirement Tracker",
+      "classCode": "SE1801",
+      "groupName": "Group 01",
+      "supervisorStatus": "waiting",
+      "semesterId": "fall-2026",
+      "courseId": "swr302",
+      "classId": "se1801",
+      "ai": {
+        "status": "notRun"
+      },
+      "relativeTime": "15 phút trước"
+    },
+    {
+      "id": "review-013",
+      "projectId": "clinic-appointment-app",
+      "documentTitle": "Activity Diagram",
+      "version": "v2",
+      "projectName": "Clinic Appointment App",
+      "classCode": "SE1703",
+      "groupName": "Group 01",
+      "supervisorStatus": "waiting",
+      "semesterId": "fall-2026",
+      "courseId": "swp391",
+      "classId": "se1703",
+      "ai": {
+        "status": "notRun"
+      },
+      "relativeTime": "27/09/2026 · 19:45"
+    },
+    {
+      "id": "review-014",
+      "projectId": "canteen-ordering-system",
+      "documentTitle": "SDS",
+      "version": "v2",
+      "projectName": "Canteen Ordering System",
+      "classCode": "SE1650",
+      "groupName": "Group 01",
+      "supervisorStatus": "approved",
+      "semesterId": "summer-2026",
+      "courseId": "prn212",
+      "classId": "se1650",
+      "ai": {
+        "status": "notRun"
+      },
+      "relativeTime": "20/08/2026 · 09:05"
+    },
+    {
+      "id": "review-seed-activity",
+      "projectId": "smart-campus-management",
+      "documentTitle": "Activity Diagram",
+      "version": "v2",
+      "projectName": "Smart Campus Management",
+      "classCode": "SE1701",
+      "groupName": "Group 01",
+      "supervisorStatus": "approved",
+      "semesterId": "fall-2026",
+      "courseId": "swp391",
+      "classId": "se1701",
+      "ai": {
+        "status": "notRun"
+      },
+      "relativeTime": "20/09/2026 · 09:00"
+    },
+    {
+      "id": "review-seed-state",
+      "projectId": "smart-campus-management",
+      "documentTitle": "State Diagram",
+      "version": "v1",
+      "projectName": "Smart Campus Management",
+      "classCode": "SE1701",
+      "groupName": "Group 01",
+      "supervisorStatus": "needsRevision",
+      "semesterId": "fall-2026",
+      "courseId": "swp391",
+      "classId": "se1701",
+      "ai": {
+        "status": "notRun"
+      },
+      "relativeTime": "Hôm qua · 09:00"
+    },
+    {
+      "id": "demo-ready-persona",
+      "projectId": "demo-ready-project",
+      "documentTitle": "Persona",
+      "version": "v2",
+      "projectName": "Project Review AI — Demo",
+      "classCode": "DEMO323",
+      "groupName": "Demo Group",
+      "supervisorStatus": "waiting",
+      "semesterId": "fall-2026",
+      "courseId": "demo-ready-course",
+      "classId": "demo-ready-class",
+      "ai": {
+        "status": "completed",
+        "counts": {
+          "errors": 1,
+          "warnings": 5,
+          "suggestions": 10
+        }
+      },
+      "relativeTime": "14/10/2026 · 09:00"
+    },
+    {
+      "id": "demo-ready-srs",
+      "projectId": "demo-ready-project",
+      "documentTitle": "SRS",
+      "version": "v2",
+      "projectName": "Project Review AI — Demo",
+      "classCode": "DEMO323",
+      "groupName": "Demo Group",
+      "supervisorStatus": "inReview",
+      "semesterId": "fall-2026",
+      "courseId": "demo-ready-course",
+      "classId": "demo-ready-class",
+      "ai": {
+        "status": "completed",
+        "counts": {
+          "errors": 1,
+          "warnings": 2,
+          "suggestions": 5
+        }
+      },
+      "relativeTime": "14/10/2026 · 09:00"
+    },
+    {
+      "id": "demo-ready-ucd",
+      "projectId": "demo-ready-project",
+      "documentTitle": "Use Case Diagram",
+      "version": "v2",
+      "projectName": "Project Review AI — Demo",
+      "classCode": "DEMO323",
+      "groupName": "Demo Group",
+      "supervisorStatus": "approved",
+      "semesterId": "fall-2026",
+      "courseId": "demo-ready-course",
+      "classId": "demo-ready-class",
+      "ai": {
+        "status": "completed",
+        "counts": {
+          "errors": 1,
+          "warnings": 2,
+          "suggestions": 5
+        }
+      },
+      "relativeTime": "14/10/2026 · 09:00"
+    }
+  ],
+  "attention": [
+    {
+      "label": "Quá hạn",
+      "tone": "danger",
+      "title": "Group 07 · Event Management System",
+      "detail": "Quá hạn nộp lại Activity Diagram 2 ngày",
+      "projectId": "event-management-system"
+    },
+    {
+      "label": "Chờ quá lâu",
+      "tone": "rust",
+      "title": "Group 08 · Campus Service Portal",
+      "detail": "Sequence Diagram v2 chờ đánh giá 4 ngày",
+      "projectId": "campus-service-portal"
+    },
+    {
+      "label": "Vừa nộp lại",
+      "tone": "olive",
+      "title": "Group 01 · Smart Campus Management",
+      "detail": "Sequence Diagram v2 đã nộp lại sau phản hồi",
+      "projectId": "smart-campus-management"
+    },
+    {
+      "label": "Chỉnh sửa nhiều lần",
+      "tone": "rust",
+      "title": "Group 03 · Sinh viên Services Portal",
+      "detail": "Activity Diagram đã yêu cầu chỉnh sửa 2 lần",
+      "projectId": "student-services-portal"
+    },
+    {
+      "label": "Sắp đến hạn",
+      "tone": "amber",
+      "title": "Group 05 · Dormitory Management Platform",
+      "detail": "Hạn nộp SRS 08/10 · còn 4 ngày",
+      "projectId": "dormitory-management-platform"
+    }
+  ],
+  "academic": {
+    "courses": 4,
+    "students": 63,
+    "ruleSets": 7
+  }
+}

@@ -39,7 +39,7 @@ before is the opposite of that.
 ```bash
 python3 tools/check_guardrails.py
 cd server && ruff check . && ruff format --check . && pytest
-cd app && dart format . && flutter analyze --fatal-infos && flutter test
+cd desktop && dart format . && flutter analyze --fatal-infos && flutter test
 ```
 
 CI runs exactly these. Install the pre-commit hook once and the guardrails run
@@ -47,7 +47,7 @@ themselves: `./tools/install-hooks.sh`
 
 ## Rules that are not negotiable
 
-1. **No API key or provider URL under `app/`.** The key lives in `server/.env`
+1. **No API key or provider URL under `desktop/`.** The key lives in `server/.env`
    and nowhere else. A leaked key in a public repo is scraped by bots within
    minutes.
 2. **Every issue must carry a verified quote.** Do not add a code path that
@@ -55,7 +55,7 @@ themselves: `./tools/install-hooks.sh`
    pass.
 3. **Changing the wire format touches four things in one PR:**
    `contracts/review.schema.json`, `server/app/schemas.py`,
-   `app/lib/data/models/review_models.dart`, and the contract version in all
+   `desktop/lib/data/models/review_models.dart`, and the contract version in all
    three. The guardrail checks the version; the fixtures check the shape.
 4. **Rubric numbers live in `server/app/rubric.json`.** If you find yourself
    typing `20` or `0.92` into Dart or Python, stop.

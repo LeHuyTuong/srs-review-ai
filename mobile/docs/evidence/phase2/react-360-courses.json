@@ -1,0 +1,107 @@
+[
+  {
+    "kind": "pageHeading",
+    "text": "QUẢN LÝ HỌC VỤ\n\nMôn học",
+    "box": {
+      "x": 20,
+      "y": 69,
+      "width": 320,
+      "height": 58.96875,
+      "top": 69,
+      "right": 340,
+      "bottom": 127.96875,
+      "left": 20
+    }
+  },
+  {
+    "text": "QUẢN LÝ HỌC VỤ\n\nMôn học\nThêm môn học\nSWP391\n— Software Project\nMở đợt học\nChi tiết môn học · Bộ quy tắc\nĐợt giảng dạy (1)\nSWR302\n—",
+    "box": {
+      "x": 20,
+      "y": 69,
+      "width": 320,
+      "height": 1360.21875,
+      "top": 69,
+      "right": 340,
+      "bottom": 1429.21875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Môn học",
+    "box": {
+      "x": 20,
+      "y": 97.296875,
+      "width": 109.171875,
+      "height": 30.671875,
+      "top": 97.296875,
+      "right": 129.171875,
+      "bottom": 127.96875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Thêm môn học",
+    "box": {
+      "x": 20,
+      "y": 143.96875,
+      "width": 160.703125,
+      "height": 48,
+      "top": 143.96875,
+      "right": 180.703125,
+      "bottom": 191.96875,
+      "left": 20
+    }
+  },
+  {
+    "text": "Mở đợt học",
+    "box": {
+      "x": 37,
+      "y": 280.96875,
+      "width": 286,
+      "height": 48,
+      "top": 280.96875,
+      "right": 323,
+      "bottom": 328.96875,
+      "left": 37
+    }
+  },
+  {
+    "text": "Mở đợt học",
+    "box": {
+      "x": 37,
+      "y": 597.71875,
+      "width": 286,
+      "height": 48,
+      "top": 597.71875,
+      "right": 323,
+      "bottom": 645.71875,
+      "left": 37
+    }
+  },
+  {
+    "text": "Mở đợt học",
+    "box": {
+      "x": 37,
+      "y": 914.46875,
+      "width": 286,
+      "height": 48,
+      "top": 914.46875,
+      "right": 323,
+      "bottom": 962.46875,
+      "left": 37
+    }
+  },
+  {
+    "text": "Mở đợt học",
+    "box": {
+      "x": 37,
+      "y": 1231.21875,
+      "width": 286,
+      "height": 48,
+      "top": 1231.21875,
+      "right": 323,
+      "bottom": 1279.21875,
+      "left": 37
+    }
+  }
+]

@@ -1,0 +1,7 @@
+# 10 Sign out
+steps:
+  - account -> sign out
+  - reopen app
+expected:
+  - login screen visible
+  - protected route not accessible

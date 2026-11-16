@@ -20,8 +20,8 @@ Kết quả ban đầu của review: kiến trúc **8/10** (rất tốt), nhưng
 
 | File | Thay đổi |
 |---|---|
-| `app/android/app/src/main/AndroidManifest.xml` | Thêm `uses-permission INTERNET`; thêm `android:networkSecurityConfig` |
-| `app/android/app/src/main/res/xml/network_security_config.xml` | **Mới** — `base-config` chặn cleartext; `domain-config` chỉ mở cho `10.0.2.2`, `localhost`, `127.0.0.1` |
+| `desktop/android/app/src/main/AndroidManifest.xml` | Thêm `uses-permission INTERNET`; thêm `android:networkSecurityConfig` |
+| `desktop/android/app/src/main/res/xml/network_security_config.xml` | **Mới** — `base-config` chặn cleartext; `domain-config` chỉ mở cho `10.0.2.2`, `localhost`, `127.0.0.1` |
 
 **Bug được chứng minh bằng công cụ:** manifest release cũ chỉ có
 `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, **không có `INTERNET`** → APK release không thể gọi mạng.

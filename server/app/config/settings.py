@@ -10,7 +10,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Three levels up: this file lives at server/app/config/settings.py.
@@ -27,6 +27,25 @@ class Settings(BaseSettings):
     )
 
     # --- LLM ---
+    llm_provider: str = "gemini"
+    llm_model: str = ""
+    groq_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("GROQ_API_KEY", "GROQ", "LLM_API_KEY"),
+    )
+    groq_model: str = ""
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    openrouter_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("OPENROUTER_API_KEY", "OPENROUTER"),
+    )
+    openrouter_model: str = ""
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+
+    cloudinary_cloud_name: str = ""
+    cloudinary_api_key: str = ""
+    cloudinary_api_secret: str = ""
+
     # How long a key that answered 429 is parked before it is tried again. The
     # daily free-tier quota resets on Google's own clock, so this is deliberately
     # long: a key that is merely rate-limited comes back on its own much sooner,
@@ -35,7 +54,18 @@ class Settings(BaseSettings):
         default=900.0,
         validation_alias=AliasChoices("PROVIDER_KEY_COOLDOWN_S"),
     )
-    gemini_api_key: str = ""
+    gemini_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("GEMINI_API_KEY", "GOOGLE_API_KEY"),
+    )
+    google_api_key_1: str = ""
+    google_api_key_2: str = ""
+    google_api_key_3: str = ""
+    google_api_key_4: str = ""
+    google_api_key_5: str = ""
+    google_api_key_6: str = ""
+    google_api_key_7: str = ""
+    google_api_key_8: str = ""
 
     # Verified against ai.google.dev on 2026-09-09: the 2.5 series is now
     # legacy. `gemini-3.5-flash-lite` is the current low-cost multimodal model
@@ -58,7 +88,7 @@ class Settings(BaseSettings):
     """When true the proxy answers from server/app/mock/*.json — no network at all.
     This is the demo safety net (research 05, day 3 / AC4)."""
 
-    prompt_version: str = "p5"
+    prompt_version: str = "p6"
     """Part of the cache key: bumping it invalidates cached reviews.
     p2 (2026-09-21): unit-type briefings added to the review user prompt.
     p3 (2026-09-25): the hardcoded evaluation checklist moved OUT of prompt.py
@@ -130,7 +160,23 @@ class Settings(BaseSettings):
     only; without a bound a whole-document blob could ride image_b64 through
     the Vercel 4.5 MB request-body ceiling."""
 
-    # --- App auth (shared token between Flutter app and proxy) ---
+    # --- Firebase Auth ---
+    firebase_project_id: str = Field(
+        default="",
+        validation_alias=AliasChoices("FIREBASE_PROJECT_ID", "GOOGLE_CLOUD_PROJECT"),
+    )
+    remote_config_admin_uids: str = Field(
+        default="",
+        validation_alias=AliasChoices("REMOTE_CONFIG_ADMIN_UIDS"),
+    )
+    database_url: str = Field(default="", validation_alias=AliasChoices("DATABASE_URL"))
+    database_host: str = Field(default="", validation_alias=AliasChoices("DATABASE_HOST"))
+    database_port: int | None = Field(default=None, validation_alias=AliasChoices("DATABASE_PORT"))
+    """Override only the host/port of DATABASE_URL. docker-compose sets
+    DATABASE_HOST=db so the same server/.env works for a venv run (127.0.0.1)
+    and inside the container, without writing the password twice."""
+
+    # --- App auth (legacy shared token for non-review endpoints) ---
     app_token: str = ""
     """Empty => auth disabled (localhost demo). Set it before exposing the proxy.
 
@@ -224,11 +270,45 @@ class Settings(BaseSettings):
         A single key parses to a one-element list, so nothing else has to care
         whether one key or many are configured.
         """
-        return [k for k in self.gemini_api_key.replace(",", " ").split() if k]
+        configured = [self.gemini_api_key]
+        configured.extend(getattr(self, f"google_api_key_{index}") for index in range(1, 9))
+        return [key for value in configured for key in value.replace(",", " ").split() if key]
 
     @property
     def has_llm_credentials(self) -> bool:
+        provider = self.llm_provider.strip().lower()
+        if provider == "groq":
+            return bool(self.groq_api_key and (self.llm_model or self.groq_model))
+        if provider == "openrouter":
+            return bool(self.openrouter_api_key and (self.llm_model or self.openrouter_model))
         return bool(self.gemini_api_keys)
+
+    @property
+    def cloudinary_configured(self) -> bool:
+        return bool(self.cloudinary_cloud_name and self.cloudinary_api_key and self.cloudinary_api_secret)
+
+    @property
+    def cloudinary_partially_configured(self) -> bool:
+        values = (
+            self.cloudinary_cloud_name,
+            self.cloudinary_api_key,
+            self.cloudinary_api_secret,
+        )
+        return any(values) and not all(values)
+
+    @model_validator(mode="after")
+    def _apply_database_host(self) -> Settings:
+        if self.database_url and (self.database_host or self.database_port):
+            from sqlalchemy.engine import make_url
+
+            url = make_url(self.database_url)
+            if self.database_host:
+                url = url.set(host=self.database_host)
+            if self.database_port:
+                url = url.set(port=self.database_port)
+            # str(url) masks the password as ***; render it for real.
+            self.database_url = url.render_as_string(hide_password=False)
+        return self
 
 
 @lru_cache

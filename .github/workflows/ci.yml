@@ -6,9 +6,9 @@ on:
   # make just to see it. `gh workflow run CI` or the Actions tab both work.
   workflow_dispatch:
   push:
-    branches: [main, dev]
+    branches: [main, dev, feat/docker-setup]
   pull_request:
-    branches: [main, dev]
+    branches: [main, dev, feat/docker-setup]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -68,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: app
+        working-directory: desktop
     steps:
       - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
@@ -148,7 +148,7 @@ jobs:
             target: macos
     defaults:
       run:
-        working-directory: app
+        working-directory: desktop
     steps:
       - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2

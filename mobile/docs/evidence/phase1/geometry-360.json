@@ -1,0 +1,34 @@
+{
+  "heading": {
+    "flutterY": 69,
+    "reactY": 69,
+    "deltaY": 0,
+    "flutterHeight": 103,
+    "reactHeight": 103.25,
+    "deltaHeight": -0.25
+  },
+  "stats": {
+    "flutterY": 188,
+    "reactY": 188.25,
+    "deltaY": -0.25,
+    "flutterHeight": 300,
+    "reactHeight": 301.484375,
+    "deltaHeight": -1.484375
+  },
+  "cta": {
+    "flutterY": 504.00000000000006,
+    "reactY": 505.734375,
+    "deltaY": -1.7343749999999432,
+    "flutterHeight": 48,
+    "reactHeight": 48,
+    "deltaHeight": 0
+  },
+  "tasks": {
+    "flutterY": 568,
+    "reactY": 569.734375,
+    "deltaY": -1.734375,
+    "flutterHeight": 626.0000000000001,
+    "reactHeight": 628.53125,
+    "deltaHeight": -2.5312499999998863
+  }
+}

@@ -57,7 +57,7 @@ nguồn (có test đi kèm), nên khi đọc §3 hãy coi chúng là đã đóng
 | **C5 · Review theo lô/section** | ❌ chưa | Cap 40 vẫn kẹp + báo, chưa có chạy theo lô |
 | **D1–D5 · Cấu trúc** | ✅ xong | `WorkspaceUnit` immutable + `copyWith`; `ReviewStage/Progress/Run` và `LoadedDocument` tách sang `data/models/`; màn hình legacy đã xoá |
 
-Test mới: `app/test/business_flow_test.dart` (10 ca) phủ Ask nối dây/giới hạn ngữ cảnh/fallback/không bịa,
+Test mới: `desktop/test/business_flow_test.dart` (10 ca) phủ Ask nối dây/giới hạn ngữ cảnh/fallback/không bịa,
 vòng đời finding qua restart, report có check tất định + caveat ảnh, run chết vẫn lưu, và header auth.
 Tổng bộ: **117 test Flutter**, 40 pytest, 6/6 guardrail.
 
@@ -79,7 +79,7 @@ Mọi nhận định dưới đây đọc trực tiếp từ code, không suy đ
 
 Đã kiểm chứng độc lập bằng ripgrep: `ReviewRepository.ask()` chỉ xuất hiện ở định nghĩa; `isProxyUp()`
 chỉ được gọi trong test; không có header auth nào trong `api_service.dart`; không có `image_b64`
-trong `app/lib`.
+trong `desktop/lib`.
 
 ---
 
@@ -398,6 +398,6 @@ và report in đủ cả bốn con số.
 
 ---
 
-*Tài liệu này chỉ đọc code và đề xuất — không sửa file nào trong `app/` hay `server/`. Mọi khuyến
+*Tài liệu này chỉ đọc code và đề xuất — không sửa file nào trong `desktop/` hay `server/`. Mọi khuyến
 nghị nên thành PR riêng, có test đi kèm, theo đúng quy ước "mỗi PR ≤ 1 milestone-con" trong
 [tech-lead-brief](tech-lead-brief.md) §6.*

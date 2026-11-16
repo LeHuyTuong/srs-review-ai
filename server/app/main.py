@@ -26,14 +26,31 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import FastAPI
+import google.auth.exceptions
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import make_url
 
-from .api import ask, classes, diagram, health, review, submissions, uploads
+from .api import (
+    ask,
+    classes,
+    diagram,
+    documents,
+    health,
+    notifications,
+    remote_config,
+    review,
+    submissions,
+    sync,
+    uploads,
+)
 from .config.criteria import CriteriaStore
 from .config.rubric_store import RubricStore
 from .config.settings import get_settings
 from .contracts.schemas import CONTRACT_VERSION, ReviewResult
+from .core.cloudinary import CloudinaryMediaService
 from .infrastructure.classes import ClassStore
 from .infrastructure.diagram import DiagramResponse
 from .infrastructure.llm.router import build_provider
@@ -41,6 +58,7 @@ from .infrastructure.ratelimit import RateLimiter
 from .infrastructure.share import ShareStore
 from .infrastructure.store import SqliteCache
 from .infrastructure.submissions import SubmissionStore
+from .infrastructure.sync_store import SyncStore
 from .infrastructure.uploads import UploadStore
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -51,6 +69,27 @@ app = FastAPI(
     version=CONTRACT_VERSION,
     description="Reviews one requirement at a time against a configurable rubric.",
 )
+
+
+@app.on_event("startup")
+def _verify_database_connection() -> None:
+    """Fail startup if Compose configured PostgreSQL but it is unreachable."""
+    if not _settings.database_url:
+        return
+    database_url = make_url(_settings.database_url)
+    if database_url.drivername in {"postgres", "postgresql"}:
+        # SQLAlchemy's bare PostgreSQL URL defaults to psycopg2. The backend
+        # installs Psycopg 3, so make that driver choice explicit for local and
+        # externally supplied DATABASE_URL values as well as Compose.
+        database_url = database_url.set(drivername="postgresql+psycopg")
+    engine = create_engine(database_url, pool_pre_ping=True)
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        log.info("PostgreSQL connection established.")
+    finally:
+        engine.dispose()
+
 
 _settings = get_settings()
 app.add_middleware(
@@ -81,10 +120,17 @@ _diagram_cache: SqliteCache[DiagramResponse] = SqliteCache(
 )
 _limiter = RateLimiter()
 
+_cloudinary_uploader = None
+if _settings.cloudinary_configured:
+    _cloudinary_uploader = CloudinaryMediaService(_settings)
+elif _settings.cloudinary_partially_configured:
+    log.warning("Cloudinary upload is disabled because one or more credentials are missing.")
+
 _upload_store = UploadStore(
     _settings.upload_dir,
     _settings.max_upload_bytes,
     _settings.app_token,
+    cloudinary_uploader=_cloudinary_uploader,
 )
 
 _share_store = ShareStore(_settings.share_dir)
@@ -93,6 +139,11 @@ _submission_store = SubmissionStore(_settings.submission_dir, _settings.submissi
 # Class rosters (plan 12 WP2, ADR-0017). One file per class; membership lives
 # on the submission rows, so this store owns only the class's own fields.
 _class_store = ClassStore(_settings.class_dir)
+
+# Offline sync log of the mobile app (record-level LWW per Firebase uid). Its
+# own sqlite file: the review cache is LRU-pruned, and a pruned sync row would
+# be a teacher's edit silently lost.
+_sync_store = SyncStore(_settings.cache_dir / "sync.sqlite3")
 
 # Submission records (plan 9, P2). A group uploads through /uploads/presign,
 # then names the blob here so the review that follows is addressable by one
@@ -109,16 +160,38 @@ _criteria = CriteriaStore(_settings.cache_dir / "criteria.sqlite3")
 # quietly roll back is not an editable scale.
 _rubric = RubricStore(_settings.cache_dir / "rubric.sqlite3")
 
+
+@app.exception_handler(google.auth.exceptions.DefaultCredentialsError)
+async def _firebase_not_configured(_: Request, exc: Exception) -> JSONResponse:
+    """No service account on this server: a config gap, not a crash (11/11/2026).
+
+    Measured on local Docker: a student submission paged teachers through
+    POST /notifications/submission and got a bare 500 + traceback, because the
+    compose override mounts no firebase-admin.json. The client cannot tell that
+    from a bug; 503 with a reason it can show is the honest answer.
+    """
+    log.warning("firebase admin credentials missing: %s", exc)
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "Firebase Admin is not configured on this server (no service account)."},
+    )
+
+
 app.include_router(health.router)
 app.include_router(health.config_router)
+app.include_router(remote_config.router)
+app.include_router(notifications.router)
+app.include_router(notifications.student_router)
 app.include_router(review.router)
 app.include_router(ask.router)
 app.include_router(diagram.router)
 app.include_router(diagram.documents_router)
+app.include_router(documents.router)
 app.include_router(uploads.router)
 app.include_router(uploads.share_router)
 app.include_router(submissions.router)
 app.include_router(classes.router)
+app.include_router(sync.router)
 
 __all__ = [
     "CONTRACT_VERSION",

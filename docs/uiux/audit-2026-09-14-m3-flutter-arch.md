@@ -1,7 +1,7 @@
 # UI/UX Review — Material 3 & Flutter Architecture Guide
 
 **Ngày:** 2026-09-14  
-**Scope:** `app/` (Flutter) — so sánh bản **desktop** và **mobile** (web) của `srs-review-ai`  
+**Scope:** `desktop/` (Flutter) — so sánh bản **desktop** và **mobile** (web) của `srs-review-ai`  
 **Nguồn tham khảo:** [m3.material.io](https://m3.material.io/) · [Flutter App Architecture Guide](https://docs.flutter.dev/app-architecture/guide)  
 **Cách đo:** Đọc source code (1161-dòng `workspace_shell.dart`, 1336-dòng `workspace_view_model.dart`, 7 file view, 3 file theme, 3 file layout) + audit trước (`audit-2026-09-11.md`) + 6 ADR.
 
@@ -270,7 +270,7 @@ M3 type scale có 13 cấp độ (`displayLarge` → `labelSmall`) với tỉ l�
 ### P1 — M3 design compliance
 
 5. **Dùng M3 NavigationBar/NavigationRail**: Thay `_GlassTabBar` bằng `NavigationBar` (M3 component) với `backgroundColor: glass`, `indicatorColor: brand.tint`. Thay `_Sidebar` bằng `NavigationRail`. Điều này giữ được cái đẹp glass nhưng dùng semantic structure M3.
-6. ✅ **Tối ưu typography**: `AppType` (semantic layer 2, `app_theme.dart`): `micro=10 / dense=11 / button=13`. Toàn bộ literal `fontSize: 8|9|9.5|10|10.5` trong `features/` đã thay bằng alias — `grep "fontSize: [0-9]" app/lib/features/` = 0. Không tạo extension TextTheme riêng vì các call-site này là override trên role có sẵn (`labelSmall.copyWith`), alias cỡ số là đủ để đổi-tỷ-lệ-một-chỗ.
+6. ✅ **Tối ưu typography**: `AppType` (semantic layer 2, `app_theme.dart`): `micro=10 / dense=11 / button=13`. Toàn bộ literal `fontSize: 8|9|9.5|10|10.5` trong `features/` đã thay bằng alias — `grep "fontSize: [0-9]" desktop/lib/features/` = 0. Không tạo extension TextTheme riêng vì các call-site này là override trên role có sẵn (`labelSmall.copyWith`), alias cỡ số là đủ để đổi-tỷ-lệ-một-chỗ.
 7. **Dynamic color**: Cho phép `dynamicColorBuilder` ở Android 12+. Nếu không, ít nhất dùng `ColorScheme.fromSeed(seed)` thay vì custom `WorkspaceColors` hoàn toàn.
 
 ### P2 — Architecture cleanup

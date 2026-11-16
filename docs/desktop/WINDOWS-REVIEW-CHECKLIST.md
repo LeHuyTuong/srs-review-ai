@@ -75,7 +75,7 @@ tagging the desktop release.
 
 ## 6. Shortcut bindings resolve to `control`, never `meta`
 
-`AppPlatform.usesCommandKey` (`app/lib/core/platform/app_platform.dart`) is the
+`AppPlatform.usesCommandKey` (`desktop/lib/core/platform/app_platform.dart`) is the
 single decision point. On Windows it must be `false`.
 
 - [ ] `buildWorkspaceShortcuts()` produces activators with `control: true`

@@ -309,6 +309,29 @@ def test_quotes_keep_section_numbers_intact(client):
     assert not any(quote.startswith("2 ") for quote in quotes)
 
 
+def test_review_accepts_desktop_app_token():
+    settings = Settings(mock_mode=True, gemini_api_key="", app_token="secret_token_123")
+    app.dependency_overrides[get_settings] = lambda: settings
+    with TestClient(app) as c:
+        # 1. Matching app token succeeds
+        res = c.post(
+            "/review",
+            json=VAGUE,
+            headers={"X-App-Token": "secret_token_123", "X-User-Id": "desktop-user-1"},
+        )
+        assert res.status_code == 200
+        assert res.json()["requirement_id"] == "FR-03"
+
+        # 2. Invalid app token fails 401
+        res_bad = c.post(
+            "/review",
+            json=VAGUE,
+            headers={"X-App-Token": "wrong_token"},
+        )
+        assert res_bad.status_code == 401
+    app.dependency_overrides.clear()
+
+
 def test_rate_limit_returns_429():
     app.dependency_overrides[get_settings] = lambda: Settings(
         mock_mode=True, gemini_api_key="", rate_limit_per_day=1
@@ -347,9 +370,11 @@ def test_app_token_is_enforced_when_configured():
     app.dependency_overrides[get_settings] = lambda: Settings(
         mock_mode=True, gemini_api_key="", app_token="s3cret"
     )
+    # /review now authenticates with a Firebase ID token (239079c); the app
+    # token still guards the config routes.
     with TestClient(app) as c:
-        assert c.post("/review", json=VAGUE).status_code == 401
-        ok = c.post("/review", json=VAGUE, headers={"X-App-Token": "s3cret"})
+        assert c.get("/criteria").status_code == 401
+        ok = c.get("/criteria", headers={"X-App-Token": "s3cret"})
         assert ok.status_code == 200
     app.dependency_overrides.clear()
 

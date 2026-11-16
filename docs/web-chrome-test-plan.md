@@ -27,7 +27,7 @@ E2E slice of the critical user journey (pick → parse → inventory → review)
 
 ## Existing Code
 
-- `app/web/` platform already present; `AppConfig` is `kIsWeb`-aware, no
+- `desktop/web/` platform already present; `AppConfig` is `kIsWeb`-aware, no
   `dart:io` outside a comment.
 - Import pipeline is byte-based and web-portable: `DocumentRepository.pickAndParse()`
   → `FilePickerService` (file_picker 12.x, bytes via `readAsBytes`) →
@@ -77,10 +77,10 @@ E2E slice of the critical user journey (pick → parse → inventory → review)
 
 ## Files / Modules Affected
 
-- `app/lib/main.dart` (+3 lines, semantics hook)
-- `app/tool/web_smoke.py` (new, verification script)
-- `app/build/web/**` (build output, not committed)
-- Possibly `app/lib/data/services/file_picker_service.dart` if a web quirk
+- `desktop/lib/main.dart` (+3 lines, semantics hook)
+- `desktop/tool/web_smoke.py` (new, verification script)
+- `desktop/build/web/**` (build output, not committed)
+- Possibly `desktop/lib/data/services/file_picker_service.dart` if a web quirk
   surfaces (lengthSync).
 
 ## Risks

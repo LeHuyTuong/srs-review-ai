@@ -222,3 +222,54 @@ async def test_a_model_cooldown_still_stops_a_healthy_key():
     pacer.penalize("m", 5.0, service_wide=True)
     with pytest.raises(asyncio.TimeoutError):
         await asyncio.wait_for(pacer.acquire("m", bucket="k1"), timeout=0.3)
+
+
+def _forbidden() -> httpx.Response:
+    # Measured 2026-11-10 on two of the six configured keys: valid on
+    # GET /models, refused on generateContent because the project has no
+    # free tier. It is that key's project talking, not the request.
+    return httpx.Response(
+        403,
+        json={
+            "error": {
+                "code": 403,
+                "status": "PERMISSION_DENIED",
+                "message": "The Gemini API free tier is not available for this project.",
+            }
+        },
+    )
+
+
+async def test_403_on_one_key_rotates_and_parks_it_for_later_calls():
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        key = request.headers["x-goog-api-key"]
+        seen.append(key)
+        return _forbidden() if key == "f1" else _ok()
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        for _ in range(3):
+            provider = GeminiProvider(_settings(gemini_api_key="f1,f2"), client=http)
+            data, _ = await provider.generate_json(system="s", user="u", schema=SCHEMA)
+            assert data == {"score": 7}
+
+    assert seen == ["f1", "f2", "f2", "f2"]
+
+
+async def test_403_with_a_single_key_still_fails_fast():
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return _forbidden()
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        provider = GeminiProvider(_settings(gemini_api_key="lone"), client=http)
+        with pytest.raises(LlmError) as exc:
+            await provider.generate_json(system="s", user="u", schema=SCHEMA)
+
+    assert exc.value.status == 403
+    assert not exc.value.retryable
+    assert calls == 1

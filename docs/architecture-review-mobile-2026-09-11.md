@@ -32,7 +32,7 @@ nền tảng, không phải refactor kiến trúc.**
 ## 1. Kiến trúc hiện tại
 
 ```
-app/lib/
+desktop/lib/
 ├── main.dart                      # ProviderScope + override SharedPreferences
 ├── core/                          # hạ tầng dùng chung, không phụ thuộc feature
 │   ├── app_config.dart            # --dart-define, KHÔNG chứa secret
@@ -178,7 +178,7 @@ thực thi* (không phải về pattern):
 #### P0-1. Không có thư mục `ios/` → không build được cho iPhone — *đã quyết định: bỏ qua*
 
 ```
-$ ls -d app/*/  →  android/ assets/ build/ lib/ macos/ test/ tool/ web/ windows/
+$ ls -d desktop/*/  →  android/ assets/ build/ lib/ macos/ test/ tool/ web/ windows/
 ```
 **Không có `ios/`.** README ghi mục tiêu là *"Android + Windows"*, nên đây là quyết định có chủ đích.
 
@@ -186,7 +186,7 @@ $ ls -d app/*/  →  android/ assets/ build/ lib/ macos/ test/ tool/ web/ window
 APK Android**. Không hành động. Khi nào cần iOS thì:
 
 ```sh
-cd app && flutter create --platforms=ios .
+cd desktop && flutter create --platforms=ios .
 ```
 Sau đó thêm `NSAppTransportSecurity` cho phép HTTP cleartext ở môi trường dev (tương đương P0-3),
 và khai báo `NSPhotoLibraryUsageDescription`/`UIFileSharingEnabled` nếu dùng file picker.
@@ -400,8 +400,8 @@ Không sửa một dòng Dart nào cho phần này.
 
 | File | Thay đổi |
 |---|---|
-| `app/android/app/src/main/AndroidManifest.xml` | Thêm `<uses-permission android:name="android.permission.INTERNET"/>`; thêm `android:networkSecurityConfig="@xml/network_security_config"` vào `<application>` |
-| `app/android/app/src/main/res/xml/network_security_config.xml` | **Mới.** `base-config` chặn cleartext; `domain-config` cho phép cleartext với `10.0.2.2`, `localhost`, `127.0.0.1` |
+| `desktop/android/app/src/main/AndroidManifest.xml` | Thêm `<uses-permission android:name="android.permission.INTERNET"/>`; thêm `android:networkSecurityConfig="@xml/network_security_config"` vào `<application>` |
+| `desktop/android/app/src/main/res/xml/network_security_config.xml` | **Mới.** `base-config` chặn cleartext; `domain-config` cho phép cleartext với `10.0.2.2`, `localhost`, `127.0.0.1` |
 
 **Trước khi sửa:** manifest release đã merge chỉ chứa `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`,
 không có `INTERNET` → APK release không thể gọi mạng. Đây là bằng chứng bug, không phải suy đoán.
@@ -432,7 +432,7 @@ phải dùng `Isolate.spawn` + `SendPort` thay cho `compute` — thêm ~40 dòng
 | `flutter analyze` | `No issues found!` |
 | `flutter test` | **107/107 pass** (103 cũ + 4 mới cho `ParseService`) |
 | `tools/check_guardrails.py` | `All guardrails passed across 156 files` — gồm luật `view-no-repositories` mới |
-| `flutter build apk --release` | `✓ Built build/app/outputs/flutter-apk/app-release.apk` |
+| `flutter build apk --release` | `✓ Built build/desktop/outputs/flutter-apk/app-release.apk` |
 | `flutter build web --release --no-web-resources-cdn` | `✓ Built build/web` |
 | `aapt2 dump xmltree` — manifest release | `uses-permission android:name="android.permission.INTERNET"` ✓ |
 | `aapt2 dump xmltree --file res/8G.xml` | `base-config cleartextTrafficPermitted=false` + 3 domain dev ✓ |

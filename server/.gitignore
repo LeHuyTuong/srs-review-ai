@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+firebase-admin.json
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.cache/
+.uploads/
+.pytest_temp/

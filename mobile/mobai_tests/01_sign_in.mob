@@ -1,0 +1,9 @@
+# 01 Sign-In
+precondition: app freshly installed, no signed-in user
+steps:
+  - open app
+  - tap login.google
+  - choose test Google account
+expected:
+  - dashboard.greeting visible
+  - profile.name equals test account display name
